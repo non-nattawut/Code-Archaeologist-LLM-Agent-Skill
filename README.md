@@ -46,38 +46,44 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
 
 ## Installation
 
-Clone the repo, then run the installer for your platform.
+### Recommended: `npx` (no clone required)
 
-**Windows (PowerShell):**
+From the root of the project you want to document, run:
+
+```bash
+npx code-archaeologist-skill            # install the skill into ./.agents/skills/code-wiki
+npx code-archaeologist-skill --self-test  # install + build the bundled demo to verify
+```
+
+Useful flags:
+
+| Flag | Description |
+| --- | --- |
+| `--target <dir>` | Install into `<dir>` instead of the current directory |
+| `--self-test` | After installing, build the bundled `sample_src/` demo end to end |
+| `--force` | Overwrite an existing `data/` workspace (default: keep it) |
+| `--help` | Show usage |
+
+The CLI verifies Python 3.10+, copies `SKILL.md`, `scripts/`, and `templates/` into
+`<target>/.agents/skills/code-wiki`, and creates a fresh empty `data/` workspace. It has **no npm
+dependencies** (Node ≥ 16.7, built-ins only) — the skill itself still runs on Python.
+
+### Alternative: shell installers (no Node.js)
+
+Clone the repo and run the installer for your platform:
+
 ```powershell
+# Windows (PowerShell)
 git clone https://github.com/non-nattawut/Code-Archaeologist-LLM-Agent-Skill.git
 cd Code-Archaeologist-LLM-Agent-Skill
-.\install.ps1 -SelfTest
+.\install.ps1 -SelfTest                 # or: .\install.ps1 -Target C:\work\my-service
 ```
-
-**macOS / Linux (bash):**
 ```bash
+# macOS / Linux (bash)
 git clone https://github.com/non-nattawut/Code-Archaeologist-LLM-Agent-Skill.git
 cd Code-Archaeologist-LLM-Agent-Skill
-./install.sh --self-test
+./install.sh --self-test                # or: ./install.sh --target /work/my-service
 ```
-
-The installer verifies Python 3.10+ and (with `--self-test` / `-SelfTest`) builds the bundled
-`sample_src/` demo end to end.
-
-### Install into another project
-
-To use the skill on your own codebase, copy it into that project's `.agents/skills/` folder:
-
-```powershell
-.\install.ps1 -Target C:\work\my-service      # Windows
-```
-```bash
-./install.sh --target /work/my-service         # macOS / Linux
-```
-
-This copies the scripts, `SKILL.md`, and templates, and creates a fresh empty `data/` workspace
-(the demo vault is not carried over).
 
 ## Usage
 
@@ -153,7 +159,9 @@ The agent then reads only `data/vault/OrderController.md`, `OrderService.md`, an
 │   └── vault/                   # generated Markdown notes (Obsidian-compatible)
 └── templates/
     └── wiki_page_template.md    # page structure for generated entities
-install.ps1 / install.sh         # installers (verify Python, install, self-test)
+bin/cli.js                       # npx installer (node, zero deps)
+package.json                     # npm package metadata
+install.ps1 / install.sh         # shell installers (verify Python, install, self-test)
 sample_src/                      # demo controller/service/repository/client trio
 ```
 

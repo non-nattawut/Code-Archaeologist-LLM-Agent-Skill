@@ -1,0 +1,42 @@
+{
+  "name": "code-archaeologist-skill",
+  "version": "0.1.0",
+  "description": "Zero-RAG codebase documentation engine, packaged as an agent skill: AST scan -> Markdown wiki + dependency graph, with flow tracing, blast-radius analysis, and a standalone graph viewer.",
+  "bin": {
+    "code-archaeologist": "bin/cli.js"
+  },
+  "files": [
+    "bin/",
+    ".agents/",
+    "sample_src/",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "llm",
+    "agent",
+    "skill",
+    "claude",
+    "codebase",
+    "documentation",
+    "code-wiki",
+    "dependency-graph",
+    "zero-rag",
+    "ast",
+    "obsidian",
+    "wikilinks"
+  ],
+  "author": "Nattawut Rodthong",
+  "license": "MIT",
+  "homepage": "https://github.com/non-nattawut/Code-Archaeologist-LLM-Agent-Skill#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/non-nattawut/Code-Archaeologist-LLM-Agent-Skill.git"
+  },
+  "bugs": {
+    "url": "https://github.com/non-nattawut/Code-Archaeologist-LLM-Agent-Skill/issues"
+  },
+  "engines": {
+    "node": ">=16.7.0"
+  }
+}
