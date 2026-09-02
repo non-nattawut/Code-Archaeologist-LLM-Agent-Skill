@@ -51,22 +51,39 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
 From the root of the project you want to document, run:
 
 ```bash
-npx code-archaeologist-skill            # install the skill into ./.agents/skills/code-wiki
-npx code-archaeologist-skill --self-test  # install + build the bundled demo to verify
+npx code-archaeologist-skill               # interactive: pick a harness
+npx code-archaeologist-skill --harness claude   # install into .claude/skills/code-wiki
+npx code-archaeologist-skill --self-test        # install + build the demo to verify
 ```
+
+Run without a flag in a terminal and you'll be prompted to choose where the skill goes.
+
+**Supported harnesses** (pick with `--harness <name>`):
+
+| Harness | Installs to |
+| --- | --- |
+| `agents` (default) | `.agents/skills/code-wiki` |
+| `claude` | `.claude/skills/code-wiki` |
+| `cursor` | `.cursor/skills/code-wiki` |
+| `windsurf` | `.windsurf/skills/code-wiki` |
+| `zed` | `.zed/skills/code-wiki` |
+
+Anything else? Use `--dir <path>` for a fully custom location.
 
 Useful flags:
 
 | Flag | Description |
 | --- | --- |
-| `--target <dir>` | Install into `<dir>` instead of the current directory |
+| `--harness <name>` | Target harness (see table above) |
+| `--dir <path>` | Custom install path (overrides `--harness`) |
+| `--target <dir>` | Project root to install into (default: current directory) |
 | `--self-test` | After installing, build the bundled `sample_src/` demo end to end |
 | `--force` | Overwrite an existing `data/` workspace (default: keep it) |
 | `--help` | Show usage |
 
-The CLI verifies Python 3.10+, copies `SKILL.md`, `scripts/`, and `templates/` into
-`<target>/.agents/skills/code-wiki`, and creates a fresh empty `data/` workspace. It has **no npm
-dependencies** (Node ≥ 16.7, built-ins only) — the skill itself still runs on Python.
+The CLI verifies Python 3.10+, copies `SKILL.md`, `scripts/`, and `templates/` into the chosen
+harness folder, and creates a fresh empty `data/` workspace. It has **no npm dependencies**
+(Node ≥ 16.7, built-ins only) — the skill itself still runs on Python.
 
 ### Alternative: shell installers (no Node.js)
 
@@ -76,14 +93,17 @@ Clone the repo and run the installer for your platform:
 # Windows (PowerShell)
 git clone https://github.com/non-nattawut/Code-Archaeologist-LLM-Agent-Skill.git
 cd Code-Archaeologist-LLM-Agent-Skill
-.\install.ps1 -SelfTest                 # or: .\install.ps1 -Target C:\work\my-service
+.\install.ps1 -SelfTest                 # or: .\install.ps1 -Target C:\work\my-service -Harness claude
 ```
 ```bash
 # macOS / Linux (bash)
 git clone https://github.com/non-nattawut/Code-Archaeologist-LLM-Agent-Skill.git
 cd Code-Archaeologist-LLM-Agent-Skill
-./install.sh --self-test                # or: ./install.sh --target /work/my-service
+./install.sh --self-test                # or: ./install.sh --target /work/my-service --harness claude
 ```
+
+Both shell installers accept the same harnesses (`--harness` / `-Harness`) and a custom
+`--dir` / `-Dir` path as the `npx` CLI.
 
 ## Usage
 

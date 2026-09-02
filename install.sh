@@ -8,24 +8,53 @@
 #   3. Optionally run a self-test that builds the bundled sample_src demo.
 #
 # Usage:
-#   ./install.sh                     # verify Python only
-#   ./install.sh --self-test         # build the bundled sample_src demo
-#   ./install.sh --target <path>     # install skill into another project
+#   ./install.sh                              # verify Python only
+#   ./install.sh --self-test                  # build the bundled sample_src demo
+#   ./install.sh --target <path>              # install into a project (harness: agents)
+#   ./install.sh --target <path> --harness claude
+#   ./install.sh --target <path> --dir .myagent/skills/code-wiki
+#
+# Harness: agents (default), claude, cursor, windsurf, zed. --dir overrides it.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_SRC="$REPO_ROOT/.agents/skills/code-wiki"
 
+harness_dir() {
+  case "$1" in
+    agents)   echo ".agents/skills/code-wiki" ;;
+    claude)   echo ".claude/skills/code-wiki" ;;
+    cursor)   echo ".cursor/skills/code-wiki" ;;
+    windsurf) echo ".windsurf/skills/code-wiki" ;;
+    zed)      echo ".zed/skills/code-wiki" ;;
+    *)        echo "" ;;
+  esac
+}
+
 TARGET=""
+HARNESS="agents"
+DIR=""
 SELF_TEST=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --target) TARGET="$2"; shift 2 ;;
+    --harness) HARNESS="$2"; shift 2 ;;
+    --dir) DIR="$2"; shift 2 ;;
     --self-test) SELF_TEST=1; shift ;;
     -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
 done
+
+if [ -n "$DIR" ]; then
+  SKILL_SUBDIR="$DIR"
+else
+  SKILL_SUBDIR="$(harness_dir "$HARNESS")"
+  if [ -z "$SKILL_SUBDIR" ]; then
+    echo "ERROR: unknown harness '$HARNESS'. Valid: agents, claude, cursor, windsurf, zed (or use --dir)." >&2
+    exit 2
+  fi
+fi
 
 echo "Code Archaeologist -- skill installer"
 
@@ -46,7 +75,7 @@ echo "OK   Python $("$PY" -c 'import sys;print("%d.%d"%sys.version_info[:2])') f
 
 # --- Optional: install into a target project ---
 if [ -n "$TARGET" ]; then
-  DEST="$TARGET/.agents/skills/code-wiki"
+  DEST="$TARGET/$SKILL_SUBDIR"
   echo "Installing skill into $DEST ..."
   mkdir -p "$DEST/data/vault"
   cp -R "$SKILL_SRC/scripts" "$DEST/"
@@ -59,9 +88,9 @@ if [ -n "$TARGET" ]; then
   echo "OK   Skill installed."
   echo
   echo "Next steps (from $TARGET):"
-  echo "  $PY .agents/skills/code-wiki/scripts/build_wiki.py --src ./src"
-  echo "  $PY .agents/skills/code-wiki/scripts/build_graph.py"
-  echo "  $PY .agents/skills/code-wiki/scripts/build_html.py"
+  echo "  $PY $SKILL_SUBDIR/scripts/build_wiki.py --src ./src"
+  echo "  $PY $SKILL_SUBDIR/scripts/build_graph.py"
+  echo "  $PY $SKILL_SUBDIR/scripts/build_html.py"
 fi
 
 # --- Optional: self-test on bundled sample ---
@@ -78,5 +107,5 @@ fi
 if [ -z "$TARGET" ] && [ "$SELF_TEST" -eq 0 ]; then
   echo
   echo "Skill is ready to use in place. Try:  ./install.sh --self-test"
-  echo "Or install into another project:      ./install.sh --target <path>"
+  echo "Install into a project + harness:     ./install.sh --target <path> --harness claude"
 fi

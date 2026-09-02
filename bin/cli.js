@@ -2,32 +2,54 @@
 /**
  * code-archaeologist — installer CLI for the code-wiki agent skill.
  *
- * Copies the skill into a project's .agents/skills/code-wiki folder, verifies a
+ * Installs the skill into the harness folder of your choice
+ * (.agents, .claude, .cursor, .windsurf, .zed, or a custom path), verifies a
  * compatible Python is available, and can run an end-to-end self-test on the
  * bundled sample_src demo. Zero npm dependencies (Node built-ins only).
  *
- *   npx code-archaeologist-skill                 # install into the current project
- *   npx code-archaeologist-skill --target <dir>  # install into <dir>
- *   npx code-archaeologist-skill --self-test     # install + build the demo
+ *   npx code-archaeologist-skill                      # interactive: pick a harness
+ *   npx code-archaeologist-skill --harness claude     # install into .claude/skills/code-wiki
+ *   npx code-archaeologist-skill --dir .foo/skills/cw # install into a custom path
+ *   npx code-archaeologist-skill --self-test
  *   npx code-archaeologist-skill --help
  */
 "use strict";
 
 const fs = require("fs");
 const path = require("path");
+const readline = require("readline");
 const { spawnSync } = require("child_process");
 
 const PKG_ROOT = path.resolve(__dirname, "..");
 const SKILL_SRC = path.join(PKG_ROOT, ".agents", "skills", "code-wiki");
 const SAMPLE_SRC = path.join(PKG_ROOT, "sample_src");
-const REL_SKILL = path.join(".agents", "skills", "code-wiki");
+
+// Known agent harnesses -> where the skill folder lives, relative to a project.
+// Add your own with --dir <path>.
+const HARNESSES = {
+  agents:   { label: "Agents (.agents)", dir: ".agents/skills/code-wiki" },
+  claude:   { label: "Claude Code",      dir: ".claude/skills/code-wiki" },
+  cursor:   { label: "Cursor",           dir: ".cursor/skills/code-wiki" },
+  windsurf: { label: "Windsurf",         dir: ".windsurf/skills/code-wiki" },
+  zed:      { label: "Zed",              dir: ".zed/skills/code-wiki" },
+};
+const DEFAULT_HARNESS = "agents";
 
 // ---- tiny arg parser ---------------------------------------------------------
 function parseArgs(argv) {
-  const opts = { target: process.cwd(), selfTest: false, force: false, help: false };
+  const opts = {
+    target: process.cwd(),
+    harness: null,
+    dir: null,
+    selfTest: false,
+    force: false,
+    help: false,
+  };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--target" || a === "-t") opts.target = path.resolve(argv[++i]);
+    else if (a === "--harness") opts.harness = String(argv[++i] || "").toLowerCase();
+    else if (a === "--dir" || a === "-d") opts.dir = argv[++i];
     else if (a === "--self-test") opts.selfTest = true;
     else if (a === "--force" || a === "-f") opts.force = true;
     else if (a === "--help" || a === "-h") opts.help = true;
@@ -45,16 +67,67 @@ Usage:
   npx code-archaeologist-skill [options]
 
 Options:
-  -t, --target <dir>   Project to install into (default: current directory)
+  --harness <name>     Target harness: ${Object.keys(HARNESSES).join(", ")}
+  -d, --dir <path>     Custom install path (relative to --target or absolute);
+                       overrides --harness
+  -t, --target <dir>   Project root to install into (default: current directory)
       --self-test      After installing, build the bundled sample_src demo
   -f, --force          Overwrite an existing data/ workspace (default: keep it)
   -h, --help           Show this help
 
-What it installs (into <target>/${REL_SKILL}):
-  SKILL.md, scripts/, templates/, and a fresh data/ workspace.
+If neither --harness nor --dir is given and you're in a terminal, you'll be
+prompted to choose a harness. Non-interactively it defaults to "${DEFAULT_HARNESS}".
+
+Harness folders:
+${Object.entries(HARNESSES).map(([k, v]) => `  ${k.padEnd(9)} -> ${v.dir}`).join("\n")}
 `;
 
 // ---- helpers -----------------------------------------------------------------
+function ask(question) {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolve) => rl.question(question, (a) => { rl.close(); resolve(a); }));
+}
+
+async function chooseInstallDir(opts) {
+  // Explicit custom path wins.
+  if (opts.dir) return opts.dir;
+
+  // Explicit harness name.
+  if (opts.harness) {
+    if (!HARNESSES[opts.harness]) {
+      console.error(`ERROR: unknown harness "${opts.harness}". Valid: ${Object.keys(HARNESSES).join(", ")} (or use --dir).`);
+      process.exit(2);
+    }
+    return HARNESSES[opts.harness].dir;
+  }
+
+  // Non-interactive: fall back to the default harness.
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    console.log(`No --harness/--dir given; defaulting to "${DEFAULT_HARNESS}" (${HARNESSES[DEFAULT_HARNESS].dir}).`);
+    return HARNESSES[DEFAULT_HARNESS].dir;
+  }
+
+  // Interactive menu.
+  const keys = Object.keys(HARNESSES);
+  console.log("Where should the skill be installed?\n");
+  keys.forEach((k, i) => {
+    console.log(`  ${i + 1}) ${HARNESSES[k].label.padEnd(18)} ${HARNESSES[k].dir}`);
+  });
+  console.log(`  ${keys.length + 1}) Custom path…`);
+  const raw = (await ask(`\nChoose [1-${keys.length + 1}] (default 1 - ${DEFAULT_HARNESS}): `)).trim();
+
+  if (!raw) return HARNESSES[DEFAULT_HARNESS].dir;
+  if (HARNESSES[raw.toLowerCase()]) return HARNESSES[raw.toLowerCase()].dir; // typed a name
+  const n = parseInt(raw, 10);
+  if (n >= 1 && n <= keys.length) return HARNESSES[keys[n - 1]].dir;
+  if (n === keys.length + 1) {
+    const p = (await ask("Enter path relative to project root (e.g. .myagent/skills/code-wiki): ")).trim();
+    return p || HARNESSES[DEFAULT_HARNESS].dir;
+  }
+  console.log(`Unrecognized choice; defaulting to "${DEFAULT_HARNESS}".`);
+  return HARNESSES[DEFAULT_HARNESS].dir;
+}
+
 function findPython() {
   for (const exe of ["python3", "python", "py"]) {
     const r = spawnSync(exe, ["-c", "import sys;print('%d.%d'%sys.version_info[:2])"], {
@@ -85,7 +158,7 @@ function seedDataDir(dataDir, force) {
 }
 
 // ---- main --------------------------------------------------------------------
-function main() {
+async function main() {
   const opts = parseArgs(process.argv.slice(2));
   if (opts.help) {
     process.stdout.write(HELP);
@@ -107,8 +180,11 @@ function main() {
     return 1;
   }
 
-  const dest = path.join(opts.target, REL_SKILL);
-  console.log(`Installing skill into ${dest} ...`);
+  const subdir = await chooseInstallDir(opts);
+  const relPosix = subdir.split(path.sep).join("/");
+  const dest = path.isAbsolute(subdir) ? subdir : path.join(opts.target, subdir);
+
+  console.log(`\nInstalling skill into ${dest} ...`);
   fs.mkdirSync(dest, { recursive: true });
   copyDir(path.join(SKILL_SRC, "scripts"), path.join(dest, "scripts"));
   copyDir(path.join(SKILL_SRC, "templates"), path.join(dest, "templates"));
@@ -135,11 +211,14 @@ function main() {
   }
 
   console.log("Next steps (from your project root):");
-  console.log(`  ${py.exe} ${REL_SKILL.split(path.sep).join("/")}/scripts/build_wiki.py --src ./src`);
-  console.log(`  ${py.exe} ${REL_SKILL.split(path.sep).join("/")}/scripts/build_graph.py`);
-  console.log(`  ${py.exe} ${REL_SKILL.split(path.sep).join("/")}/scripts/build_html.py`);
+  console.log(`  ${py.exe} ${relPosix}/scripts/build_wiki.py --src ./src`);
+  console.log(`  ${py.exe} ${relPosix}/scripts/build_graph.py`);
+  console.log(`  ${py.exe} ${relPosix}/scripts/build_html.py`);
   console.log("\nTip: add --self-test to build the bundled demo now.");
   return 0;
 }
 
-process.exit(main());
+main().then((code) => process.exit(code)).catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

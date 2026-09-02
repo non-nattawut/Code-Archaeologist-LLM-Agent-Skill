@@ -11,25 +11,45 @@
 
 .PARAMETER Target
     Path to a project to install the skill into. The skill is copied to
-    <Target>\.agents\skills\code-wiki with a fresh (empty) data/ folder.
+    <Target>\<harness>\code-wiki with a fresh (empty) data/ folder.
     If omitted, the skill is only verified in place.
+
+.PARAMETER Harness
+    Target harness: agents (default), claude, cursor, windsurf, or zed.
+    Selects where the skill folder lives relative to the project.
+
+.PARAMETER Dir
+    Custom install subpath (overrides -Harness), e.g. .myagent\skills\code-wiki.
 
 .PARAMETER SelfTest
     Run the end-to-end pipeline against the bundled sample_src/ as a smoke test.
 
 .EXAMPLE
-    .\install.ps1
     .\install.ps1 -SelfTest
-    .\install.ps1 -Target C:\work\my-service
+    .\install.ps1 -Target C:\work\my-service -Harness claude
+    .\install.ps1 -Target C:\work\my-service -Dir .myagent\skills\code-wiki
 #>
 param(
     [string]$Target,
+    [ValidateSet("agents", "claude", "cursor", "windsurf", "zed")]
+    [string]$Harness = "agents",
+    [string]$Dir,
     [switch]$SelfTest
 )
 
 $ErrorActionPreference = "Stop"
 $RepoRoot = $PSScriptRoot
 $SkillSrc = Join-Path $RepoRoot ".agents\skills\code-wiki"
+
+$HarnessDirs = @{
+    agents   = ".agents\skills\code-wiki"
+    claude   = ".claude\skills\code-wiki"
+    cursor   = ".cursor\skills\code-wiki"
+    windsurf = ".windsurf\skills\code-wiki"
+    zed      = ".zed\skills\code-wiki"
+}
+if ($Dir) { $SkillSubdir = $Dir } else { $SkillSubdir = $HarnessDirs[$Harness] }
+$SkillSubdirPosix = $SkillSubdir.Replace("\", "/")
 
 function Find-Python {
     foreach ($candidate in @("python", "python3", "py")) {
@@ -57,7 +77,7 @@ if (-not $py) {
 Write-Host ("OK   Python {0} found ({1})" -f $py.Version, $py.Exe) -ForegroundColor Green
 
 if ($Target) {
-    $dest = Join-Path $Target ".agents\skills\code-wiki"
+    $dest = Join-Path $Target $SkillSubdir
     Write-Host ("Installing skill into {0} ..." -f $dest)
     New-Item -ItemType Directory -Force -Path $dest | Out-Null
     Copy-Item (Join-Path $SkillSrc "scripts")   $dest -Recurse -Force
@@ -72,9 +92,9 @@ if ($Target) {
     Write-Host "OK   Skill installed." -ForegroundColor Green
     Write-Host ""
     Write-Host "Next steps (from $Target):"
-    Write-Host "  $($py.Exe) .agents/skills/code-wiki/scripts/build_wiki.py --src ./src"
-    Write-Host "  $($py.Exe) .agents/skills/code-wiki/scripts/build_graph.py"
-    Write-Host "  $($py.Exe) .agents/skills/code-wiki/scripts/build_html.py"
+    Write-Host "  $($py.Exe) $SkillSubdirPosix/scripts/build_wiki.py --src ./src"
+    Write-Host "  $($py.Exe) $SkillSubdirPosix/scripts/build_graph.py"
+    Write-Host "  $($py.Exe) $SkillSubdirPosix/scripts/build_html.py"
 }
 
 if ($SelfTest) {
@@ -94,5 +114,5 @@ if ($SelfTest) {
 if (-not $Target -and -not $SelfTest) {
     Write-Host ""
     Write-Host "Skill is ready to use in place. Try:  .\install.ps1 -SelfTest"
-    Write-Host "Or install into another project:      .\install.ps1 -Target <path>"
+    Write-Host "Install into a project + harness:     .\install.ps1 -Target <path> -Harness claude"
 }
