@@ -4,6 +4,7 @@ kind: method
 layer: service
 class: OrderService
 source: order_service.py:18
+desc_source: docstring
 ---
 # OrderService.find_order
 

@@ -4,11 +4,12 @@ kind: endpoint
 layer: controller
 class: OrderController
 source: order_controller.py:8
+desc_source: ai
 ---
 # OrderController.__init__
 
 ## What it does
-_No description available._
+Wires the controller to its OrderService dependency (constructor injection).
 
 ## Signature
 `__init__(self, service: OrderService)`

@@ -1,0 +1,10 @@
+{
+  "OrderController.__init__": {
+    "hash": "c5dc7c651f48",
+    "summary": "Wires the controller to its OrderService dependency (constructor injection)."
+  },
+  "OrderService.__init__": {
+    "hash": "f28a779bfcd7",
+    "summary": "Stores the injected OrderRepository and PaymentClient used to place and look up orders."
+  }
+}

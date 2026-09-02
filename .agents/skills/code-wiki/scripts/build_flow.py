@@ -26,6 +26,8 @@ from __future__ import annotations
 
 import argparse
 import ast
+import hashlib
+import json
 import os
 import re
 import sys
@@ -35,6 +37,29 @@ SKILL_ROOT = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(SKILL_ROOT, "data")
 DEFAULT_FLOW_DIR = os.path.join(DATA_DIR, "flow")
 DEFAULT_GRAPH = os.path.join(DATA_DIR, "flow_graph.json")
+# Persistent cache of AI-written summaries, keyed by node id -> {hash, summary}.
+DESCRIPTIONS_PATH = os.path.join(DATA_DIR, "descriptions.json")
+# Transient list of nodes that still need an AI summary (agent fills these in).
+PENDING_PATH = os.path.join(DATA_DIR, "pending_descriptions.json")
+
+
+def _hash(code: str) -> str:
+    return hashlib.sha1((code or "").encode("utf-8")).hexdigest()[:12]
+
+
+def _load_json(path: str, default):
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            return json.load(fh)
+    except (FileNotFoundError, ValueError):
+        return default
+
+
+def _save_json(path: str, obj) -> None:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(obj, fh, indent=2)
+        fh.write("\n")
 
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data"}
 
@@ -150,7 +175,8 @@ def analyze(src: str):
     for path in iter_py_files(src):
         try:
             with open(path, "r", encoding="utf-8") as fh:
-                tree = ast.parse(fh.read(), filename=path)
+                src_text = fh.read()
+            tree = ast.parse(src_text, filename=path)
         except (SyntaxError, UnicodeDecodeError) as exc:
             print(f"  ! skipped {path}: {exc}", file=sys.stderr)
             continue
@@ -169,12 +195,14 @@ def analyze(src: str):
                 decos = [_name_of(d) for d in m.decorator_list]
                 is_endpoint = layer == "controller" or any(ROUTE_DECORATOR_RE.search(d) for d in decos)
                 doc = ast.get_docstring(m) or ""
+                code = ast.get_source_segment(src_text, m) or ""
                 methods[node_id] = {
                     "id": node_id, "name": m.name, "cls": cls.name, "layer": layer,
                     "kind": "endpoint" if is_endpoint else "method",
                     "signature": _signature(m),
                     "doc": doc.strip().splitlines()[0] if doc.strip() else "",
                     "source": f"{rel}:{m.lineno}", "calls": [], "callers": [],
+                    "hash": _hash(code), "code": code,
                 }
                 local_types = _local_types(m, attr_types)
                 pending.append((node_id, cls.name, {"attr_types": attr_types, "local_types": local_types}, m))
@@ -183,11 +211,13 @@ def analyze(src: str):
             node_id = fn.name
             func_nodes[fn.name] = node_id
             doc = ast.get_docstring(fn) or ""
+            code = ast.get_source_segment(src_text, fn) or ""
             methods[node_id] = {
                 "id": node_id, "name": fn.name, "cls": None, "layer": "function",
                 "kind": "function", "signature": _signature(fn),
                 "doc": doc.strip().splitlines()[0] if doc.strip() else "",
                 "source": f"{rel}:{fn.lineno}", "calls": [], "callers": [],
+                "hash": _hash(code), "code": code,
             }
             local_types = _local_types(fn, {})
             pending.append((node_id, None, {"attr_types": {}, "local_types": local_types}, fn))
@@ -261,14 +291,33 @@ def _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes) -> set[
     return found
 
 
-def describe(info: dict) -> str:
-    """Deterministic 'what it does'. LLM HOOK: replace/augment this to generate
-    richer natural-language summaries from (info, source) later."""
-    if info["doc"]:
-        return info["doc"]
+def _auto_summary(info: dict) -> str:
+    """Deterministic fallback used until an AI summary is available."""
     if info["calls"]:
         return "Delegates to " + ", ".join(f"[[{c}]]" for c in info["calls"]) + "."
     return "_No description available._"
+
+
+def resolve_descriptions(methods: dict, cache: dict) -> dict:
+    """Hybrid description resolution, cheapest source first:
+      1. docstring (free, authoritative)
+      2. cached AI summary whose hash still matches the current source (free)
+      3. deterministic auto-summary  + flag the node as needing an AI summary
+    Sets info['summary'] and info['desc_source'] in place; returns the pending map.
+    """
+    pending: dict[str, dict] = {}
+    for node_id, info in methods.items():
+        if info["doc"]:
+            info["summary"], info["desc_source"] = info["doc"], "docstring"
+        elif node_id in cache and cache[node_id].get("hash") == info["hash"]:
+            info["summary"], info["desc_source"] = cache[node_id]["summary"], "ai"
+        else:
+            info["summary"], info["desc_source"] = _auto_summary(info), "auto"
+            pending[node_id] = {
+                "hash": info["hash"], "signature": info["signature"],
+                "source": info["source"], "code": info["code"],
+            }
+    return pending
 
 
 def _safe(name: str) -> str:
@@ -291,9 +340,10 @@ def write_vault(methods: dict, flow_dir: str) -> None:
             f"layer: {info['layer']}\n"
             f"class: {info['cls'] or ''}\n"
             f"source: {info['source']}\n"
+            f"desc_source: {info.get('desc_source', 'auto')}\n"
             f"---\n"
             f"# {info['id']}\n\n"
-            f"## What it does\n{describe(info)}\n\n"
+            f"## What it does\n{info.get('summary', '')}\n\n"
             f"## Signature\n`{info['signature']}`\n\n"
             f"## Calls\n{calls_md}\n\n"
             f"## Called by\n{callers_md}\n"
@@ -303,10 +353,9 @@ def write_vault(methods: dict, flow_dir: str) -> None:
 
 
 def write_graph(methods: dict, edges, graph_path: str) -> None:
-    import json
     nodes = [
         {"id": i["id"], "layer": i["layer"], "kind": i["kind"],
-         "cls": i["cls"], "signature": i["signature"], "doc": describe(i),
+         "cls": i["cls"], "signature": i["signature"], "doc": i.get("summary", ""),
          "source": i["source"]}
         for i in sorted(methods.values(), key=lambda x: x["id"])
     ]
@@ -328,12 +377,31 @@ def build(src: str, flow_dir: str, graph_path: str) -> int:
     if not methods:
         print("No Python methods/functions found.")
         return 0
+
+    # Hybrid descriptions: docstring -> cached AI summary -> auto fallback.
+    cache = _load_json(DESCRIPTIONS_PATH, {})
+    pending = resolve_descriptions(methods, cache)
+    # Prune cache entries for nodes that no longer exist (handles deletes).
+    cache = {k: v for k, v in cache.items() if k in methods}
+    _save_json(DESCRIPTIONS_PATH, cache)
+    if pending:
+        _save_json(PENDING_PATH, pending)
+    elif os.path.exists(PENDING_PATH):
+        os.remove(PENDING_PATH)
+
     write_vault(methods, flow_dir)
     write_graph(methods, edges, graph_path)
+
     endpoints = [m for m in methods.values() if m["kind"] == "endpoint"]
+    from_doc = sum(1 for m in methods.values() if m["desc_source"] == "docstring")
+    from_ai = sum(1 for m in methods.values() if m["desc_source"] == "ai")
     print(f"Flow: {len(methods)} node(s), {len(edges)} call edge(s), {len(endpoints)} endpoint(s)")
+    print(f"  descriptions: {from_doc} docstring, {from_ai} cached-AI, {len(pending)} pending")
     print(f"  graph -> {graph_path}")
     print(f"  notes -> {flow_dir}")
+    if pending:
+        print(f"  NOTE: {len(pending)} method(s) need an AI summary. Read {PENDING_PATH},")
+        print("        write a one-line summary for each, then run apply_descriptions.py and rebuild.")
     return 0
 
 

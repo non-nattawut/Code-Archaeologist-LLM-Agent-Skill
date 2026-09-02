@@ -4,6 +4,7 @@ kind: endpoint
 layer: controller
 class: OrderController
 source: order_controller.py:15
+desc_source: docstring
 ---
 # OrderController.get_order
 

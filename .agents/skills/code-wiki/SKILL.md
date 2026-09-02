@@ -25,6 +25,10 @@ There are **two complementary maps**:
 4. Read ONLY the specific Markdown notes for the nodes on the discovered path
    (`data/vault/<Entity>.md` for structure, `data/flow/<Class.method>.md` for flow).
 5. Always preserve `[[EntityName]]` / `[[Class.method]]` wikilinks so answers are cross-navigable.
+6. **Keep the maps current.** Whenever project source is added, changed, or deleted (e.g. after
+   you edit code), re-run the relevant build so the graphs and HTML match the code — see
+   "Keeping the maps current" below. Do this before answering flow/impact questions if the code
+   has changed since the last build.
 
 ## Available Tool Commands
 
@@ -70,6 +74,31 @@ python .agents/skills/code-wiki/scripts/trace_path.py \
 ```bash
 python .agents/skills/code-wiki/scripts/build_html.py --graph <graph.json> --out <out.html> --title "..."
 ```
+
+## Keeping the maps current (hybrid AI descriptions)
+
+The graph *structure* (nodes, edges, signatures, calls) is always extracted deterministically by
+AST — fast, exact, zero tokens. Method *descriptions* are resolved cheapest-source-first:
+docstring → cached AI summary (valid while the method's source hash is unchanged) → deterministic
+fallback. This means **the AI only writes a summary for methods that are new or changed**, and
+only when they lack a docstring; everything else is free.
+
+After any code add/change/delete, refresh a map:
+
+1. Rebuild (AST + cache), which also detects what needs describing:
+   ```bash
+   python .agents/skills/code-wiki/scripts/archaeologist.py flow --src ./src
+   ```
+2. If the output reports **pending** descriptions, open `data/pending_descriptions.json`
+   (each entry has the method's `signature` + `code`), write a concise one-line summary of what
+   each method does, and save them as JSON `{ "<Class.method>": "<summary>", ... }`, then:
+   ```bash
+   python .agents/skills/code-wiki/scripts/apply_descriptions.py --input <your_summaries.json>
+   python .agents/skills/code-wiki/scripts/archaeologist.py flow --src ./src   # rebuild to fold them in
+   ```
+   Summaries are cached in `data/descriptions.json` (keyed by source hash), so unchanged methods
+   are never re-described. Deleted methods are pruned automatically.
+3. If there are **0 pending**, you're done — the graph, notes, and `flow.html` are up to date.
 
 ## Notes
 - Zero external dependencies: all scripts use the Python 3.10+ standard library. The generated HTML

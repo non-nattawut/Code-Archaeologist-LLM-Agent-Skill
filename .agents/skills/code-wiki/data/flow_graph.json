@@ -6,7 +6,7 @@
       "kind": "endpoint",
       "cls": "OrderController",
       "signature": "__init__(self, service: OrderService)",
-      "doc": "_No description available._",
+      "doc": "Wires the controller to its OrderService dependency (constructor injection).",
       "source": "order_controller.py:8"
     },
     {
@@ -51,7 +51,7 @@
       "kind": "method",
       "cls": "OrderService",
       "signature": "__init__(self, repository: OrderRepository, payments: PaymentClient)",
-      "doc": "_No description available._",
+      "doc": "Stores the injected OrderRepository and PaymentClient used to place and look up orders.",
       "source": "order_service.py:9"
     },
     {

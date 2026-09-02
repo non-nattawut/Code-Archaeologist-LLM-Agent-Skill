@@ -34,6 +34,11 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
 - **Heuristic call resolution** — resolves `self.<dep>.method()` via `__init__` type hints,
   typed params/locals, and same-class `self.method()` calls; controller methods are marked as
   `endpoint` roots so request flows have a clear entry point.
+- **Hybrid descriptions (AST + optional AI), cached & incremental** — node descriptions come from,
+  cheapest first: the docstring → a cached AI summary (valid while the method's source hash is
+  unchanged) → a deterministic fallback. The AI only writes summaries for methods that are *new or
+  changed and undocumented*; unchanged methods are never re-described and deletions are pruned —
+  so keeping the map current after a code change costs only the diff.
 - **Bidirectional Markdown vault** — one `[[wikilink]]`-cross-referenced note per entity (and per
   method for the flow map), compatible with Obsidian and any Markdown viewer.
 - **Explicit dependency graphs** — `graph.json` / `flow_graph.json` (nodes + edges) and
@@ -193,12 +198,14 @@ The agent then reads only the notes on that path — e.g.
 │   ├── build_wiki.py            # AST scan  -> data/vault/*.md (structure, [[wikilinks]])
 │   ├── build_graph.py           # vault     -> graph.json + registry.json
 │   ├── build_flow.py            # AST calls -> flow_graph.json + data/flow/*.md (method flow)
+│   ├── apply_descriptions.py    # cache agent-written method summaries (by source hash)
 │   ├── trace_path.py            # BFS flow (--from/--to) & impact (--impact-of), any graph
 │   └── build_html.py            # <graph>.json -> standalone shareable HTML viewer
 ├── data/
 │   ├── graph.json               # structure: nodes & edges
 │   ├── flow_graph.json          # flow: method nodes & call edges
 │   ├── registry.json            # entity -> vault path
+│   ├── descriptions.json        # cached AI summaries (keyed by method source hash)
 │   ├── graph.html / flow.html   # generated standalone viewers
 │   ├── vault/                   # structure notes (one per class)
 │   └── flow/                    # flow notes (one per method)

@@ -4,6 +4,7 @@ kind: method
 layer: repository
 class: OrderRepository
 source: order_repository.py:11
+desc_source: docstring
 ---
 # OrderRepository.get
 

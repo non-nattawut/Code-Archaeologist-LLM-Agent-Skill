@@ -4,6 +4,7 @@ kind: method
 layer: client
 class: PaymentClient
 source: payment_client.py:7
+desc_source: docstring
 ---
 # PaymentClient.charge
 

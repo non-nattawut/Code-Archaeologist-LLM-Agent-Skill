@@ -8,3 +8,7 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+# Code Archaeologist: transient list of methods awaiting an AI summary
+.agents/skills/code-wiki/data/pending_descriptions.json
+**/code-wiki/data/pending_descriptions.json
