@@ -16,6 +16,18 @@ There are **two complementary maps**:
   -> OrderRepository.save`. Each node describes what the method does. Data:
   `data/flow_graph.json` + `data/flow/<Class.method>.md`.
 
+## Setup (do this first)
+- **Backend (Python) — no install needed.** Just Python 3.10+; the whole `.py` pipeline is stdlib.
+- **Frontend (JS/TS) — install the parser first.** Before scanning any `.js/.jsx/.ts/.tsx` code,
+  ensure Node.js is available and install the one dependency from the skill directory:
+  ```bash
+  cd .agents/skills/code-wiki && npm install
+  ```
+  This installs `@babel/parser` (declared in the skill's `package.json`) next to `js_extract.js`.
+  Do this once per machine/checkout before running a `flow`/`both` build over frontend code. If it
+  is skipped, frontend files are ignored with a warning and only the backend graph is built — so
+  install it whenever the project has a frontend you want mapped.
+
 ## Operating Principles
 1. NEVER read raw source code files directly for architectural or flow-related queries.
 2. Pick the right map: **structure** for "how are components organized / who uses X"; **flow**

@@ -46,7 +46,7 @@ def extract_js_files(files: list[str]) -> list[dict]:
         return []
     if shutil.which("node") is None:
         _warn_once("  ! frontend skipped: Node.js not found on PATH "
-                   "(install Node + run `npm install` in the skill to enable JS/TS parsing).")
+                   "(install Node, then `cd .agents/skills/code-wiki && npm install` to enable JS/TS parsing).")
         return []
     try:
         proc = subprocess.run(

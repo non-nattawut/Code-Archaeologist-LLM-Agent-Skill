@@ -189,6 +189,7 @@ async function main() {
   copyDir(path.join(SKILL_SRC, "scripts"), path.join(dest, "scripts"));
   copyDir(path.join(SKILL_SRC, "templates"), path.join(dest, "templates"));
   fs.copyFileSync(path.join(SKILL_SRC, "SKILL.md"), path.join(dest, "SKILL.md"));
+  fs.copyFileSync(path.join(SKILL_SRC, "package.json"), path.join(dest, "package.json"));
   seedDataDir(path.join(dest, "data"), opts.force);
   console.log("OK   Skill installed.\n");
 
@@ -214,7 +215,9 @@ async function main() {
   console.log(`  ${py.exe} ${relPosix}/scripts/build_wiki.py --src ./src`);
   console.log(`  ${py.exe} ${relPosix}/scripts/build_graph.py`);
   console.log(`  ${py.exe} ${relPosix}/scripts/build_html.py`);
-  console.log("\nTip: add --self-test to build the bundled demo now.");
+  console.log("\nBackend (Python) needs no dependencies. To also parse frontend (JS/TS), run:");
+  console.log(`  cd ${relPosix} && npm install`);
+  console.log("Tip: add --self-test to build the bundled demo now.");
   return 0;
 }
 

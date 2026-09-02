@@ -66,10 +66,9 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
 ## Requirements
 
 - **Python 3.10+** — required; the backend pipeline uses only the standard library.
-- **Node.js + `@babel/parser`** — *only for frontend (JS/TS) parsing*. Without it, frontend files
-  are skipped with a warning and the Python graph still builds. `@babel/parser` just needs to be
-  resolvable from the project (most frontend projects already have it; this repo installs it via
-  `npm install`).
+- **Node.js + `@babel/parser`** — *only for frontend (JS/TS) parsing*. Install it once from the
+  skill directory: `cd .agents/skills/code-wiki && npm install`. Without it, frontend files are
+  skipped with a warning and the Python graph still builds.
 - A modern browser to view the generated HTML (loads `force-graph` from a CDN).
 
 ## Installation

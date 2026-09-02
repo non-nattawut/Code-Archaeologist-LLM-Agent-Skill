@@ -1,0 +1,9 @@
+{
+  "name": "code-wiki-skill",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Frontend (JS/TS) parser dependency for the Code Archaeologist code-wiki skill. Run `npm install` here to enable JS/TS parsing; the Python backend pipeline needs none of this.",
+  "dependencies": {
+    "@babel/parser": "^7.24.0"
+  }
+}

@@ -38,8 +38,5 @@
   },
   "engines": {
     "node": ">=16.7.0"
-  },
-  "dependencies": {
-    "@babel/parser": "^7.24.0"
   }
 }
