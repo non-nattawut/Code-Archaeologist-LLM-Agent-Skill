@@ -1,0 +1,37 @@
+{
+  "nodes": [
+    {
+      "id": "OrderController",
+      "layer": "controller"
+    },
+    {
+      "id": "OrderRepository",
+      "layer": "repository"
+    },
+    {
+      "id": "OrderService",
+      "layer": "service"
+    },
+    {
+      "id": "PaymentClient",
+      "layer": "client"
+    }
+  ],
+  "edges": [
+    {
+      "source": "OrderController",
+      "target": "OrderService",
+      "type": "references"
+    },
+    {
+      "source": "OrderService",
+      "target": "OrderRepository",
+      "type": "references"
+    },
+    {
+      "source": "OrderService",
+      "target": "PaymentClient",
+      "type": "references"
+    }
+  ]
+}
