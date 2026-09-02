@@ -22,15 +22,26 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
 
 ## Features
 
+- **Two complementary maps:**
+  - **Project Structure** (class-level) — which classes/entities reference or import which.
+  - **Request / Execution Flow** (method-level) — which method calls which method, resolved from
+    the code, so you can trace an actual flow like
+    `OrderController.create_order → OrderService.place_order → OrderRepository.save`. Every node
+    describes *what that method does* (docstring or auto-summary), its signature, callers, and
+    callees.
 - **AST-based scanner** — parses Python with the standard-library `ast` module (accurate, no
   guessing), extracting classes, methods, docstrings, bases, decorators, and imports.
-- **Bidirectional Markdown vault** — one `[[wikilink]]`-cross-referenced note per entity,
-  compatible with Obsidian and any Markdown viewer.
-- **Explicit dependency graph** — `graph.json` (nodes + edges) and `registry.json`
-  (entity → file path), compiled deterministically from the vault.
-- **Execution-flow tracing** — shortest path (or all paths) between any two components.
+- **Heuristic call resolution** — resolves `self.<dep>.method()` via `__init__` type hints,
+  typed params/locals, and same-class `self.method()` calls; controller methods are marked as
+  `endpoint` roots so request flows have a clear entry point.
+- **Bidirectional Markdown vault** — one `[[wikilink]]`-cross-referenced note per entity (and per
+  method for the flow map), compatible with Obsidian and any Markdown viewer.
+- **Explicit dependency graphs** — `graph.json` / `flow_graph.json` (nodes + edges) and
+  `registry.json`, compiled deterministically.
+- **Execution-flow tracing** — shortest path (or all paths) between any two components, at class
+  *or* method granularity.
 - **Blast-radius / impact analysis** — reverse-traversal listing every upstream caller affected
-  by a change.
+  by a change, for a class or a specific method.
 - **Standalone shareable visualizer** — generates a single self-contained `graph.html` with the
   data embedded inline; open via `file://`, commit it, or email it. Layer-colored, searchable,
   and hand-editable.
@@ -107,51 +118,59 @@ Both shell installers accept the same harnesses (`--harness` / `-Harness`) and a
 
 ## Usage
 
-The pipeline is four steps — scan, graph, trace, visualize:
+There are two commands, each building one map (scan → graph → HTML in one shot):
 
 ```bash
-# 1. Scan source into the Markdown vault
-python .agents/skills/code-wiki/scripts/build_wiki.py --src ./src
+# Project structure map  ->  data/graph.json, data/vault/, data/graph.html
+python .agents/skills/code-wiki/scripts/archaeologist.py project --src ./src
 
-# 2. Compile the vault into graph.json + registry.json
-python .agents/skills/code-wiki/scripts/build_graph.py
+# Request/execution flow map  ->  data/flow_graph.json, data/flow/, data/flow.html
+python .agents/skills/code-wiki/scripts/archaeologist.py flow --src ./src
 
-# 3a. Trace an execution flow (shortest path; add --all for every path)
+# ...or build both
+python .agents/skills/code-wiki/scripts/archaeologist.py both --src ./src
+```
+
+Then trace paths or impact on either graph (structure is the default; add `--graph` for flow):
+
+```bash
+# structure: how are two classes connected?
 python .agents/skills/code-wiki/scripts/trace_path.py --from OrderController --to OrderRepository
 
-# 3b. Blast-radius: everything that breaks if a class changes
-python .agents/skills/code-wiki/scripts/trace_path.py --impact-of OrderRepository
+# flow: how does a request travel, method by method?
+python .agents/skills/code-wiki/scripts/trace_path.py \
+  --graph .agents/skills/code-wiki/data/flow_graph.json \
+  --from OrderController.create_order --to OrderRepository.save
 
-# 4. Generate a standalone, shareable HTML graph (data embedded inline)
-python .agents/skills/code-wiki/scripts/build_html.py
-# then open .agents/skills/code-wiki/data/graph.html
+# blast-radius: everything that breaks if a method changes
+python .agents/skills/code-wiki/scripts/trace_path.py \
+  --graph .agents/skills/code-wiki/data/flow_graph.json --impact-of PaymentClient.charge
 ```
+
+Each stage is also runnable on its own (`build_wiki.py`, `build_graph.py`, `build_flow.py`,
+`build_html.py`) — `archaeologist.py` just orchestrates them.
 
 ### Example
 
 Running against the bundled `sample_src/` (a controller → service → repository/client trio):
 
 ```console
-$ python .agents/skills/code-wiki/scripts/trace_path.py --from OrderController --to OrderRepository
-{
-  "mode": "flow",
-  "from": "OrderController",
-  "to": "OrderRepository",
-  "path": ["OrderController", "OrderService", "OrderRepository"],
-  "found": true
-}
+# Structure: how two classes connect
+$ trace_path.py --from OrderController --to OrderRepository
+{ "path": ["OrderController", "OrderService", "OrderRepository"], "found": true }
 
-$ python .agents/skills/code-wiki/scripts/trace_path.py --impact-of OrderRepository
-{
-  "mode": "impact",
-  "target": "OrderRepository",
-  "impacted": ["OrderController", "OrderService"],
-  "count": 2
-}
+# Flow: the actual request path, method by method
+$ trace_path.py --graph .../flow_graph.json --from OrderController.create_order --to OrderRepository.save
+{ "path": ["OrderController.create_order", "OrderService.place_order", "OrderRepository.save"], "found": true }
+
+# Flow blast-radius: what calls (directly or transitively) into the payment client?
+$ trace_path.py --graph .../flow_graph.json --impact-of PaymentClient.charge
+{ "impacted": ["OrderController.create_order", "OrderService.place_order"], "count": 2 }
 ```
 
-The agent then reads only `data/vault/OrderController.md`, `OrderService.md`, and
-`OrderRepository.md` — not the whole repo.
+The agent then reads only the notes on that path — e.g.
+`data/flow/OrderController.create_order.md`, `OrderService.place_order.md`,
+`OrderRepository.save.md` — not the whole repo.
 
 ## How the agent uses it
 
@@ -168,15 +187,19 @@ The agent then reads only `data/vault/OrderController.md`, `OrderService.md`, an
 .agents/skills/code-wiki/
 ├── SKILL.md                     # Agent instructions & tool specs
 ├── scripts/
-│   ├── build_wiki.py            # AST scan  -> data/vault/*.md (with [[wikilinks]])
+│   ├── archaeologist.py         # entrypoint: `project` | `flow` | `both`
+│   ├── build_wiki.py            # AST scan  -> data/vault/*.md (structure, [[wikilinks]])
 │   ├── build_graph.py           # vault     -> graph.json + registry.json
-│   ├── trace_path.py            # BFS flow (--from/--to) & impact (--impact-of)
-│   └── build_html.py            # graph.json -> standalone shareable graph.html
+│   ├── build_flow.py            # AST calls -> flow_graph.json + data/flow/*.md (method flow)
+│   ├── trace_path.py            # BFS flow (--from/--to) & impact (--impact-of), any graph
+│   └── build_html.py            # <graph>.json -> standalone shareable HTML viewer
 ├── data/
-│   ├── graph.json               # cached nodes & edges
+│   ├── graph.json               # structure: nodes & edges
+│   ├── flow_graph.json          # flow: method nodes & call edges
 │   ├── registry.json            # entity -> vault path
-│   ├── graph.html               # generated standalone viewer
-│   └── vault/                   # generated Markdown notes (Obsidian-compatible)
+│   ├── graph.html / flow.html   # generated standalone viewers
+│   ├── vault/                   # structure notes (one per class)
+│   └── flow/                    # flow notes (one per method)
 └── templates/
     └── wiki_page_template.md    # page structure for generated entities
 bin/cli.js                       # npx installer (node, zero deps)

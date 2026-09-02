@@ -1,0 +1,112 @@
+{
+  "nodes": [
+    {
+      "id": "OrderController.__init__",
+      "layer": "controller",
+      "kind": "endpoint",
+      "cls": "OrderController",
+      "signature": "__init__(self, service: OrderService)",
+      "doc": "_No description available._",
+      "source": "order_controller.py:8"
+    },
+    {
+      "id": "OrderController.create_order",
+      "layer": "controller",
+      "kind": "endpoint",
+      "cls": "OrderController",
+      "signature": "create_order(self, payload)",
+      "doc": "POST /orders \u2014 create a new order.",
+      "source": "order_controller.py:11"
+    },
+    {
+      "id": "OrderController.get_order",
+      "layer": "controller",
+      "kind": "endpoint",
+      "cls": "OrderController",
+      "signature": "get_order(self, order_id)",
+      "doc": "GET /orders/{id} \u2014 fetch a single order.",
+      "source": "order_controller.py:15"
+    },
+    {
+      "id": "OrderRepository.get",
+      "layer": "repository",
+      "kind": "method",
+      "cls": "OrderRepository",
+      "signature": "get(self, order_id)",
+      "doc": "Select an order by id.",
+      "source": "order_repository.py:11"
+    },
+    {
+      "id": "OrderRepository.save",
+      "layer": "repository",
+      "kind": "method",
+      "cls": "OrderRepository",
+      "signature": "save(self, order)",
+      "doc": "Insert a new order row.",
+      "source": "order_repository.py:7"
+    },
+    {
+      "id": "OrderService.__init__",
+      "layer": "service",
+      "kind": "method",
+      "cls": "OrderService",
+      "signature": "__init__(self, repository: OrderRepository, payments: PaymentClient)",
+      "doc": "_No description available._",
+      "source": "order_service.py:9"
+    },
+    {
+      "id": "OrderService.find_order",
+      "layer": "service",
+      "kind": "method",
+      "cls": "OrderService",
+      "signature": "find_order(self, order_id)",
+      "doc": "Look up an order by id.",
+      "source": "order_service.py:18"
+    },
+    {
+      "id": "OrderService.place_order",
+      "layer": "service",
+      "kind": "method",
+      "cls": "OrderService",
+      "signature": "place_order(self, payload)",
+      "doc": "Charge payment then persist the order.",
+      "source": "order_service.py:13"
+    },
+    {
+      "id": "PaymentClient.charge",
+      "layer": "client",
+      "kind": "method",
+      "cls": "PaymentClient",
+      "signature": "charge(self, payload)",
+      "doc": "Charge the customer for an order.",
+      "source": "payment_client.py:7"
+    }
+  ],
+  "edges": [
+    {
+      "source": "OrderController.create_order",
+      "target": "OrderService.place_order",
+      "type": "calls"
+    },
+    {
+      "source": "OrderController.get_order",
+      "target": "OrderService.find_order",
+      "type": "calls"
+    },
+    {
+      "source": "OrderService.find_order",
+      "target": "OrderRepository.get",
+      "type": "calls"
+    },
+    {
+      "source": "OrderService.place_order",
+      "target": "OrderRepository.save",
+      "type": "calls"
+    },
+    {
+      "source": "OrderService.place_order",
+      "target": "PaymentClient.charge",
+      "type": "calls"
+    }
+  ]
+}
