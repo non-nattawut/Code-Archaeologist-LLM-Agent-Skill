@@ -7,7 +7,7 @@
       "cls": "OrderController",
       "signature": "__init__(self, service: OrderService)",
       "doc": "Wires the controller to its OrderService dependency (constructor injection).",
-      "source": "sample_src/backend/order_controller.py:8",
+      "source": "sample_src/backend/order_controller.py:12",
       "lang": "py"
     },
     {
@@ -17,8 +17,12 @@
       "cls": "OrderController",
       "signature": "create_order(self, payload)",
       "doc": "POST /orders \u2014 create a new order.",
-      "source": "sample_src/backend/order_controller.py:11",
-      "lang": "py"
+      "source": "sample_src/backend/order_controller.py:16",
+      "lang": "py",
+      "route": {
+        "method": "POST",
+        "path": "/orders"
+      }
     },
     {
       "id": "OrderController.get_order",
@@ -27,8 +31,12 @@
       "cls": "OrderController",
       "signature": "get_order(self, order_id)",
       "doc": "GET /orders/{id} \u2014 fetch a single order.",
-      "source": "sample_src/backend/order_controller.py:15",
-      "lang": "py"
+      "source": "sample_src/backend/order_controller.py:21",
+      "lang": "py",
+      "route": {
+        "method": "GET",
+        "path": "/orders/{order_id}"
+      }
     },
     {
       "id": "OrderRepository.get",
@@ -168,6 +176,16 @@
       "source": "OrderService.place_order",
       "target": "PaymentClient.charge",
       "type": "calls"
+    },
+    {
+      "source": "createOrder",
+      "target": "OrderController.create_order",
+      "type": "http"
+    },
+    {
+      "source": "getOrder",
+      "target": "OrderController.get_order",
+      "type": "http"
     },
     {
       "source": "loadOrder",

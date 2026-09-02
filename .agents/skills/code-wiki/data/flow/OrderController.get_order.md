@@ -3,7 +3,7 @@ entity: OrderController.get_order
 kind: endpoint
 layer: controller
 class: OrderController
-source: sample_src/backend/order_controller.py:15
+source: sample_src/backend/order_controller.py:21
 lang: py
 desc_source: docstring
 ---
@@ -19,4 +19,4 @@ GET /orders/{id} — fetch a single order.
 - [[OrderService.find_order]]
 
 ## Called by
-_None (entry point)._
+- [[getOrder]]

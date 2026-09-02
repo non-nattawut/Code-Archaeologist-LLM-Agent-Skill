@@ -55,6 +55,14 @@ extractor (`js_extract.js`, needs Node + `@babel/parser` resolvable from the pro
 the parser is missing, frontend files are skipped with a warning and the Python graph still builds.
 Node `source` fields are prefixed with their root area (e.g. `backend/…`, `frontend/…`).
 
+Frontend `fetch`/`axios` calls are linked to backend route handlers (`@router.post("/orders")`,
+`@app.route(..., methods=[...])`, etc.) by matching HTTP method + normalized path, producing
+cross-stack `http` edges. So a single flow trace can run frontend → API → service → repository:
+```bash
+python .agents/skills/code-wiki/scripts/trace_path.py \
+  --graph .agents/skills/code-wiki/data/flow_graph.json --from submitOrder --to OrderRepository.save
+```
+
 ### 3. Trace Execution Flow
 Find the path connecting two components. Structure uses the default graph; flow needs `--graph`:
 ```bash

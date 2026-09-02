@@ -150,6 +150,64 @@ def _is_self_attr(node) -> bool:
     return isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "self"
 
 
+HTTP_VERBS = {"get", "post", "put", "patch", "delete"}
+
+
+def _route_of(decorators: list) -> dict | None:
+    """Extract {method, path} from a route decorator, e.g. @router.post("/orders")
+    or @app.route("/orders", methods=["POST"])."""
+    for d in decorators:
+        if not (isinstance(d, ast.Call) and isinstance(d.func, ast.Attribute)):
+            continue
+        verb = d.func.attr.lower()
+        path = None
+        if d.args and isinstance(d.args[0], ast.Constant) and isinstance(d.args[0].value, str):
+            path = d.args[0].value
+        if not path:
+            continue
+        if verb in HTTP_VERBS:
+            return {"method": verb.upper(), "path": path}
+        if verb == "route":
+            method = "GET"
+            for kw in d.keywords:
+                if kw.arg == "methods" and isinstance(kw.value, (ast.List, ast.Tuple)) and kw.value.elts:
+                    first = kw.value.elts[0]
+                    if isinstance(first, ast.Constant):
+                        method = str(first.value).upper()
+            return {"method": method, "path": path}
+    return None
+
+
+def _norm_path(path: str) -> str:
+    """Normalize a URL/route path so `:id`, `{id}`, `<id>` params all compare equal."""
+    segs = []
+    for seg in path.strip("/").split("/"):
+        if not seg:
+            continue
+        if seg.startswith(":") or (seg.startswith("{") and seg.endswith("}")) \
+                or (seg.startswith("<") and seg.endswith(">")):
+            segs.append("*")
+        else:
+            segs.append(seg)
+    return "/" + "/".join(segs)
+
+
+def _api_edges(methods: dict) -> set[tuple[str, str]]:
+    """Link frontend HTTP calls to backend route handlers (method + path match)."""
+    routes: dict[tuple[str, str], str] = {}
+    for nid, info in methods.items():
+        r = info.get("route")
+        if r:
+            routes[(r["method"].upper(), _norm_path(r["path"]))] = nid
+    edges: set[tuple[str, str]] = set()
+    for nid, info in methods.items():
+        for h in info.get("http") or []:
+            target = routes.get((h["method"].upper(), _norm_path(h["url"])))
+            if target and target != nid:
+                edges.add((nid, target))
+    return edges
+
+
 def _rel_source(path: str, root: str) -> str:
     """Path relative to its root, prefixed with the root's name so monorepo
     areas (backend/… vs frontend/…) are distinguishable in the graph."""
@@ -192,7 +250,8 @@ def analyze(roots: list[str]):
                 node_id = f"{cls.name}.{m.name}"
                 class_methods[cls.name].add(m.name)
                 decos = [_name_of(d) for d in m.decorator_list]
-                is_endpoint = layer == "controller" or any(ROUTE_DECORATOR_RE.search(d) for d in decos)
+                route = _route_of(m.decorator_list)
+                is_endpoint = bool(route) or layer == "controller" or any(ROUTE_DECORATOR_RE.search(d) for d in decos)
                 doc = ast.get_docstring(m) or ""
                 code = ast.get_source_segment(src_text, m) or ""
                 methods[node_id] = {
@@ -201,7 +260,7 @@ def analyze(roots: list[str]):
                     "signature": _signature(m),
                     "doc": doc.strip().splitlines()[0] if doc.strip() else "",
                     "source": f"{rel}:{m.lineno}", "calls": [], "callers": [],
-                    "hash": _hash(code), "code": code,
+                    "hash": _hash(code), "code": code, "route": route,
                 }
                 local_types = _local_types(m, attr_types)
                 pending.append((node_id, cls.name, {"attr_types": attr_types, "local_types": local_types}, m))
@@ -221,21 +280,25 @@ def analyze(roots: list[str]):
             local_types = _local_types(fn, {})
             pending.append((node_id, None, {"attr_types": {}, "local_types": local_types}, fn))
 
-    # --- Pass 2: resolve Python call edges ---
-    edges: set[tuple[str, str]] = set()
+    # --- Pass 2: resolve Python call edges ---  (edges carry a type)
+    edges: set[tuple[str, str, str]] = set()
     for caller_id, cls_ctx, ctx, fn in pending:
         for target in _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes):
             if target != caller_id:
-                edges.add((caller_id, target))
+                edges.add((caller_id, target, "calls"))
 
     # --- Frontend (JS/TS): merge nodes + call edges into the same graph ---
     js_methods, js_edges = _analyze_js(roots)
     methods.update(js_methods)
     for s, t in js_edges:
         if s in methods and t in methods and s != t:
-            edges.add((s, t))
+            edges.add((s, t, "calls"))
 
-    for src_id, dst_id in edges:
+    # --- Cross-stack: link frontend HTTP calls to backend route handlers ---
+    for s, t in _api_edges(methods):
+        edges.add((s, t, "http"))
+
+    for src_id, dst_id, _type in edges:
         methods[src_id]["calls"].append(dst_id)
         methods[dst_id]["callers"].append(src_id)
     for info in methods.values():
@@ -418,9 +481,11 @@ def write_graph(methods: dict, edges, graph_path: str) -> None:
                 "source": i["source"], "lang": i.get("lang", "py")}
         if i.get("http"):
             node["http"] = i["http"]
+        if i.get("route"):
+            node["route"] = i["route"]
         nodes.append(node)
     graph = {"nodes": nodes,
-             "edges": [{"source": s, "target": t, "type": "calls"} for s, t in edges]}
+             "edges": [{"source": s, "target": t, "type": ty} for s, t, ty in edges]}
     os.makedirs(os.path.dirname(graph_path), exist_ok=True)
     with open(graph_path, "w", encoding="utf-8") as fh:
         json.dump(graph, fh, indent=2)

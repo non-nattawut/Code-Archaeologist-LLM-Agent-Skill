@@ -85,7 +85,7 @@ const GRAPH = {
       "cls": "OrderController",
       "signature": "__init__(self, service: OrderService)",
       "doc": "Wires the controller to its OrderService dependency (constructor injection).",
-      "source": "sample_src/backend/order_controller.py:8",
+      "source": "sample_src/backend/order_controller.py:12",
       "lang": "py"
     },
     {
@@ -95,8 +95,12 @@ const GRAPH = {
       "cls": "OrderController",
       "signature": "create_order(self, payload)",
       "doc": "POST /orders \u2014 create a new order.",
-      "source": "sample_src/backend/order_controller.py:11",
-      "lang": "py"
+      "source": "sample_src/backend/order_controller.py:16",
+      "lang": "py",
+      "route": {
+        "method": "POST",
+        "path": "/orders"
+      }
     },
     {
       "id": "OrderController.get_order",
@@ -105,8 +109,12 @@ const GRAPH = {
       "cls": "OrderController",
       "signature": "get_order(self, order_id)",
       "doc": "GET /orders/{id} \u2014 fetch a single order.",
-      "source": "sample_src/backend/order_controller.py:15",
-      "lang": "py"
+      "source": "sample_src/backend/order_controller.py:21",
+      "lang": "py",
+      "route": {
+        "method": "GET",
+        "path": "/orders/{order_id}"
+      }
     },
     {
       "id": "OrderRepository.get",
@@ -248,6 +256,16 @@ const GRAPH = {
       "type": "calls"
     },
     {
+      "source": "createOrder",
+      "target": "OrderController.create_order",
+      "type": "http"
+    },
+    {
+      "source": "getOrder",
+      "target": "OrderController.get_order",
+      "type": "http"
+    },
+    {
       "source": "loadOrder",
       "target": "getOrder",
       "type": "calls"
@@ -299,8 +317,10 @@ const Graph = ForceGraph()(document.getElementById("graph"))
   .nodeId("id")
   .nodeRelSize(5)
   .nodeVal((n) => 1 + (outAdj.get(n.id).length + inAdj.get(n.id).length) * 0.6)
-  .linkColor((l) => highlightLinks.has(l) ? "rgba(110,168,254,.9)" : "rgba(139,152,173,.18)")
+  .linkColor((l) => highlightLinks.has(l) ? "rgba(110,168,254,.9)"
+    : (l.type === "http" ? "rgba(226,116,161,.55)" : "rgba(139,152,173,.18)"))
   .linkWidth((l) => highlightLinks.has(l) ? 2 : 1)
+  .linkLineDash((l) => l.type === "http" ? [4, 3] : null)
   .linkDirectionalArrowLength(4)
   .linkDirectionalArrowRelPos(1)
   .linkDirectionalParticles((l) => highlightLinks.has(l) ? 3 : 0)

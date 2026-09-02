@@ -27,5 +27,13 @@ sets — change the taxonomy instead).
 | `desc_source` | `docstring`, `ai`, `auto` | Where "What it does" came from (see hybrid descriptions). |
 | `source` | `<area>/<path>:<line>` | Location. |
 
+## Edge `type` (in graph.json / flow_graph.json)
+
+| Value | Meaning |
+| --- | --- |
+| `references` | structure map: one entity references/imports another. |
+| `calls` | flow map: one method/function calls another. |
+| `http` | flow map: a frontend `fetch`/`axios` call linked to a backend route handler. |
+
 `kind` and `layer` come from `taxonomy.py` (`KINDS`, `LAYERS`, `LAYER_RULES`). Add a new value
 there once, and every extractor and template stays consistent.

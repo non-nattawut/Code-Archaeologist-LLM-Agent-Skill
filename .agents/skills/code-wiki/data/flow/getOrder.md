@@ -16,7 +16,7 @@ Frontend API client: GET /orders/:id and return the parsed order JSON.
 `getOrder()`
 
 ## Calls
-_None._
+- [[OrderController.get_order]]
 
 ## Called by
 - [[loadOrder]]

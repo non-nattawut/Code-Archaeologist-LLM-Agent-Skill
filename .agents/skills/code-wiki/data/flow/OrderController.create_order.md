@@ -3,7 +3,7 @@ entity: OrderController.create_order
 kind: endpoint
 layer: controller
 class: OrderController
-source: sample_src/backend/order_controller.py:11
+source: sample_src/backend/order_controller.py:16
 lang: py
 desc_source: docstring
 ---
@@ -19,4 +19,4 @@ POST /orders — create a new order.
 - [[OrderService.place_order]]
 
 ## Called by
-_None (entry point)._
+- [[createOrder]]

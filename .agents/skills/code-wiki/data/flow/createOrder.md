@@ -16,7 +16,7 @@ Thin HTTP client for the orders backend.
 `createOrder()`
 
 ## Calls
-_None._
+- [[OrderController.create_order]]
 
 ## Called by
 - [[submitOrder]]

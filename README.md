@@ -29,10 +29,12 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
     `OrderController.create_order → OrderService.place_order → OrderRepository.save`. Every node
     describes *what that method does* (docstring or auto-summary), its signature, callers, and
     callees.
-- **Backend + frontend, monorepo-aware** — `--src` accepts multiple roots
+- **Backend + frontend, monorepo-aware, cross-stack** — `--src` accepts multiple roots
   (`--src ./backend ./frontend`), and both land in one graph. Python (`.py`) is parsed by the
-  stdlib AST; JS/TS (`.js/.jsx/.ts/.tsx`) is parsed by a Node/`@babel/parser` extractor. Frontend
-  `fetch`/`axios` HTTP calls are captured on each node (used for backend API-edge linking).
+  stdlib AST; JS/TS (`.js/.jsx/.ts/.tsx`) by a Node/`@babel/parser` extractor. Frontend
+  `fetch`/`axios` calls are **linked to the matching backend route handler** (method + path), so a
+  single trace crosses the whole stack:
+  `submitOrder → createOrder → OrderController.create_order → OrderService.place_order → OrderRepository.save`.
 - **AST-based scanner** — parses Python with the standard-library `ast` module (accurate, no
   guessing), extracting classes, methods, docstrings, bases, decorators, and imports.
 - **Heuristic call resolution** — resolves `self.<dep>.method()` via `__init__` type hints,
@@ -211,9 +213,8 @@ sample_src/backend + frontend    # monorepo demo (Python API + TS client)
 
 ## Roadmap
 
-- **Frontend→backend API-edge linking** (next) — match frontend `fetch`/`axios` URLs (already
-  captured on each node) to backend route handlers, so a request flow crosses the stack.
-- Frontend entities in the *structure* map (currently frontend is in the flow map).
+- Frontend entities in the *structure* map (currently frontend appears in the flow map).
+- Wider route/framework coverage for API-edge linking (Flask/Express/Nest/etc.).
 - More languages (Java, Go); optional fully-offline viewer that embeds the graph library.
 
 ## License
