@@ -42,6 +42,25 @@ def body_after_frontmatter(text: str) -> str:
     return text[m.end():] if m else text
 
 
+SECTION_RE = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
+
+
+def extract_section(body: str, heading: str) -> str:
+    """Return the text under a `## <heading>` section, up to the next `##`."""
+    lines = body.splitlines()
+    out: list[str] = []
+    capturing = False
+    for line in lines:
+        m = SECTION_RE.match(line)
+        if m:
+            capturing = m.group(1).strip().lower() == heading.lower()
+            continue
+        if capturing:
+            out.append(line)
+    text = "\n".join(out).strip()
+    return text
+
+
 def build(vault: str, out_dir: str) -> int:
     if not os.path.isdir(vault):
         print(f"error: vault '{vault}' not found. Run build_wiki.py first.", file=sys.stderr)
@@ -62,12 +81,20 @@ def build(vault: str, out_dir: str) -> int:
         meta = parse_frontmatter(text)
         entity = meta.get("entity") or os.path.splitext(fn)[0]
         layer = meta.get("layer", "unknown")
+        body = body_after_frontmatter(text)
+        summary = extract_section(body, "Summary")
 
-        nodes[entity] = {"id": entity, "layer": layer}
+        nodes[entity] = {
+            "id": entity,
+            "layer": layer,
+            "kind": meta.get("kind", "class"),
+            "source": meta.get("source", ""),
+            "doc": summary or "_No description available._",
+        }
         registry[entity] = os.path.relpath(path, DATA_DIR).replace("\\", "/")
 
         # Wikilinks in the body (exclude front-matter) become outgoing edges.
-        for target in WIKILINK_RE.findall(body_after_frontmatter(text)):
+        for target in WIKILINK_RE.findall(body):
             target = target.strip()
             if target and target != entity:
                 raw_edges.append((entity, target))

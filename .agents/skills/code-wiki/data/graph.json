@@ -2,19 +2,31 @@
   "nodes": [
     {
       "id": "OrderController",
-      "layer": "controller"
+      "layer": "controller",
+      "kind": "class",
+      "source": "order_controller.py",
+      "doc": "Handles inbound order requests and delegates to the service layer."
     },
     {
       "id": "OrderRepository",
-      "layer": "repository"
+      "layer": "repository",
+      "kind": "class",
+      "source": "order_repository.py",
+      "doc": "Reads and writes orders to the database."
     },
     {
       "id": "OrderService",
-      "layer": "service"
+      "layer": "service",
+      "kind": "class",
+      "source": "order_service.py",
+      "doc": "Orchestrates order placement, payment, and persistence."
     },
     {
       "id": "PaymentClient",
-      "layer": "client"
+      "layer": "client",
+      "kind": "class",
+      "source": "payment_client.py",
+      "doc": "Talks to the third-party payment gateway."
     }
   ],
   "edges": [

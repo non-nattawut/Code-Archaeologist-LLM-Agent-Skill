@@ -42,9 +42,11 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
   *or* method granularity.
 - **Blast-radius / impact analysis** — reverse-traversal listing every upstream caller affected
   by a change, for a class or a specific method.
-- **Standalone shareable visualizer** — generates a single self-contained `graph.html` with the
-  data embedded inline; open via `file://`, commit it, or email it. Layer-colored, searchable,
-  and hand-editable.
+- **Standalone shareable visualizer** — generates a single self-contained HTML file with the data
+  embedded inline; open via `file://`, commit it, or email it. Full-screen dark canvas with a
+  layer legend, search (`/`), neighbor-highlighting on click, and a **slide-in detail panel**:
+  click any node to see what that method/class does, its signature, source file, and clickable
+  callers/callees. Hand-editable colors.
 - **Layer inference** — auto-classifies entities (controller / service / repository / model /
   client / config) for architectural coloring.
 - **Zero external dependencies** — pure Python 3.10+ standard library. No `pip install`, no
