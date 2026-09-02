@@ -64,9 +64,7 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
 
 ## Installation
 
-### Recommended: `npx` (no clone required)
-
-From the root of the project you want to document, run:
+Install with `npx` — no clone required. From the root of the project you want to document, run:
 
 ```bash
 npx code-archaeologist-skill               # interactive: pick a harness
@@ -102,26 +100,6 @@ Useful flags:
 The CLI verifies Python 3.10+, copies `SKILL.md`, `scripts/`, and `templates/` into the chosen
 harness folder, and creates a fresh empty `data/` workspace. It has **no npm dependencies**
 (Node ≥ 16.7, built-ins only) — the skill itself still runs on Python.
-
-### Alternative: shell installers (no Node.js)
-
-Clone the repo and run the installer for your platform:
-
-```powershell
-# Windows (PowerShell)
-git clone https://github.com/non-nattawut/Code-Archaeologist-LLM-Agent-Skill.git
-cd Code-Archaeologist-LLM-Agent-Skill
-.\install.ps1 -SelfTest                 # or: .\install.ps1 -Target C:\work\my-service -Harness claude
-```
-```bash
-# macOS / Linux (bash)
-git clone https://github.com/non-nattawut/Code-Archaeologist-LLM-Agent-Skill.git
-cd Code-Archaeologist-LLM-Agent-Skill
-./install.sh --self-test                # or: ./install.sh --target /work/my-service --harness claude
-```
-
-Both shell installers accept the same harnesses (`--harness` / `-Harness`) and a custom
-`--dir` / `-Dir` path as the `npx` CLI.
 
 ## Usage
 
@@ -213,7 +191,6 @@ The agent then reads only the notes on that path — e.g.
     └── wiki_page_template.md    # page structure for generated entities
 bin/cli.js                       # npx installer (node, zero deps)
 package.json                     # npm package metadata
-install.ps1 / install.sh         # shell installers (verify Python, install, self-test)
 sample_src/                      # demo controller/service/repository/client trio
 ```
 

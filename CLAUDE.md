@@ -23,7 +23,7 @@ Run the pipeline against the bundled sample and confirm output:
 python .agents/skills/code-wiki/scripts/archaeologist.py both --src ./sample_src
 ```
 Expect the flow to recover `create_order → place_order → {save, charge}` and `get_order →
-find_order → get`. Installers: `./install.sh --self-test` or `npx code-archaeologist-skill --self-test`.
+find_order → get`. Installer smoke test: `npx code-archaeologist-skill --self-test`.
 
 ---
 
