@@ -3,7 +3,8 @@ entity: OrderRepository.get
 kind: method
 layer: repository
 class: OrderRepository
-source: order_repository.py:11
+source: sample_src/backend/order_repository.py:11
+lang: py
 desc_source: docstring
 ---
 # OrderRepository.get

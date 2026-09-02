@@ -3,7 +3,8 @@ entity: OrderController.get_order
 kind: endpoint
 layer: controller
 class: OrderController
-source: order_controller.py:15
+source: sample_src/backend/order_controller.py:15
+lang: py
 desc_source: docstring
 ---
 # OrderController.get_order

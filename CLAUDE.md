@@ -9,13 +9,18 @@ A deterministic, Zero-RAG codebase documentation engine that produces two maps:
 - **Structure** (class-level): `build_wiki.py` → `data/vault/*.md` → `build_graph.py` → `graph.json`.
 - **Flow** (method-level call/request flow): `build_flow.py` → `flow_graph.json` + `data/flow/*.md`.
 
-Graph structure is always extracted by Python's `ast` (exact, zero-token). Method descriptions are
-hybrid: docstring → cached AI summary (keyed by source hash, via `apply_descriptions.py`) →
-deterministic fallback. `trace_path.py` does BFS flow/impact on either graph; `build_html.py`
-renders a standalone viewer; `archaeologist.py project|flow|both` orchestrates.
+Backend (`.py`) structure is extracted by Python's `ast` (exact, zero-token). Frontend
+(`.js/.jsx/.ts/.tsx`) is extracted by `js_extract.js` (Node + `@babel/parser`) via `js_bridge.py`,
+which degrades gracefully if Node/the parser is absent. `--src` accepts multiple roots for
+monorepos (backend + frontend in one graph). `kind`/`layer`/etc. values come from `taxonomy.py`
+(see `templates/TAXONOMY.md`). Method descriptions are hybrid: docstring → cached AI summary (keyed
+by source hash, via `apply_descriptions.py`) → deterministic fallback. `trace_path.py` does BFS
+flow/impact on either graph; `build_html.py` renders a standalone viewer; `archaeologist.py
+project|flow|both` orchestrates.
 
 Constraints that define this project: **zero external Python dependencies** (stdlib only, Python
-3.10+), scripts resolve paths from the skill root, and the HTML loads `force-graph` from a CDN.
+3.10+) — the *only* exception is frontend parsing, which uses Node + `@babel/parser`. Scripts
+resolve paths from the skill root, and the HTML loads `force-graph` from a CDN.
 
 ## Verify changes
 Run the pipeline against the bundled sample and confirm output:

@@ -6,5 +6,17 @@
   "OrderService.__init__": {
     "hash": "f28a779bfcd7",
     "summary": "Stores the injected OrderRepository and PaymentClient used to place and look up orders."
+  },
+  "getOrder": {
+    "hash": "57570b4f81dd",
+    "summary": "Frontend API client: GET /orders/:id and return the parsed order JSON."
+  },
+  "loadOrder": {
+    "hash": "a935dca516fa",
+    "summary": "Frontend page action: loads an order by id via the API client."
+  },
+  "submitOrder": {
+    "hash": "6f3c2a889bc3",
+    "summary": "Frontend page action: submits a new order form via the API client."
   }
 }

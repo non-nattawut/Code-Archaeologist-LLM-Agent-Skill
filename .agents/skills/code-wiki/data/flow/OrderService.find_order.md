@@ -3,7 +3,8 @@ entity: OrderService.find_order
 kind: method
 layer: service
 class: OrderService
-source: order_service.py:18
+source: sample_src/backend/order_service.py:18
+lang: py
 desc_source: docstring
 ---
 # OrderService.find_order

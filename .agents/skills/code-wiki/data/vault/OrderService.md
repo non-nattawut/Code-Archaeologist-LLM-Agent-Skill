@@ -1,7 +1,7 @@
 ---
 entity: OrderService
 layer: service
-source: order_service.py
+source: sample_src/backend/order_service.py
 kind: class
 ---
 # OrderService

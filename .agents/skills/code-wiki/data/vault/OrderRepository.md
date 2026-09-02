@@ -1,7 +1,7 @@
 ---
 entity: OrderRepository
 layer: repository
-source: order_repository.py
+source: sample_src/backend/order_repository.py
 kind: class
 ---
 # OrderRepository

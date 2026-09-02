@@ -29,6 +29,10 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
     `OrderController.create_order → OrderService.place_order → OrderRepository.save`. Every node
     describes *what that method does* (docstring or auto-summary), its signature, callers, and
     callees.
+- **Backend + frontend, monorepo-aware** — `--src` accepts multiple roots
+  (`--src ./backend ./frontend`), and both land in one graph. Python (`.py`) is parsed by the
+  stdlib AST; JS/TS (`.js/.jsx/.ts/.tsx`) is parsed by a Node/`@babel/parser` extractor. Frontend
+  `fetch`/`axios` HTTP calls are captured on each node (used for backend API-edge linking).
 - **AST-based scanner** — parses Python with the standard-library `ast` module (accurate, no
   guessing), extracting classes, methods, docstrings, bases, decorators, and imports.
 - **Heuristic call resolution** — resolves `self.<dep>.method()` via `__init__` type hints,
@@ -59,8 +63,12 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
 
 ## Requirements
 
-- **Python 3.10+** (only the standard library is used).
-- A modern browser to view the generated `graph.html` (loads `force-graph` from a CDN).
+- **Python 3.10+** — required; the backend pipeline uses only the standard library.
+- **Node.js + `@babel/parser`** — *only for frontend (JS/TS) parsing*. Without it, frontend files
+  are skipped with a warning and the Python graph still builds. `@babel/parser` just needs to be
+  resolvable from the project (most frontend projects already have it; this repo installs it via
+  `npm install`).
+- A modern browser to view the generated HTML (loads `force-graph` from a CDN).
 
 ## Installation
 
@@ -112,7 +120,10 @@ python .agents/skills/code-wiki/scripts/archaeologist.py project --src ./src
 # Request/execution flow map  ->  data/flow_graph.json, data/flow/, data/flow.html
 python .agents/skills/code-wiki/scripts/archaeologist.py flow --src ./src
 
-# ...or build both
+# Monorepo: pass multiple roots (backend + frontend land in one graph)
+python .agents/skills/code-wiki/scripts/archaeologist.py flow --src ./backend ./frontend
+
+# ...or build both maps
 python .agents/skills/code-wiki/scripts/archaeologist.py both --src ./src
 ```
 
@@ -173,33 +184,37 @@ The agent then reads only the notes on that path — e.g.
 ├── SKILL.md                     # Agent instructions & tool specs
 ├── scripts/
 │   ├── archaeologist.py         # entrypoint: `project` | `flow` | `both`
+│   ├── taxonomy.py              # allowed kind/layer values (single source of truth)
 │   ├── build_wiki.py            # AST scan  -> data/vault/*.md (structure, [[wikilinks]])
 │   ├── build_graph.py           # vault     -> graph.json + registry.json
-│   ├── build_flow.py            # AST calls -> flow_graph.json + data/flow/*.md (method flow)
+│   ├── build_flow.py            # AST + JS calls -> flow_graph.json + data/flow/*.md
+│   ├── js_extract.js            # Node/@babel JS/TS extractor (frontend)
+│   ├── js_bridge.py             # runs js_extract.js from Python (graceful fallback)
 │   ├── apply_descriptions.py    # cache agent-written method summaries (by source hash)
 │   ├── trace_path.py            # BFS flow (--from/--to) & impact (--impact-of), any graph
 │   └── build_html.py            # <graph>.json -> standalone shareable HTML viewer
 ├── data/
 │   ├── graph.json               # structure: nodes & edges
-│   ├── flow_graph.json          # flow: method nodes & call edges
+│   ├── flow_graph.json          # flow: method nodes & call edges (Python + JS)
 │   ├── registry.json            # entity -> vault path
 │   ├── descriptions.json        # cached AI summaries (keyed by method source hash)
 │   ├── graph.html / flow.html   # generated standalone viewers
 │   ├── vault/                   # structure notes (one per class)
 │   └── flow/                    # flow notes (one per method)
 └── templates/
-    └── wiki_page_template.md    # page structure for generated entities
+    ├── wiki_page_template.md    # page structure for generated entities
+    └── TAXONOMY.md              # allowed values for each template field
 bin/cli.js                       # npx installer (node, zero deps)
 package.json                     # npm package metadata
-sample_src/                      # demo controller/service/repository/client trio
+sample_src/backend + frontend    # monorepo demo (Python API + TS client)
 ```
 
 ## Roadmap
 
-- Additional language scanners (Java, TypeScript/JS, Go) — `build_wiki.py` is structured so a
-  per-language extractor can slot in alongside the Python `ast` path.
-- Optional LLM-generated entity summaries.
-- Optional fully-offline viewer (`--inline-lib`) that embeds the graph library.
+- **Frontend→backend API-edge linking** (next) — match frontend `fetch`/`axios` URLs (already
+  captured on each node) to backend route handlers, so a request flow crosses the stack.
+- Frontend entities in the *structure* map (currently frontend is in the flow map).
+- More languages (Java, Go); optional fully-offline viewer that embeds the graph library.
 
 ## License
 

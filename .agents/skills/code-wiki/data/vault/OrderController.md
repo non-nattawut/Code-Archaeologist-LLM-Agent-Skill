@@ -1,7 +1,7 @@
 ---
 entity: OrderController
 layer: controller
-source: order_controller.py
+source: sample_src/backend/order_controller.py
 kind: class
 ---
 # OrderController

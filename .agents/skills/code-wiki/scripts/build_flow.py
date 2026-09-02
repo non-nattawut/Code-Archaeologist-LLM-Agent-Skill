@@ -61,25 +61,11 @@ def _save_json(path: str, obj) -> None:
         json.dump(obj, fh, indent=2)
         fh.write("\n")
 
+sys.path.insert(0, SCRIPT_DIR)
+from taxonomy import infer_layer, ROUTE_DECORATOR_RE  # noqa: E402
+from js_bridge import find_js_files, extract_js_files   # noqa: E402
+
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data"}
-
-LAYER_RULES = [
-    (re.compile(r"controller|handler|router|resource|endpoint", re.I), "controller"),
-    (re.compile(r"service|usecase|manager", re.I), "service"),
-    (re.compile(r"repository|repo|dao|store|mapper", re.I), "repository"),
-    (re.compile(r"model|entity|schema|dto|record", re.I), "model"),
-    (re.compile(r"config|settings", re.I), "config"),
-    (re.compile(r"client|gateway|adapter", re.I), "client"),
-]
-ROUTE_DECORATOR_RE = re.compile(r"route|get|post|put|patch|delete|mapping|endpoint", re.I)
-
-
-def infer_layer(name: str, decorators: list[str], bases: list[str]) -> str:
-    haystack = " ".join([name] + decorators + bases)
-    for pattern, layer in LAYER_RULES:
-        if pattern.search(haystack):
-            return layer
-    return "unknown"
 
 
 def iter_py_files(src: str):
@@ -164,15 +150,28 @@ def _is_self_attr(node) -> bool:
     return isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "self"
 
 
-def analyze(src: str):
-    """Two-pass analysis: collect declarations, then resolve calls."""
+def _rel_source(path: str, root: str) -> str:
+    """Path relative to its root, prefixed with the root's name so monorepo
+    areas (backend/… vs frontend/…) are distinguishable in the graph."""
+    rel = os.path.relpath(path, root).replace("\\", "/")
+    return f"{os.path.basename(os.path.normpath(root))}/{rel}"
+
+
+def _iter_sources(roots: list[str]):
+    for root in roots:
+        for path in iter_py_files(root):
+            yield path, root
+
+
+def analyze(roots: list[str]):
+    """Two-pass analysis across one or more source roots (Python + JS/TS)."""
     methods: dict[str, dict] = {}          # node_id -> info
     class_methods: dict[str, set[str]] = {}  # ClassName -> {method names}
     func_nodes: dict[str, str] = {}         # module function name -> node_id
     # Deferred call sites, resolved in pass 2:  (caller_id, class_ctx, fn_ast)
     pending: list[tuple[str, str | None, dict, ast.AST]] = []
 
-    for path in iter_py_files(src):
+    for path, root in _iter_sources(roots):
         try:
             with open(path, "r", encoding="utf-8") as fh:
                 src_text = fh.read()
@@ -180,7 +179,7 @@ def analyze(src: str):
         except (SyntaxError, UnicodeDecodeError) as exc:
             print(f"  ! skipped {path}: {exc}", file=sys.stderr)
             continue
-        rel = os.path.relpath(path, src).replace("\\", "/")
+        rel = _rel_source(path, root)
 
         for cls in [n for n in tree.body if isinstance(n, ast.ClassDef)]:
             cls_decos = [_name_of(d) for d in cls.decorator_list]
@@ -222,12 +221,19 @@ def analyze(src: str):
             local_types = _local_types(fn, {})
             pending.append((node_id, None, {"attr_types": {}, "local_types": local_types}, fn))
 
-    # --- Pass 2: resolve call edges ---
+    # --- Pass 2: resolve Python call edges ---
     edges: set[tuple[str, str]] = set()
     for caller_id, cls_ctx, ctx, fn in pending:
         for target in _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes):
             if target != caller_id:
                 edges.add((caller_id, target))
+
+    # --- Frontend (JS/TS): merge nodes + call edges into the same graph ---
+    js_methods, js_edges = _analyze_js(roots)
+    methods.update(js_methods)
+    for s, t in js_edges:
+        if s in methods and t in methods and s != t:
+            edges.add((s, t))
 
     for src_id, dst_id in edges:
         methods[src_id]["calls"].append(dst_id)
@@ -237,6 +243,53 @@ def analyze(src: str):
         info["callers"] = sorted(set(info["callers"]))
 
     return methods, sorted(edges)
+
+
+def _js_node(nid: str, name: str, cls, layer: str, kind: str, data: dict, rel: str) -> dict:
+    doc = (data.get("doc") or "").strip()
+    http = data.get("http", [])
+    calls = data.get("calls", [])
+    content = json.dumps({"n": name, "c": sorted(calls), "h": http, "d": doc}, sort_keys=True)
+    code = (f"// {rel}\n{name}(...) calls {', '.join(calls) or 'nothing'}"
+            + (f"; http {http}" if http else ""))
+    return {
+        "id": nid, "name": name, "cls": cls, "layer": layer, "kind": kind,
+        "signature": f"{name}()",
+        "doc": doc.splitlines()[0] if doc else "",
+        "source": f"{rel}:{data.get('line', 0)}", "calls": [], "callers": [],
+        "hash": _hash(content), "code": code, "http": http, "lang": "js",
+    }
+
+
+def _analyze_js(roots: list[str]):
+    """Extract JS/TS functions/methods as flow nodes and resolve their calls."""
+    methods: dict[str, dict] = {}
+    func_nodes: set[str] = set()
+    raw_calls: list[tuple[str, list[str]]] = []
+
+    for root in roots:
+        for res in extract_js_files(find_js_files(root)):
+            rel = _rel_source(res["file"], root)
+            stem = os.path.splitext(os.path.basename(res["file"]))[0]
+            for fn in res.get("functions", []):
+                nid = fn["name"]
+                methods[nid] = _js_node(nid, fn["name"], None, infer_layer(f'{fn["name"]} {stem}'),
+                                        "function", fn, rel)
+                func_nodes.add(nid)
+                raw_calls.append((nid, fn.get("calls", [])))
+            for cls in res.get("classes", []):
+                for m in cls.get("methods", []):
+                    nid = f'{cls["name"]}.{m["name"]}'
+                    methods[nid] = _js_node(nid, m["name"], cls["name"],
+                                            infer_layer(f'{cls["name"]} {stem}'), "method", m, rel)
+                    raw_calls.append((nid, m.get("calls", [])))
+
+    edges: set[tuple[str, str]] = set()
+    for owner, calls in raw_calls:
+        for name in calls:
+            if name in func_nodes and name != owner:
+                edges.add((owner, name))
+    return methods, edges
 
 
 def _local_types(fn, seed: dict[str, str]) -> dict[str, str]:
@@ -333,6 +386,9 @@ def write_vault(methods: dict, flow_dir: str) -> None:
     for info in methods.values():
         calls_md = "\n".join(f"- [[{c}]]" for c in info["calls"]) or "_None._"
         callers_md = "\n".join(f"- [[{c}]]" for c in info["callers"]) or "_None (entry point)._"
+        http = info.get("http") or []
+        http_md = "".join(f"\n## HTTP calls\n" + "\n".join(f"- `{h['method']} {h['url']}`" for h in http) + "\n"
+                          if http else "")
         page = (
             f"---\n"
             f"entity: {info['id']}\n"
@@ -340,6 +396,7 @@ def write_vault(methods: dict, flow_dir: str) -> None:
             f"layer: {info['layer']}\n"
             f"class: {info['cls'] or ''}\n"
             f"source: {info['source']}\n"
+            f"lang: {info.get('lang', 'py')}\n"
             f"desc_source: {info.get('desc_source', 'auto')}\n"
             f"---\n"
             f"# {info['id']}\n\n"
@@ -347,18 +404,21 @@ def write_vault(methods: dict, flow_dir: str) -> None:
             f"## Signature\n`{info['signature']}`\n\n"
             f"## Calls\n{calls_md}\n\n"
             f"## Called by\n{callers_md}\n"
+            f"{http_md}"
         )
         with open(os.path.join(flow_dir, f"{_safe(info['id'])}.md"), "w", encoding="utf-8") as fh:
             fh.write(page)
 
 
 def write_graph(methods: dict, edges, graph_path: str) -> None:
-    nodes = [
-        {"id": i["id"], "layer": i["layer"], "kind": i["kind"],
-         "cls": i["cls"], "signature": i["signature"], "doc": i.get("summary", ""),
-         "source": i["source"]}
-        for i in sorted(methods.values(), key=lambda x: x["id"])
-    ]
+    nodes = []
+    for i in sorted(methods.values(), key=lambda x: x["id"]):
+        node = {"id": i["id"], "layer": i["layer"], "kind": i["kind"],
+                "cls": i["cls"], "signature": i["signature"], "doc": i.get("summary", ""),
+                "source": i["source"], "lang": i.get("lang", "py")}
+        if i.get("http"):
+            node["http"] = i["http"]
+        nodes.append(node)
     graph = {"nodes": nodes,
              "edges": [{"source": s, "target": t, "type": "calls"} for s, t in edges]}
     os.makedirs(os.path.dirname(graph_path), exist_ok=True)
@@ -367,15 +427,16 @@ def write_graph(methods: dict, edges, graph_path: str) -> None:
         fh.write("\n")
 
 
-def build(src: str, flow_dir: str, graph_path: str) -> int:
-    src = os.path.abspath(src)
-    if not os.path.isdir(src):
-        print(f"error: --src '{src}' is not a directory", file=sys.stderr)
+def build(src, flow_dir: str, graph_path: str) -> int:
+    roots = [os.path.abspath(s) for s in ([src] if isinstance(src, str) else src)]
+    missing = [r for r in roots if not os.path.isdir(r)]
+    if missing:
+        print(f"error: source root(s) not found: {', '.join(missing)}", file=sys.stderr)
         return 2
-    print(f"Analyzing call flow in {src} ...")
-    methods, edges = analyze(src)
+    print(f"Analyzing call flow in {', '.join(roots)} ...")
+    methods, edges = analyze(roots)
     if not methods:
-        print("No Python methods/functions found.")
+        print("No methods/functions found.")
         return 0
 
     # Hybrid descriptions: docstring -> cached AI summary -> auto fallback.
@@ -407,7 +468,8 @@ def build(src: str, flow_dir: str, graph_path: str) -> int:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Build a method-level call/request-flow graph.")
-    parser.add_argument("--src", default="./src", help="Source directory to analyze (default: ./src)")
+    parser.add_argument("--src", nargs="+", default=["./src"],
+                        help="One or more source roots (e.g. --src ./backend ./frontend)")
     parser.add_argument("--flow-dir", default=DEFAULT_FLOW_DIR, help="Output directory for method notes")
     parser.add_argument("--graph", default=DEFAULT_GRAPH, help="Output flow_graph.json path")
     args = parser.parse_args(argv)

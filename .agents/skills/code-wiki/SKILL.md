@@ -45,6 +45,16 @@ python .agents/skills/code-wiki/scripts/archaeologist.py flow --src ./src
 ```
 Build both at once with `... archaeologist.py both --src ./src`.
 
+**Monorepo & frontend.** `--src` accepts multiple roots, so backend and frontend land in one
+graph:
+```bash
+python .agents/skills/code-wiki/scripts/archaeologist.py flow --src ./backend ./frontend
+```
+Python (`.py`) is parsed by the stdlib AST. JS/TS (`.js/.jsx/.ts/.tsx`) is parsed by the Node
+extractor (`js_extract.js`, needs Node + `@babel/parser` resolvable from the project); if Node or
+the parser is missing, frontend files are skipped with a warning and the Python graph still builds.
+Node `source` fields are prefixed with their root area (e.g. `backend/…`, `frontend/…`).
+
 ### 3. Trace Execution Flow
 Find the path connecting two components. Structure uses the default graph; flow needs `--graph`:
 ```bash
@@ -101,9 +111,12 @@ After any code add/change/delete, refresh a map:
 3. If there are **0 pending**, you're done — the graph, notes, and `flow.html` are up to date.
 
 ## Notes
-- Zero external dependencies: all scripts use the Python 3.10+ standard library. The generated HTML
-  loads `force-graph` from a CDN in the browser.
-- The initial version parses **Python** deterministically via the stdlib `ast` module.
+- Zero external dependencies for the **Python** pipeline (stdlib only). **Frontend** parsing is the
+  one exception: it needs Node + `@babel/parser`. The generated HTML loads `force-graph` from a CDN.
+- Backend is parsed deterministically via the stdlib `ast` module; frontend via `@babel/parser`.
+- Field values (`kind`, `layer`, `lang`, `desc_source`) come from `scripts/taxonomy.py`; see
+  `templates/TAXONOMY.md` for the allowed set. Keep them consistent by editing the taxonomy, not
+  individual pages.
 - Flow call resolution is heuristic (no full type inference): it resolves `self.<dep>.m()` via
   `__init__` type hints/assignments, typed params/locals, and same-class `self.m()` calls;
   unresolved external/stdlib calls are dropped to keep the graph readable.

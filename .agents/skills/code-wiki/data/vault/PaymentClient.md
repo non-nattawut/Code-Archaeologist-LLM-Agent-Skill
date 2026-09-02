@@ -1,7 +1,7 @@
 ---
 entity: PaymentClient
 layer: client
-source: payment_client.py
+source: sample_src/backend/payment_client.py
 kind: class
 ---
 # PaymentClient

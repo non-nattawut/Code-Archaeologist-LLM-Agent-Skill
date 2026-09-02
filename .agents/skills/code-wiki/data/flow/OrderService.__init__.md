@@ -3,7 +3,8 @@ entity: OrderService.__init__
 kind: method
 layer: service
 class: OrderService
-source: order_service.py:9
+source: sample_src/backend/order_service.py:9
+lang: py
 desc_source: ai
 ---
 # OrderService.__init__

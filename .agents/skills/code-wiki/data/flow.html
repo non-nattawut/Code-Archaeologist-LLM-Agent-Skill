@@ -85,7 +85,8 @@ const GRAPH = {
       "cls": "OrderController",
       "signature": "__init__(self, service: OrderService)",
       "doc": "Wires the controller to its OrderService dependency (constructor injection).",
-      "source": "order_controller.py:8"
+      "source": "sample_src/backend/order_controller.py:8",
+      "lang": "py"
     },
     {
       "id": "OrderController.create_order",
@@ -94,7 +95,8 @@ const GRAPH = {
       "cls": "OrderController",
       "signature": "create_order(self, payload)",
       "doc": "POST /orders \u2014 create a new order.",
-      "source": "order_controller.py:11"
+      "source": "sample_src/backend/order_controller.py:11",
+      "lang": "py"
     },
     {
       "id": "OrderController.get_order",
@@ -103,7 +105,8 @@ const GRAPH = {
       "cls": "OrderController",
       "signature": "get_order(self, order_id)",
       "doc": "GET /orders/{id} \u2014 fetch a single order.",
-      "source": "order_controller.py:15"
+      "source": "sample_src/backend/order_controller.py:15",
+      "lang": "py"
     },
     {
       "id": "OrderRepository.get",
@@ -112,7 +115,8 @@ const GRAPH = {
       "cls": "OrderRepository",
       "signature": "get(self, order_id)",
       "doc": "Select an order by id.",
-      "source": "order_repository.py:11"
+      "source": "sample_src/backend/order_repository.py:11",
+      "lang": "py"
     },
     {
       "id": "OrderRepository.save",
@@ -121,7 +125,8 @@ const GRAPH = {
       "cls": "OrderRepository",
       "signature": "save(self, order)",
       "doc": "Insert a new order row.",
-      "source": "order_repository.py:7"
+      "source": "sample_src/backend/order_repository.py:7",
+      "lang": "py"
     },
     {
       "id": "OrderService.__init__",
@@ -130,7 +135,8 @@ const GRAPH = {
       "cls": "OrderService",
       "signature": "__init__(self, repository: OrderRepository, payments: PaymentClient)",
       "doc": "Stores the injected OrderRepository and PaymentClient used to place and look up orders.",
-      "source": "order_service.py:9"
+      "source": "sample_src/backend/order_service.py:9",
+      "lang": "py"
     },
     {
       "id": "OrderService.find_order",
@@ -139,7 +145,8 @@ const GRAPH = {
       "cls": "OrderService",
       "signature": "find_order(self, order_id)",
       "doc": "Look up an order by id.",
-      "source": "order_service.py:18"
+      "source": "sample_src/backend/order_service.py:18",
+      "lang": "py"
     },
     {
       "id": "OrderService.place_order",
@@ -148,7 +155,8 @@ const GRAPH = {
       "cls": "OrderService",
       "signature": "place_order(self, payload)",
       "doc": "Charge payment then persist the order.",
-      "source": "order_service.py:13"
+      "source": "sample_src/backend/order_service.py:13",
+      "lang": "py"
     },
     {
       "id": "PaymentClient.charge",
@@ -157,7 +165,60 @@ const GRAPH = {
       "cls": "PaymentClient",
       "signature": "charge(self, payload)",
       "doc": "Charge the customer for an order.",
-      "source": "payment_client.py:7"
+      "source": "sample_src/backend/payment_client.py:7",
+      "lang": "py"
+    },
+    {
+      "id": "createOrder",
+      "layer": "client",
+      "kind": "function",
+      "cls": null,
+      "signature": "createOrder()",
+      "doc": "Thin HTTP client for the orders backend.",
+      "source": "sample_src/frontend/api_client.ts:3",
+      "lang": "js",
+      "http": [
+        {
+          "method": "POST",
+          "url": "/orders"
+        }
+      ]
+    },
+    {
+      "id": "getOrder",
+      "layer": "client",
+      "kind": "function",
+      "cls": null,
+      "signature": "getOrder()",
+      "doc": "Frontend API client: GET /orders/:id and return the parsed order JSON.",
+      "source": "sample_src/frontend/api_client.ts:8",
+      "lang": "js",
+      "http": [
+        {
+          "method": "GET",
+          "url": "/orders/:orderId"
+        }
+      ]
+    },
+    {
+      "id": "loadOrder",
+      "layer": "ui",
+      "kind": "function",
+      "cls": null,
+      "signature": "loadOrder()",
+      "doc": "Frontend page action: loads an order by id via the API client.",
+      "source": "sample_src/frontend/order_page.ts:8",
+      "lang": "js"
+    },
+    {
+      "id": "submitOrder",
+      "layer": "ui",
+      "kind": "function",
+      "cls": null,
+      "signature": "submitOrder()",
+      "doc": "Frontend page action: submits a new order form via the API client.",
+      "source": "sample_src/frontend/order_page.ts:4",
+      "lang": "js"
     }
   ],
   "edges": [
@@ -184,6 +245,16 @@ const GRAPH = {
     {
       "source": "OrderService.place_order",
       "target": "PaymentClient.charge",
+      "type": "calls"
+    },
+    {
+      "source": "loadOrder",
+      "target": "getOrder",
+      "type": "calls"
+    },
+    {
+      "source": "submitOrder",
+      "target": "createOrder",
       "type": "calls"
     }
   ]

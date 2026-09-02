@@ -3,7 +3,8 @@ entity: OrderRepository.save
 kind: method
 layer: repository
 class: OrderRepository
-source: order_repository.py:7
+source: sample_src/backend/order_repository.py:7
+lang: py
 desc_source: docstring
 ---
 # OrderRepository.save

@@ -5,6 +5,9 @@ __pycache__/
 .venv/
 venv/
 
+# Node (frontend parser dependency)
+node_modules/
+
 # OS
 .DS_Store
 Thumbs.db

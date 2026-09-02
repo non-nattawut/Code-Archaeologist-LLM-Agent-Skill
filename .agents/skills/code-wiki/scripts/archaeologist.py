@@ -34,7 +34,7 @@ import build_flow      # noqa: E402
 import build_html      # noqa: E402
 
 
-def run_project(src: str) -> int:
+def run_project(src) -> int:
     print("== Project structure map ==")
     rc = build_wiki.build(src, os.path.join(DATA_DIR, "vault"))
     if rc:
@@ -49,7 +49,7 @@ def run_project(src: str) -> int:
     )
 
 
-def run_flow(src: str) -> int:
+def run_flow(src) -> int:
     print("== Flow (call / request) map ==")
     rc = build_flow.build(src, os.path.join(DATA_DIR, "flow"), os.path.join(DATA_DIR, "flow_graph.json"))
     if rc:
@@ -64,7 +64,8 @@ def run_flow(src: str) -> int:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Code Archaeologist — build the structure and/or flow maps.")
     parser.add_argument("command", choices=["project", "flow", "both"], help="Which map to build")
-    parser.add_argument("--src", default="./src", help="Source directory to scan (default: ./src)")
+    parser.add_argument("--src", nargs="+", default=["./src"],
+                        help="One or more source roots (e.g. --src ./backend ./frontend)")
     args = parser.parse_args(argv)
 
     if args.command == "project":

@@ -25,25 +25,10 @@ DATA_DIR = os.path.join(SKILL_ROOT, "data")
 DEFAULT_VAULT = os.path.join(DATA_DIR, "vault")
 TEMPLATE_PATH = os.path.join(SKILL_ROOT, "templates", "wiki_page_template.md")
 
+sys.path.insert(0, SCRIPT_DIR)
+from taxonomy import infer_layer  # noqa: E402
+
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data"}
-
-# Layer inference heuristics: (regex tested against name/decorators) -> layer
-LAYER_RULES = [
-    (re.compile(r"controller|handler|router|resource|endpoint", re.I), "controller"),
-    (re.compile(r"service|usecase|manager", re.I), "service"),
-    (re.compile(r"repository|repo|dao|store|mapper", re.I), "repository"),
-    (re.compile(r"model|entity|schema|dto|record", re.I), "model"),
-    (re.compile(r"config|settings", re.I), "config"),
-    (re.compile(r"client|gateway|adapter", re.I), "client"),
-]
-
-
-def infer_layer(name: str, decorators: list[str], bases: list[str]) -> str:
-    haystack = " ".join([name] + decorators + bases)
-    for pattern, layer in LAYER_RULES:
-        if pattern.search(haystack):
-            return layer
-    return "unknown"
 
 
 # ---------------------------------------------------------------------------
@@ -73,54 +58,64 @@ def iter_py_files(src: str):
                 yield os.path.join(root, fn)
 
 
-def extract_entities(src: str, repo_root: str) -> list[dict]:
-    """Return a list of entity dicts describing classes and module function-groups."""
+def _rel_source(path: str, root: str) -> str:
+    rel = os.path.relpath(path, root).replace("\\", "/")
+    return f"{os.path.basename(os.path.normpath(root))}/{rel}"
+
+
+def extract_entities(roots: list[str]) -> list[dict]:
+    """Return a list of entity dicts describing classes and module function-groups
+    across one or more source roots."""
     entities: list[dict] = []
-    for path in iter_py_files(src):
-        try:
-            with open(path, "r", encoding="utf-8") as fh:
-                source = fh.read()
-            tree = ast.parse(source, filename=path)
-        except (SyntaxError, UnicodeDecodeError) as exc:
-            print(f"  ! skipped {path}: {exc}", file=sys.stderr)
-            continue
+    for root in roots:
+        for path in iter_py_files(root):
+            try:
+                with open(path, "r", encoding="utf-8") as fh:
+                    source = fh.read()
+                tree = ast.parse(source, filename=path)
+            except (SyntaxError, UnicodeDecodeError) as exc:
+                print(f"  ! skipped {path}: {exc}", file=sys.stderr)
+                continue
 
-        rel = os.path.relpath(path, repo_root).replace("\\", "/")
-
-        # Module-level imported names (for reference resolution).
-        imports: set[str] = set()
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                for a in node.names:
-                    imports.add((a.asname or a.name).split(".")[0])
-            elif isinstance(node, ast.ImportFrom):
-                for a in node.names:
-                    imports.add(a.asname or a.name)
-
-        module_funcs: list[dict] = []
-        for node in tree.body:
-            if isinstance(node, ast.ClassDef):
-                entities.append(_class_entity(node, rel, imports, source))
-            elif isinstance(node, ast.FunctionDef) or isinstance(node, ast.AsyncFunctionDef):
-                module_funcs.append({
-                    "name": node.name,
-                    "doc": (ast.get_docstring(node) or "").strip().splitlines()[0:1],
-                })
-
-        if module_funcs:
-            mod_name = os.path.splitext(os.path.basename(path))[0]
-            entities.append({
-                "name": _module_entity_name(mod_name),
-                "kind": "module",
-                "source": rel,
-                "bases": [],
-                "decorators": [],
-                "doc": (ast.get_docstring(tree) or "").strip(),
-                "methods": [{"name": f["name"], "doc": (f["doc"][0] if f["doc"] else "")}
-                            for f in module_funcs],
-                "imports": sorted(imports),
-            })
+            rel = _rel_source(path, root)
+            _extract_from_tree(tree, source, rel, entities)
     return entities
+
+
+def _extract_from_tree(tree, source, rel, entities):
+    # Module-level imported names (for reference resolution).
+    imports: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for a in node.names:
+                imports.add((a.asname or a.name).split(".")[0])
+        elif isinstance(node, ast.ImportFrom):
+            for a in node.names:
+                imports.add(a.asname or a.name)
+
+    module_funcs: list[dict] = []
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef):
+            entities.append(_class_entity(node, rel, imports, source))
+        elif isinstance(node, ast.FunctionDef) or isinstance(node, ast.AsyncFunctionDef):
+            module_funcs.append({
+                "name": node.name,
+                "doc": (ast.get_docstring(node) or "").strip().splitlines()[0:1],
+            })
+
+    if module_funcs:
+        mod_name = os.path.splitext(os.path.basename(rel))[0]
+        entities.append({
+            "name": _module_entity_name(mod_name),
+            "kind": "module",
+            "source": rel,
+            "bases": [],
+            "decorators": [],
+            "doc": (ast.get_docstring(tree) or "").strip(),
+            "methods": [{"name": f["name"], "doc": (f["doc"][0] if f["doc"] else "")}
+                        for f in module_funcs],
+            "imports": sorted(imports),
+        })
 
 
 def _module_entity_name(mod: str) -> str:
@@ -205,17 +200,18 @@ def render_entity(ent: dict, known: set[str], template: str) -> str:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
-def build(src: str, vault: str) -> int:
-    src = os.path.abspath(src)
-    if not os.path.isdir(src):
-        print(f"error: --src '{src}' is not a directory", file=sys.stderr)
+def build(src, vault: str) -> int:
+    roots = [os.path.abspath(s) for s in ([src] if isinstance(src, str) else src)]
+    missing = [r for r in roots if not os.path.isdir(r)]
+    if missing:
+        print(f"error: source root(s) not found: {', '.join(missing)}", file=sys.stderr)
         return 2
 
     os.makedirs(vault, exist_ok=True)
     template = load_template()
 
-    print(f"Scanning {src} ...")
-    entities = extract_entities(src, repo_root=src)
+    print(f"Scanning {', '.join(roots)} ...")
+    entities = extract_entities(roots)
     if not entities:
         print("No Python entities found. Nothing to write.")
         return 0
@@ -243,7 +239,8 @@ def build(src: str, vault: str) -> int:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Scan Python source into a Markdown wiki vault.")
-    parser.add_argument("--src", default="./src", help="Source directory to scan (default: ./src)")
+    parser.add_argument("--src", nargs="+", default=["./src"],
+                        help="One or more source roots (e.g. --src ./backend ./frontend)")
     parser.add_argument("--vault", default=DEFAULT_VAULT, help="Output vault directory")
     args = parser.parse_args(argv)
     return build(args.src, args.vault)
