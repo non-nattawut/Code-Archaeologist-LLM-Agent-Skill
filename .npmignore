@@ -1,0 +1,7 @@
+# Never publish installed dependencies — users run `npm install` in the skill dir themselves.
+node_modules
+**/node_modules
+
+# Generated demo artifacts don't need to ship in the installer package.
+**/code-wiki/data/cache/pending_descriptions.json
+**/code-wiki/data/cache/manifest.json

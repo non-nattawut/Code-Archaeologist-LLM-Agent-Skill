@@ -14,13 +14,14 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 import sys
 from collections import deque
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SKILL_ROOT = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(SKILL_ROOT, "data")
-DEFAULT_GRAPH = os.path.join(DATA_DIR, "graph.json")
+DEFAULT_GRAPH = os.path.join(DATA_DIR, "structure", "graph.json")
 
 
 def load_graph(path: str):
@@ -29,6 +30,7 @@ def load_graph(path: str):
     with open(path, "r", encoding="utf-8") as fh:
         data = json.load(fh)
     nodes = {n["id"] for n in data.get("nodes", [])}
+    sources = {n["id"]: (n.get("source", "") or "").split(":")[0] for n in data.get("nodes", [])}
     adj: dict[str, list[str]] = {n: [] for n in nodes}
     radj: dict[str, list[str]] = {n: [] for n in nodes}
     for e in data.get("edges", []):
@@ -36,7 +38,38 @@ def load_graph(path: str):
         if s in nodes and t in nodes:
             adj.setdefault(s, []).append(t)
             radj.setdefault(t, []).append(s)
-    return nodes, adj, radj
+    return nodes, adj, radj, sources
+
+
+def _changed_files(base: str | None, staged: bool) -> list[str]:
+    """Files changed per `git diff` (working tree vs HEAD by default)."""
+    cmd = ["git", "diff", "--name-only"]
+    if staged:
+        cmd.append("--cached")
+    elif base:
+        cmd.append(base)
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True)
+    except FileNotFoundError:
+        _fail("git not found on PATH")
+    if r.returncode != 0:
+        _fail("git diff failed (not a git repo?): " + (r.stderr.strip() or "unknown error"))
+    return [ln.strip().replace("\\", "/") for ln in r.stdout.splitlines() if ln.strip()]
+
+
+def _nodes_for_files(sources: dict[str, str], files: list[str]) -> list[str]:
+    """Map changed file paths back to graph node ids by path-suffix match.
+    Node `source` is `<root-basename>/<rel>`; git paths are repo-relative, so we
+    match either direction with a `/` boundary."""
+    hits: set[str] = set()
+    for nid, src in sources.items():
+        if not src:
+            continue
+        for f in files:
+            if f == src or f.endswith("/" + src) or src.endswith("/" + f):
+                hits.add(nid)
+                break
+    return sorted(hits)
 
 
 def _emit(obj: dict, code: int = 0) -> int:
@@ -114,11 +147,29 @@ def main(argv=None) -> int:
     parser.add_argument("--to", dest="dst", help="Target node (flow mode)")
     parser.add_argument("--all", action="store_true", help="List all simple paths, not just shortest")
     parser.add_argument("--impact-of", dest="impact", help="List all upstream callers of this node")
+    parser.add_argument("--impact-of-diff", dest="impact_diff", action="store_true",
+                        help="Blast-radius of the current git diff (all nodes touched by changed files)")
+    parser.add_argument("--base", help="Diff against this git ref (with --impact-of-diff)")
+    parser.add_argument("--staged", action="store_true", help="Use staged changes (with --impact-of-diff)")
     args = parser.parse_args(argv)
 
-    nodes, adj, radj = load_graph(args.graph)
+    nodes, adj, radj, sources = load_graph(args.graph)
     if not nodes:
         _fail("graph is empty; run build_wiki.py then build_graph.py")
+
+    if args.impact_diff:
+        files = _changed_files(args.base, args.staged)
+        seeds = _nodes_for_files(sources, files)
+        impacted: set[str] = set(seeds)
+        for seed in seeds:
+            impacted.update(impact_of(radj, seed))
+        return _emit({
+            "mode": "impact-diff",
+            "changed_files": files,
+            "changed_nodes": seeds,
+            "impacted": sorted(impacted),
+            "count": len(impacted),
+        })
 
     if args.impact:
         if args.impact not in nodes:

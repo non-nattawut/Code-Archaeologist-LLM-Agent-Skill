@@ -10,11 +10,15 @@ Provides zero-RAG codebase navigation using local dependency graphs and Markdown
 There are **two complementary maps**:
 
 - **Project Structure** (class-level) — which classes/entities reference or import which.
-  Data: `data/graph.json` + `data/vault/<Entity>.md`.
+  Data: `data/structure/graph.json` + `data/structure/vault/<Entity>.md`.
 - **Flow / Request Flow** (method-level) — which method calls which method, so you can trace an
   actual execution/request flow such as `OrderController.create_order -> OrderService.place_order
   -> OrderRepository.save`. Each node describes what the method does. Data:
-  `data/flow_graph.json` + `data/flow/<Class.method>.md`.
+  `data/flow/flow_graph.json` + `data/flow/notes/<Class.method>.md`.
+
+`data/` is organized by map: `structure/` (class graph + vault + `graph.html`), `flow/`
+(call graph + `notes/` + `flow.html`), and `cache/` (internal AI-summary cache + source-freshness
+manifest — you rarely touch these directly).
 
 ## Setup (do this first)
 - **Backend (Python) — no install needed.** Just Python 3.10+; the whole `.py` pipeline is stdlib.
@@ -35,12 +39,11 @@ There are **two complementary maps**:
 3. ALWAYS query the graph first with `trace_path.py` (point `--graph` at the right graph) to find
    the exact path or blast-radius.
 4. Read ONLY the specific Markdown notes for the nodes on the discovered path
-   (`data/vault/<Entity>.md` for structure, `data/flow/<Class.method>.md` for flow).
+   (`data/structure/vault/<Entity>.md` for structure, `data/flow/notes/<Class.method>.md` for flow).
 5. Always preserve `[[EntityName]]` / `[[Class.method]]` wikilinks so answers are cross-navigable.
-6. **Keep the maps current.** Whenever project source is added, changed, or deleted (e.g. after
-   you edit code), re-run the relevant build so the graphs and HTML match the code — see
-   "Keeping the maps current" below. Do this before answering flow/impact questions if the code
-   has changed since the last build.
+6. **Check freshness before trusting the maps.** Before answering a flow/impact question, run
+   `archaeologist.py check --src <roots>` (Command 6). If it reports `stale`, rebuild the relevant
+   map first — see "Keeping the maps current" — so the graphs and HTML match the current code.
 
 ## Available Tool Commands
 
@@ -51,7 +54,7 @@ python .agents/skills/code-wiki/scripts/archaeologist.py project --src ./src
 ```
 
 ### 2. Build the Flow / Request-Flow map  (`/archaeologist-flow-structure`)
-Method-level call graph → `flow_graph.json`, `flow/`, `flow.html`:
+Method-level call graph → `flow/flow_graph.json`, `flow/notes/`, `flow/flow.html`:
 ```bash
 python .agents/skills/code-wiki/scripts/archaeologist.py flow --src ./src
 ```
@@ -72,7 +75,7 @@ Frontend `fetch`/`axios` calls are linked to backend route handlers (`@router.po
 cross-stack `http` edges. So a single flow trace can run frontend → API → service → repository:
 ```bash
 python .agents/skills/code-wiki/scripts/trace_path.py \
-  --graph .agents/skills/code-wiki/data/flow_graph.json --from submitOrder --to OrderRepository.save
+  --graph .agents/skills/code-wiki/data/flow/flow_graph.json --from submitOrder --to OrderRepository.save
 ```
 
 ### 3. Trace Execution Flow
@@ -83,7 +86,7 @@ python .agents/skills/code-wiki/scripts/trace_path.py --from <SourceClass> --to 
 
 # request flow (method -> method)
 python .agents/skills/code-wiki/scripts/trace_path.py \
-  --graph .agents/skills/code-wiki/data/flow_graph.json \
+  --graph .agents/skills/code-wiki/data/flow/flow_graph.json \
   --from OrderController.create_order --to OrderRepository.save
 ```
 Add `--all` to enumerate every path.
@@ -96,13 +99,42 @@ python .agents/skills/code-wiki/scripts/trace_path.py --impact-of <ClassName>
 
 # method-level
 python .agents/skills/code-wiki/scripts/trace_path.py \
-  --graph .agents/skills/code-wiki/data/flow_graph.json --impact-of <Class.method>
+  --graph .agents/skills/code-wiki/data/flow/flow_graph.json --impact-of <Class.method>
 ```
+
+**Blast-radius of a whole changeset (git diff).** For "what does this PR/edit affect?", map the
+changed files to nodes and union their impact in one shot. Works on either graph:
+```bash
+# uncommitted working-tree changes (default)
+python .agents/skills/code-wiki/scripts/trace_path.py \
+  --graph .agents/skills/code-wiki/data/flow/flow_graph.json --impact-of-diff
+# staged changes, or against a base ref
+python .agents/skills/code-wiki/scripts/trace_path.py --impact-of-diff --staged
+python .agents/skills/code-wiki/scripts/trace_path.py --impact-of-diff --base origin/main
+```
+Reports `changed_nodes` (nodes in the edited files) and `impacted` (everything upstream of them).
 
 ### 5. Regenerate / Refresh the HTML viewers
 `archaeologist.py` regenerates the HTML automatically. To rebuild a viewer alone:
 ```bash
 python .agents/skills/code-wiki/scripts/build_html.py --graph <graph.json> --out <out.html> --title "..."
+```
+
+### 6. Check freshness (are the maps stale?)
+Before trusting a trace/impact answer, confirm the maps match the current source. Returns
+`{stale, changed, added, deleted}` — tiny and deterministic. Rebuild if `stale` is true:
+```bash
+python .agents/skills/code-wiki/scripts/archaeologist.py check --src ./src
+```
+
+### 7. Architectural smell report
+Deterministic checks over a graph — circular dependencies, orphan/dead nodes (no callers, not an
+entry point), and backwards layer violations (e.g. a repository calling a controller):
+```bash
+# structure graph (default)
+python .agents/skills/code-wiki/scripts/analyze.py
+# flow graph
+python .agents/skills/code-wiki/scripts/analyze.py --graph .agents/skills/code-wiki/data/flow/flow_graph.json
 ```
 
 ## Keeping the maps current (hybrid AI descriptions)
@@ -119,14 +151,14 @@ After any code add/change/delete, refresh a map:
    ```bash
    python .agents/skills/code-wiki/scripts/archaeologist.py flow --src ./src
    ```
-2. If the output reports **pending** descriptions, open `data/pending_descriptions.json`
+2. If the output reports **pending** descriptions, open `data/cache/pending_descriptions.json`
    (each entry has the method's `signature` + `code`), write a concise one-line summary of what
    each method does, and save them as JSON `{ "<Class.method>": "<summary>", ... }`, then:
    ```bash
    python .agents/skills/code-wiki/scripts/apply_descriptions.py --input <your_summaries.json>
    python .agents/skills/code-wiki/scripts/archaeologist.py flow --src ./src   # rebuild to fold them in
    ```
-   Summaries are cached in `data/descriptions.json` (keyed by source hash), so unchanged methods
+   Summaries are cached in `data/cache/descriptions.json` (keyed by source hash), so unchanged methods
    are never re-described. Deleted methods are pruned automatically.
 3. If there are **0 pending**, you're done — the graph, notes, and `flow.html` are up to date.
 

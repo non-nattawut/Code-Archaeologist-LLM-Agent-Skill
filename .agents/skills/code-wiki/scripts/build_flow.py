@@ -35,12 +35,13 @@ import sys
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SKILL_ROOT = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(SKILL_ROOT, "data")
-DEFAULT_FLOW_DIR = os.path.join(DATA_DIR, "flow")
-DEFAULT_GRAPH = os.path.join(DATA_DIR, "flow_graph.json")
+DEFAULT_FLOW_DIR = os.path.join(DATA_DIR, "flow", "notes")
+DEFAULT_GRAPH = os.path.join(DATA_DIR, "flow", "flow_graph.json")
+CACHE_DIR = os.path.join(DATA_DIR, "cache")
 # Persistent cache of AI-written summaries, keyed by node id -> {hash, summary}.
-DESCRIPTIONS_PATH = os.path.join(DATA_DIR, "descriptions.json")
+DESCRIPTIONS_PATH = os.path.join(CACHE_DIR, "descriptions.json")
 # Transient list of nodes that still need an AI summary (agent fills these in).
-PENDING_PATH = os.path.join(DATA_DIR, "pending_descriptions.json")
+PENDING_PATH = os.path.join(CACHE_DIR, "pending_descriptions.json")
 
 
 def _hash(code: str) -> str:

@@ -52,7 +52,14 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
 - **Execution-flow tracing** — shortest path (or all paths) between any two components, at class
   *or* method granularity.
 - **Blast-radius / impact analysis** — reverse-traversal listing every upstream caller affected
-  by a change, for a class or a specific method.
+  by a change, for a class, a specific method, or an **entire git diff** (`--impact-of-diff` maps
+  changed files to nodes and unions their impact — "what does this PR affect?").
+- **Staleness guard** — every build records a content-hash of the source it scanned;
+  `archaeologist.py check` re-scans and reports whether the maps are stale (and exactly which files
+  changed) before you trust a trace, so answers are never built on a drifted graph.
+- **Architectural smell report** (`analyze.py`) — deterministic graph checks for circular
+  dependencies, orphan/dead nodes (no callers, not an entry point), and backwards layer violations
+  (e.g. a repository calling a controller).
 - **Standalone shareable visualizer** — generates a single self-contained HTML file with the data
   embedded inline; open via `file://`, commit it, or email it. Full-screen dark canvas with a
   layer legend, search (`/`), neighbor-highlighting on click, and a **slide-in detail panel**:
@@ -73,12 +80,12 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
 
 ## Installation
 
-Install with `npx` — no clone required. From the root of the project you want to document, run:
+Install with `npx` — no clone or npm account required. From the root of the project you want to document, run:
 
 ```bash
-npx code-archaeologist-skill               # interactive: pick a harness
-npx code-archaeologist-skill --harness claude   # install into .claude/skills/code-wiki
-npx code-archaeologist-skill --self-test        # install + build the demo to verify
+npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill               # interactive: pick a harness
+npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --harness claude   # install into .claude/skills/code-wiki
+npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --self-test        # install + build the demo to verify
 ```
 
 Run without a flag in a terminal and you'll be prompted to choose where the skill goes.
@@ -115,10 +122,10 @@ harness folder, and creates a fresh empty `data/` workspace. It has **no npm dep
 There are two commands, each building one map (scan → graph → HTML in one shot):
 
 ```bash
-# Project structure map  ->  data/graph.json, data/vault/, data/graph.html
+# Project structure map  ->  data/structure/{graph.json, vault/, graph.html}
 python .agents/skills/code-wiki/scripts/archaeologist.py project --src ./src
 
-# Request/execution flow map  ->  data/flow_graph.json, data/flow/, data/flow.html
+# Request/execution flow map  ->  data/flow/{flow_graph.json, notes/, flow.html}
 python .agents/skills/code-wiki/scripts/archaeologist.py flow --src ./src
 
 # Monorepo: pass multiple roots (backend + frontend land in one graph)
@@ -136,12 +143,27 @@ python .agents/skills/code-wiki/scripts/trace_path.py --from OrderController --t
 
 # flow: how does a request travel, method by method?
 python .agents/skills/code-wiki/scripts/trace_path.py \
-  --graph .agents/skills/code-wiki/data/flow_graph.json \
+  --graph .agents/skills/code-wiki/data/flow/flow_graph.json \
   --from OrderController.create_order --to OrderRepository.save
 
 # blast-radius: everything that breaks if a method changes
 python .agents/skills/code-wiki/scripts/trace_path.py \
-  --graph .agents/skills/code-wiki/data/flow_graph.json --impact-of PaymentClient.charge
+  --graph .agents/skills/code-wiki/data/flow/flow_graph.json --impact-of PaymentClient.charge
+```
+
+Keep the maps honest and review changes with three more commands:
+
+```bash
+# freshness: are the maps stale vs the current source? (rebuild if so)
+python .agents/skills/code-wiki/scripts/archaeologist.py check --src ./src
+
+# changeset blast-radius: what does my current git diff affect?
+python .agents/skills/code-wiki/scripts/trace_path.py \
+  --graph .agents/skills/code-wiki/data/flow/flow_graph.json --impact-of-diff
+
+# smells: cycles, orphan/dead nodes, backwards layer violations
+python .agents/skills/code-wiki/scripts/analyze.py \
+  --graph .agents/skills/code-wiki/data/flow/flow_graph.json
 ```
 
 Each stage is also runnable on its own (`build_wiki.py`, `build_graph.py`, `build_flow.py`,
@@ -166,7 +188,7 @@ $ trace_path.py --graph .../flow_graph.json --impact-of PaymentClient.charge
 ```
 
 The agent then reads only the notes on that path — e.g.
-`data/flow/OrderController.create_order.md`, `OrderService.place_order.md`,
+`data/flow/notes/OrderController.create_order.md`, `OrderService.place_order.md`,
 `OrderRepository.save.md` — not the whole repo.
 
 ## How the agent uses it
@@ -174,9 +196,10 @@ The agent then reads only the notes on that path — e.g.
 `SKILL.md` instructs the agent to:
 
 1. Never read raw source for architecture/flow questions.
-2. Query the graph first with `trace_path.py` to find the exact path or blast-radius.
-3. Read only the specific `data/vault/<Entity>.md` notes on that path.
-4. Preserve `[[EntityName]]` wikilinks in answers so responses stay cross-navigable.
+2. Check freshness (`archaeologist.py check`) and rebuild if the source changed since last build.
+3. Query the graph first with `trace_path.py` to find the exact path or blast-radius.
+4. Read only the specific `data/structure/vault/<Entity>.md` notes on that path.
+5. Preserve `[[EntityName]]` wikilinks in answers so responses stay cross-navigable.
 
 ## Project structure
 
@@ -184,24 +207,32 @@ The agent then reads only the notes on that path — e.g.
 .agents/skills/code-wiki/
 ├── SKILL.md                     # Agent instructions & tool specs
 ├── scripts/
-│   ├── archaeologist.py         # entrypoint: `project` | `flow` | `both`
+│   ├── archaeologist.py         # entrypoint: `project` | `flow` | `both` | `check`
 │   ├── taxonomy.py              # allowed kind/layer values (single source of truth)
-│   ├── build_wiki.py            # AST scan  -> data/vault/*.md (structure, [[wikilinks]])
-│   ├── build_graph.py           # vault     -> graph.json + registry.json
-│   ├── build_flow.py            # AST + JS calls -> flow_graph.json + data/flow/*.md
+│   ├── build_wiki.py            # AST scan  -> structure/vault/*.md (structure, [[wikilinks]])
+│   ├── build_graph.py           # vault     -> structure/graph.json + registry.json
+│   ├── build_flow.py            # AST + JS calls -> flow/flow_graph.json + flow/notes/*.md
 │   ├── js_extract.js            # Node/@babel JS/TS extractor (frontend)
 │   ├── js_bridge.py             # runs js_extract.js from Python (graceful fallback)
 │   ├── apply_descriptions.py    # cache agent-written method summaries (by source hash)
-│   ├── trace_path.py            # BFS flow (--from/--to) & impact (--impact-of), any graph
+│   ├── manifest.py              # source-freshness snapshot powering `check`
+│   ├── analyze.py               # smell report: cycles, orphans, layer violations
+│   ├── trace_path.py            # BFS flow (--from/--to), impact (--impact-of[-diff]), any graph
 │   └── build_html.py            # <graph>.json -> standalone shareable HTML viewer
 ├── data/
-│   ├── graph.json               # structure: nodes & edges
-│   ├── flow_graph.json          # flow: method nodes & call edges (Python + JS)
-│   ├── registry.json            # entity -> vault path
-│   ├── descriptions.json        # cached AI summaries (keyed by method source hash)
-│   ├── graph.html / flow.html   # generated standalone viewers
-│   ├── vault/                   # structure notes (one per class)
-│   └── flow/                    # flow notes (one per method)
+│   ├── structure/               # structure map
+│   │   ├── graph.json           #   nodes & edges
+│   │   ├── registry.json        #   entity -> vault path
+│   │   ├── graph.html           #   standalone viewer
+│   │   └── vault/               #   notes (one per class)
+│   ├── flow/                    # flow map
+│   │   ├── flow_graph.json      #   method nodes & call edges (Python + JS)
+│   │   ├── flow.html            #   standalone viewer
+│   │   └── notes/               #   notes (one per method)
+│   └── cache/                   # internal build state
+│       ├── descriptions.json    #   cached AI summaries (keyed by method source hash)
+│       ├── pending_descriptions.json  # methods awaiting an AI summary (transient)
+│       └── manifest.json        #   source hashes for staleness detection
 └── templates/
     ├── wiki_page_template.md    # page structure for generated entities
     └── TAXONOMY.md              # allowed values for each template field

@@ -27,8 +27,8 @@ import os
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SKILL_ROOT = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(SKILL_ROOT, "data")
-DEFAULT_GRAPH = os.path.join(DATA_DIR, "graph.json")
-DEFAULT_OUT = os.path.join(DATA_DIR, "graph.html")
+DEFAULT_GRAPH = os.path.join(DATA_DIR, "structure", "graph.json")
+DEFAULT_OUT = os.path.join(DATA_DIR, "structure", "graph.html")
 
 # The graph JSON is injected at __GRAPH_DATA__; the title at __TITLE__.
 TEMPLATE = r"""<!DOCTYPE html>

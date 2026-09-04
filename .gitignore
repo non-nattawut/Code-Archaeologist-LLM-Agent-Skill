@@ -13,5 +13,6 @@ node_modules/
 Thumbs.db
 
 # Code Archaeologist: transient list of methods awaiting an AI summary
-.agents/skills/code-wiki/data/pending_descriptions.json
-**/code-wiki/data/pending_descriptions.json
+**/code-wiki/data/cache/pending_descriptions.json
+# Code Archaeologist: source-freshness snapshot (build state; regenerated per build)
+**/code-wiki/data/cache/manifest.json

@@ -22,7 +22,7 @@ import sys
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SKILL_ROOT = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(SKILL_ROOT, "data")
-DEFAULT_VAULT = os.path.join(DATA_DIR, "vault")
+DEFAULT_VAULT = os.path.join(DATA_DIR, "structure", "vault")
 TEMPLATE_PATH = os.path.join(SKILL_ROOT, "templates", "wiki_page_template.md")
 
 sys.path.insert(0, SCRIPT_DIR)

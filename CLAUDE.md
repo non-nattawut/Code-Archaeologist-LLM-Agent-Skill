@@ -6,8 +6,11 @@ skill, not to use it on this repo.
 
 ## What the skill is
 A deterministic, Zero-RAG codebase documentation engine that produces two maps:
-- **Structure** (class-level): `build_wiki.py` → `data/vault/*.md` → `build_graph.py` → `graph.json`.
-- **Flow** (method-level call/request flow): `build_flow.py` → `flow_graph.json` + `data/flow/*.md`.
+- **Structure** (class-level): `build_wiki.py` → `data/structure/vault/*.md` → `build_graph.py` → `data/structure/graph.json`.
+- **Flow** (method-level call/request flow): `build_flow.py` → `data/flow/flow_graph.json` + `data/flow/notes/*.md`.
+
+`data/` is grouped by map: `structure/`, `flow/`, and `cache/` (AI-summary cache +
+source-freshness `manifest.json`).
 
 Backend (`.py`) structure is extracted by Python's `ast` (exact, zero-token). Frontend
 (`.js/.jsx/.ts/.tsx`) is extracted by `js_extract.js` (Node + `@babel/parser`) via `js_bridge.py`,
@@ -15,8 +18,10 @@ which degrades gracefully if Node/the parser is absent. `--src` accepts multiple
 monorepos (backend + frontend in one graph). `kind`/`layer`/etc. values come from `taxonomy.py`
 (see `templates/TAXONOMY.md`). Method descriptions are hybrid: docstring → cached AI summary (keyed
 by source hash, via `apply_descriptions.py`) → deterministic fallback. `trace_path.py` does BFS
-flow/impact on either graph; `build_html.py` renders a standalone viewer; `archaeologist.py
-project|flow|both` orchestrates.
+flow/impact on either graph (`--impact-of-diff` maps a git diff to nodes for changeset blast-radius);
+`analyze.py` reports smells (cycles/orphans/layer violations); `manifest.py` records source hashes so
+`archaeologist.py check` can detect staleness; `build_html.py` renders a standalone viewer;
+`archaeologist.py project|flow|both|check` orchestrates.
 
 Constraints that define this project: **zero external Python dependencies** (stdlib only, Python
 3.10+) — the *only* exception is frontend parsing, which uses Node + `@babel/parser`. Scripts

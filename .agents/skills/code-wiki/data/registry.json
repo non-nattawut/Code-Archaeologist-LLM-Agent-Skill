@@ -1,6 +1,0 @@
-{
-  "OrderController": "vault/OrderController.md",
-  "OrderRepository": "vault/OrderRepository.md",
-  "OrderService": "vault/OrderService.md",
-  "PaymentClient": "vault/PaymentClient.md"
-}

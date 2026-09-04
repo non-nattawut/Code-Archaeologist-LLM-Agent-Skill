@@ -18,7 +18,8 @@ import sys
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SKILL_ROOT = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(SKILL_ROOT, "data")
-DEFAULT_VAULT = os.path.join(DATA_DIR, "vault")
+STRUCTURE_DIR = os.path.join(DATA_DIR, "structure")
+DEFAULT_VAULT = os.path.join(STRUCTURE_DIR, "vault")
 
 WIKILINK_RE = re.compile(r"\[\[(.*?)\]\]")
 FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
@@ -126,7 +127,7 @@ def build(vault: str, out_dir: str) -> int:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Compile a Markdown vault into graph.json/registry.json.")
     parser.add_argument("--vault", default=DEFAULT_VAULT, help="Vault directory to read")
-    parser.add_argument("--out", default=DATA_DIR, help="Output directory for graph.json/registry.json")
+    parser.add_argument("--out", default=STRUCTURE_DIR, help="Output directory for graph.json/registry.json")
     args = parser.parse_args(argv)
     return build(args.vault, args.out)
 

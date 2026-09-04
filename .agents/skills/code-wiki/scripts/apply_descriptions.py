@@ -27,8 +27,9 @@ import sys
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SKILL_ROOT = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(SKILL_ROOT, "data")
-DESCRIPTIONS_PATH = os.path.join(DATA_DIR, "descriptions.json")
-PENDING_PATH = os.path.join(DATA_DIR, "pending_descriptions.json")
+CACHE_DIR = os.path.join(DATA_DIR, "cache")
+DESCRIPTIONS_PATH = os.path.join(CACHE_DIR, "descriptions.json")
+PENDING_PATH = os.path.join(CACHE_DIR, "pending_descriptions.json")
 
 
 def _load_json(path: str, default):

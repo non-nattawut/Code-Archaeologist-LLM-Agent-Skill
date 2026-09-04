@@ -7,11 +7,11 @@
  * compatible Python is available, and can run an end-to-end self-test on the
  * bundled sample_src demo. Zero npm dependencies (Node built-ins only).
  *
- *   npx code-archaeologist-skill                      # interactive: pick a harness
- *   npx code-archaeologist-skill --harness claude     # install into .claude/skills/code-wiki
- *   npx code-archaeologist-skill --dir .foo/skills/cw # install into a custom path
- *   npx code-archaeologist-skill --self-test
- *   npx code-archaeologist-skill --help
+ *   npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill                      # interactive: pick a harness
+ *   npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --harness claude     # install into .claude/skills/code-wiki
+ *   npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --dir .foo/skills/cw # install into a custom path
+ *   npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --self-test
+ *   npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --help
  */
 "use strict";
 
@@ -64,7 +64,7 @@ function parseArgs(argv) {
 const HELP = `code-archaeologist — install the code-wiki agent skill
 
 Usage:
-  npx code-archaeologist-skill [options]
+  npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill [options]
 
 Options:
   --harness <name>     Target harness: ${Object.keys(HARNESSES).join(", ")}
@@ -147,10 +147,14 @@ function copyDir(src, dest) {
 }
 
 function seedDataDir(dataDir, force) {
-  const vault = path.join(dataDir, "vault");
+  // data/ groups output by map: structure/ (class graph), flow/ (call graph),
+  // cache/ (internal AI-summary + freshness state). Scripts create flow/ and
+  // cache/ on demand; seed the structure skeleton so the viewer/tracer defaults
+  // resolve before the first build.
+  const vault = path.join(dataDir, "structure", "vault");
   fs.mkdirSync(vault, { recursive: true });
-  const graph = path.join(dataDir, "graph.json");
-  const registry = path.join(dataDir, "registry.json");
+  const graph = path.join(dataDir, "structure", "graph.json");
+  const registry = path.join(dataDir, "structure", "registry.json");
   const keep = path.join(vault, ".gitkeep");
   if (force || !fs.existsSync(graph)) fs.writeFileSync(graph, '{\n  "nodes": [],\n  "edges": []\n}\n');
   if (force || !fs.existsSync(registry)) fs.writeFileSync(registry, "{}\n");
@@ -207,7 +211,7 @@ async function main() {
         return r.status || 1;
       }
     }
-    console.log(`\nOK   Self-test complete. Open ${path.join(dest, "data", "graph.html")}`);
+    console.log(`\nOK   Self-test complete. Open ${path.join(dest, "data", "structure", "graph.html")}`);
     return 0;
   }
 
