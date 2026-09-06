@@ -1,6 +1,6 @@
 # Architecture report — graph.json
 
-Generated 2026-09-06 09:05 UTC · 4 nodes · 3 edges
+Generated 2026-09-06 11:13 UTC · 4 nodes · 3 edges
 
 ## Health: **C** (75/100)
 
@@ -21,6 +21,40 @@ Dead-code ratio 0.0% · cycles 0 · layer violations 0 · security findings 4
 ## Entry points (routes)
 
 _None._
+
+## Size & complexity
+
+- 6 file(s), 95 lines — 65 code, 6 comment, 24 blank (comment ratio 6%)
+- Complexity is McCabe: 1 + every branch. Python nodes only.
+
+### Longest nodes
+
+| Node | LOC | Complexity | Location |
+| --- | --- | --- | --- |
+| `OrderController` | 15 | 1 | `sample_src/backend/order_controller.py:9` |
+| `OrderService` | 15 | 1 | `sample_src/backend/order_service.py:6` |
+| `OrderRepository` | 11 | 1 | `sample_src/backend/order_repository.py:4` |
+| `PaymentClient` | 7 | 1 | `sample_src/backend/payment_client.py:8` |
+
+### Most complex nodes
+
+| Node | Complexity | LOC | Location |
+| --- | --- | --- | --- |
+| `OrderController` | 1 | 15 | `sample_src/backend/order_controller.py:9` |
+| `OrderRepository` | 1 | 11 | `sample_src/backend/order_repository.py:4` |
+| `OrderService` | 1 | 15 | `sample_src/backend/order_service.py:6` |
+| `PaymentClient` | 1 | 7 | `sample_src/backend/payment_client.py:8` |
+
+### Largest files
+
+| File | Lines | Code |
+| --- | --- | --- |
+| `sample_src/backend/order_controller.py` | 23 | 16 |
+| `sample_src/backend/order_service.py` | 20 | 15 |
+| `sample_src/backend/order_repository.py` | 14 | 9 |
+| `sample_src/backend/payment_client.py` | 14 | 8 |
+| `sample_src/frontend/order_page.ts` | 13 | 9 |
+| `sample_src/frontend/api_client.ts` | 11 | 8 |
 
 ## Smells
 

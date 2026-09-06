@@ -67,6 +67,10 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
   leftover debug statements. Every finding is **attributed to the graph node that owns the line**,
   so a risk can be traced and blast-radiused like any other node; tests/fixtures/docs are skipped
   and secret values are redacted.
+- **Size & complexity** (`metrics.py`) — lines per file split into code / comment / blank plus
+  the language mix, and for every Python node its LOC, cyclomatic complexity, nesting depth and
+  parameter count. Node entries are **keyed like the graph nodes**, so "the longest and most
+  tangled code in this repo" is a lookup, not a source read.
 - **Churn, ownership & hotspots** (`git_insights.py`) — one `git log --numstat` pass gives commits
   per file, the top author per file, and a **hotspot ranking** (`risk = commits x (1 + fan_in +
   fan_out)`): the code that changes most *and* has the most callers. Degrades to empty data outside
@@ -207,6 +211,7 @@ templates, and the generated `data/` workspace.
 |   |-- analyze.py                # smells, anti-patterns, idioms, A-F health grade
 |   |-- scan_security.py          # risk scan -> findings attributed to graph nodes
 |   |-- git_insights.py           # git churn/ownership -> hotspot ranking
+|   |-- metrics.py                # lines per file, LOC/complexity/depth per node
 |   |-- report.py                 # all of the above -> report/<map>/architecture_report.*
 |   |   # --- query & render ---
 |   |-- trace_path.py             # BFS flow (--from/--to), impact (--impact-of[-diff])

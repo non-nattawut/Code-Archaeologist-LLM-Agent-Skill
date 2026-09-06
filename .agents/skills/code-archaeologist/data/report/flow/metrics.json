@@ -1,0 +1,368 @@
+{
+  "generated": "2026-09-06T11:13:14Z",
+  "roots": [
+    "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
+  ],
+  "totals": {
+    "files": 6,
+    "lines": 95,
+    "code": 65,
+    "comment": 6,
+    "blank": 24,
+    "comment_ratio": 0.063
+  },
+  "languages": {
+    "py": {
+      "files": 4,
+      "lines": 71
+    },
+    "ts": {
+      "files": 2,
+      "lines": 24
+    }
+  },
+  "files": {
+    "sample_src/backend/order_controller.py": {
+      "lines": 23,
+      "code": 16,
+      "comment": 0,
+      "blank": 7,
+      "lang": "py"
+    },
+    "sample_src/backend/order_repository.py": {
+      "lines": 14,
+      "code": 9,
+      "comment": 1,
+      "blank": 4,
+      "lang": "py"
+    },
+    "sample_src/backend/order_service.py": {
+      "lines": 20,
+      "code": 15,
+      "comment": 0,
+      "blank": 5,
+      "lang": "py"
+    },
+    "sample_src/backend/payment_client.py": {
+      "lines": 14,
+      "code": 8,
+      "comment": 2,
+      "blank": 4,
+      "lang": "py"
+    },
+    "sample_src/frontend/api_client.ts": {
+      "lines": 11,
+      "code": 8,
+      "comment": 1,
+      "blank": 2,
+      "lang": "ts"
+    },
+    "sample_src/frontend/order_page.ts": {
+      "lines": 13,
+      "code": 9,
+      "comment": 2,
+      "blank": 2,
+      "lang": "ts"
+    }
+  },
+  "nodes": {
+    "OrderController": {
+      "loc": 15,
+      "complexity": 1,
+      "depth": 1,
+      "params": 0,
+      "file": "sample_src/backend/order_controller.py",
+      "line": 9,
+      "lang": "py",
+      "in_graph": false
+    },
+    "OrderController.__init__": {
+      "loc": 2,
+      "complexity": 1,
+      "depth": 0,
+      "params": 2,
+      "file": "sample_src/backend/order_controller.py",
+      "line": 12,
+      "lang": "py",
+      "in_graph": true
+    },
+    "OrderController.create_order": {
+      "loc": 3,
+      "complexity": 1,
+      "depth": 0,
+      "params": 2,
+      "file": "sample_src/backend/order_controller.py",
+      "line": 16,
+      "lang": "py",
+      "in_graph": true
+    },
+    "OrderController.get_order": {
+      "loc": 3,
+      "complexity": 1,
+      "depth": 0,
+      "params": 2,
+      "file": "sample_src/backend/order_controller.py",
+      "line": 21,
+      "lang": "py",
+      "in_graph": true
+    },
+    "OrderRepository": {
+      "loc": 11,
+      "complexity": 1,
+      "depth": 1,
+      "params": 0,
+      "file": "sample_src/backend/order_repository.py",
+      "line": 4,
+      "lang": "py",
+      "in_graph": false
+    },
+    "OrderRepository.get": {
+      "loc": 4,
+      "complexity": 1,
+      "depth": 0,
+      "params": 2,
+      "file": "sample_src/backend/order_repository.py",
+      "line": 11,
+      "lang": "py",
+      "in_graph": true
+    },
+    "OrderRepository.save": {
+      "loc": 3,
+      "complexity": 1,
+      "depth": 0,
+      "params": 2,
+      "file": "sample_src/backend/order_repository.py",
+      "line": 7,
+      "lang": "py",
+      "in_graph": true
+    },
+    "OrderService": {
+      "loc": 15,
+      "complexity": 1,
+      "depth": 1,
+      "params": 0,
+      "file": "sample_src/backend/order_service.py",
+      "line": 6,
+      "lang": "py",
+      "in_graph": false
+    },
+    "OrderService.__init__": {
+      "loc": 3,
+      "complexity": 1,
+      "depth": 0,
+      "params": 3,
+      "file": "sample_src/backend/order_service.py",
+      "line": 9,
+      "lang": "py",
+      "in_graph": true
+    },
+    "OrderService.find_order": {
+      "loc": 3,
+      "complexity": 1,
+      "depth": 0,
+      "params": 2,
+      "file": "sample_src/backend/order_service.py",
+      "line": 18,
+      "lang": "py",
+      "in_graph": true
+    },
+    "OrderService.place_order": {
+      "loc": 4,
+      "complexity": 1,
+      "depth": 0,
+      "params": 2,
+      "file": "sample_src/backend/order_service.py",
+      "line": 13,
+      "lang": "py",
+      "in_graph": true
+    },
+    "PaymentClient": {
+      "loc": 7,
+      "complexity": 1,
+      "depth": 1,
+      "params": 0,
+      "file": "sample_src/backend/payment_client.py",
+      "line": 8,
+      "lang": "py",
+      "in_graph": false
+    },
+    "PaymentClient.charge": {
+      "loc": 4,
+      "complexity": 1,
+      "depth": 0,
+      "params": 2,
+      "file": "sample_src/backend/payment_client.py",
+      "line": 11,
+      "lang": "py",
+      "in_graph": true
+    }
+  },
+  "top_loc": [
+    {
+      "id": "OrderRepository.get",
+      "loc": 4,
+      "complexity": 1,
+      "file": "sample_src/backend/order_repository.py",
+      "line": 11
+    },
+    {
+      "id": "OrderService.place_order",
+      "loc": 4,
+      "complexity": 1,
+      "file": "sample_src/backend/order_service.py",
+      "line": 13
+    },
+    {
+      "id": "PaymentClient.charge",
+      "loc": 4,
+      "complexity": 1,
+      "file": "sample_src/backend/payment_client.py",
+      "line": 11
+    },
+    {
+      "id": "OrderController.create_order",
+      "loc": 3,
+      "complexity": 1,
+      "file": "sample_src/backend/order_controller.py",
+      "line": 16
+    },
+    {
+      "id": "OrderController.get_order",
+      "loc": 3,
+      "complexity": 1,
+      "file": "sample_src/backend/order_controller.py",
+      "line": 21
+    },
+    {
+      "id": "OrderRepository.save",
+      "loc": 3,
+      "complexity": 1,
+      "file": "sample_src/backend/order_repository.py",
+      "line": 7
+    },
+    {
+      "id": "OrderService.__init__",
+      "loc": 3,
+      "complexity": 1,
+      "file": "sample_src/backend/order_service.py",
+      "line": 9
+    },
+    {
+      "id": "OrderService.find_order",
+      "loc": 3,
+      "complexity": 1,
+      "file": "sample_src/backend/order_service.py",
+      "line": 18
+    },
+    {
+      "id": "OrderController.__init__",
+      "loc": 2,
+      "complexity": 1,
+      "file": "sample_src/backend/order_controller.py",
+      "line": 12
+    }
+  ],
+  "top_complexity": [
+    {
+      "id": "OrderController.__init__",
+      "complexity": 1,
+      "loc": 2,
+      "file": "sample_src/backend/order_controller.py",
+      "line": 12
+    },
+    {
+      "id": "OrderController.create_order",
+      "complexity": 1,
+      "loc": 3,
+      "file": "sample_src/backend/order_controller.py",
+      "line": 16
+    },
+    {
+      "id": "OrderController.get_order",
+      "complexity": 1,
+      "loc": 3,
+      "file": "sample_src/backend/order_controller.py",
+      "line": 21
+    },
+    {
+      "id": "OrderRepository.get",
+      "complexity": 1,
+      "loc": 4,
+      "file": "sample_src/backend/order_repository.py",
+      "line": 11
+    },
+    {
+      "id": "OrderRepository.save",
+      "complexity": 1,
+      "loc": 3,
+      "file": "sample_src/backend/order_repository.py",
+      "line": 7
+    },
+    {
+      "id": "OrderService.__init__",
+      "complexity": 1,
+      "loc": 3,
+      "file": "sample_src/backend/order_service.py",
+      "line": 9
+    },
+    {
+      "id": "OrderService.find_order",
+      "complexity": 1,
+      "loc": 3,
+      "file": "sample_src/backend/order_service.py",
+      "line": 18
+    },
+    {
+      "id": "OrderService.place_order",
+      "complexity": 1,
+      "loc": 4,
+      "file": "sample_src/backend/order_service.py",
+      "line": 13
+    },
+    {
+      "id": "PaymentClient.charge",
+      "complexity": 1,
+      "loc": 4,
+      "file": "sample_src/backend/payment_client.py",
+      "line": 11
+    }
+  ],
+  "top_files": [
+    {
+      "file": "sample_src/backend/order_controller.py",
+      "lines": 23,
+      "code": 16
+    },
+    {
+      "file": "sample_src/backend/order_service.py",
+      "lines": 20,
+      "code": 15
+    },
+    {
+      "file": "sample_src/backend/order_repository.py",
+      "lines": 14,
+      "code": 9
+    },
+    {
+      "file": "sample_src/backend/payment_client.py",
+      "lines": 14,
+      "code": 8
+    },
+    {
+      "file": "sample_src/frontend/order_page.ts",
+      "lines": 13,
+      "code": 9
+    },
+    {
+      "file": "sample_src/frontend/api_client.ts",
+      "lines": 11,
+      "code": 8
+    }
+  ],
+  "unmeasured_graph_ids": [
+    "createOrder",
+    "getOrder",
+    "loadOrder",
+    "submitOrder"
+  ]
+}

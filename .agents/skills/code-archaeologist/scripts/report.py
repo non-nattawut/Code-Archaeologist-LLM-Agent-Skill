@@ -5,6 +5,7 @@ Joins the four deterministic sources into a single artifact a human (or an agent
 can read top to bottom:
 
   graph      node/edge/layer/language census + route entry points
+  metrics    line counts per file, LOC/complexity per node
   analyze    cycles, orphans, layer violations, hubs, god objects, patterns, grade
   security   scan_security.py findings, attributed to the owning node
   git        churn, ownership and hotspot ranking (risk = churn x connectivity)
@@ -34,31 +35,23 @@ DEFAULT_OUT_DIR = os.path.join(DATA_DIR, "report")
 sys.path.insert(0, SCRIPT_DIR)
 import analyze          # noqa: E402
 import git_insights     # noqa: E402
+import metrics          # noqa: E402
 import scan_security    # noqa: E402
 
 TOP_FINDINGS = 20
 TOP_HOTSPOTS = 10
 TOP_ORPHANS = 15
+TOP_BIG = 10
 
 
-EXT_LANG = {".py": "py", ".js": "js", ".jsx": "jsx", ".ts": "ts", ".tsx": "tsx"}
+def file_census(size: dict) -> dict:
+    """Per-file line counts and the language mix — the "140,108 lines of code" panel.
 
-
-def file_census(roots) -> dict:
-    """Per-file line counts and the language mix — the "140,108 lines of code" panel."""
-    files: dict[str, dict] = {}
-    for full, key in scan_security.iter_source_files(roots):
-        try:
-            with open(full, "r", encoding="utf-8", errors="replace") as fh:
-                lines = sum(1 for _ in fh)
-        except OSError:
-            continue
-        files[key] = {"lines": lines, "lang": EXT_LANG.get(os.path.splitext(key)[1].lower(), "other")}
-
-    by_lang: dict[str, int] = {}
-    for f in files.values():
-        by_lang[f["lang"]] = by_lang.get(f["lang"], 0) + f["lines"]
-    loc = sum(by_lang.values())
+    Derived from the metrics pass so the two never disagree about what a line is.
+    """
+    files = {k: {"lines": v["lines"], "lang": v["lang"]} for k, v in size["files"].items()}
+    by_lang = {k: v["lines"] for k, v in size["languages"].items()}
+    loc = size["totals"]["lines"]
     return {
         "files": dict(sorted(files.items())),
         "file_count": len(files),
@@ -145,6 +138,31 @@ def to_markdown(data: dict) -> str:
     lines += _table(["Method", "Path", "Handler"],
                     [[r["method"], f"`{r['path']}`", f"`{r['node']}`"] for r in stats["routes"]])
 
+    size = data.get("metrics") or {}
+    if size:
+        t = size["totals"]
+        lines += [
+            "## Size & complexity",
+            "",
+            f"- {t['files']} file(s), {t['lines']:,} lines — {t['code']:,} code, "
+            f"{t['comment']:,} comment, {t['blank']:,} blank "
+            f"(comment ratio {round(100 * t['comment_ratio'])}%)",
+            "- Complexity is McCabe: 1 + every branch. Python nodes only.",
+            "",
+            "### Longest nodes",
+            "",
+        ]
+        lines += _table(["Node", "LOC", "Complexity", "Location"],
+                        [[f"`{x['id']}`", x["loc"], x["complexity"], f"`{x['file']}:{x['line']}`"]
+                         for x in size["top_loc"]])
+        lines += ["### Most complex nodes", ""]
+        lines += _table(["Node", "Complexity", "LOC", "Location"],
+                        [[f"`{x['id']}`", x["complexity"], x["loc"], f"`{x['file']}:{x['line']}`"]
+                         for x in size["top_complexity"]])
+        lines += ["### Largest files", ""]
+        lines += _table(["File", "Lines", "Code"],
+                        [[f"`{x['file']}`", x["lines"], x["code"]] for x in size["top_files"]])
+
     lines += ["## Smells", "", "### Circular dependencies", ""]
     lines += _table(["Cycle"], [[" → ".join(f"`{n}`" for n in c)] for c in smells["cycles"]])
     lines += ["### Backwards layer dependencies", ""]
@@ -201,18 +219,19 @@ def build(src, graph_path: str = DEFAULT_GRAPH, out_dir: str = DEFAULT_OUT_DIR) 
     with open(graph_path, "r", encoding="utf-8") as fh:
         graph = json.load(fh)
 
+    os.makedirs(out_dir, exist_ok=True)
     security = scan_security.scan(src, graph_path)
     insights = git_insights.build(src, graph_path)
     analysis = analyze.report(graph_path, security["summary"]["by_severity"])
+    size = metrics.build(src, graph_path, os.path.join(out_dir, "metrics.json"), TOP_BIG)
 
     data = {
         "graph": os.path.relpath(graph_path, SKILL_ROOT).replace("\\", "/"),
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
-        "census": census(graph), "files": file_census(src), "analysis": analysis,
-        "security": security, "insights": insights,
+        "census": census(graph), "files": file_census(size), "analysis": analysis,
+        "security": security, "insights": insights, "metrics": size,
     }
 
-    os.makedirs(out_dir, exist_ok=True)
     writes = {
         "security.json": security,
         "insights.json": insights,
@@ -230,7 +249,9 @@ def build(src, graph_path: str = DEFAULT_GRAPH, out_dir: str = DEFAULT_OUT_DIR) 
     print(f"  grade {analysis['health']['grade']} ({analysis['health']['score']}/100), "
           f"{security['summary']['total']} risk finding(s), "
           f"{len(insights.get('hotspots', []))} ranked hotspot(s)")
-    print(f"  also: architecture_report.json, security.json, insights.json in {out_dir}")
+    print(f"  {size['totals']['lines']} line(s) across {size['totals']['files']} file(s), "
+          f"longest node {size['top_loc'][0]['id'] if size['top_loc'] else 'n/a'}")
+    print(f"  also: architecture_report.json, security.json, insights.json, metrics.json in {out_dir}")
     return data
 
 

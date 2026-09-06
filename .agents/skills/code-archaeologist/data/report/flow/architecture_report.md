@@ -1,6 +1,6 @@
 # Architecture report — flow_graph.json
 
-Generated 2026-09-06 09:05 UTC · 13 nodes · 9 edges
+Generated 2026-09-06 11:13 UTC · 13 nodes · 9 edges
 
 ## Health: **D** (67/100)
 
@@ -25,6 +25,50 @@ Dead-code ratio 15.4% · cycles 0 · layer violations 0 · security findings 4
 | --- | --- | --- |
 | POST | `/orders` | `OrderController.create_order` |
 | GET | `/orders/{order_id}` | `OrderController.get_order` |
+
+## Size & complexity
+
+- 6 file(s), 95 lines — 65 code, 6 comment, 24 blank (comment ratio 6%)
+- Complexity is McCabe: 1 + every branch. Python nodes only.
+
+### Longest nodes
+
+| Node | LOC | Complexity | Location |
+| --- | --- | --- | --- |
+| `OrderRepository.get` | 4 | 1 | `sample_src/backend/order_repository.py:11` |
+| `OrderService.place_order` | 4 | 1 | `sample_src/backend/order_service.py:13` |
+| `PaymentClient.charge` | 4 | 1 | `sample_src/backend/payment_client.py:11` |
+| `OrderController.create_order` | 3 | 1 | `sample_src/backend/order_controller.py:16` |
+| `OrderController.get_order` | 3 | 1 | `sample_src/backend/order_controller.py:21` |
+| `OrderRepository.save` | 3 | 1 | `sample_src/backend/order_repository.py:7` |
+| `OrderService.__init__` | 3 | 1 | `sample_src/backend/order_service.py:9` |
+| `OrderService.find_order` | 3 | 1 | `sample_src/backend/order_service.py:18` |
+| `OrderController.__init__` | 2 | 1 | `sample_src/backend/order_controller.py:12` |
+
+### Most complex nodes
+
+| Node | Complexity | LOC | Location |
+| --- | --- | --- | --- |
+| `OrderController.__init__` | 1 | 2 | `sample_src/backend/order_controller.py:12` |
+| `OrderController.create_order` | 1 | 3 | `sample_src/backend/order_controller.py:16` |
+| `OrderController.get_order` | 1 | 3 | `sample_src/backend/order_controller.py:21` |
+| `OrderRepository.get` | 1 | 4 | `sample_src/backend/order_repository.py:11` |
+| `OrderRepository.save` | 1 | 3 | `sample_src/backend/order_repository.py:7` |
+| `OrderService.__init__` | 1 | 3 | `sample_src/backend/order_service.py:9` |
+| `OrderService.find_order` | 1 | 3 | `sample_src/backend/order_service.py:18` |
+| `OrderService.place_order` | 1 | 4 | `sample_src/backend/order_service.py:13` |
+| `PaymentClient.charge` | 1 | 4 | `sample_src/backend/payment_client.py:11` |
+
+### Largest files
+
+| File | Lines | Code |
+| --- | --- | --- |
+| `sample_src/backend/order_controller.py` | 23 | 16 |
+| `sample_src/backend/order_service.py` | 20 | 15 |
+| `sample_src/backend/order_repository.py` | 14 | 9 |
+| `sample_src/backend/payment_client.py` | 14 | 8 |
+| `sample_src/frontend/order_page.ts` | 13 | 9 |
+| `sample_src/frontend/api_client.ts` | 11 | 8 |
 
 ## Smells
 

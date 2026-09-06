@@ -189,10 +189,22 @@ python .agents/skills/code-archaeologist/scripts/git_insights.py --src ./src --t
 ```
 Outside a git repo it returns empty data with a note instead of failing.
 
-### 10. Full architecture report
+### 10. Size & complexity (lines of code)
+Line counts per file (total / code / comment / blank + language mix) and, for Python nodes,
+LOC, cyclomatic complexity, nesting depth and parameter count — keyed by the same node ids the
+graphs use, so "how long / how tangled is `OrderService.place_order`" is answered without
+opening a file:
+```bash
+python .agents/skills/code-archaeologist/scripts/metrics.py --src ./src --top 10
+python .agents/skills/code-archaeologist/scripts/metrics.py --src ./src --out <path>.json
+```
+Pass `--graph <graph.json>` to rank only that map's nodes (methods for flow, classes for
+structure). Report command 11 runs this for you and writes `data/report/<map>/metrics.json`.
+
+### 11. Full architecture report
 One review pass per built map — census, health grade, smells, anti-patterns, risk findings and
-hotspots — written to `data/report/<map>/architecture_report.md` (+ `.json`, `security.json`,
-`insights.json`; `<map>` is `structure` or `flow`). It also re-renders `data/explorer.html` with
+hotspots, plus size and complexity — written to `data/report/<map>/architecture_report.md`
+(+ `.json`, `security.json`, `insights.json`, `metrics.json`; `<map>` is `structure` or `flow`). It also re-renders `data/explorer.html` with
 both reports embedded, which turns on the health ring, churn/risk color modes, ownership and the
 Patterns/Security tabs:
 ```bash

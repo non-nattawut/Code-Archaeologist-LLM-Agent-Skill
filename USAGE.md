@@ -72,7 +72,7 @@ The whole codebase in one shot — grade, risks and hotspots:
 python .agents/skills/code-archaeologist/scripts/archaeologist.py report --src ./src
 ```
 
-Its two inputs run on their own too:
+Its inputs run on their own too:
 
 ```bash
 # risk scan: hardcoded secrets, interpolated SQL, eval/innerHTML sinks, debug leftovers
@@ -80,6 +80,9 @@ python .agents/skills/code-archaeologist/scripts/scan_security.py --src ./src
 
 # git churn/ownership + hotspot ranking (risk = commits x (1 + fan_in + fan_out))
 python .agents/skills/code-archaeologist/scripts/git_insights.py --src ./src --top 10
+
+# lines of code per file + LOC/complexity/depth per node (Python nodes)
+python .agents/skills/code-archaeologist/scripts/metrics.py --src ./src --top 10
 ```
 
 Every stage is runnable on its own (`build_wiki.py`, `build_graph.py`, `build_flow.py`,
