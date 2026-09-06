@@ -16,6 +16,7 @@ import subprocess
 import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+SKILL_DIR = os.path.dirname(SCRIPT_DIR)
 JS_EXTRACT = os.path.join(SCRIPT_DIR, "js_extract.js")
 JS_EXTS = (".js", ".jsx", ".ts", ".tsx")
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data", "dist", "build"}
@@ -33,6 +34,15 @@ def find_js_files(root: str) -> list[str]:
     return found
 
 
+def _skill_path() -> str:
+    """The skill folder as the user would type it (wherever the skill was installed)."""
+    try:
+        rel = os.path.relpath(SKILL_DIR)
+    except ValueError:                      # different drive on Windows
+        return SKILL_DIR
+    return SKILL_DIR if rel.startswith("..") else rel.replace("\\", "/")
+
+
 def _warn_once(msg: str) -> None:
     global _warned
     if not _warned:
@@ -45,8 +55,8 @@ def extract_js_files(files: list[str]) -> list[dict]:
     if not files:
         return []
     if shutil.which("node") is None:
-        _warn_once("  ! frontend skipped: Node.js not found on PATH "
-                   "(install Node, then `cd .agents/skills/code-archaeologist && npm install` to enable JS/TS parsing).")
+        _warn_once(f"  ! frontend skipped: Node.js not found on PATH (install Node, then "
+                   f"`cd {_skill_path()} && npm install` to enable JS/TS parsing).")
         return []
     try:
         proc = subprocess.run(
@@ -57,7 +67,12 @@ def extract_js_files(files: list[str]) -> list[dict]:
         _warn_once(f"  ! frontend skipped: could not run node ({exc}).")
         return []
     if proc.returncode != 0:
-        detail = proc.stderr.strip().splitlines()[-1] if proc.stderr.strip() else f"exit {proc.returncode}"
+        stderr = proc.stderr.strip()
+        if "MISSING_DEP" in stderr:         # the parser was never installed
+            _warn_once(f"  ! frontend skipped: @babel/parser is not installed. Run "
+                       f"`cd {_skill_path()} && npm install` to enable JS/TS parsing.")
+            return []
+        detail = stderr.splitlines()[-1] if stderr else f"exit {proc.returncode}"
         _warn_once(f"  ! frontend skipped: {detail}")
         return []
     try:

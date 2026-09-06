@@ -1,6 +1,6 @@
 {
   "graph": "data/flow/flow_graph.json",
-  "generated": "2026-09-06 08:35 UTC",
+  "generated": "2026-09-06 09:03 UTC",
   "census": {
     "nodes": 13,
     "edges": 9,

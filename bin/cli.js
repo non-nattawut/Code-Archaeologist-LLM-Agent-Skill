@@ -146,6 +146,19 @@ function copyDir(src, dest) {
   fs.cpSync(src, dest, { recursive: true });
 }
 
+// SKILL.md spells out the commands the agent runs, all prefixed with the skill's
+// own folder. Rewrite that prefix to wherever it is actually being installed, so
+// every command in the agent's instructions is copy-pasteable.
+const SKILL_MD_DEFAULT_DIR = ".agents/skills/code-archaeologist";
+
+function writeSkillMd(dest, relPosix) {
+  const src = fs.readFileSync(path.join(SKILL_SRC, "SKILL.md"), "utf8");
+  const out = relPosix === SKILL_MD_DEFAULT_DIR
+    ? src
+    : src.split(SKILL_MD_DEFAULT_DIR).join(relPosix);
+  fs.writeFileSync(path.join(dest, "SKILL.md"), out);
+}
+
 // The skill folder gets a node_modules/ of its own once the frontend parser is
 // installed, so it ships a .gitignore for the project it lands in. Copy the real
 // one when it is there; fall back to the essentials if the package dropped it.
@@ -212,7 +225,7 @@ async function main() {
   fs.mkdirSync(dest, { recursive: true });
   copyDir(path.join(SKILL_SRC, "scripts"), path.join(dest, "scripts"));
   copyDir(path.join(SKILL_SRC, "templates"), path.join(dest, "templates"));
-  fs.copyFileSync(path.join(SKILL_SRC, "SKILL.md"), path.join(dest, "SKILL.md"));
+  writeSkillMd(dest, relPosix);
   fs.copyFileSync(path.join(SKILL_SRC, "package.json"), path.join(dest, "package.json"));
   writeGitignore(dest);
   seedDataDir(path.join(dest, "data"), opts.force);

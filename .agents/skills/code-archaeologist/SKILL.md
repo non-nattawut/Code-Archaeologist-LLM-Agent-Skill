@@ -21,18 +21,34 @@ There are **two complementary maps**:
 `cache/` (internal AI-summary cache + source-freshness manifest — you rarely touch these directly).
 Both maps share ONE viewer, `data/explorer.html`, switched from its header.
 
-## Setup (do this first)
-- **Backend (Python) — no install needed.** Just Python 3.10+; the whole `.py` pipeline is stdlib.
-- **Frontend (JS/TS) — install the parser first.** Before scanning any `.js/.jsx/.ts/.tsx` code,
-  ensure Node.js is available and install the one dependency from the skill directory:
-  ```bash
-  cd .agents/skills/code-archaeologist && npm install
-  ```
-  This installs `@babel/parser` (declared in the skill's `package.json`) next to `js_extract.js`;
-  the resulting `node_modules/` is git-ignored by the skill's `.gitignore`, so it never lands in a
-  commit. Do this once per machine/checkout before running a `flow`/`both` build over frontend
-  code. If it is skipped, frontend files are ignored with a warning and only the backend graph is
-  built — so install it whenever the project has a frontend you want mapped.
+## Setup — run this preflight before the first build
+
+Do this once per machine/checkout, **before** the first `project` / `flow` / `both` build. Both
+steps are cheap and idempotent; skip nothing, then report to the user what is available.
+
+**1. Python 3.10+ — required, nothing to install.** The whole `.py` pipeline is stdlib:
+```bash
+python --version        # or python3 --version; needs 3.10 or newer
+```
+If Python is older than 3.10 or missing, stop and tell the user — the skill cannot run.
+
+**2. `@babel/parser` — required only for frontend (`.js/.jsx/.ts/.tsx`) code.** Skip this entirely
+for a Python-only project. Otherwise check whether the parser already resolves, and install it if
+it does not:
+```bash
+# check (run from the skill directory)
+cd .agents/skills/code-archaeologist && node -e "require('@babel/parser'); console.log('parser ok')"
+
+# install if that failed
+cd .agents/skills/code-archaeologist && npm install
+```
+`npm install` pulls the single dependency declared in the skill's own `package.json` into
+`<skill>/node_modules`, which the skill's `.gitignore` keeps out of commits. **Install it yourself
+— don't ask the user to.**
+
+If **Node itself** is missing, do not stop: run the build anyway. Frontend files are skipped with a
+one-line warning and the backend graph is still produced — just tell the user that installing
+Node.js would add the frontend half of the map (and the cross-stack `http` edges).
 
 ## Operating Principles
 1. NEVER read raw source code files directly for architectural or flow-related queries.
@@ -51,6 +67,8 @@ Both maps share ONE viewer, `data/explorer.html`, switched from its header.
    `data/report/<map>/architecture_report.md` — still without reading raw source.
 
 ## Available Tool Commands
+
+> First build in this project? Run the **Setup preflight** above first.
 
 ### 1. Build the Project Structure map
 Which classes reference/import which → `graph.json`, `vault/` (+ `explorer.html`):

@@ -5,12 +5,12 @@ layer: client
 class: 
 source: sample_src/frontend/api_client.ts:8
 lang: js
-desc_source: ai
+desc_source: auto
 ---
 # getOrder
 
 ## What it does
-Frontend API client: GET /orders/:id and return the parsed order JSON.
+Delegates to [[OrderController.get_order]].
 
 ## Signature
 `getOrder()`

@@ -5,12 +5,12 @@ layer: ui
 class: 
 source: sample_src/frontend/order_page.ts:4
 lang: js
-desc_source: ai
+desc_source: auto
 ---
 # submitOrder
 
 ## What it does
-Frontend page action: submits a new order form via the API client.
+Delegates to [[createOrder]].
 
 ## Signature
 `submitOrder()`
