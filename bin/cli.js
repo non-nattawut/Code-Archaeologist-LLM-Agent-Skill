@@ -252,6 +252,7 @@ async function main() {
   console.log("Next steps (from your project root):");
   console.log(`  ${py.exe} ${relPosix}/scripts/archaeologist.py both   --src ./src   # build both maps`);
   console.log(`  ${py.exe} ${relPosix}/scripts/archaeologist.py report --src ./src   # grade, risks, hotspots`);
+  console.log(`  ${py.exe} ${relPosix}/scripts/archaeologist.py brief  --src ./src   # the whole thing in ~35 lines`);
   console.log(`  open ${relPosix}/data/explorer.html`);
   console.log("\nBackend (Python) needs no dependencies. To also parse frontend (JS/TS), run:");
   console.log(`  cd ${relPosix} && npm install`);
