@@ -141,9 +141,16 @@ function findPython() {
   return null;
 }
 
+// Build junk from running the skill in place (bytecode caches, an installed
+// node_modules) must not ride along into someone else's project.
+const SKIP_COPY = new Set(["__pycache__", "node_modules", ".pytest_cache"]);
+
 function copyDir(src, dest) {
   fs.mkdirSync(dest, { recursive: true });
-  fs.cpSync(src, dest, { recursive: true });
+  fs.cpSync(src, dest, {
+    recursive: true,
+    filter: (from) => !SKIP_COPY.has(path.basename(from)) && !from.endsWith(".pyc"),
+  });
 }
 
 // SKILL.md spells out the commands the agent runs, all prefixed with the skill's

@@ -6,120 +6,91 @@ description: Zero-RAG codebase navigation with two maps — a project-structure 
 # Skill: Code Archaeologist & Living Wiki Navigator
 
 ## Overview
-Provides zero-RAG codebase navigation using local dependency graphs and Markdown wiki pages.
-There are **two complementary maps**:
+Zero-RAG codebase navigation from local graphs and Markdown notes. **Two maps:**
 
-- **Project Structure** (class-level) — which classes/entities reference or import which.
-  Data: `data/structure/graph.json` + `data/structure/vault/<Entity>.md`.
-- **Flow / Request Flow** (method-level) — which method calls which method, so you can trace an
-  actual execution/request flow such as `OrderController.create_order -> OrderService.place_order
-  -> OrderRepository.save`. Each node describes what the method does. Data:
-  `data/flow/flow_graph.json` + `data/flow/notes/<Class.method>.md`.
+- **Structure** (class level) — who references/imports whom.
+  `data/structure/graph.json` + `data/structure/vault/<Entity>.md`
+- **Flow** (method level) — who calls whom, so a real request path can be traced
+  (`OrderController.create_order -> OrderService.place_order -> OrderRepository.save`).
+  `data/flow/flow_graph.json` + `data/flow/notes/<Class.method>.md`
 
-`data/` is organized by map: `structure/` (class graph + vault), `flow/` (call graph + `notes/`),
-`report/<map>/` (the review pass for that map: architecture report, risk scan, git insights), and
-`cache/` (internal AI-summary cache + source-freshness manifest — you rarely touch these directly).
-Both maps share ONE viewer, `data/explorer.html`, switched from its header.
+`data/` is grouped by map: `structure/`, `flow/`, `report/<map>/` (the review pass), `cache/`
+(AI-summary + freshness state; you rarely touch it). Both maps share one viewer,
+`data/explorer.html`, switched from its header.
 
-## Setup — run this preflight before the first build
+## Setup — preflight before the first build
 
-Do this once per machine/checkout, **before** the first `project` / `flow` / `both` build. Both
-steps are cheap and idempotent; skip nothing, then report to the user what is available.
+Once per machine/checkout, before the first `project` / `flow` / `both` build.
 
-**1. Python 3.10+ — required, nothing to install.** The whole `.py` pipeline is stdlib:
+**1. Python 3.10+ — required, nothing to install** (the pipeline is stdlib):
 ```bash
-python --version        # or python3 --version; needs 3.10 or newer
+python --version        # or python3; needs 3.10+
 ```
-If Python is older than 3.10 or missing, stop and tell the user — the skill cannot run.
+Older or missing: stop and tell the user, the skill cannot run.
 
-**2. `@babel/parser` — required only for frontend (`.js/.jsx/.ts/.tsx`) code.** Skip this entirely
-for a Python-only project. Otherwise check whether the parser already resolves, and install it if
-it does not:
+**2. `@babel/parser` — only if the project has `.js/.jsx/.ts/.tsx`.** Check, and install if the
+check fails. **Do this yourself — don't ask the user to.**
 ```bash
-# check (run from the skill directory)
 cd .agents/skills/code-archaeologist && node -e "require('@babel/parser'); console.log('parser ok')"
-
-# install if that failed
 cd .agents/skills/code-archaeologist && npm install
 ```
-`npm install` pulls the single dependency declared in the skill's own `package.json` into
-`<skill>/node_modules`, which the skill's `.gitignore` keeps out of commits. **Install it yourself
-— don't ask the user to.**
+It installs one dependency into `<skill>/node_modules`, which the skill's `.gitignore` excludes.
 
-If **Node itself** is missing, do not stop: run the build anyway. Frontend files are skipped with a
-one-line warning and the backend graph is still produced — just tell the user that installing
-Node.js would add the frontend half of the map (and the cross-stack `http` edges).
+If **Node itself** is missing, do not stop — build anyway. Frontend files are skipped with a
+warning and the backend graph still builds; tell the user Node would add the frontend half of the
+map and the cross-stack `http` edges.
 
 ## Operating Principles
-1. NEVER read raw source code files directly for architectural or flow-related queries.
-2. Pick the right map: **structure** for "how are components organized / who uses X"; **flow**
-   for "how does a request travel / what calls what / trace this execution".
-3. ALWAYS query the graph first with `trace_path.py` (point `--graph` at the right graph) to find
-   the exact path or blast-radius.
-4. Then pull the facts in ONE call with `context.py --node <id>` (Command 7) instead of opening
-   notes one at a time. Read individual notes
+1. NEVER read raw source for architecture, flow or review questions.
+2. Pick the map: **structure** for "how is this organized / who uses X"; **flow** for "how does a
+   request travel / what calls what".
+3. Start from the graph, not from grep: `search.py` (Command 4) to find node ids, `trace_path.py`
+   (Commands 5-6) for the path or blast-radius.
+4. Then take the facts in ONE call with `context.py --node <id>` (Command 7). Read individual notes
    (`data/structure/vault/<Entity>.md`, `data/flow/notes/<Class.method>.md`) only when the pack is
-   not enough — and only for nodes on the discovered path.
-5. Always preserve `[[EntityName]]` / `[[Class.method]]` wikilinks so answers are cross-navigable.
-6. **Check freshness before trusting the maps.** Before answering a flow/impact question, run
-   `archaeologist.py check --src <roots>` (Command 9). If it reports `stale`, rebuild the relevant
-   map first — see "Keeping the maps current" — so the graphs and HTML match the current code.
-7. For **review** questions ("is this codebase healthy?", "where is the risk?", "what should
-   we refactor first?"), run the report (Command 14), then read the **brief** (Command 1) and
-   go to `data/report/<map>/architecture_report.md` only for the detail it points at — still
-   without reading raw source.
+   not enough, and only for nodes on the discovered path.
+5. Preserve `[[EntityName]]` / `[[Class.method]]` wikilinks in answers so they stay navigable.
+6. **Check freshness before trusting a map** (Command 9). If it says `stale`, rebuild first — see
+   "Keeping the maps current".
+7. For review questions ("is this healthy?", "where is the risk?", "what to refactor first?"), run
+   the report (Command 14), read the **brief** (Command 1), and open
+   `data/report/<map>/architecture_report.md` only for the detail the brief points at.
 
 ## Available Tool Commands
 
 > First build in this project? Run the **Setup preflight** above first.
+> Paths below assume the default install; if the skill lives elsewhere, that prefix is already
+> rewritten to match.
 
 ### 1. Orientation brief — start here
-A fixed-size digest of whatever is already built: node/edge counts and grade per map, staleness,
-size, entry points, and the top few longest / most complex / most churned / riskiest nodes. It
-reads the artifacts, computes nothing, and costs the same on a 200-file repo as on a 5-file one —
-so use it instead of reading `architecture_report.json`:
+Fixed-size digest of what is built: counts and grade per map, staleness, size, entry points, and
+the top longest / most complex / most churned / riskiest nodes. Costs the same on a 200-file repo
+as on a 5-file one, so use it instead of reading `architecture_report.json`.
 ```bash
 python .agents/skills/code-archaeologist/scripts/archaeologist.py brief --src ./src
 ```
-`--map structure` switches which map the detail sections describe, `--top N` how many rows each
-gets, `--json` emits the same digest for tooling. Read the full report only when the brief points
-you at something you need the detail for.
+`--map structure` switches the detail sections, `--top N` sizes them, `--json` for tooling.
 
 ### 2. Build the Project Structure map
-Which classes reference/import which → `graph.json`, `vault/` (+ `explorer.html`):
 ```bash
 python .agents/skills/code-archaeologist/scripts/archaeologist.py project --src ./src
 ```
 
 ### 3. Build the Flow / Request-Flow map
-Method-level call graph → `flow/flow_graph.json`, `flow/notes/` (+ `explorer.html`):
 ```bash
 python .agents/skills/code-archaeologist/scripts/archaeologist.py flow --src ./src
-```
-Build both at once with `... archaeologist.py both --src ./src`.
-
-**Monorepo & frontend.** `--src` accepts multiple roots, so backend and frontend land in one
-graph:
-```bash
+python .agents/skills/code-archaeologist/scripts/archaeologist.py both --src ./src   # both maps
 python .agents/skills/code-archaeologist/scripts/archaeologist.py flow --src ./backend ./frontend
 ```
-Python (`.py`) is parsed by the stdlib AST. JS/TS (`.js/.jsx/.ts/.tsx`) is parsed by the Node
-extractor (`js_extract.js`, needs Node + `@babel/parser` resolvable from the project); if Node or
-the parser is missing, frontend files are skipped with a warning and the Python graph still builds.
-Node `source` fields are prefixed with their root area (e.g. `backend/…`, `frontend/…`).
-
-Frontend `fetch`/`axios` calls are linked to backend route handlers (`@router.post("/orders")`,
-`@app.route(..., methods=[...])`, etc.) by matching HTTP method + normalized path, producing
-cross-stack `http` edges. So a single flow trace can run frontend → API → service → repository:
-```bash
-python .agents/skills/code-archaeologist/scripts/trace_path.py \
-  --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json --from submitOrder --to OrderRepository.save
-```
+`--src` takes several roots, so a monorepo lands in one graph (node `source` keeps its root
+prefix: `backend/…`, `frontend/…`). Python is parsed by the stdlib AST, JS/TS by `js_extract.js`
+(Node + `@babel/parser`; missing → frontend skipped with a warning). Frontend `fetch`/`axios`
+calls are matched to backend route handlers by HTTP method + path, giving cross-stack `http`
+edges — so one trace can run frontend → API → service → repository.
 
 ### 4. Find the nodes (instead of grepping)
-Filter the graph by name, description, file, layer, kind, language or connectivity and get back
-node ids you can feed to the commands below. Use this before reaching for grep, and never grep
-source to find "where is X handled":
+Filter the graph and get ids back for the commands below. Never grep source to find "where is X
+handled".
 ```bash
 python .agents/skills/code-archaeologist/scripts/search.py --name "payment|charge"
 python .agents/skills/code-archaeologist/scripts/search.py --doc "refund"
@@ -127,172 +98,136 @@ python .agents/skills/code-archaeologist/scripts/search.py --layer repository --
 python .agents/skills/code-archaeologist/scripts/search.py --calls OrderRepository.save
 python .agents/skills/code-archaeologist/scripts/search.py --orphans
 ```
-Filters combine with AND; `--graph` picks the map (default: flow), `--limit` caps the rows.
+Filters AND together; `--graph` picks the map (default: flow), `--limit` caps rows.
 
 ### 5. Trace Execution Flow
-Find the path connecting two components. Structure uses the default graph; flow needs `--graph`:
+Structure is the default graph; flow needs `--graph`. Output is one line per path (`A > B > C`);
+add `--all` for every path, `--format json` only when something machine-reads it.
 ```bash
-# structure (class -> class)
 python .agents/skills/code-archaeologist/scripts/trace_path.py --from <SourceClass> --to <TargetClass>
-
-# request flow (method -> method)
 python .agents/skills/code-archaeologist/scripts/trace_path.py \
   --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json \
   --from OrderController.create_order --to OrderRepository.save
 ```
-Add `--all` to enumerate every path. Output is one compact line per path (`A > B > C`); add `--format json` only when something machine-reads it.
 
 ### 6. Blast-Radius / Impact Analysis
-All upstream callers affected if a class or method changes:
+Everything upstream of a node — and, with `--impact-of-diff`, of a whole changeset (changed files
+are mapped to nodes, then their impact is unioned). Works on either graph.
 ```bash
-# class-level
 python .agents/skills/code-archaeologist/scripts/trace_path.py --impact-of <ClassName>
-
-# method-level
 python .agents/skills/code-archaeologist/scripts/trace_path.py \
   --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json --impact-of <Class.method>
-```
-
-**Blast-radius of a whole changeset (git diff).** For "what does this PR/edit affect?", map the
-changed files to nodes and union their impact in one shot. Works on either graph:
-```bash
-# uncommitted working-tree changes (default)
-python .agents/skills/code-archaeologist/scripts/trace_path.py \
-  --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json --impact-of-diff
-# staged changes, or against a base ref
+python .agents/skills/code-archaeologist/scripts/trace_path.py --impact-of-diff            # working tree
 python .agents/skills/code-archaeologist/scripts/trace_path.py --impact-of-diff --staged
 python .agents/skills/code-archaeologist/scripts/trace_path.py --impact-of-diff --base origin/main
 ```
-Reports `changed_nodes` (nodes in the edited files) and `impacted` (everything upstream of them).
 
 ### 7. Context pack for a node (one call, budgeted)
-Everything known about a node, assembled from the artifacts: kind/layer/source, size and
-complexity, churn and owner, its description, its immediate callers and callees *each with their
-own one-line description*, and the risk findings attributed to it. This replaces "trace, then open
-five notes":
+Everything known about a node from the artifacts: kind/layer/source, size and complexity, churn
+and owner, description, immediate callers and callees *each with their own description*, and the
+risks attributed to it. Replaces "trace, then open five notes".
 ```bash
 python .agents/skills/code-archaeologist/scripts/context.py --node OrderService.place_order
 python .agents/skills/code-archaeologist/scripts/context.py --node A B --depth 2 --max-chars 8000
-python .agents/skills/code-archaeologist/scripts/context.py --diff        # every node the diff touches
+python .agents/skills/code-archaeologist/scripts/context.py --diff     # every node the diff touches
 ```
-`--max-chars` (default 6000) is a hard budget: neighbor lists shrink until the pack fits, and it
-says when it trimmed. `--graph` selects the map (default: flow). `--format json` for tooling.
+`--max-chars` (default 6000) is a hard budget: neighbor lists shrink until it fits, and it says
+when it trimmed. `--graph` picks the map (default: flow), `--format json` for tooling.
 
-### 8. Regenerate / Refresh the HTML explorer
-`archaeologist.py` regenerates `data/explorer.html` automatically. To rebuild it alone (it picks
-up both maps and both reports from the standard paths):
+### 8. Regenerate the HTML explorer
+`archaeologist.py` refreshes `data/explorer.html` on every build; this rebuilds it alone:
 ```bash
 python .agents/skills/code-archaeologist/scripts/build_html.py
 ```
-One page holds **both maps**; its header switches between Structure and Flow, and the whole UI
-(grade, tiles, explorer tree, canvas, tabs) re-renders for the active map. Layout: health grade +
-stat tiles + language mix + file tree on the left; seven views of the graph in the middle (Graph,
-Treemap, Matrix, Tree, Flow, Cluster, Bundle) with folder hulls, a blast-radius toggle and PNG
-export; FILE / PATTERNS / SECURITY tabs on the right (blast radius with an impact bar, connections,
-git ownership, sibling functions with internal/external call counts, risk findings). A map with no
-report still renders — just without the grade, churn/risk colors and the two review tabs. The page
-itself lives in `templates/viewer.html`, so it can be restyled without touching Python.
+One page holds both maps (header switch): grade, tiles and file tree on the left; seven views
+(Graph, Treemap, Matrix, Tree, Flow, Cluster, Bundle) in the middle; FILE / PATTERNS / SECURITY
+tabs on the right. A map with no report still renders, minus the grade and review tabs.
 
 ### 9. Check freshness (are the maps stale?)
-Before trusting a trace/impact answer, confirm the maps match the current source. Returns
-`{stale, changed, added, deleted}` — tiny and deterministic. Rebuild if `stale` is true:
+Returns `{stale, changed, added, deleted}`. Rebuild if `stale`.
 ```bash
 python .agents/skills/code-archaeologist/scripts/archaeologist.py check --src ./src
 ```
 
-### 10. Architectural smell report & health grade
-Deterministic checks over a graph — circular dependencies, orphan/dead nodes (no callers, not an
-entry point), backwards layer violations (e.g. a repository calling a controller), high-coupling
-hubs, god objects, name-based idioms (singleton/factory/observer/React hook), and a 0-100 health
-score with an A-F grade (pass `--security <security.json>` to fold risk findings into the grade):
+### 10. Architectural smells & health grade
+Cycles, orphans/dead nodes, backwards layer violations, high-coupling hubs, god objects,
+name-based idioms, and a 0-100 / A-F health score (`--security <security.json>` folds risk
+findings into the grade).
 ```bash
-# structure graph (default)
-python .agents/skills/code-archaeologist/scripts/analyze.py
-# flow graph
-python .agents/skills/code-archaeologist/scripts/analyze.py --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json
-# grade + counts + the lists, without the JSON envelope
-python .agents/skills/code-archaeologist/scripts/analyze.py --format text
+python .agents/skills/code-archaeologist/scripts/analyze.py                    # structure (default)
+python .agents/skills/code-archaeologist/scripts/analyze.py --format text      # no JSON envelope
+python .agents/skills/code-archaeologist/scripts/analyze.py \
+  --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json
 ```
 
 ### 11. Risk / security scan
-Deterministic line scan for hardcoded secrets, interpolated SQL, `eval`/`innerHTML` sinks and
-leftover debug statements. Each finding names the graph node that owns the line, so it can be
-traced and blast-radiused like anything else (tests/fixtures/docs are skipped, secrets redacted):
+Line scan for hardcoded secrets, interpolated SQL, `eval`/`innerHTML` sinks and leftover debug
+statements. Each finding names the node owning the line, so it can be traced and blast-radiused
+(tests/fixtures/docs skipped, secrets redacted).
 ```bash
 python .agents/skills/code-archaeologist/scripts/scan_security.py --src ./src
 ```
-Add `--graph <flow_graph.json>` to attribute findings to method nodes instead of classes, or
-`--out <file.json>` to save the report.
+`--graph <flow_graph.json>` attributes findings to methods instead of classes; `--out <file.json>`
+saves the report.
 
 ### 12. Churn, ownership & hotspots (git)
-Joins git history onto the graph: commits per file, top author per file, and a hotspot ranking
-where `risk = commits x (1 + fan_in + fan_out)` — code that changes often *and* has many callers:
+Commits per file, top author per file, and a hotspot ranking where
+`risk = commits x (1 + fan_in + fan_out)`. Outside a git repo it returns empty data with a note.
 ```bash
 python .agents/skills/code-archaeologist/scripts/git_insights.py --src ./src --top 10
 ```
-Outside a git repo it returns empty data with a note instead of failing.
 
 ### 13. Size & complexity (lines of code)
-Line counts per file (total / code / comment / blank + language mix) and, for Python nodes,
-LOC, cyclomatic complexity, nesting depth and parameter count — keyed by the same node ids the
-graphs use, so "how long / how tangled is `OrderService.place_order`" is answered without
-opening a file:
+Lines per file (total / code / comment / blank + language mix) and, for Python nodes, LOC,
+cyclomatic complexity, nesting depth and parameter count — keyed by the graph's node ids, so
+"how long / how tangled is `OrderService.place_order`" needs no file read.
 ```bash
 python .agents/skills/code-archaeologist/scripts/metrics.py --src ./src --top 10
-python .agents/skills/code-archaeologist/scripts/metrics.py --src ./src --out <path>.json
 ```
-Pass `--graph <graph.json>` to rank only that map's nodes (methods for flow, classes for
-structure). The full report command below runs this for you and writes `data/report/<map>/metrics.json`.
+`--graph <graph.json>` ranks only that map's nodes; `--out <path>.json` saves it. Command 14 runs
+this for you into `data/report/<map>/metrics.json`.
 
 ### 14. Full architecture report
-One review pass per built map — census, health grade, smells, anti-patterns, risk findings and
-hotspots, plus size and complexity — written to `data/report/<map>/architecture_report.md`
-(+ `.json`, `security.json`, `insights.json`, `metrics.json`; `<map>` is `structure` or `flow`). It also re-renders `data/explorer.html` with
-both reports embedded, which turns on the health ring, churn/risk color modes, ownership and the
-Patterns/Security tabs:
+One review pass per built map — census, grade, smells, anti-patterns, risks, hotspots, size and
+complexity — into `data/report/<map>/architecture_report.md` (+ `.json`, `security.json`,
+`insights.json`, `metrics.json`). It also re-renders `data/explorer.html` with both reports
+embedded, enabling the health ring, churn/risk colors, ownership and the Patterns/Security tabs.
 ```bash
 python .agents/skills/code-archaeologist/scripts/archaeologist.py report --src ./src
 ```
-Use this for "review this codebase", "where is the risk", "what should we refactor first" —
-then read the Markdown report instead of any source.
+Use it for "review this codebase" / "where is the risk" / "what should we refactor first", then
+answer from the brief and the report — never from source.
 
 ## Keeping the maps current (hybrid AI descriptions)
 
-The graph *structure* (nodes, edges, signatures, calls) is always extracted deterministically by
-AST — fast, exact, zero tokens. Method *descriptions* are resolved cheapest-source-first:
-docstring → cached AI summary (valid while the method's source hash is unchanged) → deterministic
-fallback. This means **the AI only writes a summary for methods that are new or changed**, and
-only when they lack a docstring; everything else is free.
+Graph *structure* is always extracted by AST — exact, zero tokens. Method *descriptions* resolve
+cheapest-source-first: docstring → cached AI summary (valid while the source hash is unchanged) →
+deterministic fallback. So the AI writes a summary only for methods that are new or changed and
+have no docstring.
 
-After any code add/change/delete, refresh a map:
+After any code change, rebuild the map (Command 3). If it reports **pending** descriptions:
 
-1. Rebuild (AST + cache), which also detects what needs describing:
+1. Open `data/cache/pending_descriptions.json` (each entry carries `signature` + `code`) and write
+   a one-line summary per method as JSON `{ "<Class.method>": "<summary>", ... }`.
+2. Apply them, then rebuild to fold them in:
    ```bash
+   python .agents/skills/code-archaeologist/scripts/apply_descriptions.py --input <summaries.json>
    python .agents/skills/code-archaeologist/scripts/archaeologist.py flow --src ./src
    ```
-2. If the output reports **pending** descriptions, open `data/cache/pending_descriptions.json`
-   (each entry has the method's `signature` + `code`), write a concise one-line summary of what
-   each method does, and save them as JSON `{ "<Class.method>": "<summary>", ... }`, then:
-   ```bash
-   python .agents/skills/code-archaeologist/scripts/apply_descriptions.py --input <your_summaries.json>
-   python .agents/skills/code-archaeologist/scripts/archaeologist.py flow --src ./src   # rebuild to fold them in
-   ```
-   Summaries are cached in `data/cache/descriptions.json` (keyed by source hash), so unchanged methods
-   are never re-described. Deleted methods are pruned automatically.
-3. If there are **0 pending**, you're done — the graph, notes, and `explorer.html` are up to date.
+
+Summaries are cached in `data/cache/descriptions.json` by source hash, so unchanged methods are
+never re-described; deleted ones are pruned (except after a build that skipped the frontend, which
+keeps the cache intact — those nodes are missing, not gone). **0 pending** means done.
 
 ## Notes
-- Zero external dependencies for the **Python** pipeline (stdlib only). **Frontend** parsing is the
-  one exception: it needs Node + `@babel/parser`. The generated HTML loads `force-graph` from a CDN.
-- Backend is parsed deterministically via the stdlib `ast` module; frontend via `@babel/parser`.
-- Field values (`kind`, `layer`, `lang`, `desc_source`, plus the review-pass `severity`/`rule`/
-  `grade` sets) come from `scripts/taxonomy.py` and `scripts/scan_security.py`; see
-  `templates/TAXONOMY.md` for the allowed values. Keep them consistent by editing those, not
-  individual pages.
-- Flow call resolution is heuristic (no full type inference): it resolves `self.<dep>.m()` via
-  `__init__` type hints/assignments, typed params/locals, and same-class `self.m()` calls.
-  Calls that stay unresolved (libraries, stdlib) become no edge — they are counted per node as
-  `ext`, which the explorer shows as "N ext" next to "N int".
-- `resolve_descriptions()` in `build_flow.py` is where descriptions are chosen (docstring → cached
-  AI summary → `_auto_summary()` fallback); that is the hook for richer summaries.
-- All scripts resolve paths relative to the skill root, so they work from any working directory.
+- Python pipeline: stdlib only. Frontend parsing is the one exception (Node + `@babel/parser`);
+  the generated HTML loads `force-graph` from a CDN.
+- Field values (`kind`, `layer`, `lang`, `desc_source`, and the review `severity`/`rule`/`grade`
+  sets) live in `scripts/taxonomy.py` and `scripts/scan_security.py` — see `templates/TAXONOMY.md`
+  for the allowed values, and edit those rather than individual pages.
+- Call resolution is heuristic, not type inference: `self.<dep>.m()` via `__init__` hints or
+  assignments, typed params/locals, and same-class `self.m()`. Unresolved calls (libraries,
+  stdlib) become no edge and are counted per node as `ext` ("N ext" in the explorer).
+- `resolve_descriptions()` in `build_flow.py` is where a description is chosen — the hook for
+  richer summaries.
+- Every script resolves paths from the skill root, so it runs from any working directory.

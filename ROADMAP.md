@@ -60,8 +60,8 @@ line. Exists so the agent stops falling back to grep, which is where unbounded r
 - **Test-coverage mapping** — which nodes are named in test files, and therefore which are
   named nowhere. Name-based and deterministic; no runner, no instrumentation.
 - **Duplicate-code clusters** — normalized token hashing of function bodies.
-- **Trim `SKILL.md`** — it is 14KB and loads into context every session. A token win that
-  ships no new code.
+- ~~**Trim `SKILL.md`**~~ — done: 17.8KB -> 13.1KB, all 14 commands kept, prose that duplicated
+  README/USAGE cut. It loads into context every session, so this is a per-session win.
 
 ## How this gets built
 
