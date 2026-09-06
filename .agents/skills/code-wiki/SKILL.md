@@ -28,10 +28,11 @@ Both maps share ONE viewer, `data/explorer.html`, switched from its header.
   ```bash
   cd .agents/skills/code-wiki && npm install
   ```
-  This installs `@babel/parser` (declared in the skill's `package.json`) next to `js_extract.js`.
-  Do this once per machine/checkout before running a `flow`/`both` build over frontend code. If it
-  is skipped, frontend files are ignored with a warning and only the backend graph is built — so
-  install it whenever the project has a frontend you want mapped.
+  This installs `@babel/parser` (declared in the skill's `package.json`) next to `js_extract.js`;
+  the resulting `node_modules/` is git-ignored by the skill's `.gitignore`, so it never lands in a
+  commit. Do this once per machine/checkout before running a `flow`/`both` build over frontend
+  code. If it is skipped, frontend files are ignored with a warning and only the backend graph is
+  built — so install it whenever the project has a frontend you want mapped.
 
 ## Operating Principles
 1. NEVER read raw source code files directly for architectural or flow-related queries.

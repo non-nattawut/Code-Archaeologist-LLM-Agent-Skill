@@ -1,0 +1,17 @@
+# Keep the skill folder committable in whatever project it is installed into.
+# The maps under data/ (graph.json, vault/, notes/, report/, explorer.html) ARE
+# meant to be committed - that shared wiki is the point. Everything listed here
+# is machine-local or regenerated on the next build.
+
+# Frontend parser dependency: `npm install` inside this folder pulls @babel/parser
+node_modules/
+
+# Python bytecode from running the scripts
+__pycache__/
+*.py[cod]
+
+# Source-hash snapshot behind `archaeologist.py check` (build state, per checkout)
+data/cache/manifest.json
+
+# Transient queue of methods still awaiting an AI summary
+data/cache/pending_descriptions.json

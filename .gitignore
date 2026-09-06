@@ -12,7 +12,5 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# Code Archaeologist: transient list of methods awaiting an AI summary
-**/code-wiki/data/cache/pending_descriptions.json
-# Code Archaeologist: source-freshness snapshot (build state; regenerated per build)
-**/code-wiki/data/cache/manifest.json
+# The code-wiki skill ships its own .gitignore (node_modules, build state) - see
+# .agents/skills/code-wiki/.gitignore

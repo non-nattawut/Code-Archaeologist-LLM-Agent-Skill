@@ -104,8 +104,9 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
 
 - **Python 3.10+** — required; the backend pipeline uses only the standard library.
 - **Node.js + `@babel/parser`** — *only for frontend (JS/TS) parsing*. Install it once from the
-  skill directory: `cd .agents/skills/code-wiki && npm install`. Without it, frontend files are
-  skipped with a warning and the Python graph still builds.
+  skill directory: `cd .agents/skills/code-wiki && npm install`. The resulting `node_modules/` is
+  git-ignored by the skill's own `.gitignore`. Without it, frontend files are skipped with a
+  warning and the Python graph still builds.
 - **git** — *optional*; only for churn/ownership/hotspots. Outside a git repo the report is built
   without them.
 - A modern browser to view the generated HTML (loads `force-graph` from a CDN).
@@ -145,8 +146,10 @@ Useful flags:
 | `--force` | Overwrite an existing `data/` workspace (default: keep it) |
 | `--help` | Show usage |
 
-The CLI verifies Python 3.10+, copies `SKILL.md`, `scripts/`, and `templates/` into the chosen
-harness folder, and creates a fresh empty `data/` workspace. It has **no npm dependencies**
+The CLI verifies Python 3.10+, copies `SKILL.md`, `scripts/`, `templates/` and a `.gitignore` into
+the chosen harness folder, and creates a fresh empty `data/` workspace. That `.gitignore` keeps the
+skill's `node_modules/` (the frontend parser) and its build state out of your repo, while leaving
+the generated maps under `data/` committable. It has **no npm dependencies**
 (Node ≥ 16.7, built-ins only) — the skill itself still runs on Python.
 
 ## Usage
@@ -282,6 +285,7 @@ templates, and the generated `data/` workspace.
 ```
 .agents/skills/code-wiki/
 |-- SKILL.md                      # agent instructions & tool specs
+|-- .gitignore                    # keeps node_modules/ + build state out of your repo
 |-- scripts/
 |   |-- archaeologist.py          # entrypoint: project | flow | both | check | report
 |   |-- taxonomy.py               # allowed kind/layer values (single source of truth)

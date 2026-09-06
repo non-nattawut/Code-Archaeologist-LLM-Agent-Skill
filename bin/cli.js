@@ -146,6 +146,26 @@ function copyDir(src, dest) {
   fs.cpSync(src, dest, { recursive: true });
 }
 
+// The skill folder gets a node_modules/ of its own once the frontend parser is
+// installed, so it ships a .gitignore for the project it lands in. Copy the real
+// one when it is there; fall back to the essentials if the package dropped it.
+function writeGitignore(dest) {
+  const src = path.join(SKILL_SRC, ".gitignore");
+  const target = path.join(dest, ".gitignore");
+  if (fs.existsSync(src)) {
+    fs.copyFileSync(src, target);
+    return;
+  }
+  fs.writeFileSync(target, [
+    "node_modules/",
+    "__pycache__/",
+    "*.py[cod]",
+    "data/cache/manifest.json",
+    "data/cache/pending_descriptions.json",
+    "",
+  ].join("\n"));
+}
+
 function seedDataDir(dataDir, force) {
   // data/ groups output by map: structure/ (class graph), flow/ (call graph),
   // report/ (review pass), cache/ (internal AI-summary + freshness state). Scripts
@@ -194,6 +214,7 @@ async function main() {
   copyDir(path.join(SKILL_SRC, "templates"), path.join(dest, "templates"));
   fs.copyFileSync(path.join(SKILL_SRC, "SKILL.md"), path.join(dest, "SKILL.md"));
   fs.copyFileSync(path.join(SKILL_SRC, "package.json"), path.join(dest, "package.json"));
+  writeGitignore(dest);
   seedDataDir(path.join(dest, "data"), opts.force);
   console.log("OK   Skill installed.\n");
 
