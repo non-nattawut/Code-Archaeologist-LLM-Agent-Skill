@@ -57,14 +57,35 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
 - **Staleness guard** — every build records a content-hash of the source it scanned;
   `archaeologist.py check` re-scans and reports whether the maps are stale (and exactly which files
   changed) before you trust a trace, so answers are never built on a drifted graph.
-- **Architectural smell report** (`analyze.py`) — deterministic graph checks for circular
-  dependencies, orphan/dead nodes (no callers, not an entry point), and backwards layer violations
-  (e.g. a repository calling a controller).
+- **Architectural smell report + health grade** (`analyze.py`) — deterministic graph checks for
+  circular dependencies, orphan/dead nodes (no callers, not an entry point), backwards layer
+  violations (e.g. a repository calling a controller), high-coupling hubs and god objects, plus
+  name-based idiom detection (singleton / factory / observer / React hook) and a **0-100 health
+  score with an A-F grade** that folds in the risk findings below.
+- **Risk / security scan** (`scan_security.py`) — a deterministic line sweep for hardcoded
+  secrets, SQL built by string interpolation, `eval` / `new Function` / `innerHTML` sinks, and
+  leftover debug statements. Every finding is **attributed to the graph node that owns the line**,
+  so a risk can be traced and blast-radiused like any other node; tests/fixtures/docs are skipped
+  and secret values are redacted.
+- **Churn, ownership & hotspots** (`git_insights.py`) — one `git log --numstat` pass gives commits
+  per file, the top author per file, and a **hotspot ranking** (`risk = commits x (1 + fan_in +
+  fan_out)`): the code that changes most *and* has the most callers. Degrades to empty data outside
+  a git repo.
+- **One-shot architecture report** (`archaeologist.py report`) — census, health grade, smells,
+  anti-patterns, risk findings and hotspots joined into
+  `data/report/architecture_report.md` (plus `.json`, `security.json`, `insights.json`) — a review
+  artifact you can paste into a PR, and the cheapest way for an agent to answer "how healthy is
+  this codebase?".
 - **Standalone shareable visualizer** — generates a single self-contained HTML file with the data
-  embedded inline; open via `file://`, commit it, or email it. Full-screen dark canvas with a
-  layer legend, search (`/`), neighbor-highlighting on click, and a **slide-in detail panel**:
-  click any node to see what that method/class does, its signature, source file, and clickable
-  callers/callees. Hand-editable colors.
+  embedded inline; open via `file://`, commit it, or email it. Full-screen dark canvas with search
+  (`/`), a legend that follows the color mode, and a **slide-in detail panel**: click any node to
+  see what that method/class does, its signature, source file, churn/owner, risk findings,
+  blast-radius counts, and clickable callers/callees. Plus:
+  - **color modes** — by layer, by folder, by churn, or by risk (after a `report` run),
+  - **blast-radius mode** — highlight the whole transitive impact of the selected node, not just
+    its neighbors,
+  - **risk markers** — nodes carrying security findings get a red/amber ring.
+  Hand-editable colors.
 - **Layer inference** — auto-classifies entities (controller / service / repository / model /
   client / config) for architectural coloring.
 - **Zero external dependencies** — pure Python 3.10+ standard library. No `pip install`, no
@@ -76,6 +97,8 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
 - **Node.js + `@babel/parser`** — *only for frontend (JS/TS) parsing*. Install it once from the
   skill directory: `cd .agents/skills/code-wiki && npm install`. Without it, frontend files are
   skipped with a warning and the Python graph still builds.
+- **git** — *optional*; only for churn/ownership/hotspots. Outside a git repo the report is built
+  without them.
 - A modern browser to view the generated HTML (loads `force-graph` from a CDN).
 
 ## Installation
@@ -151,7 +174,7 @@ python .agents/skills/code-wiki/scripts/trace_path.py \
   --graph .agents/skills/code-wiki/data/flow/flow_graph.json --impact-of PaymentClient.charge
 ```
 
-Keep the maps honest and review changes with three more commands:
+Keep the maps honest and review changes:
 
 ```bash
 # freshness: are the maps stale vs the current source? (rebuild if so)
@@ -161,9 +184,27 @@ python .agents/skills/code-wiki/scripts/archaeologist.py check --src ./src
 python .agents/skills/code-wiki/scripts/trace_path.py \
   --graph .agents/skills/code-wiki/data/flow/flow_graph.json --impact-of-diff
 
-# smells: cycles, orphan/dead nodes, backwards layer violations
+# smells + health grade: cycles, orphans, layer violations, hubs, god objects, idioms
 python .agents/skills/code-wiki/scripts/analyze.py \
   --graph .agents/skills/code-wiki/data/flow/flow_graph.json
+```
+
+Then review the whole codebase in one shot — grade, risks and hotspots — with `report`:
+
+```bash
+# writes data/report/architecture_report.md (+ .json, security.json, insights.json)
+# and re-renders the viewers with churn/risk color modes and risk markers
+python .agents/skills/code-wiki/scripts/archaeologist.py report --src ./src
+```
+
+Its two inputs are runnable on their own too:
+
+```bash
+# risk scan: hardcoded secrets, interpolated SQL, eval/innerHTML sinks, debug leftovers
+python .agents/skills/code-wiki/scripts/scan_security.py --src ./src
+
+# git churn/ownership + hotspot ranking (risk = commits x (1 + fan_in + fan_out))
+python .agents/skills/code-wiki/scripts/git_insights.py --src ./src --top 10
 ```
 
 Each stage is also runnable on its own (`build_wiki.py`, `build_graph.py`, `build_flow.py`,
@@ -184,12 +225,31 @@ $ trace_path.py --graph .../flow_graph.json --from OrderController.create_order 
 
 # Flow blast-radius: what calls (directly or transitively) into the payment client?
 $ trace_path.py --graph .../flow_graph.json --impact-of PaymentClient.charge
-{ "impacted": ["OrderController.create_order", "OrderService.place_order"], "count": 2 }
+{ "impacted": ["OrderController.create_order", "OrderService.place_order",
+               "createOrder", "submitOrder"], "count": 4 }
 ```
 
 The agent then reads only the notes on that path — e.g.
 `data/flow/notes/OrderController.create_order.md`, `OrderService.place_order.md`,
 `OrderRepository.save.md` — not the whole repo.
+
+The review pass over the same sample (the demo sources carry three deliberate smells) produces
+`data/report/architecture_report.md`:
+
+```console
+$ archaeologist.py report --src ./sample_src
+  grade D (67/100), 4 risk finding(s), 7 ranked hotspot(s)
+```
+
+| Severity | Rule | Location | Owner node |
+| --- | --- | --- | --- |
+| high | `sql_injection` | `sample_src/backend/order_repository.py:14` | `OrderRepository.get` |
+| high | `hardcoded_secret` | `sample_src/backend/payment_client.py:5` | — (module level) |
+| medium | `dangerous_eval` | `sample_src/frontend/order_page.ts:11` | `loadOrder` |
+| low | `debug_statement` | `sample_src/backend/payment_client.py:13` | `PaymentClient.charge` |
+
+The generated `data/report/`, `data/structure/` and `data/flow/` folders in this repo are that
+demo output, committed so you can read a real example before running anything.
 
 ## How the agent uses it
 
@@ -200,6 +260,8 @@ The agent then reads only the notes on that path — e.g.
 3. Query the graph first with `trace_path.py` to find the exact path or blast-radius.
 4. Read only the specific `data/structure/vault/<Entity>.md` notes on that path.
 5. Preserve `[[EntityName]]` wikilinks in answers so responses stay cross-navigable.
+6. For review questions ("is this healthy?", "where's the risk?", "what should we refactor
+   first?"), run `archaeologist.py report` and answer from `data/report/architecture_report.md`.
 
 ## Project structure
 
@@ -207,7 +269,7 @@ The agent then reads only the notes on that path — e.g.
 .agents/skills/code-wiki/
 ├── SKILL.md                     # Agent instructions & tool specs
 ├── scripts/
-│   ├── archaeologist.py         # entrypoint: `project` | `flow` | `both` | `check`
+│   ├── archaeologist.py         # entrypoint: `project` | `flow` | `both` | `check` | `report`
 │   ├── taxonomy.py              # allowed kind/layer values (single source of truth)
 │   ├── build_wiki.py            # AST scan  -> structure/vault/*.md (structure, [[wikilinks]])
 │   ├── build_graph.py           # vault     -> structure/graph.json + registry.json
@@ -216,7 +278,10 @@ The agent then reads only the notes on that path — e.g.
 │   ├── js_bridge.py             # runs js_extract.js from Python (graceful fallback)
 │   ├── apply_descriptions.py    # cache agent-written method summaries (by source hash)
 │   ├── manifest.py              # source-freshness snapshot powering `check`
-│   ├── analyze.py               # smell report: cycles, orphans, layer violations
+│   ├── analyze.py               # smells + anti-patterns + health grade (A-F)
+│   ├── scan_security.py         # risk scan -> findings attributed to graph nodes
+│   ├── git_insights.py          # git churn/ownership -> hotspot ranking
+│   ├── report.py                # everything above -> report/architecture_report.md
 │   ├── trace_path.py            # BFS flow (--from/--to), impact (--impact-of[-diff]), any graph
 │   └── build_html.py            # <graph>.json -> standalone shareable HTML viewer
 ├── data/
@@ -229,6 +294,11 @@ The agent then reads only the notes on that path — e.g.
 │   │   ├── flow_graph.json      #   method nodes & call edges (Python + JS)
 │   │   ├── flow.html            #   standalone viewer
 │   │   └── notes/               #   notes (one per method)
+│   ├── report/                  # review pass
+│   │   ├── architecture_report.md    # the human-readable report
+│   │   ├── architecture_report.json  # the same data for tools
+│   │   ├── security.json        #   risk findings (node-attributed)
+│   │   └── insights.json        #   churn, ownership, hotspot ranking
 │   └── cache/                   # internal build state
 │       ├── descriptions.json    #   cached AI summaries (keyed by method source hash)
 │       ├── pending_descriptions.json  # methods awaiting an AI summary (transient)

@@ -148,9 +148,9 @@ function copyDir(src, dest) {
 
 function seedDataDir(dataDir, force) {
   // data/ groups output by map: structure/ (class graph), flow/ (call graph),
-  // cache/ (internal AI-summary + freshness state). Scripts create flow/ and
-  // cache/ on demand; seed the structure skeleton so the viewer/tracer defaults
-  // resolve before the first build.
+  // report/ (review pass), cache/ (internal AI-summary + freshness state). Scripts
+  // create flow/, report/ and cache/ on demand; seed the structure skeleton so the
+  // viewer/tracer defaults resolve before the first build.
   const vault = path.join(dataDir, "structure", "vault");
   fs.mkdirSync(vault, { recursive: true });
   const graph = path.join(dataDir, "structure", "graph.json");

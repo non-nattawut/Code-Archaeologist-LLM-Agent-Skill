@@ -10,4 +10,5 @@ class OrderRepository:
 
     def get(self, order_id):
         """Select an order by id."""
-        raise NotImplementedError
+        # Demo smell: SQL built by interpolation — scan_security.py flags this.
+        return self.cursor.execute(f"SELECT * FROM orders WHERE id = {order_id}")

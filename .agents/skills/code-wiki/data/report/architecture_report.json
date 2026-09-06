@@ -1,0 +1,501 @@
+{
+  "graph": "data/flow/flow_graph.json",
+  "generated": "2026-09-06 06:31 UTC",
+  "census": {
+    "nodes": 13,
+    "edges": 9,
+    "layers": {
+      "client": 3,
+      "controller": 3,
+      "repository": 2,
+      "service": 3,
+      "ui": 2
+    },
+    "langs": {
+      "js": 4,
+      "py": 9
+    },
+    "kinds": {
+      "endpoint": 3,
+      "function": 4,
+      "method": 6
+    },
+    "edge_types": {
+      "calls": 7,
+      "http": 2
+    },
+    "routes": [
+      {
+        "method": "POST",
+        "path": "/orders",
+        "node": "OrderController.create_order"
+      },
+      {
+        "method": "GET",
+        "path": "/orders/{order_id}",
+        "node": "OrderController.get_order"
+      }
+    ]
+  },
+  "analysis": {
+    "cycles": [],
+    "orphans": [
+      "loadOrder",
+      "submitOrder"
+    ],
+    "layer_violations": [],
+    "hubs": [],
+    "god_objects": [],
+    "patterns": {},
+    "health": {
+      "score": 67,
+      "grade": "D",
+      "dead_code_pct": 15.4,
+      "deductions": {
+        "dead_code": 8,
+        "cycles": 0,
+        "layer_violations": 0,
+        "high_coupling": 0,
+        "god_objects": 0,
+        "security": 25
+      }
+    },
+    "summary": {
+      "nodes": 13,
+      "edges": 9,
+      "cycles": 0,
+      "orphans": 2,
+      "layer_violations": 0,
+      "hubs": 0,
+      "god_objects": 0
+    }
+  },
+  "security": {
+    "findings": [
+      {
+        "rule": "sql_injection",
+        "severity": "high",
+        "message": "SQL statement built by string interpolation",
+        "file": "sample_src/backend/order_repository.py",
+        "line": 14,
+        "node": "OrderRepository.get",
+        "snippet": "return self.cursor.execute(f\"SELECT * FROM orders WHERE id = {order_id}\")"
+      },
+      {
+        "rule": "hardcoded_secret",
+        "severity": "high",
+        "message": "Credential assigned to a literal value",
+        "file": "sample_src/backend/payment_client.py",
+        "line": 5,
+        "node": null,
+        "snippet": "GATEWAY_API_KEY = \"sk_...redacted\""
+      },
+      {
+        "rule": "dangerous_eval",
+        "severity": "medium",
+        "message": "Raw HTML injection sink",
+        "file": "sample_src/frontend/order_page.ts",
+        "line": 11,
+        "node": "loadOrder",
+        "snippet": "document.getElementById(\"order\").innerHTML = JSON.stringify(order);"
+      },
+      {
+        "rule": "debug_statement",
+        "severity": "low",
+        "message": "Debug statement left in the code",
+        "file": "sample_src/backend/payment_client.py",
+        "line": 13,
+        "node": "PaymentClient.charge",
+        "snippet": "print(\"charging\", payload)  # demo smell: debug statement left behind"
+      }
+    ],
+    "summary": {
+      "total": 4,
+      "by_severity": {
+        "high": 2,
+        "medium": 1,
+        "low": 1
+      },
+      "by_rule": {
+        "sql_injection": 1,
+        "hardcoded_secret": 1,
+        "dangerous_eval": 1,
+        "debug_statement": 1
+      },
+      "files_scanned": 6,
+      "files_skipped": 0
+    }
+  },
+  "insights": {
+    "files": {
+      "sample_src/backend/order_controller.py": {
+        "commits": 2,
+        "insertions": 23,
+        "deletions": 0,
+        "authors": {
+          "Nattawut Rodthong": 2
+        },
+        "last_commit": "2026-09-02T16:14:28+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "owner": "Nattawut Rodthong"
+      },
+      "sample_src/backend/order_repository.py": {
+        "commits": 1,
+        "insertions": 13,
+        "deletions": 0,
+        "authors": {
+          "Nattawut Rodthong": 1
+        },
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "owner": "Nattawut Rodthong"
+      },
+      "sample_src/backend/order_service.py": {
+        "commits": 1,
+        "insertions": 20,
+        "deletions": 0,
+        "authors": {
+          "Nattawut Rodthong": 1
+        },
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "owner": "Nattawut Rodthong"
+      },
+      "sample_src/backend/payment_client.py": {
+        "commits": 1,
+        "insertions": 9,
+        "deletions": 0,
+        "authors": {
+          "Nattawut Rodthong": 1
+        },
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "owner": "Nattawut Rodthong"
+      },
+      "sample_src/frontend/api_client.ts": {
+        "commits": 1,
+        "insertions": 11,
+        "deletions": 0,
+        "authors": {
+          "Nattawut Rodthong": 1
+        },
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "owner": "Nattawut Rodthong"
+      },
+      "sample_src/frontend/order_page.ts": {
+        "commits": 1,
+        "insertions": 10,
+        "deletions": 0,
+        "authors": {
+          "Nattawut Rodthong": 1
+        },
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "owner": "Nattawut Rodthong"
+      },
+      "sample_src/order_controller.py": {
+        "commits": 2,
+        "insertions": 17,
+        "deletions": 17,
+        "authors": {
+          "Nattawut Rodthong": 2
+        },
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "first_commit": "2026-09-02T11:12:42+07:00",
+        "owner": "Nattawut Rodthong"
+      },
+      "sample_src/order_repository.py": {
+        "commits": 2,
+        "insertions": 13,
+        "deletions": 13,
+        "authors": {
+          "Nattawut Rodthong": 2
+        },
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "first_commit": "2026-09-02T11:12:42+07:00",
+        "owner": "Nattawut Rodthong"
+      },
+      "sample_src/order_service.py": {
+        "commits": 2,
+        "insertions": 20,
+        "deletions": 20,
+        "authors": {
+          "Nattawut Rodthong": 2
+        },
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "first_commit": "2026-09-02T11:12:42+07:00",
+        "owner": "Nattawut Rodthong"
+      },
+      "sample_src/payment_client.py": {
+        "commits": 2,
+        "insertions": 9,
+        "deletions": 9,
+        "authors": {
+          "Nattawut Rodthong": 2
+        },
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "first_commit": "2026-09-02T11:12:42+07:00",
+        "owner": "Nattawut Rodthong"
+      }
+    },
+    "nodes": {
+      "OrderController.__init__": {
+        "file": "sample_src/backend/order_controller.py",
+        "commits": 2,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:14:28+07:00",
+        "fan_in": 0,
+        "fan_out": 0,
+        "risk": 2
+      },
+      "OrderController.create_order": {
+        "file": "sample_src/backend/order_controller.py",
+        "commits": 2,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:14:28+07:00",
+        "fan_in": 1,
+        "fan_out": 1,
+        "risk": 6
+      },
+      "OrderController.get_order": {
+        "file": "sample_src/backend/order_controller.py",
+        "commits": 2,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:14:28+07:00",
+        "fan_in": 1,
+        "fan_out": 1,
+        "risk": 6
+      },
+      "OrderRepository.get": {
+        "file": "sample_src/backend/order_repository.py",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 1,
+        "fan_out": 0,
+        "risk": 2
+      },
+      "OrderRepository.save": {
+        "file": "sample_src/backend/order_repository.py",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 1,
+        "fan_out": 0,
+        "risk": 2
+      },
+      "OrderService.__init__": {
+        "file": "sample_src/backend/order_service.py",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 0,
+        "fan_out": 0,
+        "risk": 1
+      },
+      "OrderService.find_order": {
+        "file": "sample_src/backend/order_service.py",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 1,
+        "fan_out": 1,
+        "risk": 3
+      },
+      "OrderService.place_order": {
+        "file": "sample_src/backend/order_service.py",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 1,
+        "fan_out": 2,
+        "risk": 4
+      },
+      "PaymentClient.charge": {
+        "file": "sample_src/backend/payment_client.py",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 1,
+        "fan_out": 0,
+        "risk": 2
+      },
+      "createOrder": {
+        "file": "sample_src/frontend/api_client.ts",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 1,
+        "fan_out": 1,
+        "risk": 3
+      },
+      "getOrder": {
+        "file": "sample_src/frontend/api_client.ts",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 1,
+        "fan_out": 1,
+        "risk": 3
+      },
+      "loadOrder": {
+        "file": "sample_src/frontend/order_page.ts",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 2
+      },
+      "submitOrder": {
+        "file": "sample_src/frontend/order_page.ts",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 2
+      }
+    },
+    "hotspots": [
+      {
+        "node": "OrderController.create_order",
+        "file": "sample_src/backend/order_controller.py",
+        "commits": 2,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:14:28+07:00",
+        "fan_in": 1,
+        "fan_out": 1,
+        "risk": 6
+      },
+      {
+        "node": "OrderController.get_order",
+        "file": "sample_src/backend/order_controller.py",
+        "commits": 2,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:14:28+07:00",
+        "fan_in": 1,
+        "fan_out": 1,
+        "risk": 6
+      },
+      {
+        "node": "OrderService.place_order",
+        "file": "sample_src/backend/order_service.py",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 1,
+        "fan_out": 2,
+        "risk": 4
+      },
+      {
+        "node": "OrderService.find_order",
+        "file": "sample_src/backend/order_service.py",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 1,
+        "fan_out": 1,
+        "risk": 3
+      },
+      {
+        "node": "createOrder",
+        "file": "sample_src/frontend/api_client.ts",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 1,
+        "fan_out": 1,
+        "risk": 3
+      },
+      {
+        "node": "getOrder",
+        "file": "sample_src/frontend/api_client.ts",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 1,
+        "fan_out": 1,
+        "risk": 3
+      },
+      {
+        "node": "OrderController.__init__",
+        "file": "sample_src/backend/order_controller.py",
+        "commits": 2,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:14:28+07:00",
+        "fan_in": 0,
+        "fan_out": 0,
+        "risk": 2
+      },
+      {
+        "node": "OrderRepository.get",
+        "file": "sample_src/backend/order_repository.py",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 1,
+        "fan_out": 0,
+        "risk": 2
+      },
+      {
+        "node": "OrderRepository.save",
+        "file": "sample_src/backend/order_repository.py",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 1,
+        "fan_out": 0,
+        "risk": 2
+      },
+      {
+        "node": "PaymentClient.charge",
+        "file": "sample_src/backend/payment_client.py",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 1,
+        "fan_out": 0,
+        "risk": 2
+      },
+      {
+        "node": "loadOrder",
+        "file": "sample_src/frontend/order_page.ts",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 2
+      },
+      {
+        "node": "submitOrder",
+        "file": "sample_src/frontend/order_page.ts",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 2
+      },
+      {
+        "node": "OrderService.__init__",
+        "file": "sample_src/backend/order_service.py",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 0,
+        "fan_out": 0,
+        "risk": 1
+      }
+    ],
+    "summary": {
+      "files_with_history": 10,
+      "commits_counted": 15,
+      "authors": 1,
+      "graph": "flow_graph.json",
+      "note": null
+    }
+  }
+}

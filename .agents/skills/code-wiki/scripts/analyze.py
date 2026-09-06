@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""analyze.py — deterministic architectural smell report over a graph.
+"""analyze.py — deterministic architectural smell report and health grade over a graph.
 
-Because the dependency graph is explicit, three high-value checks a reviewer
-cares about are nearly free (no parsing, no tokens, stdlib only):
+Because the dependency graph is explicit, the checks a reviewer cares about are
+nearly free (no parsing, no tokens, stdlib only):
 
   cycles            circular dependencies (strongly-connected components > 1
                     node, plus self-loops) — the hardest coupling to untangle.
@@ -11,6 +11,14 @@ cares about are nearly free (no parsing, no tokens, stdlib only):
   layer_violations  edges that call "upward" against the standard layering
                     (controller -> service -> repository/client -> model), e.g. a
                     repository calling a controller — a backwards dependency.
+  hubs              nodes whose total degree is very high — a change there ripples
+                    everywhere (high coupling).
+  god_objects       classes with too many methods, or entities referencing too many
+                    others — the classic "does everything" anti-pattern.
+  patterns          name-based recognition of singleton / factory / observer /
+                    React-hook idioms, so the shape of the codebase is visible.
+  health            a 0-100 score and A-F grade combining all of the above (plus
+                    security findings when `--security` is given).
 
 Works on either graph (structure graph.json or flow_graph.json).
 
@@ -21,6 +29,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -32,6 +41,21 @@ DEFAULT_GRAPH = os.path.join(DATA_DIR, "structure", "graph.json")
 # one is a backwards dependency. Layers absent here (function/module/ui/...) are
 # not ranked, so their edges are never flagged (avoids noise).
 LAYER_RANK = {"controller": 0, "service": 1, "repository": 2, "client": 2, "model": 3}
+
+# Anti-pattern thresholds (tune here; they are deliberately conservative).
+HUB_DEGREE = 10       # fan_in + fan_out at or above this = high coupling
+GOD_METHODS = 12      # methods on one class (flow graph)
+GOD_FANOUT = 8        # entities one entity references (structure graph)
+
+# Name-based idiom recognition. Heuristic: it reports what the naming claims.
+PATTERN_RULES = [
+    ("singleton", re.compile(r"(get_?instance|shared_?instance|_instance$|singleton)", re.I)),
+    ("factory", re.compile(r"(factory|^make_|^build_|\.make_|\.build_)", re.I)),
+    ("observer", re.compile(r"(subscribe|unsubscribe|notify|emit|dispatch|add_?listener|publish)", re.I)),
+    ("react_hook", re.compile(r"(^|\.)use[A-Z]")),
+]
+
+GRADES = [(90, "A"), (80, "B"), (70, "C"), (60, "D")]
 
 
 def load(path: str) -> tuple[dict, list[tuple[str, str, str]]]:
@@ -137,22 +161,106 @@ def find_layer_violations(nodes: dict, edges: list[tuple[str, str, str]]) -> lis
     return sorted(violations, key=lambda v: (v["source"], v["target"]))
 
 
-def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description="Report architectural smells (cycles, orphans, layer violations).")
-    parser.add_argument("--graph", default=DEFAULT_GRAPH, help="Path to graph.json / flow_graph.json")
-    args = parser.parse_args(argv)
+def degrees(nodes: dict, edges: list[tuple[str, str, str]]) -> dict[str, dict]:
+    deg = {nid: {"fan_in": 0, "fan_out": 0} for nid in nodes}
+    for s, t, _ in edges:
+        deg[s]["fan_out"] += 1
+        deg[t]["fan_in"] += 1
+    return deg
 
-    nodes, edges = load(args.graph)
+
+def find_hubs(nodes: dict, edges: list[tuple[str, str, str]]) -> list[dict]:
+    """Highly coupled nodes — everything routes through them."""
+    deg = degrees(nodes, edges)
+    hubs = [{"node": nid, **d, "degree": d["fan_in"] + d["fan_out"]}
+            for nid, d in deg.items() if d["fan_in"] + d["fan_out"] >= HUB_DEGREE]
+    return sorted(hubs, key=lambda h: (-h["degree"], h["node"]))
+
+
+def find_god_objects(nodes: dict, edges: list[tuple[str, str, str]]) -> list[dict]:
+    """Classes with too many methods (flow graph) or too many references (structure graph)."""
+    found = []
+    methods: dict[str, int] = {}
+    for n in nodes.values():
+        if n.get("cls"):
+            methods[n["cls"]] = methods.get(n["cls"], 0) + 1
+    for cls, count in methods.items():
+        if count >= GOD_METHODS:
+            found.append({"name": cls, "reason": "methods", "count": count})
+
+    deg = degrees(nodes, edges)
+    for nid, n in nodes.items():
+        if n.get("kind") == "class" and deg[nid]["fan_out"] >= GOD_FANOUT:
+            found.append({"name": nid, "reason": "references", "count": deg[nid]["fan_out"]})
+    return sorted(found, key=lambda g: (-g["count"], g["name"]))
+
+
+def detect_patterns(nodes: dict) -> dict[str, list[str]]:
+    """Group node ids by the design idiom their name advertises."""
+    found: dict[str, list[str]] = {}
+    for nid, n in nodes.items():
+        for name, pattern in PATTERN_RULES:
+            if name == "react_hook" and n.get("lang") not in ("js", None):
+                continue
+            if pattern.search(nid):
+                found.setdefault(name, []).append(nid)
+    return {k: sorted(v) for k, v in sorted(found.items())}
+
+
+def health(node_count: int, cycles: list, orphans: list, violations: list,
+           hubs: list, god_objects: list, security: dict | None = None) -> dict:
+    """0-100 score and A-F grade. Every deduction is capped so one bad category
+    can't sink the grade on its own; `security` is `{"high": n, "medium": n, "low": n}`."""
+    sec = security or {}
+    dead_pct = round(100 * len(orphans) / node_count, 1) if node_count else 0.0
+    deductions = {
+        "dead_code": min(20, round(dead_pct * 0.5)),
+        "cycles": min(24, 8 * len(cycles)),
+        "layer_violations": min(16, 4 * len(violations)),
+        "high_coupling": min(12, 3 * len(hubs)),
+        "god_objects": min(12, 3 * len(god_objects)),
+        "security": min(30, 10 * sec.get("high", 0) + 4 * sec.get("medium", 0) + sec.get("low", 0)),
+    }
+    score = max(0, 100 - sum(deductions.values()))
+    grade = next((g for cutoff, g in GRADES if score >= cutoff), "F")
+    return {"score": score, "grade": grade, "dead_code_pct": dead_pct, "deductions": deductions}
+
+
+def report(graph_path: str, security: dict | None = None) -> dict:
+    nodes, edges = load(graph_path)
     cycles = find_cycles(nodes, edges)
     orphans = find_orphans(nodes, edges)
     violations = find_layer_violations(nodes, edges)
-    print(json.dumps({
+    hubs = find_hubs(nodes, edges)
+    gods = find_god_objects(nodes, edges)
+    patterns = detect_patterns(nodes)
+    return {
         "cycles": cycles,
         "orphans": orphans,
         "layer_violations": violations,
-        "summary": {"cycles": len(cycles), "orphans": len(orphans),
-                    "layer_violations": len(violations)},
-    }, indent=2))
+        "hubs": hubs,
+        "god_objects": gods,
+        "patterns": patterns,
+        "health": health(len(nodes), cycles, orphans, violations, hubs, gods, security),
+        "summary": {"nodes": len(nodes), "edges": len(edges), "cycles": len(cycles),
+                    "orphans": len(orphans), "layer_violations": len(violations),
+                    "hubs": len(hubs), "god_objects": len(gods)},
+    }
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Report architectural smells, anti-patterns and a health grade.")
+    parser.add_argument("--graph", default=DEFAULT_GRAPH, help="Path to graph.json / flow_graph.json")
+    parser.add_argument("--security", default=None,
+                        help="security.json from scan_security.py; folds findings into the grade")
+    args = parser.parse_args(argv)
+
+    counts = None
+    if args.security:
+        with open(args.security, "r", encoding="utf-8") as fh:
+            counts = json.load(fh).get("summary", {}).get("by_severity")
+    print(json.dumps(report(args.graph, counts), indent=2))
     return 0
 
 

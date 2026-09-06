@@ -35,5 +35,17 @@ sets — change the taxonomy instead).
 | `calls` | flow map: one method/function calls another. |
 | `http` | flow map: a frontend `fetch`/`axios` call linked to a backend route handler. |
 
+## Review pass (`data/report/`, from `report.py`)
+
+| Field | Allowed values | Meaning |
+| --- | --- | --- |
+| `severity` | `high`, `medium`, `low` | Risk-scan finding severity (`scan_security.py`). |
+| `rule` | `hardcoded_secret`, `sql_injection`, `dangerous_eval`, `debug_statement` | Which scan rule fired. |
+| `node` | node id or `null` | The graph node owning the flagged line (`null` = module level). |
+| `grade` | `A`, `B`, `C`, `D`, `F` | Health grade for the 0-100 score (`analyze.py`). |
+| `reason` (god objects) | `methods`, `references` | Why the entity was flagged. |
+| idiom keys | `singleton`, `factory`, `observer`, `react_hook` | Name-based pattern detection. |
+
 `kind` and `layer` come from `taxonomy.py` (`KINDS`, `LAYERS`, `LAYER_RULES`). Add a new value
-there once, and every extractor and template stays consistent.
+there once, and every extractor and template stays consistent. Scan rules and grade cutoffs live
+in `scan_security.py` (`RULES`) and `analyze.py` (`GRADES`, thresholds).

@@ -6,5 +6,8 @@ export async function submitOrder(form: object) {
 }
 
 export async function loadOrder(id: string) {
-  return getOrder(id);
+  const order = await getOrder(id);
+  // Demo smell: raw HTML sink — scan_security.py flags this as medium severity.
+  document.getElementById("order").innerHTML = JSON.stringify(order);
+  return order;
 }

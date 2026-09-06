@@ -1,7 +1,7 @@
 {
   "name": "code-archaeologist-skill",
   "version": "0.1.0",
-  "description": "Zero-RAG codebase documentation engine, packaged as an agent skill: AST scan -> Markdown wiki + dependency graph, with flow tracing, blast-radius analysis, and a standalone graph viewer.",
+  "description": "Zero-RAG codebase documentation engine, packaged as an agent skill: AST scan -> Markdown wiki + dependency graph, with flow tracing, blast-radius analysis, a health/risk/hotspot review report, and a standalone graph viewer.",
   "bin": {
     "code-archaeologist-skill": "bin/cli.js",
     "code-archaeologist": "bin/cli.js"

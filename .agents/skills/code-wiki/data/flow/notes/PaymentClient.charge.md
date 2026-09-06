@@ -3,7 +3,7 @@ entity: PaymentClient.charge
 kind: method
 layer: client
 class: PaymentClient
-source: sample_src/backend/payment_client.py:7
+source: sample_src/backend/payment_client.py:11
 lang: py
 desc_source: docstring
 ---

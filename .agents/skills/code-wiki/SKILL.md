@@ -1,6 +1,6 @@
 ---
 name: code-wiki
-description: Zero-RAG codebase navigation with two maps — a project-structure graph (which classes reference which) and a method-level flow graph (which method calls which, i.e. request/execution flow). Use to explain architecture, trace how a request flows through methods, or find what breaks if a class/method changes.
+description: Zero-RAG codebase navigation with two maps — a project-structure graph (which classes reference which) and a method-level flow graph (which method calls which, i.e. request/execution flow), plus a review pass (health grade, risk scan, git hotspots). Use to explain architecture, trace how a request flows through methods, find what breaks if a class/method changes, or review a codebase for smells, risky code and change hotspots.
 ---
 
 # Skill: Code Archaeologist & Living Wiki Navigator
@@ -17,8 +17,9 @@ There are **two complementary maps**:
   `data/flow/flow_graph.json` + `data/flow/notes/<Class.method>.md`.
 
 `data/` is organized by map: `structure/` (class graph + vault + `graph.html`), `flow/`
-(call graph + `notes/` + `flow.html`), and `cache/` (internal AI-summary cache + source-freshness
-manifest — you rarely touch these directly).
+(call graph + `notes/` + `flow.html`), `report/` (the review pass: architecture report, risk scan,
+git insights), and `cache/` (internal AI-summary cache + source-freshness manifest — you rarely
+touch these directly).
 
 ## Setup (do this first)
 - **Backend (Python) — no install needed.** Just Python 3.10+; the whole `.py` pipeline is stdlib.
@@ -44,7 +45,9 @@ manifest — you rarely touch these directly).
 6. **Check freshness before trusting the maps.** Before answering a flow/impact question, run
    `archaeologist.py check --src <roots>` (Command 6). If it reports `stale`, rebuild the relevant
    map first — see "Keeping the maps current" — so the graphs and HTML match the current code.
-
+7. For **review** questions ("is this codebase healthy?", "where is the risk?", "what should
+   we refactor first?"), run the report (Command 10) and answer from
+   `data/report/architecture_report.md` - still without reading raw source.
 ## Available Tool Commands
 
 ### 1. Build the Project Structure map  (`/archaeologist-project-structure`)
@@ -119,6 +122,9 @@ Reports `changed_nodes` (nodes in the edited files) and `impacted` (everything u
 ```bash
 python .agents/skills/code-wiki/scripts/build_html.py --graph <graph.json> --out <out.html> --title "..."
 ```
+The viewer colors nodes by layer or folder; after a `report` run it can also color by churn or
+risk and rings nodes that carry security findings. A "Blast radius" toggle highlights the whole
+transitive impact of the selected node instead of just its neighbors.
 
 ### 6. Check freshness (are the maps stale?)
 Before trusting a trace/impact answer, confirm the maps match the current source. Returns
@@ -127,15 +133,42 @@ Before trusting a trace/impact answer, confirm the maps match the current source
 python .agents/skills/code-wiki/scripts/archaeologist.py check --src ./src
 ```
 
-### 7. Architectural smell report
+### 7. Architectural smell report & health grade
 Deterministic checks over a graph — circular dependencies, orphan/dead nodes (no callers, not an
-entry point), and backwards layer violations (e.g. a repository calling a controller):
+entry point), backwards layer violations (e.g. a repository calling a controller), high-coupling
+hubs, god objects, name-based idioms (singleton/factory/observer/React hook), and a 0-100 health
+score with an A-F grade (pass `--security <security.json>` to fold risk findings into the grade):
 ```bash
 # structure graph (default)
 python .agents/skills/code-wiki/scripts/analyze.py
 # flow graph
 python .agents/skills/code-wiki/scripts/analyze.py --graph .agents/skills/code-wiki/data/flow/flow_graph.json
 ```
+
+### 8. Risk / security scan
+Deterministic line scan for hardcoded secrets, interpolated SQL, `eval`/`innerHTML` sinks and
+leftover debug statements. Each finding names the graph node that owns the line, so it can be
+traced and blast-radiused like anything else (tests/fixtures/docs are skipped, secrets redacted):
+```bash
+python .agents/skills/code-wiki/scripts/scan_security.py --src ./src
+```
+
+### 9. Churn, ownership & hotspots (git)
+Joins git history onto the graph: commits per file, top author per file, and a hotspot ranking
+where `risk = commits x (1 + fan_in + fan_out)` — code that changes often *and* has many callers:
+```bash
+python .agents/skills/code-wiki/scripts/git_insights.py --src ./src --top 10
+```
+
+### 10. Full architecture report  (`/archaeologist-report`)
+One review pass over an existing map — census, health grade, smells, anti-patterns, risk findings
+and hotspots — written to `data/report/architecture_report.md` (+ `.json`, `security.json`,
+`insights.json`). It also re-renders both viewers with churn/risk color modes and risk markers:
+```bash
+python .agents/skills/code-wiki/scripts/archaeologist.py report --src ./src
+```
+Use this for "review this codebase", "where is the risk", "what should we refactor first" —
+then read the Markdown report instead of any source.
 
 ## Keeping the maps current (hybrid AI descriptions)
 

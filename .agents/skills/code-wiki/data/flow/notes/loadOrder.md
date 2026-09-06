@@ -10,7 +10,7 @@ desc_source: ai
 # loadOrder
 
 ## What it does
-Frontend page action: loads an order by id via the API client.
+Fetches one order through the API client and renders it into the order element.
 
 ## Signature
 `loadOrder()`

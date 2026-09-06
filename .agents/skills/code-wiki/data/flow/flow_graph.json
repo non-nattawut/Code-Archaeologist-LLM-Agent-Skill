@@ -95,7 +95,7 @@
       "cls": "PaymentClient",
       "signature": "charge(self, payload)",
       "doc": "Charge the customer for an order.",
-      "source": "sample_src/backend/payment_client.py:7",
+      "source": "sample_src/backend/payment_client.py:11",
       "lang": "py"
     },
     {
@@ -136,7 +136,7 @@
       "kind": "function",
       "cls": null,
       "signature": "loadOrder()",
-      "doc": "Frontend page action: loads an order by id via the API client.",
+      "doc": "Fetches one order through the API client and renders it into the order element.",
       "source": "sample_src/frontend/order_page.ts:8",
       "lang": "js"
     },
