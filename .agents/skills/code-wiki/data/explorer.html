@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Code Archaeologist — Project Structure</title>
+<title>Code Archaeologist</title>
 <style>
   :root {
     --bg: #0b0e14; --panel: #11161f; --panel2: #0e131b; --border: #222b39;
@@ -18,15 +18,23 @@
   ::-webkit-scrollbar { width: 9px; height: 9px; }
   ::-webkit-scrollbar-thumb { background: #202a38; border-radius: 6px; }
 
-  #app { display: grid; grid-template-columns: 300px 1fr 380px; height: 100%; }
+  #app { display: grid; grid-template-columns: 300px 1fr 380px; grid-template-rows: auto 1fr;
+    height: 100%; }
+  #head { grid-column: 1 / -1; display: flex; align-items: center; gap: 18px; padding: 10px 16px;
+    background: var(--panel); border-bottom: 1px solid var(--border); }
+  #head .pill { margin-left: auto; }
+  .mapswitch { display: flex; gap: 4px; background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 3px; }
+  .mapswitch button { display: flex; align-items: center; gap: 7px; padding: 7px 14px;
+    border-radius: 7px; font-size: 12px; color: var(--muted); }
+  .mapswitch button.on { background: #16241f; color: #a9f5d0; }
   aside { background: var(--panel); overflow-y: auto; }
   #left { border-right: 1px solid var(--border); }
   #right { border-left: 1px solid var(--border); }
   #center { display: flex; flex-direction: column; min-width: 0; }
 
   /* ---- left ---- */
-  .brand { display: flex; align-items: center; gap: 9px; padding: 14px 16px;
-    border-bottom: 1px solid var(--border); }
+  .brand { display: flex; align-items: center; gap: 9px; }
   .brand .dot { width: 22px; height: 22px; border-radius: 6px; background: var(--accent);
     display: grid; place-items: center; color: #06231a; font-weight: 800; font-size: 13px; }
   .brand b { letter-spacing: .6px; font-size: 13px; }
@@ -179,9 +187,13 @@
 </head>
 <body>
 <div id="app">
-  <aside id="left">
-    <div class="brand"><span class="dot">C</span><div><b>CODE ARCHAEOLOGIST</b><br /><span id="mapName"></span></div></div>
+  <header id="head">
+    <div class="brand"><span class="dot">C</span><div><b>CODE ARCHAEOLOGIST</b><br /><span id="mapSub"></span></div></div>
+    <div class="mapswitch" id="mapSwitch"></div>
+    <span class="pill" id="mapGrade"></span>
+  </header>
 
+  <aside id="left">
     <div class="health">
       <svg width="62" height="62" viewBox="0 0 62 62" id="ring"></svg>
       <div>
@@ -244,98 +256,65 @@
 
 <script>
 // ---------------------------------------------------------------- data
-const GRAPH = {
-  "nodes": [
-    {
-      "id": "OrderController",
-      "layer": "controller",
-      "kind": "class",
-      "source": "sample_src/backend/order_controller.py",
-      "doc": "Handles inbound order requests and delegates to the service layer."
-    },
-    {
-      "id": "OrderRepository",
-      "layer": "repository",
-      "kind": "class",
-      "source": "sample_src/backend/order_repository.py",
-      "doc": "Reads and writes orders to the database."
-    },
-    {
-      "id": "OrderService",
-      "layer": "service",
-      "kind": "class",
-      "source": "sample_src/backend/order_service.py",
-      "doc": "Orchestrates order placement, payment, and persistence."
-    },
-    {
-      "id": "PaymentClient",
-      "layer": "client",
-      "kind": "class",
-      "source": "sample_src/backend/payment_client.py",
-      "doc": "Talks to the third-party payment gateway."
-    }
-  ],
-  "edges": [
-    {
-      "source": "OrderController",
-      "target": "OrderService",
-      "type": "references"
-    },
-    {
-      "source": "OrderService",
-      "target": "OrderRepository",
-      "type": "references"
-    },
-    {
-      "source": "OrderService",
-      "target": "PaymentClient",
-      "type": "references"
-    }
-  ]
-};
-const REPORT = {"analysis": {"cycles": [], "orphans": [], "layer_violations": [], "hubs": [], "god_objects": [], "patterns": {}, "health": {"score": 75, "grade": "C", "dead_code_pct": 0.0, "deductions": {"dead_code": 0, "cycles": 0, "layer_violations": 0, "high_coupling": 0, "god_objects": 0, "security": 25}}, "summary": {"nodes": 4, "edges": 3, "cycles": 0, "orphans": 0, "layer_violations": 0, "hubs": 0, "god_objects": 0}}, "files": {"files": {"sample_src/backend/order_controller.py": {"lines": 23, "lang": "py"}, "sample_src/backend/order_repository.py": {"lines": 14, "lang": "py"}, "sample_src/backend/order_service.py": {"lines": 20, "lang": "py"}, "sample_src/backend/payment_client.py": {"lines": 14, "lang": "py"}, "sample_src/frontend/api_client.ts": {"lines": 11, "lang": "ts"}, "sample_src/frontend/order_page.ts": {"lines": 13, "lang": "ts"}}, "file_count": 6, "loc": 95, "languages": {"py": 71, "ts": 24}, "language_pct": {"py": 74.7, "ts": 25.3}}, "census": {"nodes": 4, "edges": 3, "layers": {"client": 1, "controller": 1, "repository": 1, "service": 1}, "langs": {"py": 4}, "kinds": {"class": 4}, "edge_types": {"references": 3}, "routes": []}, "security": {"findings": [{"rule": "sql_injection", "severity": "high", "message": "SQL statement built by string interpolation", "file": "sample_src/backend/order_repository.py", "line": 14, "node": "OrderRepository", "snippet": "return self.cursor.execute(f\"SELECT * FROM orders WHERE id = {order_id}\")"}, {"rule": "hardcoded_secret", "severity": "high", "message": "Credential assigned to a literal value", "file": "sample_src/backend/payment_client.py", "line": 5, "node": "PaymentClient", "snippet": "GATEWAY_API_KEY = \"sk_...redacted\""}, {"rule": "debug_statement", "severity": "low", "message": "Debug statement left in the code", "file": "sample_src/backend/payment_client.py", "line": 13, "node": "PaymentClient", "snippet": "print(\"charging\", payload)  # demo smell: debug statement left behind"}], "summary": {"total": 4, "by_severity": {"high": 2, "medium": 1, "low": 1}, "by_rule": {"sql_injection": 1, "hardcoded_secret": 1, "dangerous_eval": 1, "debug_statement": 1}, "files_scanned": 6, "files_skipped": 0}}, "insights": {"files": {"sample_src/backend/order_controller.py": {"commits": 2, "insertions": 23, "deletions": 0, "authors": {"Nattawut Rodthong": 2}, "last_commit": "2026-09-02T16:14:28+07:00", "first_commit": "2026-09-02T16:10:56+07:00", "owner": "Nattawut Rodthong"}, "sample_src/backend/order_repository.py": {"commits": 2, "insertions": 15, "deletions": 1, "authors": {"Nattawut Rodthong": 1, "non-nattawut": 1}, "last_commit": "2026-09-06T13:31:45+07:00", "first_commit": "2026-09-02T16:10:56+07:00", "owner": "Nattawut Rodthong"}, "sample_src/backend/order_service.py": {"commits": 1, "insertions": 20, "deletions": 0, "authors": {"Nattawut Rodthong": 1}, "last_commit": "2026-09-02T16:10:56+07:00", "first_commit": "2026-09-02T16:10:56+07:00", "owner": "Nattawut Rodthong"}, "sample_src/backend/payment_client.py": {"commits": 2, "insertions": 14, "deletions": 0, "authors": {"Nattawut Rodthong": 1, "non-nattawut": 1}, "last_commit": "2026-09-06T13:31:45+07:00", "first_commit": "2026-09-02T16:10:56+07:00", "owner": "Nattawut Rodthong"}, "sample_src/frontend/api_client.ts": {"commits": 1, "insertions": 11, "deletions": 0, "authors": {"Nattawut Rodthong": 1}, "last_commit": "2026-09-02T16:10:56+07:00", "first_commit": "2026-09-02T16:10:56+07:00", "owner": "Nattawut Rodthong"}, "sample_src/frontend/order_page.ts": {"commits": 2, "insertions": 14, "deletions": 1, "authors": {"Nattawut Rodthong": 1, "non-nattawut": 1}, "last_commit": "2026-09-06T13:31:45+07:00", "first_commit": "2026-09-02T16:10:56+07:00", "owner": "Nattawut Rodthong"}, "sample_src/order_controller.py": {"commits": 2, "insertions": 17, "deletions": 17, "authors": {"Nattawut Rodthong": 2}, "last_commit": "2026-09-02T16:10:56+07:00", "first_commit": "2026-09-02T11:12:42+07:00", "owner": "Nattawut Rodthong"}, "sample_src/order_repository.py": {"commits": 2, "insertions": 13, "deletions": 13, "authors": {"Nattawut Rodthong": 2}, "last_commit": "2026-09-02T16:10:56+07:00", "first_commit": "2026-09-02T11:12:42+07:00", "owner": "Nattawut Rodthong"}, "sample_src/order_service.py": {"commits": 2, "insertions": 20, "deletions": 20, "authors": {"Nattawut Rodthong": 2}, "last_commit": "2026-09-02T16:10:56+07:00", "first_commit": "2026-09-02T11:12:42+07:00", "owner": "Nattawut Rodthong"}, "sample_src/payment_client.py": {"commits": 2, "insertions": 9, "deletions": 9, "authors": {"Nattawut Rodthong": 2}, "last_commit": "2026-09-02T16:10:56+07:00", "first_commit": "2026-09-02T11:12:42+07:00", "owner": "Nattawut Rodthong"}}, "nodes": {"OrderController": {"file": "sample_src/backend/order_controller.py", "commits": 2, "owner": "Nattawut Rodthong", "authors": {"Nattawut Rodthong": 2}, "last_commit": "2026-09-02T16:14:28+07:00", "first_commit": "2026-09-02T16:10:56+07:00", "fan_in": 0, "fan_out": 1, "risk": 4}, "OrderRepository": {"file": "sample_src/backend/order_repository.py", "commits": 2, "owner": "Nattawut Rodthong", "authors": {"Nattawut Rodthong": 1, "non-nattawut": 1}, "last_commit": "2026-09-06T13:31:45+07:00", "first_commit": "2026-09-02T16:10:56+07:00", "fan_in": 1, "fan_out": 0, "risk": 4}, "OrderService": {"file": "sample_src/backend/order_service.py", "commits": 1, "owner": "Nattawut Rodthong", "authors": {"Nattawut Rodthong": 1}, "last_commit": "2026-09-02T16:10:56+07:00", "first_commit": "2026-09-02T16:10:56+07:00", "fan_in": 1, "fan_out": 2, "risk": 4}, "PaymentClient": {"file": "sample_src/backend/payment_client.py", "commits": 2, "owner": "Nattawut Rodthong", "authors": {"Nattawut Rodthong": 1, "non-nattawut": 1}, "last_commit": "2026-09-06T13:31:45+07:00", "first_commit": "2026-09-02T16:10:56+07:00", "fan_in": 1, "fan_out": 0, "risk": 4}}, "hotspots": [{"node": "OrderController", "file": "sample_src/backend/order_controller.py", "commits": 2, "owner": "Nattawut Rodthong", "authors": {"Nattawut Rodthong": 2}, "last_commit": "2026-09-02T16:14:28+07:00", "first_commit": "2026-09-02T16:10:56+07:00", "fan_in": 0, "fan_out": 1, "risk": 4}, {"node": "OrderRepository", "file": "sample_src/backend/order_repository.py", "commits": 2, "owner": "Nattawut Rodthong", "authors": {"Nattawut Rodthong": 1, "non-nattawut": 1}, "last_commit": "2026-09-06T13:31:45+07:00", "first_commit": "2026-09-02T16:10:56+07:00", "fan_in": 1, "fan_out": 0, "risk": 4}, {"node": "OrderService", "file": "sample_src/backend/order_service.py", "commits": 1, "owner": "Nattawut Rodthong", "authors": {"Nattawut Rodthong": 1}, "last_commit": "2026-09-02T16:10:56+07:00", "first_commit": "2026-09-02T16:10:56+07:00", "fan_in": 1, "fan_out": 2, "risk": 4}, {"node": "PaymentClient", "file": "sample_src/backend/payment_client.py", "commits": 2, "owner": "Nattawut Rodthong", "authors": {"Nattawut Rodthong": 1, "non-nattawut": 1}, "last_commit": "2026-09-06T13:31:45+07:00", "first_commit": "2026-09-02T16:10:56+07:00", "fan_in": 1, "fan_out": 0, "risk": 4}], "summary": {"files_with_history": 10, "commits_counted": 18, "authors": 2, "graph": "graph.json", "note": null}}};            // {} when no report was embedded
+// Every map (structure + flow) is embedded; the header switch swaps between them.
+const MAPS = {"structure":{"label":"Structure","title":"class-level map: which entity references which","graph":{"nodes":[{"id":"OrderController","layer":"controller","kind":"class","source":"sample_src/backend/order_controller.py","doc":"Handles inbound order requests and delegates to the service layer."},{"id":"OrderRepository","layer":"repository","kind":"class","source":"sample_src/backend/order_repository.py","doc":"Reads and writes orders to the database."},{"id":"OrderService","layer":"service","kind":"class","source":"sample_src/backend/order_service.py","doc":"Orchestrates order placement, payment, and persistence."},{"id":"PaymentClient","layer":"client","kind":"class","source":"sample_src/backend/payment_client.py","doc":"Talks to the third-party payment gateway."}],"edges":[{"source":"OrderController","target":"OrderService","type":"references"},{"source":"OrderService","target":"OrderRepository","type":"references"},{"source":"OrderService","target":"PaymentClient","type":"references"}]},"report":{"analysis":{"cycles":[],"orphans":[],"layer_violations":[],"hubs":[],"god_objects":[],"patterns":{},"health":{"score":75,"grade":"C","dead_code_pct":0.0,"deductions":{"dead_code":0,"cycles":0,"layer_violations":0,"high_coupling":0,"god_objects":0,"security":25}},"summary":{"nodes":4,"edges":3,"cycles":0,"orphans":0,"layer_violations":0,"hubs":0,"god_objects":0}},"files":{"files":{"sample_src/backend/order_controller.py":{"lines":23,"lang":"py"},"sample_src/backend/order_repository.py":{"lines":14,"lang":"py"},"sample_src/backend/order_service.py":{"lines":20,"lang":"py"},"sample_src/backend/payment_client.py":{"lines":14,"lang":"py"},"sample_src/frontend/api_client.ts":{"lines":11,"lang":"ts"},"sample_src/frontend/order_page.ts":{"lines":13,"lang":"ts"}},"file_count":6,"loc":95,"languages":{"py":71,"ts":24},"language_pct":{"py":74.7,"ts":25.3}},"security":{"summary":{"total":4,"by_severity":{"high":2,"medium":1,"low":1},"by_rule":{"sql_injection":1,"hardcoded_secret":1,"dangerous_eval":1,"debug_statement":1},"files_scanned":6,"files_skipped":0},"findings":[{"rule":"sql_injection","severity":"high","message":"SQL statement built by string interpolation","file":"sample_src/backend/order_repository.py","line":14,"node":"OrderRepository","snippet":"return self.cursor.execute(f\"SELECT * FROM orders WHERE id = {order_id}\")"},{"rule":"hardcoded_secret","severity":"high","message":"Credential assigned to a literal value","file":"sample_src/backend/payment_client.py","line":5,"node":"PaymentClient","snippet":"GATEWAY_API_KEY = \"sk_...redacted\""},{"rule":"debug_statement","severity":"low","message":"Debug statement left in the code","file":"sample_src/backend/payment_client.py","line":13,"node":"PaymentClient","snippet":"print(\"charging\", payload)  # demo smell: debug statement left behind"}]},"insights":{"nodes":{"OrderController":{"file":"sample_src/backend/order_controller.py","commits":2,"owner":"Nattawut Rodthong","authors":{"Nattawut Rodthong":2},"last_commit":"2026-09-02T16:14:28+07:00","first_commit":"2026-09-02T16:10:56+07:00","fan_in":0,"fan_out":1,"risk":4},"OrderRepository":{"file":"sample_src/backend/order_repository.py","commits":2,"owner":"Nattawut Rodthong","authors":{"Nattawut Rodthong":1,"non-nattawut":1},"last_commit":"2026-09-06T13:31:45+07:00","first_commit":"2026-09-02T16:10:56+07:00","fan_in":1,"fan_out":0,"risk":4},"OrderService":{"file":"sample_src/backend/order_service.py","commits":1,"owner":"Nattawut Rodthong","authors":{"Nattawut Rodthong":1},"last_commit":"2026-09-02T16:10:56+07:00","first_commit":"2026-09-02T16:10:56+07:00","fan_in":1,"fan_out":2,"risk":4},"PaymentClient":{"file":"sample_src/backend/payment_client.py","commits":2,"owner":"Nattawut Rodthong","authors":{"Nattawut Rodthong":1,"non-nattawut":1},"last_commit":"2026-09-06T13:31:45+07:00","first_commit":"2026-09-02T16:10:56+07:00","fan_in":1,"fan_out":0,"risk":4}}}}},"flow":{"label":"Flow","title":"method-level map: which method calls which","graph":{"nodes":[{"id":"OrderController.__init__","layer":"controller","kind":"endpoint","cls":"OrderController","signature":"__init__(self, service: OrderService)","doc":"Wires the controller to its OrderService dependency (constructor injection).","source":"sample_src/backend/order_controller.py:12","lang":"py","ext":0},{"id":"OrderController.create_order","layer":"controller","kind":"endpoint","cls":"OrderController","signature":"create_order(self, payload)","doc":"POST /orders \u2014 create a new order.","source":"sample_src/backend/order_controller.py:16","lang":"py","ext":1,"route":{"method":"POST","path":"/orders"}},{"id":"OrderController.get_order","layer":"controller","kind":"endpoint","cls":"OrderController","signature":"get_order(self, order_id)","doc":"GET /orders/{id} \u2014 fetch a single order.","source":"sample_src/backend/order_controller.py:21","lang":"py","ext":1,"route":{"method":"GET","path":"/orders/{order_id}"}},{"id":"OrderRepository.get","layer":"repository","kind":"method","cls":"OrderRepository","signature":"get(self, order_id)","doc":"Select an order by id.","source":"sample_src/backend/order_repository.py:11","lang":"py","ext":1},{"id":"OrderRepository.save","layer":"repository","kind":"method","cls":"OrderRepository","signature":"save(self, order)","doc":"Insert a new order row.","source":"sample_src/backend/order_repository.py:7","lang":"py","ext":0},{"id":"OrderService.__init__","layer":"service","kind":"method","cls":"OrderService","signature":"__init__(self, repository: OrderRepository, payments: PaymentClient)","doc":"Stores the injected OrderRepository and PaymentClient used to place and look up orders.","source":"sample_src/backend/order_service.py:9","lang":"py","ext":0},{"id":"OrderService.find_order","layer":"service","kind":"method","cls":"OrderService","signature":"find_order(self, order_id)","doc":"Look up an order by id.","source":"sample_src/backend/order_service.py:18","lang":"py","ext":0},{"id":"OrderService.place_order","layer":"service","kind":"method","cls":"OrderService","signature":"place_order(self, payload)","doc":"Charge payment then persist the order.","source":"sample_src/backend/order_service.py:13","lang":"py","ext":0},{"id":"PaymentClient.charge","layer":"client","kind":"method","cls":"PaymentClient","signature":"charge(self, payload)","doc":"Charge the customer for an order.","source":"sample_src/backend/payment_client.py:11","lang":"py","ext":1},{"id":"createOrder","layer":"client","kind":"function","cls":null,"signature":"createOrder()","doc":"Thin HTTP client for the orders backend.","source":"sample_src/frontend/api_client.ts:3","lang":"js","ext":3,"http":[{"method":"POST","url":"/orders"}]},{"id":"getOrder","layer":"client","kind":"function","cls":null,"signature":"getOrder()","doc":"Frontend API client: GET /orders/:id and return the parsed order JSON.","source":"sample_src/frontend/api_client.ts:8","lang":"js","ext":2,"http":[{"method":"GET","url":"/orders/:orderId"}]},{"id":"loadOrder","layer":"ui","kind":"function","cls":null,"signature":"loadOrder()","doc":"Fetches one order through the API client and renders it into the order element.","source":"sample_src/frontend/order_page.ts:8","lang":"js","ext":2},{"id":"submitOrder","layer":"ui","kind":"function","cls":null,"signature":"submitOrder()","doc":"Frontend page action: submits a new order form via the API client.","source":"sample_src/frontend/order_page.ts:4","lang":"js","ext":0}],"edges":[{"source":"OrderController.create_order","target":"OrderService.place_order","type":"calls"},{"source":"OrderController.get_order","target":"OrderService.find_order","type":"calls"},{"source":"OrderService.find_order","target":"OrderRepository.get","type":"calls"},{"source":"OrderService.place_order","target":"OrderRepository.save","type":"calls"},{"source":"OrderService.place_order","target":"PaymentClient.charge","type":"calls"},{"source":"createOrder","target":"OrderController.create_order","type":"http"},{"source":"getOrder","target":"OrderController.get_order","type":"http"},{"source":"loadOrder","target":"getOrder","type":"calls"},{"source":"submitOrder","target":"createOrder","type":"calls"}]},"report":{"analysis":{"cycles":[],"orphans":["loadOrder","submitOrder"],"layer_violations":[],"hubs":[],"god_objects":[],"patterns":{},"health":{"score":67,"grade":"D","dead_code_pct":15.4,"deductions":{"dead_code":8,"cycles":0,"layer_violations":0,"high_coupling":0,"god_objects":0,"security":25}},"summary":{"nodes":13,"edges":9,"cycles":0,"orphans":2,"layer_violations":0,"hubs":0,"god_objects":0}},"files":{"files":{"sample_src/backend/order_controller.py":{"lines":23,"lang":"py"},"sample_src/backend/order_repository.py":{"lines":14,"lang":"py"},"sample_src/backend/order_service.py":{"lines":20,"lang":"py"},"sample_src/backend/payment_client.py":{"lines":14,"lang":"py"},"sample_src/frontend/api_client.ts":{"lines":11,"lang":"ts"},"sample_src/frontend/order_page.ts":{"lines":13,"lang":"ts"}},"file_count":6,"loc":95,"languages":{"py":71,"ts":24},"language_pct":{"py":74.7,"ts":25.3}},"security":{"summary":{"total":4,"by_severity":{"high":2,"medium":1,"low":1},"by_rule":{"sql_injection":1,"hardcoded_secret":1,"dangerous_eval":1,"debug_statement":1},"files_scanned":6,"files_skipped":0},"findings":[{"rule":"sql_injection","severity":"high","message":"SQL statement built by string interpolation","file":"sample_src/backend/order_repository.py","line":14,"node":"OrderRepository.get","snippet":"return self.cursor.execute(f\"SELECT * FROM orders WHERE id = {order_id}\")"},{"rule":"hardcoded_secret","severity":"high","message":"Credential assigned to a literal value","file":"sample_src/backend/payment_client.py","line":5,"node":null,"snippet":"GATEWAY_API_KEY = \"sk_...redacted\""},{"rule":"dangerous_eval","severity":"medium","message":"Raw HTML injection sink","file":"sample_src/frontend/order_page.ts","line":11,"node":"loadOrder","snippet":"document.getElementById(\"order\").innerHTML = JSON.stringify(order);"},{"rule":"debug_statement","severity":"low","message":"Debug statement left in the code","file":"sample_src/backend/payment_client.py","line":13,"node":"PaymentClient.charge","snippet":"print(\"charging\", payload)  # demo smell: debug statement left behind"}]},"insights":{"nodes":{"OrderController.__init__":{"file":"sample_src/backend/order_controller.py","commits":2,"owner":"Nattawut Rodthong","authors":{"Nattawut Rodthong":2},"last_commit":"2026-09-02T16:14:28+07:00","first_commit":"2026-09-02T16:10:56+07:00","fan_in":0,"fan_out":0,"risk":2},"OrderController.create_order":{"file":"sample_src/backend/order_controller.py","commits":2,"owner":"Nattawut Rodthong","authors":{"Nattawut Rodthong":2},"last_commit":"2026-09-02T16:14:28+07:00","first_commit":"2026-09-02T16:10:56+07:00","fan_in":1,"fan_out":1,"risk":6},"OrderController.get_order":{"file":"sample_src/backend/order_controller.py","commits":2,"owner":"Nattawut Rodthong","authors":{"Nattawut Rodthong":2},"last_commit":"2026-09-02T16:14:28+07:00","first_commit":"2026-09-02T16:10:56+07:00","fan_in":1,"fan_out":1,"risk":6},"OrderRepository.get":{"file":"sample_src/backend/order_repository.py","commits":2,"owner":"Nattawut Rodthong","authors":{"Nattawut Rodthong":1,"non-nattawut":1},"last_commit":"2026-09-06T13:31:45+07:00","first_commit":"2026-09-02T16:10:56+07:00","fan_in":1,"fan_out":0,"risk":4},"OrderRepository.save":{"file":"sample_src/backend/order_repository.py","commits":2,"owner":"Nattawut Rodthong","authors":{"Nattawut Rodthong":1,"non-nattawut":1},"last_commit":"2026-09-06T13:31:45+07:00","first_commit":"2026-09-02T16:10:56+07:00","fan_in":1,"fan_out":0,"risk":4},"OrderService.__init__":{"file":"sample_src/backend/order_service.py","commits":1,"owner":"Nattawut Rodthong","authors":{"Nattawut Rodthong":1},"last_commit":"2026-09-02T16:10:56+07:00","first_commit":"2026-09-02T16:10:56+07:00","fan_in":0,"fan_out":0,"risk":1},"OrderService.find_order":{"file":"sample_src/backend/order_service.py","commits":1,"owner":"Nattawut Rodthong","authors":{"Nattawut Rodthong":1},"last_commit":"2026-09-02T16:10:56+07:00","first_commit":"2026-09-02T16:10:56+07:00","fan_in":1,"fan_out":1,"risk":3},"OrderService.place_order":{"file":"sample_src/backend/order_service.py","commits":1,"owner":"Nattawut Rodthong","authors":{"Nattawut Rodthong":1},"last_commit":"2026-09-02T16:10:56+07:00","first_commit":"2026-09-02T16:10:56+07:00","fan_in":1,"fan_out":2,"risk":4},"PaymentClient.charge":{"file":"sample_src/backend/payment_client.py","commits":2,"owner":"Nattawut Rodthong","authors":{"Nattawut Rodthong":1,"non-nattawut":1},"last_commit":"2026-09-06T13:31:45+07:00","first_commit":"2026-09-02T16:10:56+07:00","fan_in":1,"fan_out":0,"risk":4},"createOrder":{"file":"sample_src/frontend/api_client.ts","commits":1,"owner":"Nattawut Rodthong","authors":{"Nattawut Rodthong":1},"last_commit":"2026-09-02T16:10:56+07:00","first_commit":"2026-09-02T16:10:56+07:00","fan_in":1,"fan_out":1,"risk":3},"getOrder":{"file":"sample_src/frontend/api_client.ts","commits":1,"owner":"Nattawut Rodthong","authors":{"Nattawut Rodthong":1},"last_commit":"2026-09-02T16:10:56+07:00","first_commit":"2026-09-02T16:10:56+07:00","fan_in":1,"fan_out":1,"risk":3},"loadOrder":{"file":"sample_src/frontend/order_page.ts","commits":2,"owner":"Nattawut Rodthong","authors":{"Nattawut Rodthong":1,"non-nattawut":1},"last_commit":"2026-09-06T13:31:45+07:00","first_commit":"2026-09-02T16:10:56+07:00","fan_in":0,"fan_out":1,"risk":4},"submitOrder":{"file":"sample_src/frontend/order_page.ts","commits":2,"owner":"Nattawut Rodthong","authors":{"Nattawut Rodthong":1,"non-nattawut":1},"last_commit":"2026-09-06T13:31:45+07:00","first_commit":"2026-09-02T16:10:56+07:00","fan_in":0,"fan_out":1,"risk":4}}}}}};                 // { name: {label, title, graph, report} }
+const MAP_NAMES = Object.keys(MAPS);
+let mapName = MAP_NAMES.includes("flow") ? "flow" : MAP_NAMES[0];
 
-const ANALYSIS = REPORT.analysis || {};
-const HEALTH = ANALYSIS.health || null;
-const FINDINGS = (REPORT.security || {}).findings || [];
-const CHURN = ((REPORT.insights || {}).nodes) || {};
-const FILE_META = ((REPORT.files || {}).files) || {};
-const FILE_STATS = REPORT.files || {};
-const HAS_CHURN = Object.keys(CHURN).length > 0;
-
-const nodes = GRAPH.nodes.map((n) => ({ ...n }));
-const byId = new Map(nodes.map((n) => [n.id, n]));
-const links = GRAPH.edges.map((e) => ({ source: e.source, target: e.target, type: e.type }));
-const isFlow = GRAPH.edges.some((e) => e.type === "calls");
-const OUT_LABEL = isFlow ? "Calls" : "References";
-const IN_LABEL = isFlow ? "Called by" : "Referenced by";
-
-const outAdj = new Map(), inAdj = new Map();
-nodes.forEach((n) => { outAdj.set(n.id, []); inAdj.set(n.id, []); });
-GRAPH.edges.forEach((e) => { outAdj.get(e.source)?.push(e.target); inAdj.get(e.target)?.push(e.source); });
+// All of this is rebuilt by loadMap() whenever the active map changes.
+let GRAPH, REPORT, ANALYSIS, HEALTH, FINDINGS, CHURN, FILE_META, FILE_STATS, HAS_CHURN;
+let nodes, byId, links, isFlow, OUT_LABEL, IN_LABEL, outAdj, inAdj;
+let filesIndex, folders, issuesByNode, issuesByFile, MAX, treeRoot, openDirs;
 
 const fileOf = (n) => String(n.source || "").split(":")[0] || "(unknown)";
 const lineOf = (n) => { const p = String(n.source || "").split(":")[1]; return p ? +p : null; };
 const dirOf = (path) => { const i = path.lastIndexOf("/"); return i < 0 ? "(root)" : path.slice(0, i); };
 const baseOf = (path) => path.slice(path.lastIndexOf("/") + 1);
 
-const filesIndex = new Map();              // file -> {nodes:[], lines, lang}
-nodes.forEach((n) => {
-  const f = fileOf(n);
-  if (!filesIndex.has(f)) filesIndex.set(f, { nodes: [], ...(FILE_META[f] || {}) });
-  filesIndex.get(f).nodes.push(n.id);
-});
-const folders = [...new Set(nodes.map((n) => dirOf(fileOf(n))))].sort();
+function loadMap(name) {
+  mapName = name;
+  GRAPH = MAPS[name].graph;
+  REPORT = MAPS[name].report || {};
+  ANALYSIS = REPORT.analysis || {};
+  HEALTH = ANALYSIS.health || null;
+  FINDINGS = (REPORT.security || {}).findings || [];
+  CHURN = ((REPORT.insights || {}).nodes) || {};
+  FILE_META = ((REPORT.files || {}).files) || {};
+  FILE_STATS = REPORT.files || {};
+  HAS_CHURN = Object.keys(CHURN).length > 0;
 
-const issuesByNode = new Map(), issuesByFile = new Map();
-FINDINGS.forEach((f) => {
-  if (f.node && byId.has(f.node)) {
-    if (!issuesByNode.has(f.node)) issuesByNode.set(f.node, []);
-    issuesByNode.get(f.node).push(f);
-  }
-  if (!issuesByFile.has(f.file)) issuesByFile.set(f.file, []);
-  issuesByFile.get(f.file).push(f);
-});
+  nodes = GRAPH.nodes.map((n) => ({ ...n }));
+  byId = new Map(nodes.map((n) => [n.id, n]));
+  links = GRAPH.edges.map((e) => ({ source: e.source, target: e.target, type: e.type }));
+  isFlow = GRAPH.edges.some((e) => e.type === "calls");
+  OUT_LABEL = isFlow ? "Calls" : "References";
+  IN_LABEL = isFlow ? "Called by" : "Referenced by";
+
+  outAdj = new Map(); inAdj = new Map();
+  nodes.forEach((n) => { outAdj.set(n.id, []); inAdj.set(n.id, []); });
+  GRAPH.edges.forEach((e) => { outAdj.get(e.source)?.push(e.target); inAdj.get(e.target)?.push(e.source); });
+
+  filesIndex = new Map();                   // file -> {nodes:[], lines, lang}
+  nodes.forEach((n) => {
+    const f = fileOf(n);
+    if (!filesIndex.has(f)) filesIndex.set(f, { nodes: [], ...(FILE_META[f] || {}) });
+    filesIndex.get(f).nodes.push(n.id);
+  });
+  folders = [...new Set(nodes.map((n) => dirOf(fileOf(n))))].sort();
+
+  issuesByNode = new Map(); issuesByFile = new Map();
+  FINDINGS.forEach((f) => {
+    if (f.node && byId.has(f.node)) {
+      if (!issuesByNode.has(f.node)) issuesByNode.set(f.node, []);
+      issuesByNode.get(f.node).push(f);
+    }
+    if (!issuesByFile.has(f.file)) issuesByFile.set(f.file, []);
+    issuesByFile.get(f.file).push(f);
+  });
+
+  MAX = { commits: maxOf("commits"), risk: maxOf("risk") };
+  buildTree();
+}
 
 // ---------------------------------------------------------------- helpers
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) =>
@@ -361,7 +340,6 @@ const heat = (v, max) => {
 };
 const metrics = (id) => CHURN[id] || {};
 const maxOf = (f) => Math.max(0, ...nodes.map((n) => metrics(n.id)[f] || 0));
-const MAX = { commits: maxOf("commits"), risk: maxOf("risk") };
 const folderColor = (path) => FOLDER_COLORS[folders.indexOf(path) % FOLDER_COLORS.length];
 
 let colorMode = "layer";
@@ -397,8 +375,7 @@ let highlightNodes = new Set(), highlightLinks = new Set();
 let tab = "file", backTo = null;
 
 // ---------------------------------------------------------------- left: health
-(function renderHealth() {
-  el("mapName").textContent = isFlow ? "request-flow map" : "structure map";
+function renderHealth() {
   if (!HEALTH) {
     el("healthScore").textContent = "n/a";
     el("healthWhy").textContent = "run `archaeologist.py report` for a grade";
@@ -418,10 +395,10 @@ let tab = "file", backTo = null;
     .sort((a, b) => b[1] - a[1]).slice(0, 2)
     .map(([k, v]) => `${k.replace(/_/g, " ")} −${v}`).join(", ");
   el("healthWhy").textContent = worst || "no deductions";
-})();
+}
 
 // ---------------------------------------------------------------- left: color modes, tiles, loc
-(function renderColorModes() {
+function renderColorModes() {
   const modes = [["layer", "Layer", "▦"], ["folder", "Folder", "📁"],
                  ["churn", "Churn", "🔥"], ["risk", "Risk", "⚡"]];
   el("colorModes").innerHTML = modes.map(([id, label, icon]) =>
@@ -435,7 +412,7 @@ let tab = "file", backTo = null;
       el("colorModes").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
       renderLegend(); repaint(); if (view === "treemap") renderTreemap();
     }));
-})();
+}
 
 function renderLegend() {
   let items = [];
@@ -452,9 +429,8 @@ function renderLegend() {
   el("legend").innerHTML = items.map(([c, l]) =>
     `<span><i style="background:${c}"></i>${esc(l)}</span>`).join("");
 }
-renderLegend();
 
-(function renderTiles() {
+function renderTiles() {
   const orphans = (ANALYSIS.orphans || []).length;
   const tiles = [
     [filesIndex.size, "Files"], [nodes.length, isFlow ? "Functions" : "Entities"],
@@ -464,7 +440,8 @@ renderLegend();
     `<div class="tile ${cls || ""}"><b>${num(v)}</b><span>${l}</span></div>`).join("");
 
   const loc = FILE_STATS.loc || 0;
-  if (!loc) { el("locBox").style.display = "none"; return; }
+  el("locBox").style.display = loc ? "" : "none";
+  if (!loc) return;
   const pct = FILE_STATS.language_pct || {};
   el("locBox").innerHTML =
     `<b>${num(loc)}</b><span style="font-size:10px;letter-spacing:.8px;color:var(--muted)">LINES OF CODE</span>
@@ -472,31 +449,35 @@ renderLegend();
         `<i style="width:${v}%;background:${LANG_COLORS[k] || LANG_COLORS.other}"></i>`).join("")}</div>
      <div class="langs">${Object.entries(pct).map(([k, v]) =>
         `<span><i style="background:${LANG_COLORS[k] || LANG_COLORS.other}"></i>${k} ${v}%</span>`).join("")}</div>`;
-})();
+}
 
 // ---------------------------------------------------------------- left: explorer tree
-const treeRoot = { name: "root", dirs: new Map(), files: [], count: 0 };
-filesIndex.forEach((meta, path) => {
-  const parts = path.split("/");
-  let cur = treeRoot;
-  cur.count += meta.nodes.length;
-  parts.slice(0, -1).forEach((p) => {
-    if (!cur.dirs.has(p)) cur.dirs.set(p, { name: p, dirs: new Map(), files: [], count: 0, path: "" });
-    cur = cur.dirs.get(p);
+function buildTree() {
+  treeRoot = { name: "root", dirs: new Map(), files: [], count: 0 };
+  filesIndex.forEach((meta, path) => {
+    const parts = path.split("/");
+    let cur = treeRoot;
     cur.count += meta.nodes.length;
+    parts.slice(0, -1).forEach((part) => {
+      if (!cur.dirs.has(part))
+        cur.dirs.set(part, { name: part, dirs: new Map(), files: [], count: 0, path: "" });
+      cur = cur.dirs.get(part);
+      cur.count += meta.nodes.length;
+    });
+    cur.files.push({ name: parts[parts.length - 1], path, count: meta.nodes.length });
   });
-  cur.files.push({ name: parts[parts.length - 1], path, count: meta.nodes.length });
-});
-(function setPaths(node, prefix) {
-  node.dirs.forEach((d, name) => {
-    d.path = prefix ? `${prefix}/${name}` : name;
-    setPaths(d, d.path);
-  });
-})(treeRoot, "");
-
-const openDirs = new Set(folders.flatMap((f) => {
-  const parts = f.split("/"); return parts.map((_, i) => parts.slice(0, i + 1).join("/"));
-}));
+  (function setPaths(node, prefix) {
+    node.dirs.forEach((d, name) => {
+      d.path = prefix ? `${prefix}/${name}` : name;
+      setPaths(d, d.path);
+    });
+  })(treeRoot, "");
+  // Start with every folder that actually holds code expanded.
+  openDirs = new Set(folders.flatMap((f) => {
+    const parts = f.split("/");
+    return parts.map((_, i) => parts.slice(0, i + 1).join("/"));
+  }));
+}
 
 function renderTree() {
   const out = [];
@@ -544,12 +525,11 @@ function setFilter(path) {
   if (view === "treemap") renderTreemap();
 }
 el("filterChip").addEventListener("click", () => setFilter(null));
-renderTree();
 
 // ---------------------------------------------------------------- graph
 const Graph = ForceGraph()(el("graph"))
   .backgroundColor("#0b0e14")
-  .graphData({ nodes, links })
+  .graphData({ nodes: [], links: [] })
   .nodeId("id")
   .nodeRelSize(5)
   .onDagError(() => {})            // cycles are fine: just fall back to a free layout
@@ -892,7 +872,6 @@ function updateStatus() {
   el("stAffected").style.display = selected ? "" : "none";
   el("stSel").innerHTML = selected ? `selected <b>${esc(selected)}</b>` : "click a node for details";
 }
-updateStatus();
 
 // ---------------------------------------------------------------- right panel
 const TABS = [["file", "File"], ["patterns", "Patterns"], ["security", "Security"]];
@@ -1101,7 +1080,6 @@ function renderPatterns() {
   }));
 }
 
-renderTabs(); renderPanel();
 
 // ---------------------------------------------------------------- controls
 el("zoomIn").addEventListener("click", () => Graph.zoom(Graph.zoom() * 1.4, 250));
@@ -1139,8 +1117,39 @@ const fit = () => {
   if (view === "treemap") renderTreemap();
 };
 new ResizeObserver(fit).observe(stage);
-fit();
-setTimeout(() => Graph.zoomToFit(600, 60), 600);
-</script>
-</body>
-</html>
+
+// ---------------------------------------------------------------- map switch
+function renderMapSwitch() {
+  el("mapSwitch").style.display = MAP_NAMES.length > 1 ? "flex" : "none";
+  el("mapSwitch").innerHTML = MAP_NAMES.map((name) =>
+    `<button data-map="${name}" class="${name === mapName ? "on" : ""}">${esc(MAPS[name].label)}
+      <span class="badge">${MAPS[name].graph.nodes.length}</span></button>`).join("");
+  el("mapSwitch").querySelectorAll("button").forEach((b) =>
+    b.addEventListener("click", () => { if (b.dataset.map !== mapName) applyMap(b.dataset.map); }));
+  el("mapSub").textContent = MAPS[mapName].title;
+  el("mapGrade").innerHTML = HEALTH
+    ? `grade <b>${HEALTH.grade}</b> (${HEALTH.score}/100)` : "no report embedded";
+}
+
+// Switch the whole page over to another map: same UI, different graph.
+function applyMap(name) {
+  loadMap(name);
+  selected = null; fileFilter = null; backTo = null; tab = "file";
+  highlightNodes = new Set(); highlightLinks = new Set();
+  el("filterChip").classList.remove("on");
+  if (!HAS_CHURN && (colorMode === "churn" || colorMode === "risk")) colorMode = "layer";
+  renderMapSwitch(); renderHealth(); renderColorModes(); renderLegend(); renderTiles();
+  renderTree(); renderTabs(); renderPanel(); updateStatus();
+  Graph.graphData({ nodes, links });
+  setView(view);
+}
+
+try {
+  applyMap(mapName);
+  fit();
+  setTimeout(() => Graph.zoomToFit(600, 60), 600);
+} catch (err) {
+  // A generated page that fails silently is a blank screen; say what broke.
+  el("panel").innerHTML = `<p class="empty">The explorer failed to start: ${esc(String(err))}</p>`;
+  throw err;
+}

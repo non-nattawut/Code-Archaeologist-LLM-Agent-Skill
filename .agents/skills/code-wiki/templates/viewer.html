@@ -18,15 +18,23 @@
   ::-webkit-scrollbar { width: 9px; height: 9px; }
   ::-webkit-scrollbar-thumb { background: #202a38; border-radius: 6px; }
 
-  #app { display: grid; grid-template-columns: 300px 1fr 380px; height: 100%; }
+  #app { display: grid; grid-template-columns: 300px 1fr 380px; grid-template-rows: auto 1fr;
+    height: 100%; }
+  #head { grid-column: 1 / -1; display: flex; align-items: center; gap: 18px; padding: 10px 16px;
+    background: var(--panel); border-bottom: 1px solid var(--border); }
+  #head .pill { margin-left: auto; }
+  .mapswitch { display: flex; gap: 4px; background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 3px; }
+  .mapswitch button { display: flex; align-items: center; gap: 7px; padding: 7px 14px;
+    border-radius: 7px; font-size: 12px; color: var(--muted); }
+  .mapswitch button.on { background: #16241f; color: #a9f5d0; }
   aside { background: var(--panel); overflow-y: auto; }
   #left { border-right: 1px solid var(--border); }
   #right { border-left: 1px solid var(--border); }
   #center { display: flex; flex-direction: column; min-width: 0; }
 
   /* ---- left ---- */
-  .brand { display: flex; align-items: center; gap: 9px; padding: 14px 16px;
-    border-bottom: 1px solid var(--border); }
+  .brand { display: flex; align-items: center; gap: 9px; }
   .brand .dot { width: 22px; height: 22px; border-radius: 6px; background: var(--accent);
     display: grid; place-items: center; color: #06231a; font-weight: 800; font-size: 13px; }
   .brand b { letter-spacing: .6px; font-size: 13px; }
@@ -179,9 +187,13 @@
 </head>
 <body>
 <div id="app">
-  <aside id="left">
-    <div class="brand"><span class="dot">C</span><div><b>CODE ARCHAEOLOGIST</b><br /><span id="mapName"></span></div></div>
+  <header id="head">
+    <div class="brand"><span class="dot">C</span><div><b>CODE ARCHAEOLOGIST</b><br /><span id="mapSub"></span></div></div>
+    <div class="mapswitch" id="mapSwitch"></div>
+    <span class="pill" id="mapGrade"></span>
+  </header>
 
+  <aside id="left">
     <div class="health">
       <svg width="62" height="62" viewBox="0 0 62 62" id="ring"></svg>
       <div>
@@ -244,50 +256,65 @@
 
 <script>
 // ---------------------------------------------------------------- data
-const GRAPH = __GRAPH_DATA__;
-const REPORT = __REPORT_DATA__;            // {} when no report was embedded
+// Every map (structure + flow) is embedded; the header switch swaps between them.
+const MAPS = __MAPS_DATA__;                 // { name: {label, title, graph, report} }
+const MAP_NAMES = Object.keys(MAPS);
+let mapName = MAP_NAMES.includes("flow") ? "flow" : MAP_NAMES[0];
 
-const ANALYSIS = REPORT.analysis || {};
-const HEALTH = ANALYSIS.health || null;
-const FINDINGS = (REPORT.security || {}).findings || [];
-const CHURN = ((REPORT.insights || {}).nodes) || {};
-const FILE_META = ((REPORT.files || {}).files) || {};
-const FILE_STATS = REPORT.files || {};
-const HAS_CHURN = Object.keys(CHURN).length > 0;
-
-const nodes = GRAPH.nodes.map((n) => ({ ...n }));
-const byId = new Map(nodes.map((n) => [n.id, n]));
-const links = GRAPH.edges.map((e) => ({ source: e.source, target: e.target, type: e.type }));
-const isFlow = GRAPH.edges.some((e) => e.type === "calls");
-const OUT_LABEL = isFlow ? "Calls" : "References";
-const IN_LABEL = isFlow ? "Called by" : "Referenced by";
-
-const outAdj = new Map(), inAdj = new Map();
-nodes.forEach((n) => { outAdj.set(n.id, []); inAdj.set(n.id, []); });
-GRAPH.edges.forEach((e) => { outAdj.get(e.source)?.push(e.target); inAdj.get(e.target)?.push(e.source); });
+// All of this is rebuilt by loadMap() whenever the active map changes.
+let GRAPH, REPORT, ANALYSIS, HEALTH, FINDINGS, CHURN, FILE_META, FILE_STATS, HAS_CHURN;
+let nodes, byId, links, isFlow, OUT_LABEL, IN_LABEL, outAdj, inAdj;
+let filesIndex, folders, issuesByNode, issuesByFile, MAX, treeRoot, openDirs;
 
 const fileOf = (n) => String(n.source || "").split(":")[0] || "(unknown)";
 const lineOf = (n) => { const p = String(n.source || "").split(":")[1]; return p ? +p : null; };
 const dirOf = (path) => { const i = path.lastIndexOf("/"); return i < 0 ? "(root)" : path.slice(0, i); };
 const baseOf = (path) => path.slice(path.lastIndexOf("/") + 1);
 
-const filesIndex = new Map();              // file -> {nodes:[], lines, lang}
-nodes.forEach((n) => {
-  const f = fileOf(n);
-  if (!filesIndex.has(f)) filesIndex.set(f, { nodes: [], ...(FILE_META[f] || {}) });
-  filesIndex.get(f).nodes.push(n.id);
-});
-const folders = [...new Set(nodes.map((n) => dirOf(fileOf(n))))].sort();
+function loadMap(name) {
+  mapName = name;
+  GRAPH = MAPS[name].graph;
+  REPORT = MAPS[name].report || {};
+  ANALYSIS = REPORT.analysis || {};
+  HEALTH = ANALYSIS.health || null;
+  FINDINGS = (REPORT.security || {}).findings || [];
+  CHURN = ((REPORT.insights || {}).nodes) || {};
+  FILE_META = ((REPORT.files || {}).files) || {};
+  FILE_STATS = REPORT.files || {};
+  HAS_CHURN = Object.keys(CHURN).length > 0;
 
-const issuesByNode = new Map(), issuesByFile = new Map();
-FINDINGS.forEach((f) => {
-  if (f.node && byId.has(f.node)) {
-    if (!issuesByNode.has(f.node)) issuesByNode.set(f.node, []);
-    issuesByNode.get(f.node).push(f);
-  }
-  if (!issuesByFile.has(f.file)) issuesByFile.set(f.file, []);
-  issuesByFile.get(f.file).push(f);
-});
+  nodes = GRAPH.nodes.map((n) => ({ ...n }));
+  byId = new Map(nodes.map((n) => [n.id, n]));
+  links = GRAPH.edges.map((e) => ({ source: e.source, target: e.target, type: e.type }));
+  isFlow = GRAPH.edges.some((e) => e.type === "calls");
+  OUT_LABEL = isFlow ? "Calls" : "References";
+  IN_LABEL = isFlow ? "Called by" : "Referenced by";
+
+  outAdj = new Map(); inAdj = new Map();
+  nodes.forEach((n) => { outAdj.set(n.id, []); inAdj.set(n.id, []); });
+  GRAPH.edges.forEach((e) => { outAdj.get(e.source)?.push(e.target); inAdj.get(e.target)?.push(e.source); });
+
+  filesIndex = new Map();                   // file -> {nodes:[], lines, lang}
+  nodes.forEach((n) => {
+    const f = fileOf(n);
+    if (!filesIndex.has(f)) filesIndex.set(f, { nodes: [], ...(FILE_META[f] || {}) });
+    filesIndex.get(f).nodes.push(n.id);
+  });
+  folders = [...new Set(nodes.map((n) => dirOf(fileOf(n))))].sort();
+
+  issuesByNode = new Map(); issuesByFile = new Map();
+  FINDINGS.forEach((f) => {
+    if (f.node && byId.has(f.node)) {
+      if (!issuesByNode.has(f.node)) issuesByNode.set(f.node, []);
+      issuesByNode.get(f.node).push(f);
+    }
+    if (!issuesByFile.has(f.file)) issuesByFile.set(f.file, []);
+    issuesByFile.get(f.file).push(f);
+  });
+
+  MAX = { commits: maxOf("commits"), risk: maxOf("risk") };
+  buildTree();
+}
 
 // ---------------------------------------------------------------- helpers
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) =>
@@ -313,7 +340,6 @@ const heat = (v, max) => {
 };
 const metrics = (id) => CHURN[id] || {};
 const maxOf = (f) => Math.max(0, ...nodes.map((n) => metrics(n.id)[f] || 0));
-const MAX = { commits: maxOf("commits"), risk: maxOf("risk") };
 const folderColor = (path) => FOLDER_COLORS[folders.indexOf(path) % FOLDER_COLORS.length];
 
 let colorMode = "layer";
@@ -349,8 +375,7 @@ let highlightNodes = new Set(), highlightLinks = new Set();
 let tab = "file", backTo = null;
 
 // ---------------------------------------------------------------- left: health
-(function renderHealth() {
-  el("mapName").textContent = isFlow ? "request-flow map" : "structure map";
+function renderHealth() {
   if (!HEALTH) {
     el("healthScore").textContent = "n/a";
     el("healthWhy").textContent = "run `archaeologist.py report` for a grade";
@@ -370,10 +395,10 @@ let tab = "file", backTo = null;
     .sort((a, b) => b[1] - a[1]).slice(0, 2)
     .map(([k, v]) => `${k.replace(/_/g, " ")} −${v}`).join(", ");
   el("healthWhy").textContent = worst || "no deductions";
-})();
+}
 
 // ---------------------------------------------------------------- left: color modes, tiles, loc
-(function renderColorModes() {
+function renderColorModes() {
   const modes = [["layer", "Layer", "▦"], ["folder", "Folder", "📁"],
                  ["churn", "Churn", "🔥"], ["risk", "Risk", "⚡"]];
   el("colorModes").innerHTML = modes.map(([id, label, icon]) =>
@@ -387,7 +412,7 @@ let tab = "file", backTo = null;
       el("colorModes").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
       renderLegend(); repaint(); if (view === "treemap") renderTreemap();
     }));
-})();
+}
 
 function renderLegend() {
   let items = [];
@@ -404,9 +429,8 @@ function renderLegend() {
   el("legend").innerHTML = items.map(([c, l]) =>
     `<span><i style="background:${c}"></i>${esc(l)}</span>`).join("");
 }
-renderLegend();
 
-(function renderTiles() {
+function renderTiles() {
   const orphans = (ANALYSIS.orphans || []).length;
   const tiles = [
     [filesIndex.size, "Files"], [nodes.length, isFlow ? "Functions" : "Entities"],
@@ -416,7 +440,8 @@ renderLegend();
     `<div class="tile ${cls || ""}"><b>${num(v)}</b><span>${l}</span></div>`).join("");
 
   const loc = FILE_STATS.loc || 0;
-  if (!loc) { el("locBox").style.display = "none"; return; }
+  el("locBox").style.display = loc ? "" : "none";
+  if (!loc) return;
   const pct = FILE_STATS.language_pct || {};
   el("locBox").innerHTML =
     `<b>${num(loc)}</b><span style="font-size:10px;letter-spacing:.8px;color:var(--muted)">LINES OF CODE</span>
@@ -424,31 +449,35 @@ renderLegend();
         `<i style="width:${v}%;background:${LANG_COLORS[k] || LANG_COLORS.other}"></i>`).join("")}</div>
      <div class="langs">${Object.entries(pct).map(([k, v]) =>
         `<span><i style="background:${LANG_COLORS[k] || LANG_COLORS.other}"></i>${k} ${v}%</span>`).join("")}</div>`;
-})();
+}
 
 // ---------------------------------------------------------------- left: explorer tree
-const treeRoot = { name: "root", dirs: new Map(), files: [], count: 0 };
-filesIndex.forEach((meta, path) => {
-  const parts = path.split("/");
-  let cur = treeRoot;
-  cur.count += meta.nodes.length;
-  parts.slice(0, -1).forEach((p) => {
-    if (!cur.dirs.has(p)) cur.dirs.set(p, { name: p, dirs: new Map(), files: [], count: 0, path: "" });
-    cur = cur.dirs.get(p);
+function buildTree() {
+  treeRoot = { name: "root", dirs: new Map(), files: [], count: 0 };
+  filesIndex.forEach((meta, path) => {
+    const parts = path.split("/");
+    let cur = treeRoot;
     cur.count += meta.nodes.length;
+    parts.slice(0, -1).forEach((part) => {
+      if (!cur.dirs.has(part))
+        cur.dirs.set(part, { name: part, dirs: new Map(), files: [], count: 0, path: "" });
+      cur = cur.dirs.get(part);
+      cur.count += meta.nodes.length;
+    });
+    cur.files.push({ name: parts[parts.length - 1], path, count: meta.nodes.length });
   });
-  cur.files.push({ name: parts[parts.length - 1], path, count: meta.nodes.length });
-});
-(function setPaths(node, prefix) {
-  node.dirs.forEach((d, name) => {
-    d.path = prefix ? `${prefix}/${name}` : name;
-    setPaths(d, d.path);
-  });
-})(treeRoot, "");
-
-const openDirs = new Set(folders.flatMap((f) => {
-  const parts = f.split("/"); return parts.map((_, i) => parts.slice(0, i + 1).join("/"));
-}));
+  (function setPaths(node, prefix) {
+    node.dirs.forEach((d, name) => {
+      d.path = prefix ? `${prefix}/${name}` : name;
+      setPaths(d, d.path);
+    });
+  })(treeRoot, "");
+  // Start with every folder that actually holds code expanded.
+  openDirs = new Set(folders.flatMap((f) => {
+    const parts = f.split("/");
+    return parts.map((_, i) => parts.slice(0, i + 1).join("/"));
+  }));
+}
 
 function renderTree() {
   const out = [];
@@ -496,12 +525,11 @@ function setFilter(path) {
   if (view === "treemap") renderTreemap();
 }
 el("filterChip").addEventListener("click", () => setFilter(null));
-renderTree();
 
 // ---------------------------------------------------------------- graph
 const Graph = ForceGraph()(el("graph"))
   .backgroundColor("#0b0e14")
-  .graphData({ nodes, links })
+  .graphData({ nodes: [], links: [] })
   .nodeId("id")
   .nodeRelSize(5)
   .onDagError(() => {})            // cycles are fine: just fall back to a free layout
@@ -844,7 +872,6 @@ function updateStatus() {
   el("stAffected").style.display = selected ? "" : "none";
   el("stSel").innerHTML = selected ? `selected <b>${esc(selected)}</b>` : "click a node for details";
 }
-updateStatus();
 
 // ---------------------------------------------------------------- right panel
 const TABS = [["file", "File"], ["patterns", "Patterns"], ["security", "Security"]];
@@ -1053,7 +1080,6 @@ function renderPatterns() {
   }));
 }
 
-renderTabs(); renderPanel();
 
 // ---------------------------------------------------------------- controls
 el("zoomIn").addEventListener("click", () => Graph.zoom(Graph.zoom() * 1.4, 250));
@@ -1091,8 +1117,39 @@ const fit = () => {
   if (view === "treemap") renderTreemap();
 };
 new ResizeObserver(fit).observe(stage);
-fit();
-setTimeout(() => Graph.zoomToFit(600, 60), 600);
-</script>
-</body>
-</html>
+
+// ---------------------------------------------------------------- map switch
+function renderMapSwitch() {
+  el("mapSwitch").style.display = MAP_NAMES.length > 1 ? "flex" : "none";
+  el("mapSwitch").innerHTML = MAP_NAMES.map((name) =>
+    `<button data-map="${name}" class="${name === mapName ? "on" : ""}">${esc(MAPS[name].label)}
+      <span class="badge">${MAPS[name].graph.nodes.length}</span></button>`).join("");
+  el("mapSwitch").querySelectorAll("button").forEach((b) =>
+    b.addEventListener("click", () => { if (b.dataset.map !== mapName) applyMap(b.dataset.map); }));
+  el("mapSub").textContent = MAPS[mapName].title;
+  el("mapGrade").innerHTML = HEALTH
+    ? `grade <b>${HEALTH.grade}</b> (${HEALTH.score}/100)` : "no report embedded";
+}
+
+// Switch the whole page over to another map: same UI, different graph.
+function applyMap(name) {
+  loadMap(name);
+  selected = null; fileFilter = null; backTo = null; tab = "file";
+  highlightNodes = new Set(); highlightLinks = new Set();
+  el("filterChip").classList.remove("on");
+  if (!HAS_CHURN && (colorMode === "churn" || colorMode === "risk")) colorMode = "layer";
+  renderMapSwitch(); renderHealth(); renderColorModes(); renderLegend(); renderTiles();
+  renderTree(); renderTabs(); renderPanel(); updateStatus();
+  Graph.graphData({ nodes, links });
+  setView(view);
+}
+
+try {
+  applyMap(mapName);
+  fit();
+  setTimeout(() => Graph.zoomToFit(600, 60), 600);
+} catch (err) {
+  // A generated page that fails silently is a blank screen; say what broke.
+  el("panel").innerHTML = `<p class="empty">The explorer failed to start: ${esc(String(err))}</p>`;
+  throw err;
+}

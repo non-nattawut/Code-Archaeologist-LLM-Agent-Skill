@@ -4,16 +4,18 @@
 Commands:
 
   project   Structure map — which classes reference/import which.
-            Runs build_wiki -> build_graph -> build_html (graph.html).
+            Runs build_wiki -> build_graph.
 
   flow      Behavior map — method-level call / request flow.
-            Runs build_flow -> build_html (flow.html).
+            Runs build_flow.
 
   check     Are the maps stale vs the current source?
 
-  report    Review pass over an existing map — smells, health grade, risk scan and
-            git hotspots (report/) — then re-renders the viewer with churn/risk
-            color modes and risk markers.
+  report    Review pass over every built map — smells, health grade, risk scan and
+            git hotspots (report/<map>/).
+
+Every command ends by re-rendering `data/explorer.html`: one page holding both
+maps, switched from its header.
 
 Examples:
   python archaeologist.py project --src ./src
@@ -37,20 +39,14 @@ DATA_DIR = os.path.join(SKILL_ROOT, "data")
 STRUCTURE_DIR = os.path.join(DATA_DIR, "structure")
 FLOW_DIR = os.path.join(DATA_DIR, "flow")
 REPORT_DIR = os.path.join(DATA_DIR, "report")
+EXPLORER_HTML = os.path.join(DATA_DIR, "explorer.html")
 # One report per map, because node ids (and therefore every finding, hotspot and
 # census figure) belong to one graph or the other.
-MAPS = {
-    "structure": (os.path.join(STRUCTURE_DIR, "graph.json"),
-                  os.path.join(STRUCTURE_DIR, "graph.html"),
-                  "Code Archaeologist — Project Structure"),
-    "flow": (os.path.join(FLOW_DIR, "flow_graph.json"),
-             os.path.join(FLOW_DIR, "flow.html"),
-             "Code Archaeologist — Request Flow"),
+GRAPHS = {
+    "structure": os.path.join(STRUCTURE_DIR, "graph.json"),
+    "flow": os.path.join(FLOW_DIR, "flow_graph.json"),
 }
 
-
-def report_json(map_name: str) -> str:
-    return os.path.join(REPORT_DIR, map_name, "architecture_report.json")
 
 sys.path.insert(0, SCRIPT_DIR)
 import build_wiki      # noqa: E402
@@ -61,6 +57,15 @@ import manifest        # noqa: E402
 import report          # noqa: E402
 
 
+def report_json(map_name: str) -> str:
+    return os.path.join(REPORT_DIR, map_name, "architecture_report.json")
+
+
+def render_explorer() -> int:
+    """Re-render the one page that holds both maps."""
+    sources = {name: (graph, report_json(name)) for name, graph in GRAPHS.items()}
+    return build_html.build(sources, EXPLORER_HTML)
+
 def run_project(src) -> int:
     print("== Project structure map ==")
     rc = build_wiki.build(src, os.path.join(STRUCTURE_DIR, "vault"))
@@ -69,7 +74,7 @@ def run_project(src) -> int:
     rc = build_graph.build(os.path.join(STRUCTURE_DIR, "vault"), STRUCTURE_DIR)
     if rc:
         return rc
-    return build_html.build(*MAPS["structure"], report_json("structure"))
+    return render_explorer()
 
 
 def run_flow(src) -> int:
@@ -77,23 +82,21 @@ def run_flow(src) -> int:
     rc = build_flow.build(src, os.path.join(FLOW_DIR, "notes"), os.path.join(FLOW_DIR, "flow_graph.json"))
     if rc:
         return rc
-    return build_html.build(*MAPS["flow"], report_json("flow"))
+    return render_explorer()
 
 
 def run_report(src) -> int:
     """Review pass over every built map: smells + grade + risks + hotspots per map,
-    then re-render each viewer with its own report embedded."""
+    then re-render the explorer with both reports embedded."""
     print("== Architecture report ==")
-    built = [name for name, (graph, _, _) in MAPS.items() if os.path.isfile(graph)]
+    built = [name for name, graph in GRAPHS.items() if os.path.isfile(graph)]
     if not built:
         print("error: no map found — run `project` or `flow` first.", file=sys.stderr)
         return 1
     for name in built:
-        graph, out_html, title = MAPS[name]
         print(f"-- {name} map --")
-        report.build(src, graph, os.path.join(REPORT_DIR, name))
-        build_html.build(graph, out_html, title, report_json(name))
-    return 0
+        report.build(src, GRAPHS[name], os.path.join(REPORT_DIR, name))
+    return render_explorer()
 
 
 def main(argv=None) -> int:

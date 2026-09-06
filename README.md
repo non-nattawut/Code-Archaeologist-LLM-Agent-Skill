@@ -76,8 +76,9 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
   `data/report/<map>/architecture_report.md` (plus `.json`, `security.json`, `insights.json`, one
   set per map) — a review artifact you can paste into a PR, the data behind the explorer's panels,
   and the cheapest way for an agent to answer "how healthy is this codebase?".
-- **Standalone code explorer (single HTML file)** — everything embedded inline; open via `file://`,
-  commit it, or email it. No server, no repo access, works offline. It's a three-pane IDE-style UI:
+- **Standalone code explorer (single HTML file)** — **both maps in one page**, switched from the
+  header (Structure / Flow); everything embedded inline; open via `file://`, commit it, or email it.
+  No server, no repo access, works offline. It's a three-pane IDE-style UI:
   - **Left** — A–F **health ring**, color-by selector (layer / folder / churn / risk), stat tiles
     (files, functions, links, unused), **lines of code + language mix**, and a **file explorer
     tree** that filters the canvas (with per-file risk counts).
@@ -153,10 +154,10 @@ harness folder, and creates a fresh empty `data/` workspace. It has **no npm dep
 There are two commands, each building one map (scan → graph → HTML in one shot):
 
 ```bash
-# Project structure map  ->  data/structure/{graph.json, vault/, graph.html}
+# Project structure map  ->  data/structure/{graph.json, vault/}  (+ data/explorer.html)
 python .agents/skills/code-wiki/scripts/archaeologist.py project --src ./src
 
-# Request/execution flow map  ->  data/flow/{flow_graph.json, notes/, flow.html}
+# Request/execution flow map  ->  data/flow/{flow_graph.json, notes/}  (+ data/explorer.html)
 python .agents/skills/code-wiki/scripts/archaeologist.py flow --src ./src
 
 # Monorepo: pass multiple roots (backend + frontend land in one graph)
@@ -299,14 +300,15 @@ templates, and the generated `data/` workspace.
 |   |-- report.py                 # all of the above -> report/<map>/architecture_report.*
 |   |   # --- query & render ---
 |   |-- trace_path.py             # BFS flow (--from/--to), impact (--impact-of[-diff])
-|   `-- build_html.py             # graph + report -> standalone HTML explorer
+|   `-- build_html.py             # graphs + reports -> data/explorer.html (both maps)
 |-- templates/
-|   |-- viewer.html               # the explorer page (HTML/CSS/JS, 3 placeholders)
+|   |-- viewer.html               # the explorer page (HTML/CSS/JS, 2 placeholders)
 |   |-- wiki_page_template.md     # page structure for generated entities
 |   `-- TAXONOMY.md               # allowed values for each field
 `-- data/
-    |-- structure/                # structure map: graph.json, registry.json, graph.html, vault/
-    |-- flow/                     # flow map: flow_graph.json, flow.html, notes/
+    |-- explorer.html             # THE viewer: both maps in one page, switched from its header
+    |-- structure/                # structure map: graph.json, registry.json, vault/
+    |-- flow/                     # flow map: flow_graph.json, notes/
     |-- report/
     |   |-- structure/            # report for the structure map
     |   `-- flow/                 #   architecture_report.md/.json, security.json, insights.json

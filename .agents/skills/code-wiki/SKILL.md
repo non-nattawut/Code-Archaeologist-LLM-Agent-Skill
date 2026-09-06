@@ -16,10 +16,10 @@ There are **two complementary maps**:
   -> OrderRepository.save`. Each node describes what the method does. Data:
   `data/flow/flow_graph.json` + `data/flow/notes/<Class.method>.md`.
 
-`data/` is organized by map: `structure/` (class graph + vault + `graph.html`), `flow/`
-(call graph + `notes/` + `flow.html`), `report/<map>/` (the review pass for that map: architecture
-report, risk scan, git insights), and `cache/` (internal AI-summary cache + source-freshness
-manifest — you rarely touch these directly).
+`data/` is organized by map: `structure/` (class graph + vault), `flow/` (call graph + `notes/`),
+`report/<map>/` (the review pass for that map: architecture report, risk scan, git insights), and
+`cache/` (internal AI-summary cache + source-freshness manifest — you rarely touch these directly).
+Both maps share ONE viewer, `data/explorer.html`, switched from its header.
 
 ## Setup (do this first)
 - **Backend (Python) — no install needed.** Just Python 3.10+; the whole `.py` pipeline is stdlib.
@@ -48,16 +48,17 @@ manifest — you rarely touch these directly).
 7. For **review** questions ("is this codebase healthy?", "where is the risk?", "what should
    we refactor first?"), run the report (Command 10) and answer from
    `data/report/<map>/architecture_report.md` — still without reading raw source.
+
 ## Available Tool Commands
 
 ### 1. Build the Project Structure map  (`/archaeologist-project-structure`)
-Which classes reference/import which → `graph.json`, `vault/`, `graph.html`:
+Which classes reference/import which → `graph.json`, `vault/` (+ `explorer.html`):
 ```bash
 python .agents/skills/code-wiki/scripts/archaeologist.py project --src ./src
 ```
 
 ### 2. Build the Flow / Request-Flow map  (`/archaeologist-flow-structure`)
-Method-level call graph → `flow/flow_graph.json`, `flow/notes/`, `flow/flow.html`:
+Method-level call graph → `flow/flow_graph.json`, `flow/notes/` (+ `explorer.html`):
 ```bash
 python .agents/skills/code-wiki/scripts/archaeologist.py flow --src ./src
 ```
@@ -117,19 +118,20 @@ python .agents/skills/code-wiki/scripts/trace_path.py --impact-of-diff --base or
 ```
 Reports `changed_nodes` (nodes in the edited files) and `impacted` (everything upstream of them).
 
-### 5. Regenerate / Refresh the HTML viewers
-`archaeologist.py` regenerates the HTML automatically. To rebuild a viewer alone:
+### 5. Regenerate / Refresh the HTML explorer
+`archaeologist.py` regenerates `data/explorer.html` automatically. To rebuild it alone (it picks
+up both maps and both reports from the standard paths):
 ```bash
-python .agents/skills/code-wiki/scripts/build_html.py --graph <graph.json> --out <out.html> \
-  --title "..." --report data/report/<map>/architecture_report.json
+python .agents/skills/code-wiki/scripts/build_html.py
 ```
-The page is a three-pane explorer: health grade + stat tiles + language mix + file tree on the
-left; seven views of the same graph in the middle (Graph, Treemap, Matrix, Tree, Flow, Cluster,
-Bundle) with folder hulls, a blast-radius toggle and PNG export; and FILE / PATTERNS / SECURITY
-tabs on the right (blast radius with an impact bar, connections, git ownership, sibling functions
-with internal/external call counts, risk findings). Without `--report` it still works — just
-without the grade, churn/risk colors and the two review tabs. The page layout lives in
-`templates/viewer.html`, so it can be restyled without touching Python.
+One page holds **both maps**; its header switches between Structure and Flow, and the whole UI
+(grade, tiles, explorer tree, canvas, tabs) re-renders for the active map. Layout: health grade +
+stat tiles + language mix + file tree on the left; seven views of the graph in the middle (Graph,
+Treemap, Matrix, Tree, Flow, Cluster, Bundle) with folder hulls, a blast-radius toggle and PNG
+export; FILE / PATTERNS / SECURITY tabs on the right (blast radius with an impact bar, connections,
+git ownership, sibling functions with internal/external call counts, risk findings). A map with no
+report still renders — just without the grade, churn/risk colors and the two review tabs. The page
+itself lives in `templates/viewer.html`, so it can be restyled without touching Python.
 
 ### 6. Check freshness (are the maps stale?)
 Before trusting a trace/impact answer, confirm the maps match the current source. Returns
@@ -168,8 +170,8 @@ python .agents/skills/code-wiki/scripts/git_insights.py --src ./src --top 10
 ### 10. Full architecture report  (`/archaeologist-report`)
 One review pass per built map — census, health grade, smells, anti-patterns, risk findings and
 hotspots — written to `data/report/<map>/architecture_report.md` (+ `.json`, `security.json`,
-`insights.json`; `<map>` is `structure` or `flow`). It also re-renders each viewer with that map's
-report embedded, which turns on the health ring, churn/risk color modes, ownership and the
+`insights.json`; `<map>` is `structure` or `flow`). It also re-renders `data/explorer.html` with
+both reports embedded, which turns on the health ring, churn/risk color modes, ownership and the
 Patterns/Security tabs:
 ```bash
 python .agents/skills/code-wiki/scripts/archaeologist.py report --src ./src
@@ -200,7 +202,7 @@ After any code add/change/delete, refresh a map:
    ```
    Summaries are cached in `data/cache/descriptions.json` (keyed by source hash), so unchanged methods
    are never re-described. Deleted methods are pruned automatically.
-3. If there are **0 pending**, you're done — the graph, notes, and `flow.html` are up to date.
+3. If there are **0 pending**, you're done — the graph, notes, and `explorer.html` are up to date.
 
 ## Notes
 - Zero external dependencies for the **Python** pipeline (stdlib only). **Frontend** parsing is the

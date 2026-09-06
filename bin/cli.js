@@ -211,7 +211,7 @@ async function main() {
         return r.status || 1;
       }
     }
-    console.log(`\nOK   Self-test complete. Open ${path.join(dest, "data", "structure", "graph.html")}`);
+    console.log(`\nOK   Self-test complete. Open ${path.join(dest, "data", "explorer.html")}`);
     return 0;
   }
 

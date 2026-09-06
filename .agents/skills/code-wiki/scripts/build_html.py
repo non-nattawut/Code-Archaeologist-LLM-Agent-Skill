@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""build_html.py — Generate the standalone, shareable HTML explorer.
+"""build_html.py — Generate the standalone HTML explorer for both maps.
 
-Reads a graph JSON (structure `graph.json` or flow `flow_graph.json`) — optionally
-enriched with that map's `architecture_report.json` — and writes a single
-self-contained HTML file with all the data embedded inline (no server, no repo
-access, works offline from `file://`).
+Reads the graphs (`structure/graph.json`, `flow/flow_graph.json`) plus each map's
+`architecture_report.json`, and writes ONE self-contained page with all of it
+embedded inline. No server, no repo access, works offline from `file://`; the
+header switches between the structure map and the flow map without reloading.
 
 The page is a three-pane explorer:
 
-  left    health ring (A-F grade), color-by selector, node/edge/file/unused stat
-          tiles, lines-of-code + language mix, and a file EXPLORER tree that
-          filters the canvas.
+  header  brand, the Structure/Flow switch, and the active map's grade.
+  left    health ring (A-F), color-by selector, node/edge/file/unused stat tiles,
+          lines-of-code + language mix, and a file EXPLORER tree that filters the
+          canvas.
   center  toolbar (zoom, fit, folder hulls, blast toggle, PNG export) over seven
           views of the same data — Graph, Treemap, Matrix, Tree, Flow, Cluster,
           Bundle — plus a status bar.
@@ -20,11 +21,11 @@ The page is a three-pane explorer:
           call counts, and any risk findings. PATTERNS lists smells, anti-patterns
           and idioms; SECURITY lists findings — both click through into FILE.
 
-`force-graph` is loaded from a CDN; everything else is inline. Re-run any time.
+    python build_html.py                                  # both maps -> data/explorer.html
+    python build_html.py --structure-graph "" --out flow_only.html    # one map only
 
-    python build_html.py                                    # -> data/structure/graph.html
-    python build_html.py --graph data/flow/flow_graph.json --out data/flow/flow.html \
-        --title "Request Flow" --report data/report/flow/architecture_report.json
+`force-graph` is loaded from a CDN; everything else is inline. The page shell is
+`templates/viewer.html`, so the front-end can be edited without touching Python.
 
 Zero external Python dependencies. Python 3.10+.
 """
@@ -37,14 +38,23 @@ import os
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SKILL_ROOT = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(SKILL_ROOT, "data")
-DEFAULT_GRAPH = os.path.join(DATA_DIR, "structure", "graph.json")
-DEFAULT_OUT = os.path.join(DATA_DIR, "structure", "graph.html")
-
 TEMPLATE_PATH = os.path.join(SKILL_ROOT, "templates", "viewer.html")
+DEFAULT_OUT = os.path.join(DATA_DIR, "explorer.html")
+
+# map name -> (switch label, subtitle, default graph, default report)
+MAPS = {
+    "structure": ("Structure", "class-level map: which entity references which",
+                  os.path.join(DATA_DIR, "structure", "graph.json"),
+                  os.path.join(DATA_DIR, "report", "structure", "architecture_report.json")),
+    "flow": ("Flow", "method-level map: which method calls which",
+             os.path.join(DATA_DIR, "flow", "flow_graph.json"),
+             os.path.join(DATA_DIR, "report", "flow", "architecture_report.json")),
+}
+DEFAULT_SOURCES = {name: (graph, report) for name, (_, _, graph, report) in MAPS.items()}
 
 
 def load_template() -> str:
-    """The page shell lives in `templates/viewer.html` (plain HTML/CSS/JS with three
+    """The page shell lives in `templates/viewer.html` (plain HTML/CSS/JS with two
     placeholders) so it can be read and edited like a normal front-end file."""
     with open(TEMPLATE_PATH, "r", encoding="utf-8") as fh:
         return fh.read()
@@ -75,56 +85,75 @@ def report_for(graph_path: str, graph: dict, report: dict) -> dict:
         return {}
     ids = {n["id"] for n in graph.get("nodes", [])}
     files = {(n.get("source") or "").split(":")[0] for n in graph.get("nodes", [])}
-    security = dict(report.get("security", {}))
-    security["findings"] = [f for f in security.get("findings", [])
-                            if f.get("node") in ids or f.get("file") in files]
-    insights = dict(report.get("insights", {}))
-    insights["nodes"] = {k: v for k, v in insights.get("nodes", {}).items() if k in ids}
-    return {"analysis": report.get("analysis", {}), "files": report.get("files", {}),
-            "census": report.get("census", {}), "security": security, "insights": insights}
+    security = report.get("security", {})
+    insights = report.get("insights", {})
+    # Only what the page actually reads, so the embedded payload stays small.
+    return {
+        "analysis": report.get("analysis", {}),
+        "files": report.get("files", {}),
+        "security": {"summary": security.get("summary", {}),
+                     "findings": [f for f in security.get("findings", [])
+                                  if f.get("node") in ids or f.get("file") in files]},
+        "insights": {"nodes": {k: v for k, v in insights.get("nodes", {}).items() if k in ids}},
+    }
 
 
-def build(graph_path: str, out_path: str, title: str, report_path: str | None = None) -> int:
-    if os.path.isfile(graph_path):
+def collect(sources: dict[str, tuple[str, str]]) -> dict:
+    """sources: map name -> (graph path, report path). Maps with no graph are skipped."""
+    maps = {}
+    for name, (graph_path, report_path) in sources.items():
+        if not graph_path or not os.path.isfile(graph_path):
+            continue
         with open(graph_path, "r", encoding="utf-8") as fh:
             graph = json.load(fh)
-    else:
-        print(f"warning: {graph_path} not found; embedding an empty graph.")
-        graph = {"nodes": [], "edges": []}
+        label, subtitle = MAPS.get(name, (name.title(), name, "", ""))[:2]
+        maps[name] = {"label": label, "title": subtitle, "graph": graph,
+                      "report": report_for(graph_path, graph, _load(report_path))}
+    return maps
 
-    report = report_for(graph_path, graph, _load(report_path))
+
+def build(sources: dict[str, tuple[str, str]] | None = None, out_path: str = DEFAULT_OUT,
+          title: str = "Code Archaeologist") -> int:
+    maps = collect(sources or DEFAULT_SOURCES)
+    if not maps:
+        print("error: no graph found - run `archaeologist.py project|flow|both` first.")
+        return 1
 
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     html = (load_template()
             .replace("__TITLE__", title)
-            .replace("__GRAPH_DATA__", json.dumps(graph, indent=2))
-            .replace("__REPORT_DATA__", json.dumps(report)))
+            .replace("__MAPS_DATA__", json.dumps(maps, separators=(",", ":"))))
     with open(out_path, "w", encoding="utf-8") as fh:
         fh.write(html)
 
-    print(f"Wrote standalone viewer: {out_path}")
-    print(f"  {len(graph.get('nodes', []))} node(s), {len(graph.get('edges', []))} edge(s)")
-    if report:
-        health = report.get("analysis", {}).get("health", {})
-        print(f"  report embedded: grade {health.get('grade', '?')}, "
-              f"{len(report.get('security', {}).get('findings', []))} risk finding(s), "
-              f"{len(report.get('insights', {}).get('nodes', {}))} node(s) with git history")
-    else:
-        print("  no report embedded (run `archaeologist.py report` for grade/churn/risk panels)")
+    print(f"Wrote standalone explorer: {out_path}")
+    for name, data in maps.items():
+        bits = [f"{len(data['graph']['nodes'])} node(s)", f"{len(data['graph']['edges'])} edge(s)"]
+        if data["report"]:
+            health = data["report"].get("analysis", {}).get("health", {})
+            bits += [f"grade {health.get('grade', '?')}",
+                     f"{len(data['report']['security'].get('findings', []))} risk finding(s)"]
+        else:
+            bits.append("no report yet (run `archaeologist.py report` for the review panels)")
+        print(f"  {name:<10} {', '.join(bits)}")
     print("  Open it directly in a browser (file://) - no server needed.")
     return 0
 
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Generate the standalone HTML code explorer.")
-    parser.add_argument("--graph", default=DEFAULT_GRAPH, help="Path to graph.json / flow_graph.json")
     parser.add_argument("--out", default=DEFAULT_OUT, help="Output HTML path")
-    parser.add_argument("--title", default="Code Archaeologist — Graph", help="Page title/heading")
-    parser.add_argument("--report", default=None,
-                        help="architecture_report.json for this map; adds the health ring, "
-                             "churn/risk color modes, ownership, and the Patterns/Security tabs")
+    parser.add_argument("--title", default="Code Archaeologist", help="Page title")
+    for name, (_, _, graph, report) in MAPS.items():
+        parser.add_argument(f"--{name}-graph", default=graph,
+                            help=f"{name} graph JSON (pass an empty string to leave it out)")
+        parser.add_argument(f"--{name}-report", default=report,
+                            help=f"architecture_report.json for the {name} map")
     args = parser.parse_args(argv)
-    return build(args.graph, args.out, args.title, args.report)
+
+    sources = {name: (getattr(args, f"{name}_graph"), getattr(args, f"{name}_report"))
+               for name in MAPS}
+    return build(sources, args.out, args.title)
 
 
 if __name__ == "__main__":
