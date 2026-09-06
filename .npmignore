@@ -3,5 +3,5 @@ node_modules
 **/node_modules
 
 # Generated demo artifacts don't need to ship in the installer package.
-**/code-wiki/data/cache/pending_descriptions.json
-**/code-wiki/data/cache/manifest.json
+**/code-archaeologist/data/cache/pending_descriptions.json
+**/code-archaeologist/data/cache/manifest.json

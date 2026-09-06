@@ -12,5 +12,5 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# The code-wiki skill ships its own .gitignore (node_modules, build state) - see
-# .agents/skills/code-wiki/.gitignore
+# The code-archaeologist skill ships its own .gitignore (node_modules, build state) - see
+# .agents/skills/code-archaeologist/.gitignore

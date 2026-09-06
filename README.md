@@ -1,7 +1,7 @@
 # Code Archaeologist — LLM Agent Skill
 
 A **deterministic, Zero-RAG codebase documentation engine** packaged as an agent skill
-(`code-wiki`). Instead of chopping source into arbitrary token chunks for RAG — which destroys
+(`code-archaeologist`). Instead of chopping source into arbitrary token chunks for RAG — which destroys
 function scopes, call hierarchies, and execution context — Code Archaeologist scans code
 structure, compiles a hyperlinked Markdown wiki, and builds an explicit dependency graph an
 agent can query.
@@ -104,7 +104,7 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
 
 - **Python 3.10+** — required; the backend pipeline uses only the standard library.
 - **Node.js + `@babel/parser`** — *only for frontend (JS/TS) parsing*. Install it once from the
-  skill directory: `cd .agents/skills/code-wiki && npm install`. The resulting `node_modules/` is
+  skill directory: `cd .agents/skills/code-archaeologist && npm install`. The resulting `node_modules/` is
   git-ignored by the skill's own `.gitignore`. Without it, frontend files are skipped with a
   warning and the Python graph still builds.
 - **git** — *optional*; only for churn/ownership/hotspots. Outside a git repo the report is built
@@ -117,7 +117,7 @@ Install with `npx` — no clone or npm account required. From the root of the pr
 
 ```bash
 npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill               # interactive: pick a harness
-npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --harness claude   # install into .claude/skills/code-wiki
+npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --harness claude   # install into .claude/skills/code-archaeologist
 npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --self-test        # install + build the demo to verify
 ```
 
@@ -127,11 +127,11 @@ Run without a flag in a terminal and you'll be prompted to choose where the skil
 
 | Harness | Installs to |
 | --- | --- |
-| `agents` (default) | `.agents/skills/code-wiki` |
-| `claude` | `.claude/skills/code-wiki` |
-| `cursor` | `.cursor/skills/code-wiki` |
-| `windsurf` | `.windsurf/skills/code-wiki` |
-| `zed` | `.zed/skills/code-wiki` |
+| `agents` (default) | `.agents/skills/code-archaeologist` |
+| `claude` | `.claude/skills/code-archaeologist` |
+| `cursor` | `.cursor/skills/code-archaeologist` |
+| `windsurf` | `.windsurf/skills/code-archaeologist` |
+| `zed` | `.zed/skills/code-archaeologist` |
 
 Anything else? Use `--dir <path>` for a fully custom location.
 
@@ -158,47 +158,47 @@ There are two commands, each building one map (scan → graph → HTML in one sh
 
 ```bash
 # Project structure map  ->  data/structure/{graph.json, vault/}  (+ data/explorer.html)
-python .agents/skills/code-wiki/scripts/archaeologist.py project --src ./src
+python .agents/skills/code-archaeologist/scripts/archaeologist.py project --src ./src
 
 # Request/execution flow map  ->  data/flow/{flow_graph.json, notes/}  (+ data/explorer.html)
-python .agents/skills/code-wiki/scripts/archaeologist.py flow --src ./src
+python .agents/skills/code-archaeologist/scripts/archaeologist.py flow --src ./src
 
 # Monorepo: pass multiple roots (backend + frontend land in one graph)
-python .agents/skills/code-wiki/scripts/archaeologist.py flow --src ./backend ./frontend
+python .agents/skills/code-archaeologist/scripts/archaeologist.py flow --src ./backend ./frontend
 
 # ...or build both maps
-python .agents/skills/code-wiki/scripts/archaeologist.py both --src ./src
+python .agents/skills/code-archaeologist/scripts/archaeologist.py both --src ./src
 ```
 
 Then trace paths or impact on either graph (structure is the default; add `--graph` for flow):
 
 ```bash
 # structure: how are two classes connected?
-python .agents/skills/code-wiki/scripts/trace_path.py --from OrderController --to OrderRepository
+python .agents/skills/code-archaeologist/scripts/trace_path.py --from OrderController --to OrderRepository
 
 # flow: how does a request travel, method by method?
-python .agents/skills/code-wiki/scripts/trace_path.py \
-  --graph .agents/skills/code-wiki/data/flow/flow_graph.json \
+python .agents/skills/code-archaeologist/scripts/trace_path.py \
+  --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json \
   --from OrderController.create_order --to OrderRepository.save
 
 # blast-radius: everything that breaks if a method changes
-python .agents/skills/code-wiki/scripts/trace_path.py \
-  --graph .agents/skills/code-wiki/data/flow/flow_graph.json --impact-of PaymentClient.charge
+python .agents/skills/code-archaeologist/scripts/trace_path.py \
+  --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json --impact-of PaymentClient.charge
 ```
 
 Keep the maps honest and review changes:
 
 ```bash
 # freshness: are the maps stale vs the current source? (rebuild if so)
-python .agents/skills/code-wiki/scripts/archaeologist.py check --src ./src
+python .agents/skills/code-archaeologist/scripts/archaeologist.py check --src ./src
 
 # changeset blast-radius: what does my current git diff affect?
-python .agents/skills/code-wiki/scripts/trace_path.py \
-  --graph .agents/skills/code-wiki/data/flow/flow_graph.json --impact-of-diff
+python .agents/skills/code-archaeologist/scripts/trace_path.py \
+  --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json --impact-of-diff
 
 # smells + health grade: cycles, orphans, layer violations, hubs, god objects, idioms
-python .agents/skills/code-wiki/scripts/analyze.py \
-  --graph .agents/skills/code-wiki/data/flow/flow_graph.json
+python .agents/skills/code-archaeologist/scripts/analyze.py \
+  --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json
 ```
 
 Then review the whole codebase in one shot — grade, risks and hotspots — with `report`:
@@ -207,17 +207,17 @@ Then review the whole codebase in one shot — grade, risks and hotspots — wit
 # writes data/report/<map>/architecture_report.md (+ .json, security.json, insights.json)
 # and re-renders each viewer with its report: health ring, churn/risk colors,
 # ownership, and the Patterns/Security tabs
-python .agents/skills/code-wiki/scripts/archaeologist.py report --src ./src
+python .agents/skills/code-archaeologist/scripts/archaeologist.py report --src ./src
 ```
 
 Its two inputs are runnable on their own too:
 
 ```bash
 # risk scan: hardcoded secrets, interpolated SQL, eval/innerHTML sinks, debug leftovers
-python .agents/skills/code-wiki/scripts/scan_security.py --src ./src
+python .agents/skills/code-archaeologist/scripts/scan_security.py --src ./src
 
 # git churn/ownership + hotspot ranking (risk = commits x (1 + fan_in + fan_out))
-python .agents/skills/code-wiki/scripts/git_insights.py --src ./src --top 10
+python .agents/skills/code-archaeologist/scripts/git_insights.py --src ./src --top 10
 ```
 
 Each stage is also runnable on its own (`build_wiki.py`, `build_graph.py`, `build_flow.py`,
@@ -283,7 +283,7 @@ The skill is one folder: instructions (`SKILL.md`), scripts grouped by role, the
 templates, and the generated `data/` workspace.
 
 ```
-.agents/skills/code-wiki/
+.agents/skills/code-archaeologist/
 |-- SKILL.md                      # agent instructions & tool specs
 |-- .gitignore                    # keeps node_modules/ + build state out of your repo
 |-- scripts/

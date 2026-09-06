@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * code-archaeologist — installer CLI for the code-wiki agent skill.
+ * code-archaeologist — installer CLI for the code-archaeologist agent skill.
  *
  * Installs the skill into the harness folder of your choice
  * (.agents, .claude, .cursor, .windsurf, .zed, or a custom path), verifies a
@@ -8,7 +8,7 @@
  * bundled sample_src demo. Zero npm dependencies (Node built-ins only).
  *
  *   npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill                      # interactive: pick a harness
- *   npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --harness claude     # install into .claude/skills/code-wiki
+ *   npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --harness claude     # install into .claude/skills/code-archaeologist
  *   npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --dir .foo/skills/cw # install into a custom path
  *   npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --self-test
  *   npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --help
@@ -21,17 +21,17 @@ const readline = require("readline");
 const { spawnSync } = require("child_process");
 
 const PKG_ROOT = path.resolve(__dirname, "..");
-const SKILL_SRC = path.join(PKG_ROOT, ".agents", "skills", "code-wiki");
+const SKILL_SRC = path.join(PKG_ROOT, ".agents", "skills", "code-archaeologist");
 const SAMPLE_SRC = path.join(PKG_ROOT, "sample_src");
 
 // Known agent harnesses -> where the skill folder lives, relative to a project.
 // Add your own with --dir <path>.
 const HARNESSES = {
-  agents:   { label: "Agents (.agents)", dir: ".agents/skills/code-wiki" },
-  claude:   { label: "Claude Code",      dir: ".claude/skills/code-wiki" },
-  cursor:   { label: "Cursor",           dir: ".cursor/skills/code-wiki" },
-  windsurf: { label: "Windsurf",         dir: ".windsurf/skills/code-wiki" },
-  zed:      { label: "Zed",              dir: ".zed/skills/code-wiki" },
+  agents:   { label: "Agents (.agents)", dir: ".agents/skills/code-archaeologist" },
+  claude:   { label: "Claude Code",      dir: ".claude/skills/code-archaeologist" },
+  cursor:   { label: "Cursor",           dir: ".cursor/skills/code-archaeologist" },
+  windsurf: { label: "Windsurf",         dir: ".windsurf/skills/code-archaeologist" },
+  zed:      { label: "Zed",              dir: ".zed/skills/code-archaeologist" },
 };
 const DEFAULT_HARNESS = "agents";
 
@@ -61,7 +61,7 @@ function parseArgs(argv) {
   return opts;
 }
 
-const HELP = `code-archaeologist — install the code-wiki agent skill
+const HELP = `code-archaeologist — install the code-archaeologist agent skill
 
 Usage:
   npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill [options]
@@ -121,7 +121,7 @@ async function chooseInstallDir(opts) {
   const n = parseInt(raw, 10);
   if (n >= 1 && n <= keys.length) return HARNESSES[keys[n - 1]].dir;
   if (n === keys.length + 1) {
-    const p = (await ask("Enter path relative to project root (e.g. .myagent/skills/code-wiki): ")).trim();
+    const p = (await ask("Enter path relative to project root (e.g. .myagent/skills/code-archaeologist): ")).trim();
     return p || HARNESSES[DEFAULT_HARNESS].dir;
   }
   console.log(`Unrecognized choice; defaulting to "${DEFAULT_HARNESS}".`);

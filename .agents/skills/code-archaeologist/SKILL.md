@@ -1,5 +1,5 @@
 ---
-name: code-wiki
+name: code-archaeologist
 description: Zero-RAG codebase navigation with two maps — a project-structure graph (which classes reference which) and a method-level flow graph (which method calls which, i.e. request/execution flow), plus a review pass (health grade, risk scan, git hotspots). Use to explain architecture, trace how a request flows through methods, find what breaks if a class/method changes, or review a codebase for smells, risky code and change hotspots.
 ---
 
@@ -26,7 +26,7 @@ Both maps share ONE viewer, `data/explorer.html`, switched from its header.
 - **Frontend (JS/TS) — install the parser first.** Before scanning any `.js/.jsx/.ts/.tsx` code,
   ensure Node.js is available and install the one dependency from the skill directory:
   ```bash
-  cd .agents/skills/code-wiki && npm install
+  cd .agents/skills/code-archaeologist && npm install
   ```
   This installs `@babel/parser` (declared in the skill's `package.json`) next to `js_extract.js`;
   the resulting `node_modules/` is git-ignored by the skill's `.gitignore`, so it never lands in a
@@ -55,20 +55,20 @@ Both maps share ONE viewer, `data/explorer.html`, switched from its header.
 ### 1. Build the Project Structure map  (`/archaeologist-project-structure`)
 Which classes reference/import which → `graph.json`, `vault/` (+ `explorer.html`):
 ```bash
-python .agents/skills/code-wiki/scripts/archaeologist.py project --src ./src
+python .agents/skills/code-archaeologist/scripts/archaeologist.py project --src ./src
 ```
 
 ### 2. Build the Flow / Request-Flow map  (`/archaeologist-flow-structure`)
 Method-level call graph → `flow/flow_graph.json`, `flow/notes/` (+ `explorer.html`):
 ```bash
-python .agents/skills/code-wiki/scripts/archaeologist.py flow --src ./src
+python .agents/skills/code-archaeologist/scripts/archaeologist.py flow --src ./src
 ```
 Build both at once with `... archaeologist.py both --src ./src`.
 
 **Monorepo & frontend.** `--src` accepts multiple roots, so backend and frontend land in one
 graph:
 ```bash
-python .agents/skills/code-wiki/scripts/archaeologist.py flow --src ./backend ./frontend
+python .agents/skills/code-archaeologist/scripts/archaeologist.py flow --src ./backend ./frontend
 ```
 Python (`.py`) is parsed by the stdlib AST. JS/TS (`.js/.jsx/.ts/.tsx`) is parsed by the Node
 extractor (`js_extract.js`, needs Node + `@babel/parser` resolvable from the project); if Node or
@@ -79,19 +79,19 @@ Frontend `fetch`/`axios` calls are linked to backend route handlers (`@router.po
 `@app.route(..., methods=[...])`, etc.) by matching HTTP method + normalized path, producing
 cross-stack `http` edges. So a single flow trace can run frontend → API → service → repository:
 ```bash
-python .agents/skills/code-wiki/scripts/trace_path.py \
-  --graph .agents/skills/code-wiki/data/flow/flow_graph.json --from submitOrder --to OrderRepository.save
+python .agents/skills/code-archaeologist/scripts/trace_path.py \
+  --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json --from submitOrder --to OrderRepository.save
 ```
 
 ### 3. Trace Execution Flow
 Find the path connecting two components. Structure uses the default graph; flow needs `--graph`:
 ```bash
 # structure (class -> class)
-python .agents/skills/code-wiki/scripts/trace_path.py --from <SourceClass> --to <TargetClass>
+python .agents/skills/code-archaeologist/scripts/trace_path.py --from <SourceClass> --to <TargetClass>
 
 # request flow (method -> method)
-python .agents/skills/code-wiki/scripts/trace_path.py \
-  --graph .agents/skills/code-wiki/data/flow/flow_graph.json \
+python .agents/skills/code-archaeologist/scripts/trace_path.py \
+  --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json \
   --from OrderController.create_order --to OrderRepository.save
 ```
 Add `--all` to enumerate every path.
@@ -100,22 +100,22 @@ Add `--all` to enumerate every path.
 All upstream callers affected if a class or method changes:
 ```bash
 # class-level
-python .agents/skills/code-wiki/scripts/trace_path.py --impact-of <ClassName>
+python .agents/skills/code-archaeologist/scripts/trace_path.py --impact-of <ClassName>
 
 # method-level
-python .agents/skills/code-wiki/scripts/trace_path.py \
-  --graph .agents/skills/code-wiki/data/flow/flow_graph.json --impact-of <Class.method>
+python .agents/skills/code-archaeologist/scripts/trace_path.py \
+  --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json --impact-of <Class.method>
 ```
 
 **Blast-radius of a whole changeset (git diff).** For "what does this PR/edit affect?", map the
 changed files to nodes and union their impact in one shot. Works on either graph:
 ```bash
 # uncommitted working-tree changes (default)
-python .agents/skills/code-wiki/scripts/trace_path.py \
-  --graph .agents/skills/code-wiki/data/flow/flow_graph.json --impact-of-diff
+python .agents/skills/code-archaeologist/scripts/trace_path.py \
+  --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json --impact-of-diff
 # staged changes, or against a base ref
-python .agents/skills/code-wiki/scripts/trace_path.py --impact-of-diff --staged
-python .agents/skills/code-wiki/scripts/trace_path.py --impact-of-diff --base origin/main
+python .agents/skills/code-archaeologist/scripts/trace_path.py --impact-of-diff --staged
+python .agents/skills/code-archaeologist/scripts/trace_path.py --impact-of-diff --base origin/main
 ```
 Reports `changed_nodes` (nodes in the edited files) and `impacted` (everything upstream of them).
 
@@ -123,7 +123,7 @@ Reports `changed_nodes` (nodes in the edited files) and `impacted` (everything u
 `archaeologist.py` regenerates `data/explorer.html` automatically. To rebuild it alone (it picks
 up both maps and both reports from the standard paths):
 ```bash
-python .agents/skills/code-wiki/scripts/build_html.py
+python .agents/skills/code-archaeologist/scripts/build_html.py
 ```
 One page holds **both maps**; its header switches between Structure and Flow, and the whole UI
 (grade, tiles, explorer tree, canvas, tabs) re-renders for the active map. Layout: health grade +
@@ -138,7 +138,7 @@ itself lives in `templates/viewer.html`, so it can be restyled without touching 
 Before trusting a trace/impact answer, confirm the maps match the current source. Returns
 `{stale, changed, added, deleted}` — tiny and deterministic. Rebuild if `stale` is true:
 ```bash
-python .agents/skills/code-wiki/scripts/archaeologist.py check --src ./src
+python .agents/skills/code-archaeologist/scripts/archaeologist.py check --src ./src
 ```
 
 ### 7. Architectural smell report & health grade
@@ -148,9 +148,9 @@ hubs, god objects, name-based idioms (singleton/factory/observer/React hook), an
 score with an A-F grade (pass `--security <security.json>` to fold risk findings into the grade):
 ```bash
 # structure graph (default)
-python .agents/skills/code-wiki/scripts/analyze.py
+python .agents/skills/code-archaeologist/scripts/analyze.py
 # flow graph
-python .agents/skills/code-wiki/scripts/analyze.py --graph .agents/skills/code-wiki/data/flow/flow_graph.json
+python .agents/skills/code-archaeologist/scripts/analyze.py --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json
 ```
 
 ### 8. Risk / security scan
@@ -158,14 +158,14 @@ Deterministic line scan for hardcoded secrets, interpolated SQL, `eval`/`innerHT
 leftover debug statements. Each finding names the graph node that owns the line, so it can be
 traced and blast-radiused like anything else (tests/fixtures/docs are skipped, secrets redacted):
 ```bash
-python .agents/skills/code-wiki/scripts/scan_security.py --src ./src
+python .agents/skills/code-archaeologist/scripts/scan_security.py --src ./src
 ```
 
 ### 9. Churn, ownership & hotspots (git)
 Joins git history onto the graph: commits per file, top author per file, and a hotspot ranking
 where `risk = commits x (1 + fan_in + fan_out)` — code that changes often *and* has many callers:
 ```bash
-python .agents/skills/code-wiki/scripts/git_insights.py --src ./src --top 10
+python .agents/skills/code-archaeologist/scripts/git_insights.py --src ./src --top 10
 ```
 
 ### 10. Full architecture report  (`/archaeologist-report`)
@@ -175,7 +175,7 @@ hotspots — written to `data/report/<map>/architecture_report.md` (+ `.json`, `
 both reports embedded, which turns on the health ring, churn/risk color modes, ownership and the
 Patterns/Security tabs:
 ```bash
-python .agents/skills/code-wiki/scripts/archaeologist.py report --src ./src
+python .agents/skills/code-archaeologist/scripts/archaeologist.py report --src ./src
 ```
 Use this for "review this codebase", "where is the risk", "what should we refactor first" —
 then read the Markdown report instead of any source.
@@ -192,14 +192,14 @@ After any code add/change/delete, refresh a map:
 
 1. Rebuild (AST + cache), which also detects what needs describing:
    ```bash
-   python .agents/skills/code-wiki/scripts/archaeologist.py flow --src ./src
+   python .agents/skills/code-archaeologist/scripts/archaeologist.py flow --src ./src
    ```
 2. If the output reports **pending** descriptions, open `data/cache/pending_descriptions.json`
    (each entry has the method's `signature` + `code`), write a concise one-line summary of what
    each method does, and save them as JSON `{ "<Class.method>": "<summary>", ... }`, then:
    ```bash
-   python .agents/skills/code-wiki/scripts/apply_descriptions.py --input <your_summaries.json>
-   python .agents/skills/code-wiki/scripts/archaeologist.py flow --src ./src   # rebuild to fold them in
+   python .agents/skills/code-archaeologist/scripts/apply_descriptions.py --input <your_summaries.json>
+   python .agents/skills/code-archaeologist/scripts/archaeologist.py flow --src ./src   # rebuild to fold them in
    ```
    Summaries are cached in `data/cache/descriptions.json` (keyed by source hash), so unchanged methods
    are never re-described. Deleted methods are pruned automatically.

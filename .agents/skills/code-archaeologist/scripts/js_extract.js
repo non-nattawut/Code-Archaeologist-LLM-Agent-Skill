@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * js_extract.js — JS/TS structure extractor for the code-wiki skill.
+ * js_extract.js — JS/TS structure extractor for the code-archaeologist skill.
  *
  * Parses .js/.jsx/.ts/.tsx files with @babel/parser and prints a normalized JSON
  * array (one entry per file) to stdout, so the Python pipeline can merge frontend
