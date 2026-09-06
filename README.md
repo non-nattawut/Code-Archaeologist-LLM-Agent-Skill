@@ -71,6 +71,10 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
   counts and grade per map, staleness, size, entry points, and the top longest / most complex /
   most churned / riskiest nodes. Fixed size regardless of repo size, so an agent can start every
   session with it instead of reading the full report.
+- **One-call context packs** (`context.py`) — everything known about a node in a single budgeted
+  block: facts, size and complexity, churn and owner, description, immediate callers and callees
+  *each with their own description*, and the risks attributed to it. `--diff` packs every node the
+  current changeset touches. Replaces "trace, then open five notes".
 - **Size & complexity** (`metrics.py`) — lines per file split into code / comment / blank plus
   the language mix, and for every Python node its LOC, cyclomatic complexity, nesting depth and
   parameter count. Node entries are **keyed like the graph nodes**, so "the longest and most
@@ -186,7 +190,8 @@ graphs and notes.
 3. Check freshness (`archaeologist.py check`) and rebuild if the source changed since last build,
    then orient with `archaeologist.py brief` rather than reading the full report.
 4. Query the graph first with `trace_path.py` to find the exact path or blast-radius.
-5. Read only the specific `data/structure/vault/<Entity>.md` notes on that path.
+5. Pull the whole picture for those nodes in one call with `context.py`, and read individual
+   `data/structure/vault/<Entity>.md` notes only when it needs more.
 6. Preserve `[[EntityName]]` wikilinks in answers so responses stay cross-navigable.
 7. For review questions ("is this healthy?", "where's the risk?", "what should we refactor
    first?"), run `archaeologist.py report` and answer from
@@ -221,6 +226,7 @@ templates, and the generated `data/` workspace.
 |   |-- report.py                 # all of the above -> report/<map>/architecture_report.*
 |   |   # --- query & render ---
 |   |-- trace_path.py             # BFS flow (--from/--to), impact (--impact-of[-diff])
+|   |-- context.py               # one budgeted pack per node (facts + neighbors + risks)
 |   `-- build_html.py             # graphs + reports -> data/explorer.html (both maps)
 |-- templates/
 |   |-- viewer.html               # the explorer page (HTML/CSS/JS, 2 placeholders)

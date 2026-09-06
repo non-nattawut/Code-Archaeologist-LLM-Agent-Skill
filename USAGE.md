@@ -57,6 +57,17 @@ python .agents/skills/code-archaeologist/scripts/trace_path.py \
   --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json --impact-of PaymentClient.charge
 ```
 
+## Everything about one node
+
+```bash
+# one budgeted pack: facts, size, churn, description, callers/callees with their
+# own descriptions, and the risks attributed to it
+python .agents/skills/code-archaeologist/scripts/context.py --node OrderService.place_order
+
+# every node the current diff touches, two hops out, in 8000 chars or less
+python .agents/skills/code-archaeologist/scripts/context.py --diff --depth 2 --max-chars 8000
+```
+
 ## Keep them honest
 
 Freshness, changeset impact, and the deterministic smell checks:

@@ -40,6 +40,8 @@ archaeologist.py  project | flow | both | check | report        <- the only entr
 - `metrics.py` is line counts per file plus LOC / cyclomatic complexity / nesting depth /
   parameter count per node, keyed like the graph nodes (Python only: `js_extract.js` records no
   end line yet). `report.py` derives `file_census` from it, so line counts have one definition.
+- `context.py` is the per-node pack: graph facts + metrics/security/insights for one node and its
+  neighbors, rendered under a hard `--max-chars` budget. Like `brief.py` it only reads artifacts.
 - `brief.py` is the fixed-size digest an agent should open a session with — it only reads what the
   other scripts wrote. Anything expensive belongs upstream of it, never inside it.
 - `report.py` joins all of it into `data/report/<map>/architecture_report.{md,json}` plus

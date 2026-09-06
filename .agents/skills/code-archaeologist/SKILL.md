@@ -56,21 +56,24 @@ Node.js would add the frontend half of the map (and the cross-stack `http` edges
    for "how does a request travel / what calls what / trace this execution".
 3. ALWAYS query the graph first with `trace_path.py` (point `--graph` at the right graph) to find
    the exact path or blast-radius.
-4. Read ONLY the specific Markdown notes for the nodes on the discovered path
-   (`data/structure/vault/<Entity>.md` for structure, `data/flow/notes/<Class.method>.md` for flow).
+4. Then pull the facts in ONE call with `context.py --node <id>` (Command 6) instead of opening
+   notes one at a time. Read individual notes
+   (`data/structure/vault/<Entity>.md`, `data/flow/notes/<Class.method>.md`) only when the pack is
+   not enough — and only for nodes on the discovered path.
 5. Always preserve `[[EntityName]]` / `[[Class.method]]` wikilinks so answers are cross-navigable.
 6. **Check freshness before trusting the maps.** Before answering a flow/impact question, run
-   `archaeologist.py check --src <roots>` (Command 6). If it reports `stale`, rebuild the relevant
+   `archaeologist.py check --src <roots>` (Command 8). If it reports `stale`, rebuild the relevant
    map first — see "Keeping the maps current" — so the graphs and HTML match the current code.
 7. For **review** questions ("is this codebase healthy?", "where is the risk?", "what should
-   we refactor first?"), run the report (Command 10) and answer from
-   `data/report/<map>/architecture_report.md` — still without reading raw source.
+   we refactor first?"), run the report (Command 13), then read the **brief** (Command 1) and
+   go to `data/report/<map>/architecture_report.md` only for the detail it points at — still
+   without reading raw source.
 
 ## Available Tool Commands
 
 > First build in this project? Run the **Setup preflight** above first.
 
-### 0. Orientation brief — start here
+### 1. Orientation brief — start here
 A fixed-size digest of whatever is already built: node/edge counts and grade per map, staleness,
 size, entry points, and the top few longest / most complex / most churned / riskiest nodes. It
 reads the artifacts, computes nothing, and costs the same on a 200-file repo as on a 5-file one —
@@ -82,13 +85,13 @@ python .agents/skills/code-archaeologist/scripts/archaeologist.py brief --src ./
 gets, `--json` emits the same digest for tooling. Read the full report only when the brief points
 you at something you need the detail for.
 
-### 1. Build the Project Structure map
+### 2. Build the Project Structure map
 Which classes reference/import which → `graph.json`, `vault/` (+ `explorer.html`):
 ```bash
 python .agents/skills/code-archaeologist/scripts/archaeologist.py project --src ./src
 ```
 
-### 2. Build the Flow / Request-Flow map
+### 3. Build the Flow / Request-Flow map
 Method-level call graph → `flow/flow_graph.json`, `flow/notes/` (+ `explorer.html`):
 ```bash
 python .agents/skills/code-archaeologist/scripts/archaeologist.py flow --src ./src
@@ -113,7 +116,7 @@ python .agents/skills/code-archaeologist/scripts/trace_path.py \
   --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json --from submitOrder --to OrderRepository.save
 ```
 
-### 3. Trace Execution Flow
+### 4. Trace Execution Flow
 Find the path connecting two components. Structure uses the default graph; flow needs `--graph`:
 ```bash
 # structure (class -> class)
@@ -126,7 +129,7 @@ python .agents/skills/code-archaeologist/scripts/trace_path.py \
 ```
 Add `--all` to enumerate every path.
 
-### 4. Blast-Radius / Impact Analysis
+### 5. Blast-Radius / Impact Analysis
 All upstream callers affected if a class or method changes:
 ```bash
 # class-level
@@ -149,7 +152,20 @@ python .agents/skills/code-archaeologist/scripts/trace_path.py --impact-of-diff 
 ```
 Reports `changed_nodes` (nodes in the edited files) and `impacted` (everything upstream of them).
 
-### 5. Regenerate / Refresh the HTML explorer
+### 6. Context pack for a node (one call, budgeted)
+Everything known about a node, assembled from the artifacts: kind/layer/source, size and
+complexity, churn and owner, its description, its immediate callers and callees *each with their
+own one-line description*, and the risk findings attributed to it. This replaces "trace, then open
+five notes":
+```bash
+python .agents/skills/code-archaeologist/scripts/context.py --node OrderService.place_order
+python .agents/skills/code-archaeologist/scripts/context.py --node A B --depth 2 --max-chars 8000
+python .agents/skills/code-archaeologist/scripts/context.py --diff        # every node the diff touches
+```
+`--max-chars` (default 6000) is a hard budget: neighbor lists shrink until the pack fits, and it
+says when it trimmed. `--graph` selects the map (default: flow). `--format json` for tooling.
+
+### 7. Regenerate / Refresh the HTML explorer
 `archaeologist.py` regenerates `data/explorer.html` automatically. To rebuild it alone (it picks
 up both maps and both reports from the standard paths):
 ```bash
@@ -164,14 +180,14 @@ git ownership, sibling functions with internal/external call counts, risk findin
 report still renders — just without the grade, churn/risk colors and the two review tabs. The page
 itself lives in `templates/viewer.html`, so it can be restyled without touching Python.
 
-### 6. Check freshness (are the maps stale?)
+### 8. Check freshness (are the maps stale?)
 Before trusting a trace/impact answer, confirm the maps match the current source. Returns
 `{stale, changed, added, deleted}` — tiny and deterministic. Rebuild if `stale` is true:
 ```bash
 python .agents/skills/code-archaeologist/scripts/archaeologist.py check --src ./src
 ```
 
-### 7. Architectural smell report & health grade
+### 9. Architectural smell report & health grade
 Deterministic checks over a graph — circular dependencies, orphan/dead nodes (no callers, not an
 entry point), backwards layer violations (e.g. a repository calling a controller), high-coupling
 hubs, god objects, name-based idioms (singleton/factory/observer/React hook), and a 0-100 health
@@ -183,7 +199,7 @@ python .agents/skills/code-archaeologist/scripts/analyze.py
 python .agents/skills/code-archaeologist/scripts/analyze.py --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json
 ```
 
-### 8. Risk / security scan
+### 10. Risk / security scan
 Deterministic line scan for hardcoded secrets, interpolated SQL, `eval`/`innerHTML` sinks and
 leftover debug statements. Each finding names the graph node that owns the line, so it can be
 traced and blast-radiused like anything else (tests/fixtures/docs are skipped, secrets redacted):
@@ -193,7 +209,7 @@ python .agents/skills/code-archaeologist/scripts/scan_security.py --src ./src
 Add `--graph <flow_graph.json>` to attribute findings to method nodes instead of classes, or
 `--out <file.json>` to save the report.
 
-### 9. Churn, ownership & hotspots (git)
+### 11. Churn, ownership & hotspots (git)
 Joins git history onto the graph: commits per file, top author per file, and a hotspot ranking
 where `risk = commits x (1 + fan_in + fan_out)` — code that changes often *and* has many callers:
 ```bash
@@ -201,7 +217,7 @@ python .agents/skills/code-archaeologist/scripts/git_insights.py --src ./src --t
 ```
 Outside a git repo it returns empty data with a note instead of failing.
 
-### 10. Size & complexity (lines of code)
+### 12. Size & complexity (lines of code)
 Line counts per file (total / code / comment / blank + language mix) and, for Python nodes,
 LOC, cyclomatic complexity, nesting depth and parameter count — keyed by the same node ids the
 graphs use, so "how long / how tangled is `OrderService.place_order`" is answered without
@@ -211,9 +227,9 @@ python .agents/skills/code-archaeologist/scripts/metrics.py --src ./src --top 10
 python .agents/skills/code-archaeologist/scripts/metrics.py --src ./src --out <path>.json
 ```
 Pass `--graph <graph.json>` to rank only that map's nodes (methods for flow, classes for
-structure). Report command 11 runs this for you and writes `data/report/<map>/metrics.json`.
+structure). The full report command below runs this for you and writes `data/report/<map>/metrics.json`.
 
-### 11. Full architecture report
+### 13. Full architecture report
 One review pass per built map — census, health grade, smells, anti-patterns, risk findings and
 hotspots, plus size and complexity — written to `data/report/<map>/architecture_report.md`
 (+ `.json`, `security.json`, `insights.json`, `metrics.json`; `<map>` is `structure` or `flow`). It also re-renders `data/explorer.html` with
