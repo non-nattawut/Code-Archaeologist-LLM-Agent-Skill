@@ -220,10 +220,10 @@ async function main() {
 
   if (opts.selfTest) {
     console.log("Running self-test on bundled sample_src/ ...");
+    // Exercise the real entrypoint end to end: both maps, then the review pass.
     const steps = [
-      ["scripts/build_wiki.py", "--src", SAMPLE_SRC],
-      ["scripts/build_graph.py"],
-      ["scripts/build_html.py"],
+      ["scripts/archaeologist.py", "both", "--src", SAMPLE_SRC],
+      ["scripts/archaeologist.py", "report", "--src", SAMPLE_SRC],
     ];
     for (const [script, ...args] of steps) {
       const r = spawnSync(py.exe, [path.join(dest, script), ...args], { stdio: "inherit" });
@@ -237,9 +237,9 @@ async function main() {
   }
 
   console.log("Next steps (from your project root):");
-  console.log(`  ${py.exe} ${relPosix}/scripts/build_wiki.py --src ./src`);
-  console.log(`  ${py.exe} ${relPosix}/scripts/build_graph.py`);
-  console.log(`  ${py.exe} ${relPosix}/scripts/build_html.py`);
+  console.log(`  ${py.exe} ${relPosix}/scripts/archaeologist.py both   --src ./src   # build both maps`);
+  console.log(`  ${py.exe} ${relPosix}/scripts/archaeologist.py report --src ./src   # grade, risks, hotspots`);
+  console.log(`  open ${relPosix}/data/explorer.html`);
   console.log("\nBackend (Python) needs no dependencies. To also parse frontend (JS/TS), run:");
   console.log(`  cd ${relPosix} && npm install`);
   console.log("Tip: add --self-test to build the bundled demo now.");

@@ -52,13 +52,13 @@ Both maps share ONE viewer, `data/explorer.html`, switched from its header.
 
 ## Available Tool Commands
 
-### 1. Build the Project Structure map  (`/archaeologist-project-structure`)
+### 1. Build the Project Structure map
 Which classes reference/import which → `graph.json`, `vault/` (+ `explorer.html`):
 ```bash
 python .agents/skills/code-archaeologist/scripts/archaeologist.py project --src ./src
 ```
 
-### 2. Build the Flow / Request-Flow map  (`/archaeologist-flow-structure`)
+### 2. Build the Flow / Request-Flow map
 Method-level call graph → `flow/flow_graph.json`, `flow/notes/` (+ `explorer.html`):
 ```bash
 python .agents/skills/code-archaeologist/scripts/archaeologist.py flow --src ./src
@@ -160,6 +160,8 @@ traced and blast-radiused like anything else (tests/fixtures/docs are skipped, s
 ```bash
 python .agents/skills/code-archaeologist/scripts/scan_security.py --src ./src
 ```
+Add `--graph <flow_graph.json>` to attribute findings to method nodes instead of classes, or
+`--out <file.json>` to save the report.
 
 ### 9. Churn, ownership & hotspots (git)
 Joins git history onto the graph: commits per file, top author per file, and a hotspot ranking
@@ -167,8 +169,9 @@ where `risk = commits x (1 + fan_in + fan_out)` — code that changes often *and
 ```bash
 python .agents/skills/code-archaeologist/scripts/git_insights.py --src ./src --top 10
 ```
+Outside a git repo it returns empty data with a note instead of failing.
 
-### 10. Full architecture report  (`/archaeologist-report`)
+### 10. Full architecture report
 One review pass per built map — census, health grade, smells, anti-patterns, risk findings and
 hotspots — written to `data/report/<map>/architecture_report.md` (+ `.json`, `security.json`,
 `insights.json`; `<map>` is `structure` or `flow`). It also re-renders `data/explorer.html` with
@@ -209,12 +212,14 @@ After any code add/change/delete, refresh a map:
 - Zero external dependencies for the **Python** pipeline (stdlib only). **Frontend** parsing is the
   one exception: it needs Node + `@babel/parser`. The generated HTML loads `force-graph` from a CDN.
 - Backend is parsed deterministically via the stdlib `ast` module; frontend via `@babel/parser`.
-- Field values (`kind`, `layer`, `lang`, `desc_source`) come from `scripts/taxonomy.py`; see
-  `templates/TAXONOMY.md` for the allowed set. Keep them consistent by editing the taxonomy, not
+- Field values (`kind`, `layer`, `lang`, `desc_source`, plus the review-pass `severity`/`rule`/
+  `grade` sets) come from `scripts/taxonomy.py` and `scripts/scan_security.py`; see
+  `templates/TAXONOMY.md` for the allowed values. Keep them consistent by editing those, not
   individual pages.
 - Flow call resolution is heuristic (no full type inference): it resolves `self.<dep>.m()` via
-  `__init__` type hints/assignments, typed params/locals, and same-class `self.m()` calls;
-  unresolved external/stdlib calls are dropped to keep the graph readable.
-- `describe()` in `build_flow.py` is the marked hook where an LLM can later generate richer
-  method summaries.
+  `__init__` type hints/assignments, typed params/locals, and same-class `self.m()` calls.
+  Calls that stay unresolved (libraries, stdlib) become no edge — they are counted per node as
+  `ext`, which the explorer shows as "N ext" next to "N int".
+- `resolve_descriptions()` in `build_flow.py` is where descriptions are chosen (docstring → cached
+  AI summary → `_auto_summary()` fallback); that is the hook for richer summaries.
 - All scripts resolve paths relative to the skill root, so they work from any working directory.

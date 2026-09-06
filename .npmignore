@@ -2,6 +2,10 @@
 node_modules
 **/node_modules
 
+# Python bytecode from running the scripts locally.
+__pycache__
+**/__pycache__
+
 # Generated demo artifacts don't need to ship in the installer package.
 **/code-archaeologist/data/cache/pending_descriptions.json
 **/code-archaeologist/data/cache/manifest.json

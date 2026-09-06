@@ -5,7 +5,7 @@ Reference for every `{{placeholder}}` written into a generated page, so values s
 truth is `scripts/taxonomy.py` (do not hand-edit generated pages to values outside these
 sets — change the taxonomy instead).
 
-## Structure pages (`data/vault/<Entity>.md`, from `wiki_page_template.md`)
+## Structure pages (`data/structure/vault/<Entity>.md`, from `wiki_page_template.md`)
 
 | Field | Allowed values | Meaning |
 | --- | --- | --- |
@@ -16,7 +16,7 @@ sets — change the taxonomy instead).
 | `{{summary}}` | free text | Docstring / description. |
 | `{{bases}}`, `{{decorators}}`, `{{methods}}`, `{{references}}` | lists | `[[wikilinks]]` where the target is a known entity, else inline code. |
 
-## Flow pages (`data/flow/<Class.method>.md`, from `build_flow.py`)
+## Flow pages (`data/flow/notes/<Class.method>.md`, from `build_flow.py`)
 
 | Field | Allowed values | Meaning |
 | --- | --- | --- |
@@ -25,8 +25,16 @@ sets — change the taxonomy instead).
 | `layer` | same set as above | Role of the owning class/file. |
 | `lang` | `py`, `js` | Source language (Python backend vs JS/TS frontend). |
 | `desc_source` | `docstring`, `ai`, `auto` | Where "What it does" came from (see hybrid descriptions). |
+| `class` | class name | Owning class (absent for module-level functions). |
 | `source` | `<area>/<path>:<line>` | Location. |
-| `ext` | integer | Call sites that leave the graph (library/stdlib), shown as `N ext` in the viewer. |
+
+Graph-only node fields (in `flow_graph.json`, not written into the pages):
+
+| Field | Allowed values | Meaning |
+| --- | --- | --- |
+| `ext` | integer | Call sites that leave the graph (library/stdlib); the explorer shows `N ext`. |
+| `route` | `{method, path}` | Route handled by this node (endpoints only). |
+| `http` | list of `{method, url}` | Frontend HTTP calls, used for cross-stack `http` edges. |
 
 ## Edge `type` (in graph.json / flow_graph.json)
 

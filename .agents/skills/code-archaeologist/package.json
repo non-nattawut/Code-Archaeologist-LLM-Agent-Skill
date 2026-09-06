@@ -2,7 +2,7 @@
   "name": "code-archaeologist-skill",
   "version": "0.1.0",
   "private": true,
-  "description": "Frontend (JS/TS) parser dependency for the Code Archaeologist code-archaeologist skill. Run `npm install` here to enable JS/TS parsing; the Python backend pipeline needs none of this.",
+  "description": "Frontend (JS/TS) parser dependency for the Code Archaeologist skill. Run `npm install` here to enable JS/TS parsing; the Python pipeline needs none of this.",
   "dependencies": {
     "@babel/parser": "^7.24.0"
   }
