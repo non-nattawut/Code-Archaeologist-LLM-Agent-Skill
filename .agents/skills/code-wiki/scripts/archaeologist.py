@@ -37,8 +37,20 @@ DATA_DIR = os.path.join(SKILL_ROOT, "data")
 STRUCTURE_DIR = os.path.join(DATA_DIR, "structure")
 FLOW_DIR = os.path.join(DATA_DIR, "flow")
 REPORT_DIR = os.path.join(DATA_DIR, "report")
-INSIGHTS_JSON = os.path.join(REPORT_DIR, "insights.json")
-SECURITY_JSON = os.path.join(REPORT_DIR, "security.json")
+# One report per map, because node ids (and therefore every finding, hotspot and
+# census figure) belong to one graph or the other.
+MAPS = {
+    "structure": (os.path.join(STRUCTURE_DIR, "graph.json"),
+                  os.path.join(STRUCTURE_DIR, "graph.html"),
+                  "Code Archaeologist — Project Structure"),
+    "flow": (os.path.join(FLOW_DIR, "flow_graph.json"),
+             os.path.join(FLOW_DIR, "flow.html"),
+             "Code Archaeologist — Request Flow"),
+}
+
+
+def report_json(map_name: str) -> str:
+    return os.path.join(REPORT_DIR, map_name, "architecture_report.json")
 
 sys.path.insert(0, SCRIPT_DIR)
 import build_wiki      # noqa: E402
@@ -57,12 +69,7 @@ def run_project(src) -> int:
     rc = build_graph.build(os.path.join(STRUCTURE_DIR, "vault"), STRUCTURE_DIR)
     if rc:
         return rc
-    return build_html.build(
-        os.path.join(STRUCTURE_DIR, "graph.json"),
-        os.path.join(STRUCTURE_DIR, "graph.html"),
-        "Code Archaeologist — Project Structure",
-        INSIGHTS_JSON, SECURITY_JSON,
-    )
+    return build_html.build(*MAPS["structure"], report_json("structure"))
 
 
 def run_flow(src) -> int:
@@ -70,31 +77,22 @@ def run_flow(src) -> int:
     rc = build_flow.build(src, os.path.join(FLOW_DIR, "notes"), os.path.join(FLOW_DIR, "flow_graph.json"))
     if rc:
         return rc
-    return build_html.build(
-        os.path.join(FLOW_DIR, "flow_graph.json"),
-        os.path.join(FLOW_DIR, "flow.html"),
-        "Code Archaeologist — Request Flow",
-        INSIGHTS_JSON, SECURITY_JSON,
-    )
+    return build_html.build(*MAPS["flow"], report_json("flow"))
 
 
 def run_report(src) -> int:
-    """Review pass over an already-built map: smells + grade + risks + hotspots,
-    then re-embed the fresh churn/risk data in the viewers."""
+    """Review pass over every built map: smells + grade + risks + hotspots per map,
+    then re-render each viewer with its own report embedded."""
     print("== Architecture report ==")
-    flow_graph = os.path.join(FLOW_DIR, "flow_graph.json")
-    graph = flow_graph if os.path.isfile(flow_graph) else os.path.join(STRUCTURE_DIR, "graph.json")
-    if not os.path.isfile(graph):
+    built = [name for name, (graph, _, _) in MAPS.items() if os.path.isfile(graph)]
+    if not built:
         print("error: no map found — run `project` or `flow` first.", file=sys.stderr)
         return 1
-    report.build(src, graph, REPORT_DIR)
-    if os.path.isfile(os.path.join(STRUCTURE_DIR, "graph.json")):
-        build_html.build(os.path.join(STRUCTURE_DIR, "graph.json"),
-                         os.path.join(STRUCTURE_DIR, "graph.html"),
-                         "Code Archaeologist — Project Structure", INSIGHTS_JSON, SECURITY_JSON)
-    if os.path.isfile(flow_graph):
-        build_html.build(flow_graph, os.path.join(FLOW_DIR, "flow.html"),
-                         "Code Archaeologist — Request Flow", INSIGHTS_JSON, SECURITY_JSON)
+    for name in built:
+        graph, out_html, title = MAPS[name]
+        print(f"-- {name} map --")
+        report.build(src, graph, os.path.join(REPORT_DIR, name))
+        build_html.build(graph, out_html, title, report_json(name))
     return 0
 
 

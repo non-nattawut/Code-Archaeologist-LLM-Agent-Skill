@@ -26,6 +26,7 @@ sets — change the taxonomy instead).
 | `lang` | `py`, `js` | Source language (Python backend vs JS/TS frontend). |
 | `desc_source` | `docstring`, `ai`, `auto` | Where "What it does" came from (see hybrid descriptions). |
 | `source` | `<area>/<path>:<line>` | Location. |
+| `ext` | integer | Call sites that leave the graph (library/stdlib), shown as `N ext` in the viewer. |
 
 ## Edge `type` (in graph.json / flow_graph.json)
 

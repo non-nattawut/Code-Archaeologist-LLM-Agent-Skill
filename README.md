@@ -71,21 +71,29 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
   per file, the top author per file, and a **hotspot ranking** (`risk = commits x (1 + fan_in +
   fan_out)`): the code that changes most *and* has the most callers. Degrades to empty data outside
   a git repo.
-- **One-shot architecture report** (`archaeologist.py report`) — census, health grade, smells,
-  anti-patterns, risk findings and hotspots joined into
-  `data/report/architecture_report.md` (plus `.json`, `security.json`, `insights.json`) — a review
-  artifact you can paste into a PR, and the cheapest way for an agent to answer "how healthy is
-  this codebase?".
-- **Standalone shareable visualizer** — generates a single self-contained HTML file with the data
-  embedded inline; open via `file://`, commit it, or email it. Full-screen dark canvas with search
-  (`/`), a legend that follows the color mode, and a **slide-in detail panel**: click any node to
-  see what that method/class does, its signature, source file, churn/owner, risk findings,
-  blast-radius counts, and clickable callers/callees. Plus:
-  - **color modes** — by layer, by folder, by churn, or by risk (after a `report` run),
-  - **blast-radius mode** — highlight the whole transitive impact of the selected node, not just
-    its neighbors,
-  - **risk markers** — nodes carrying security findings get a red/amber ring.
-  Hand-editable colors.
+- **One-shot architecture report** (`archaeologist.py report`) — census (files, lines, language
+  mix), health grade, smells, anti-patterns, risk findings and hotspots joined into
+  `data/report/<map>/architecture_report.md` (plus `.json`, `security.json`, `insights.json`, one
+  set per map) — a review artifact you can paste into a PR, the data behind the explorer's panels,
+  and the cheapest way for an agent to answer "how healthy is this codebase?".
+- **Standalone code explorer (single HTML file)** — everything embedded inline; open via `file://`,
+  commit it, or email it. No server, no repo access, works offline. It's a three-pane IDE-style UI:
+  - **Left** — A–F **health ring**, color-by selector (layer / folder / churn / risk), stat tiles
+    (files, functions, links, unused), **lines of code + language mix**, and a **file explorer
+    tree** that filters the canvas (with per-file risk counts).
+  - **Center** — seven views of the same graph: **Graph** (force), **Treemap** (folders → files by
+    size), **Matrix** (adjacency), **Tree** (top-down DAG), **Flow** (left-right DAG), **Cluster**
+    (grouped by folder), **Bundle** (radial). Plus **folder hulls** with path labels, a
+    **blast-radius toggle** (transitive impact, not just neighbors), zoom/fit controls, **PNG
+    export**, and a status bar (files · nodes · links · affected).
+  - **Right** — **FILE / PATTERNS / SECURITY** tabs. FILE shows what the node does, its signature
+    and source, **blast radius** (severity badge, impact bar, affected list, propagation depth),
+    **connections**, **git ownership** (owner, contributors, last change), **functions in the file**
+    with internal/external call counts, and its risk findings. PATTERNS lists cycles, layer
+    violations, hubs, god objects, dead nodes and idioms; SECURITY lists findings by severity —
+    both click straight through into FILE (with a "← Back to Issues" link).
+  - Risky nodes get a red/amber ring; the page layout lives in `templates/viewer.html`, so it can
+    be restyled without touching Python.
 - **Layer inference** — auto-classifies entities (controller / service / repository / model /
   client / config) for architectural coloring.
 - **Zero external dependencies** — pure Python 3.10+ standard library. No `pip install`, no
@@ -192,8 +200,9 @@ python .agents/skills/code-wiki/scripts/analyze.py \
 Then review the whole codebase in one shot — grade, risks and hotspots — with `report`:
 
 ```bash
-# writes data/report/architecture_report.md (+ .json, security.json, insights.json)
-# and re-renders the viewers with churn/risk color modes and risk markers
+# writes data/report/<map>/architecture_report.md (+ .json, security.json, insights.json)
+# and re-renders each viewer with its report: health ring, churn/risk colors,
+# ownership, and the Patterns/Security tabs
 python .agents/skills/code-wiki/scripts/archaeologist.py report --src ./src
 ```
 
@@ -234,7 +243,7 @@ The agent then reads only the notes on that path — e.g.
 `OrderRepository.save.md` — not the whole repo.
 
 The review pass over the same sample (the demo sources carry three deliberate smells) produces
-`data/report/architecture_report.md`:
+`data/report/flow/architecture_report.md` and its structure-map twin:
 
 ```console
 $ archaeologist.py report --src ./sample_src
@@ -261,54 +270,51 @@ demo output, committed so you can read a real example before running anything.
 4. Read only the specific `data/structure/vault/<Entity>.md` notes on that path.
 5. Preserve `[[EntityName]]` wikilinks in answers so responses stay cross-navigable.
 6. For review questions ("is this healthy?", "where's the risk?", "what should we refactor
-   first?"), run `archaeologist.py report` and answer from `data/report/architecture_report.md`.
+   first?"), run `archaeologist.py report` and answer from
+   `data/report/<map>/architecture_report.md`.
 
 ## Project structure
 
+The skill is one folder: instructions (`SKILL.md`), scripts grouped by role, the page/notes
+templates, and the generated `data/` workspace.
+
 ```
 .agents/skills/code-wiki/
-├── SKILL.md                     # Agent instructions & tool specs
-├── scripts/
-│   ├── archaeologist.py         # entrypoint: `project` | `flow` | `both` | `check` | `report`
-│   ├── taxonomy.py              # allowed kind/layer values (single source of truth)
-│   ├── build_wiki.py            # AST scan  -> structure/vault/*.md (structure, [[wikilinks]])
-│   ├── build_graph.py           # vault     -> structure/graph.json + registry.json
-│   ├── build_flow.py            # AST + JS calls -> flow/flow_graph.json + flow/notes/*.md
-│   ├── js_extract.js            # Node/@babel JS/TS extractor (frontend)
-│   ├── js_bridge.py             # runs js_extract.js from Python (graceful fallback)
-│   ├── apply_descriptions.py    # cache agent-written method summaries (by source hash)
-│   ├── manifest.py              # source-freshness snapshot powering `check`
-│   ├── analyze.py               # smells + anti-patterns + health grade (A-F)
-│   ├── scan_security.py         # risk scan -> findings attributed to graph nodes
-│   ├── git_insights.py          # git churn/ownership -> hotspot ranking
-│   ├── report.py                # everything above -> report/architecture_report.md
-│   ├── trace_path.py            # BFS flow (--from/--to), impact (--impact-of[-diff]), any graph
-│   └── build_html.py            # <graph>.json -> standalone shareable HTML viewer
-├── data/
-│   ├── structure/               # structure map
-│   │   ├── graph.json           #   nodes & edges
-│   │   ├── registry.json        #   entity -> vault path
-│   │   ├── graph.html           #   standalone viewer
-│   │   └── vault/               #   notes (one per class)
-│   ├── flow/                    # flow map
-│   │   ├── flow_graph.json      #   method nodes & call edges (Python + JS)
-│   │   ├── flow.html            #   standalone viewer
-│   │   └── notes/               #   notes (one per method)
-│   ├── report/                  # review pass
-│   │   ├── architecture_report.md    # the human-readable report
-│   │   ├── architecture_report.json  # the same data for tools
-│   │   ├── security.json        #   risk findings (node-attributed)
-│   │   └── insights.json        #   churn, ownership, hotspot ranking
-│   └── cache/                   # internal build state
-│       ├── descriptions.json    #   cached AI summaries (keyed by method source hash)
-│       ├── pending_descriptions.json  # methods awaiting an AI summary (transient)
-│       └── manifest.json        #   source hashes for staleness detection
-└── templates/
-    ├── wiki_page_template.md    # page structure for generated entities
-    └── TAXONOMY.md              # allowed values for each template field
-bin/cli.js                       # npx installer (node, zero deps)
-package.json                     # npm package metadata
-sample_src/backend + frontend    # monorepo demo (Python API + TS client)
+|-- SKILL.md                      # agent instructions & tool specs
+|-- scripts/
+|   |-- archaeologist.py          # entrypoint: project | flow | both | check | report
+|   |-- taxonomy.py               # allowed kind/layer values (single source of truth)
+|   |   # --- extract (source -> graphs & notes) ---
+|   |-- build_wiki.py             # AST scan      -> structure/vault/*.md ([[wikilinks]])
+|   |-- build_graph.py            # vault         -> structure/graph.json + registry.json
+|   |-- build_flow.py             # AST + JS calls-> flow/flow_graph.json + flow/notes/*.md
+|   |-- js_extract.js             # Node/@babel JS/TS extractor (frontend)
+|   |-- js_bridge.py              # runs js_extract.js from Python (graceful fallback)
+|   |-- apply_descriptions.py     # cache agent-written method summaries (by source hash)
+|   |-- manifest.py               # source-freshness snapshot powering `check`
+|   |   # --- review (graphs -> findings) ---
+|   |-- analyze.py                # smells, anti-patterns, idioms, A-F health grade
+|   |-- scan_security.py          # risk scan -> findings attributed to graph nodes
+|   |-- git_insights.py           # git churn/ownership -> hotspot ranking
+|   |-- report.py                 # all of the above -> report/<map>/architecture_report.*
+|   |   # --- query & render ---
+|   |-- trace_path.py             # BFS flow (--from/--to), impact (--impact-of[-diff])
+|   `-- build_html.py             # graph + report -> standalone HTML explorer
+|-- templates/
+|   |-- viewer.html               # the explorer page (HTML/CSS/JS, 3 placeholders)
+|   |-- wiki_page_template.md     # page structure for generated entities
+|   `-- TAXONOMY.md               # allowed values for each field
+`-- data/
+    |-- structure/                # structure map: graph.json, registry.json, graph.html, vault/
+    |-- flow/                     # flow map: flow_graph.json, flow.html, notes/
+    |-- report/
+    |   |-- structure/            # report for the structure map
+    |   `-- flow/                 #   architecture_report.md/.json, security.json, insights.json
+    `-- cache/                    # descriptions.json, pending_descriptions.json, manifest.json
+
+bin/cli.js                        # npx installer (node, zero deps)
+package.json                      # npm package metadata
+sample_src/backend + frontend     # monorepo demo (Python API + TS client)
 ```
 
 ## Roadmap

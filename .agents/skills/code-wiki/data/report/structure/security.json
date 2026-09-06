@@ -1,0 +1,56 @@
+{
+  "findings": [
+    {
+      "rule": "sql_injection",
+      "severity": "high",
+      "message": "SQL statement built by string interpolation",
+      "file": "sample_src/backend/order_repository.py",
+      "line": 14,
+      "node": "OrderRepository",
+      "snippet": "return self.cursor.execute(f\"SELECT * FROM orders WHERE id = {order_id}\")"
+    },
+    {
+      "rule": "hardcoded_secret",
+      "severity": "high",
+      "message": "Credential assigned to a literal value",
+      "file": "sample_src/backend/payment_client.py",
+      "line": 5,
+      "node": "PaymentClient",
+      "snippet": "GATEWAY_API_KEY = \"sk_...redacted\""
+    },
+    {
+      "rule": "dangerous_eval",
+      "severity": "medium",
+      "message": "Raw HTML injection sink",
+      "file": "sample_src/frontend/order_page.ts",
+      "line": 11,
+      "node": null,
+      "snippet": "document.getElementById(\"order\").innerHTML = JSON.stringify(order);"
+    },
+    {
+      "rule": "debug_statement",
+      "severity": "low",
+      "message": "Debug statement left in the code",
+      "file": "sample_src/backend/payment_client.py",
+      "line": 13,
+      "node": "PaymentClient",
+      "snippet": "print(\"charging\", payload)  # demo smell: debug statement left behind"
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "by_severity": {
+      "high": 2,
+      "medium": 1,
+      "low": 1
+    },
+    "by_rule": {
+      "sql_injection": 1,
+      "hardcoded_secret": 1,
+      "dangerous_eval": 1,
+      "debug_statement": 1
+    },
+    "files_scanned": 6,
+    "files_skipped": 0
+  }
+}

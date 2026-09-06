@@ -41,6 +41,34 @@ TOP_HOTSPOTS = 10
 TOP_ORPHANS = 15
 
 
+EXT_LANG = {".py": "py", ".js": "js", ".jsx": "jsx", ".ts": "ts", ".tsx": "tsx"}
+
+
+def file_census(roots) -> dict:
+    """Per-file line counts and the language mix — the "140,108 lines of code" panel."""
+    files: dict[str, dict] = {}
+    for full, key in scan_security.iter_source_files(roots):
+        try:
+            with open(full, "r", encoding="utf-8", errors="replace") as fh:
+                lines = sum(1 for _ in fh)
+        except OSError:
+            continue
+        files[key] = {"lines": lines, "lang": EXT_LANG.get(os.path.splitext(key)[1].lower(), "other")}
+
+    by_lang: dict[str, int] = {}
+    for f in files.values():
+        by_lang[f["lang"]] = by_lang.get(f["lang"], 0) + f["lines"]
+    loc = sum(by_lang.values())
+    return {
+        "files": dict(sorted(files.items())),
+        "file_count": len(files),
+        "loc": loc,
+        "languages": dict(sorted(by_lang.items(), key=lambda kv: -kv[1])),
+        "language_pct": {k: round(100 * v / loc, 1) if loc else 0.0 for k, v in
+                         sorted(by_lang.items(), key=lambda kv: -kv[1])},
+    }
+
+
 def census(graph: dict) -> dict:
     nodes = graph.get("nodes", [])
     layers, langs, kinds = {}, {}, {}
@@ -85,6 +113,7 @@ def _counts(mapping: dict) -> str:
 def to_markdown(data: dict) -> str:
     stats, smells, security, insights = (data["census"], data["analysis"],
                                          data["security"], data["insights"])
+    files = data["files"]
     h = smells["health"]
     lines = [
         f"# Architecture report — {os.path.basename(data['graph'])}",
@@ -103,6 +132,8 @@ def to_markdown(data: dict) -> str:
         "",
         "## Census",
         "",
+        f"- Source: {files['file_count']} file(s), {files['loc']:,} lines "
+        f"({', '.join(f'{k} {v}%' for k, v in files['language_pct'].items()) or 'n/a'})",
         f"- Layers: {_counts(stats['layers'])}",
         f"- Kinds: {_counts(stats['kinds'])}",
         f"- Languages: {_counts(stats['langs'])}",
@@ -177,7 +208,7 @@ def build(src, graph_path: str = DEFAULT_GRAPH, out_dir: str = DEFAULT_OUT_DIR) 
     data = {
         "graph": os.path.relpath(graph_path, SKILL_ROOT).replace("\\", "/"),
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
-        "census": census(graph), "analysis": analysis,
+        "census": census(graph), "files": file_census(src), "analysis": analysis,
         "security": security, "insights": insights,
     }
 

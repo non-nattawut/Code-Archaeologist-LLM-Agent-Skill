@@ -134,9 +134,12 @@ def build(roots, graph_path: str = DEFAULT_GRAPH) -> dict:
         stats = files.get(git_path, {}) if git_path else {}
         commits = stats.get("commits", 0)
         fin, fout = fan_in.get(nid, 0), fan_out.get(nid, 0)
+        authors = stats.get("authors", {})
         nodes[nid] = {
             "file": git_path or file_key, "commits": commits, "owner": stats.get("owner"),
-            "last_commit": stats.get("last_commit"), "fan_in": fin, "fan_out": fout,
+            "authors": dict(list(authors.items())[:3]),  # top 3, already sorted by commits
+            "last_commit": stats.get("last_commit"), "first_commit": stats.get("first_commit"),
+            "fan_in": fin, "fan_out": fout,
             "risk": commits * (1 + fin + fout),
         }
 

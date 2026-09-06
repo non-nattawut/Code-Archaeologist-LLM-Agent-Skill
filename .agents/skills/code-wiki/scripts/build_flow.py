@@ -284,7 +284,9 @@ def analyze(roots: list[str]):
     # --- Pass 2: resolve Python call edges ---  (edges carry a type)
     edges: set[tuple[str, str, str]] = set()
     for caller_id, cls_ctx, ctx, fn in pending:
-        for target in _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes):
+        targets, external = _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes)
+        methods[caller_id]["ext"] = external
+        for target in targets:
             if target != caller_id:
                 edges.add((caller_id, target, "calls"))
 
@@ -350,6 +352,7 @@ def _analyze_js(roots: list[str]):
 
     edges: set[tuple[str, str]] = set()
     for owner, calls in raw_calls:
+        methods[owner]["ext"] = sum(1 for name in calls if name not in func_nodes)
         for name in calls:
             if name in func_nodes and name != owner:
                 edges.add((owner, name))
@@ -373,9 +376,11 @@ def _local_types(fn, seed: dict[str, str]) -> dict[str, str]:
     return types
 
 
-def _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes) -> set[str]:
+def _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes) -> tuple[set[str], int]:
+    """Returns (in-graph call targets, number of call sites that stayed external)."""
     attr_types, local_types = ctx["attr_types"], ctx["local_types"]
     found: set[str] = set()
+    sites = 0
 
     def exists(cls_name, method):
         return cls_name in class_methods and method in class_methods[cls_name]
@@ -383,6 +388,7 @@ def _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes) -> set[
     for node in ast.walk(fn):
         if not isinstance(node, ast.Call):
             continue
+        target = None
         func = node.func
         if isinstance(func, ast.Attribute):
             method = func.attr
@@ -391,21 +397,25 @@ def _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes) -> set[
             if _is_self_attr(base):
                 cls_name = attr_types.get(base.attr)
                 if cls_name and exists(cls_name, method):
-                    found.add(f"{cls_name}.{method}")
+                    target = f"{cls_name}.{method}"
             # self.method()
             elif isinstance(base, ast.Name) and base.id == "self" and cls_ctx:
                 if exists(cls_ctx, method):
-                    found.add(f"{cls_ctx}.{method}")
+                    target = f"{cls_ctx}.{method}"
             # <var>.method()  where var is a typed param/local
             elif isinstance(base, ast.Name) and base.id in local_types:
                 cls_name = local_types[base.id]
                 if exists(cls_name, method):
-                    found.add(f"{cls_name}.{method}")
+                    target = f"{cls_name}.{method}"
         elif isinstance(func, ast.Name):
             # bare function call to a known module function
             if func.id in func_nodes:
-                found.add(func_nodes[func.id])
-    return found
+                target = func_nodes[func.id]
+        if target:
+            found.add(target)
+        else:
+            sites += 1  # library / stdlib / unresolved: kept as a count, not an edge
+    return found, sites
 
 
 def _auto_summary(info: dict) -> str:
@@ -479,7 +489,8 @@ def write_graph(methods: dict, edges, graph_path: str) -> None:
     for i in sorted(methods.values(), key=lambda x: x["id"]):
         node = {"id": i["id"], "layer": i["layer"], "kind": i["kind"],
                 "cls": i["cls"], "signature": i["signature"], "doc": i.get("summary", ""),
-                "source": i["source"], "lang": i.get("lang", "py")}
+                "source": i["source"], "lang": i.get("lang", "py"),
+                "ext": i.get("ext", 0)}  # call sites that leave the graph (libs/stdlib)
         if i.get("http"):
             node["http"] = i["http"]
         if i.get("route"):

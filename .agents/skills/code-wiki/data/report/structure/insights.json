@@ -1,0 +1,240 @@
+{
+  "files": {
+    "sample_src/backend/order_controller.py": {
+      "commits": 2,
+      "insertions": 23,
+      "deletions": 0,
+      "authors": {
+        "Nattawut Rodthong": 2
+      },
+      "last_commit": "2026-09-02T16:14:28+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "owner": "Nattawut Rodthong"
+    },
+    "sample_src/backend/order_repository.py": {
+      "commits": 2,
+      "insertions": 15,
+      "deletions": 1,
+      "authors": {
+        "Nattawut Rodthong": 1,
+        "non-nattawut": 1
+      },
+      "last_commit": "2026-09-06T13:31:45+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "owner": "Nattawut Rodthong"
+    },
+    "sample_src/backend/order_service.py": {
+      "commits": 1,
+      "insertions": 20,
+      "deletions": 0,
+      "authors": {
+        "Nattawut Rodthong": 1
+      },
+      "last_commit": "2026-09-02T16:10:56+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "owner": "Nattawut Rodthong"
+    },
+    "sample_src/backend/payment_client.py": {
+      "commits": 2,
+      "insertions": 14,
+      "deletions": 0,
+      "authors": {
+        "Nattawut Rodthong": 1,
+        "non-nattawut": 1
+      },
+      "last_commit": "2026-09-06T13:31:45+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "owner": "Nattawut Rodthong"
+    },
+    "sample_src/frontend/api_client.ts": {
+      "commits": 1,
+      "insertions": 11,
+      "deletions": 0,
+      "authors": {
+        "Nattawut Rodthong": 1
+      },
+      "last_commit": "2026-09-02T16:10:56+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "owner": "Nattawut Rodthong"
+    },
+    "sample_src/frontend/order_page.ts": {
+      "commits": 2,
+      "insertions": 14,
+      "deletions": 1,
+      "authors": {
+        "Nattawut Rodthong": 1,
+        "non-nattawut": 1
+      },
+      "last_commit": "2026-09-06T13:31:45+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "owner": "Nattawut Rodthong"
+    },
+    "sample_src/order_controller.py": {
+      "commits": 2,
+      "insertions": 17,
+      "deletions": 17,
+      "authors": {
+        "Nattawut Rodthong": 2
+      },
+      "last_commit": "2026-09-02T16:10:56+07:00",
+      "first_commit": "2026-09-02T11:12:42+07:00",
+      "owner": "Nattawut Rodthong"
+    },
+    "sample_src/order_repository.py": {
+      "commits": 2,
+      "insertions": 13,
+      "deletions": 13,
+      "authors": {
+        "Nattawut Rodthong": 2
+      },
+      "last_commit": "2026-09-02T16:10:56+07:00",
+      "first_commit": "2026-09-02T11:12:42+07:00",
+      "owner": "Nattawut Rodthong"
+    },
+    "sample_src/order_service.py": {
+      "commits": 2,
+      "insertions": 20,
+      "deletions": 20,
+      "authors": {
+        "Nattawut Rodthong": 2
+      },
+      "last_commit": "2026-09-02T16:10:56+07:00",
+      "first_commit": "2026-09-02T11:12:42+07:00",
+      "owner": "Nattawut Rodthong"
+    },
+    "sample_src/payment_client.py": {
+      "commits": 2,
+      "insertions": 9,
+      "deletions": 9,
+      "authors": {
+        "Nattawut Rodthong": 2
+      },
+      "last_commit": "2026-09-02T16:10:56+07:00",
+      "first_commit": "2026-09-02T11:12:42+07:00",
+      "owner": "Nattawut Rodthong"
+    }
+  },
+  "nodes": {
+    "OrderController": {
+      "file": "sample_src/backend/order_controller.py",
+      "commits": 2,
+      "owner": "Nattawut Rodthong",
+      "authors": {
+        "Nattawut Rodthong": 2
+      },
+      "last_commit": "2026-09-02T16:14:28+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "fan_in": 0,
+      "fan_out": 1,
+      "risk": 4
+    },
+    "OrderRepository": {
+      "file": "sample_src/backend/order_repository.py",
+      "commits": 2,
+      "owner": "Nattawut Rodthong",
+      "authors": {
+        "Nattawut Rodthong": 1,
+        "non-nattawut": 1
+      },
+      "last_commit": "2026-09-06T13:31:45+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "fan_in": 1,
+      "fan_out": 0,
+      "risk": 4
+    },
+    "OrderService": {
+      "file": "sample_src/backend/order_service.py",
+      "commits": 1,
+      "owner": "Nattawut Rodthong",
+      "authors": {
+        "Nattawut Rodthong": 1
+      },
+      "last_commit": "2026-09-02T16:10:56+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "fan_in": 1,
+      "fan_out": 2,
+      "risk": 4
+    },
+    "PaymentClient": {
+      "file": "sample_src/backend/payment_client.py",
+      "commits": 2,
+      "owner": "Nattawut Rodthong",
+      "authors": {
+        "Nattawut Rodthong": 1,
+        "non-nattawut": 1
+      },
+      "last_commit": "2026-09-06T13:31:45+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "fan_in": 1,
+      "fan_out": 0,
+      "risk": 4
+    }
+  },
+  "hotspots": [
+    {
+      "node": "OrderController",
+      "file": "sample_src/backend/order_controller.py",
+      "commits": 2,
+      "owner": "Nattawut Rodthong",
+      "authors": {
+        "Nattawut Rodthong": 2
+      },
+      "last_commit": "2026-09-02T16:14:28+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "fan_in": 0,
+      "fan_out": 1,
+      "risk": 4
+    },
+    {
+      "node": "OrderRepository",
+      "file": "sample_src/backend/order_repository.py",
+      "commits": 2,
+      "owner": "Nattawut Rodthong",
+      "authors": {
+        "Nattawut Rodthong": 1,
+        "non-nattawut": 1
+      },
+      "last_commit": "2026-09-06T13:31:45+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "fan_in": 1,
+      "fan_out": 0,
+      "risk": 4
+    },
+    {
+      "node": "OrderService",
+      "file": "sample_src/backend/order_service.py",
+      "commits": 1,
+      "owner": "Nattawut Rodthong",
+      "authors": {
+        "Nattawut Rodthong": 1
+      },
+      "last_commit": "2026-09-02T16:10:56+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "fan_in": 1,
+      "fan_out": 2,
+      "risk": 4
+    },
+    {
+      "node": "PaymentClient",
+      "file": "sample_src/backend/payment_client.py",
+      "commits": 2,
+      "owner": "Nattawut Rodthong",
+      "authors": {
+        "Nattawut Rodthong": 1,
+        "non-nattawut": 1
+      },
+      "last_commit": "2026-09-06T13:31:45+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "fan_in": 1,
+      "fan_out": 0,
+      "risk": 4
+    }
+  ],
+  "summary": {
+    "files_with_history": 10,
+    "commits_counted": 18,
+    "authors": 2,
+    "graph": "graph.json",
+    "note": null
+  }
+}

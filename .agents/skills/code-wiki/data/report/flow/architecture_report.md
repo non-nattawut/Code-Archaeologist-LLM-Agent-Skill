@@ -1,6 +1,6 @@
 # Architecture report — flow_graph.json
 
-Generated 2026-09-06 06:31 UTC · 13 nodes · 9 edges
+Generated 2026-09-06 06:52 UTC · 13 nodes · 9 edges
 
 ## Health: **D** (67/100)
 
@@ -13,6 +13,7 @@ Dead-code ratio 15.4% · cycles 0 · layer violations 0 · security findings 4
 
 ## Census
 
+- Source: 6 file(s), 95 lines (py 74.7%, ts 25.3%)
 - Layers: `client` 3, `controller` 3, `repository` 2, `service` 3, `ui` 2
 - Kinds: `endpoint` 3, `function` 4, `method` 6
 - Languages: `js` 4, `py` 9
@@ -71,14 +72,14 @@ _None._
 | --- | --- | --- | --- | --- | --- |
 | `OrderController.create_order` | 2 | 1 | 1 | 6 | Nattawut Rodthong |
 | `OrderController.get_order` | 2 | 1 | 1 | 6 | Nattawut Rodthong |
+| `OrderRepository.get` | 2 | 1 | 0 | 4 | Nattawut Rodthong |
+| `OrderRepository.save` | 2 | 1 | 0 | 4 | Nattawut Rodthong |
 | `OrderService.place_order` | 1 | 1 | 2 | 4 | Nattawut Rodthong |
+| `PaymentClient.charge` | 2 | 1 | 0 | 4 | Nattawut Rodthong |
+| `loadOrder` | 2 | 0 | 1 | 4 | Nattawut Rodthong |
+| `submitOrder` | 2 | 0 | 1 | 4 | Nattawut Rodthong |
 | `OrderService.find_order` | 1 | 1 | 1 | 3 | Nattawut Rodthong |
 | `createOrder` | 1 | 1 | 1 | 3 | Nattawut Rodthong |
-| `getOrder` | 1 | 1 | 1 | 3 | Nattawut Rodthong |
-| `OrderController.__init__` | 2 | 0 | 0 | 2 | Nattawut Rodthong |
-| `OrderRepository.get` | 1 | 1 | 0 | 2 | Nattawut Rodthong |
-| `OrderRepository.save` | 1 | 1 | 0 | 2 | Nattawut Rodthong |
-| `PaymentClient.charge` | 1 | 1 | 0 | 2 | Nattawut Rodthong |
 
 ## Dig deeper
 
