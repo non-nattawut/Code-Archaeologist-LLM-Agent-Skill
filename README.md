@@ -67,6 +67,10 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
   leftover debug statements. Every finding is **attributed to the graph node that owns the line**,
   so a risk can be traced and blast-radiused like any other node; tests/fixtures/docs are skipped
   and secret values are redacted.
+- **Orientation brief** (`archaeologist.py brief`) — the whole codebase as a ~35-line digest:
+  counts and grade per map, staleness, size, entry points, and the top longest / most complex /
+  most churned / riskiest nodes. Fixed size regardless of repo size, so an agent can start every
+  session with it instead of reading the full report.
 - **Size & complexity** (`metrics.py`) — lines per file split into code / comment / blank plus
   the language mix, and for every Python node its LOC, cyclomatic complexity, nesting depth and
   parameter count. Node entries are **keyed like the graph nodes**, so "the longest and most
@@ -179,7 +183,8 @@ graphs and notes.
 1. Run the setup preflight (Python 3.10+; `npm install` for the frontend parser only when the
    project has JS/TS) before the first build.
 2. Never read raw source for architecture/flow questions.
-3. Check freshness (`archaeologist.py check`) and rebuild if the source changed since last build.
+3. Check freshness (`archaeologist.py check`) and rebuild if the source changed since last build,
+   then orient with `archaeologist.py brief` rather than reading the full report.
 4. Query the graph first with `trace_path.py` to find the exact path or blast-radius.
 5. Read only the specific `data/structure/vault/<Entity>.md` notes on that path.
 6. Preserve `[[EntityName]]` wikilinks in answers so responses stay cross-navigable.
@@ -212,6 +217,7 @@ templates, and the generated `data/` workspace.
 |   |-- scan_security.py          # risk scan -> findings attributed to graph nodes
 |   |-- git_insights.py           # git churn/ownership -> hotspot ranking
 |   |-- metrics.py                # lines per file, LOC/complexity/depth per node
+|   |-- brief.py                  # fixed-size digest of the built maps (`brief`)
 |   |-- report.py                 # all of the above -> report/<map>/architecture_report.*
 |   |   # --- query & render ---
 |   |-- trace_path.py             # BFS flow (--from/--to), impact (--impact-of[-diff])

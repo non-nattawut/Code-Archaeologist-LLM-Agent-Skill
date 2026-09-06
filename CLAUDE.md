@@ -23,7 +23,8 @@ returned path** — never by scanning source.
 archaeologist.py  project | flow | both | check | report        <- the only entrypoint
   project  -> build_wiki -> build_graph ------------------\
   flow     -> build_flow (+ js_bridge -> js_extract.js) ---+--> render_explorer()
-  report   -> report.py (scan_security + git_insights + analyze) -> data/report/<map>/
+  report   -> report.py (scan_security + git_insights + analyze + metrics) -> data/report/<map>/
+  brief    -> brief.py (reads the artifacts above, computes nothing)
   check    -> manifest.py (source hashes vs last build)
                                                             \-> build_html.py -> data/explorer.html
 ```
@@ -36,6 +37,11 @@ archaeologist.py  project | flow | both | check | report        <- the only entr
   idioms, and the 0–100 / A–F `health()` score (accepts security counts).
 - `scan_security.py` is line-regex over source; every finding is attributed to the node owning that
   line. `git_insights.py` is one `git log --numstat` pass → churn, owners, hotspot risk.
+- `metrics.py` is line counts per file plus LOC / cyclomatic complexity / nesting depth /
+  parameter count per node, keyed like the graph nodes (Python only: `js_extract.js` records no
+  end line yet). `report.py` derives `file_census` from it, so line counts have one definition.
+- `brief.py` is the fixed-size digest an agent should open a session with — it only reads what the
+  other scripts wrote. Anything expensive belongs upstream of it, never inside it.
 - `report.py` joins all of it into `data/report/<map>/architecture_report.{md,json}` plus
   `security.json` / `insights.json`. **One report per map** — node ids differ between maps, so a
   report from the other map must never be embedded (`build_html.report_for()` enforces this).

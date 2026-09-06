@@ -70,6 +70,18 @@ Node.js would add the frontend half of the map (and the cross-stack `http` edges
 
 > First build in this project? Run the **Setup preflight** above first.
 
+### 0. Orientation brief — start here
+A fixed-size digest of whatever is already built: node/edge counts and grade per map, staleness,
+size, entry points, and the top few longest / most complex / most churned / riskiest nodes. It
+reads the artifacts, computes nothing, and costs the same on a 200-file repo as on a 5-file one —
+so use it instead of reading `architecture_report.json`:
+```bash
+python .agents/skills/code-archaeologist/scripts/archaeologist.py brief --src ./src
+```
+`--map structure` switches which map the detail sections describe, `--top N` how many rows each
+gets, `--json` emits the same digest for tooling. Read the full report only when the brief points
+you at something you need the detail for.
+
 ### 1. Build the Project Structure map
 Which classes reference/import which → `graph.json`, `vault/` (+ `explorer.html`):
 ```bash

@@ -9,6 +9,9 @@ Commands:
   flow      Behavior map — method-level call / request flow.
             Runs build_flow.
 
+  brief     Fixed-size digest of the built maps: counts, grade, entry points,
+            biggest/most complex/most churned/riskiest nodes. Start here.
+
   check     Are the maps stale vs the current source?
 
   report    Review pass over every built map — smells, health grade, risk scan and
@@ -22,6 +25,7 @@ Examples:
   python archaeologist.py flow    --src ./src
   python archaeologist.py both    --src ./src
   python archaeologist.py report  --src ./src
+  python archaeologist.py brief   --src ./src
 
 Zero dependencies (Python 3.10+). Thin wrapper over the individual scripts so
 each stage stays runnable on its own.
@@ -49,6 +53,7 @@ GRAPHS = {
 
 
 sys.path.insert(0, SCRIPT_DIR)
+import brief           # noqa: E402
 import build_wiki      # noqa: E402
 import build_graph     # noqa: E402
 import build_flow      # noqa: E402
@@ -101,9 +106,9 @@ def run_report(src) -> int:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Code Archaeologist — build the structure and/or flow maps.")
-    parser.add_argument("command", choices=["project", "flow", "both", "check", "report"],
+    parser.add_argument("command", choices=["project", "flow", "both", "check", "report", "brief"],
                         help="Build a map, 'check' whether the maps are stale vs the source, "
-                             "or 'report' the review pass (grade, risks, hotspots)")
+                             "'report' the review pass (grade, risks, hotspots), or 'brief' the digest")
     parser.add_argument("--src", nargs="+", default=["./src"],
                         help="One or more source roots (e.g. --src ./backend ./frontend)")
     args = parser.parse_args(argv)
@@ -115,6 +120,9 @@ def main(argv=None) -> int:
 
     if args.command == "report":
         return run_report(args.src)
+
+    if args.command == "brief":
+        return brief.main(["--src", *args.src])
 
     if args.command == "project":
         rc = run_project(args.src)

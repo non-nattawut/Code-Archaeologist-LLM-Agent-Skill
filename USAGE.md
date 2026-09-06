@@ -26,6 +26,19 @@ python .agents/skills/code-archaeologist/scripts/archaeologist.py flow --src ./b
 python .agents/skills/code-archaeologist/scripts/archaeologist.py both --src ./src
 ```
 
+## Orient yourself
+
+One fixed-size digest of everything already built — counts, grade, staleness, entry points, the
+biggest/most complex/most churned/riskiest nodes — instead of reading the full report:
+
+```bash
+python .agents/skills/code-archaeologist/scripts/archaeologist.py brief --src ./src
+
+# same digest, other map / more rows / machine-readable
+python .agents/skills/code-archaeologist/scripts/brief.py --map structure --top 3
+python .agents/skills/code-archaeologist/scripts/brief.py --json
+```
+
 ## Query the graphs
 
 Trace paths or impact on either graph (structure is the default; add `--graph` for flow):
