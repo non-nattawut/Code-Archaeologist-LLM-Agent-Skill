@@ -165,8 +165,10 @@ Three files describe this skill to different readers — when behavior changes, 
 | File | Reader | Covers |
 | --- | --- | --- |
 | `SKILL.md` | the agent using the skill | operating principles + numbered tool commands |
-| `README.md` | a human evaluating/installing it | features, requirements, install, usage, layout |
+| `README.md` | a human evaluating/installing it | features, requirements, install, layout |
+| `USAGE.md` | a human running it by hand | the full command reference + worked example |
 | `templates/TAXONOMY.md` | anyone adding a field value | allowed `kind`/`layer`/severity/grade values |
 
 A new script also needs: a docstring saying what it is and why, a line in the README structure
-tree, and a numbered command in `SKILL.md` if the agent should call it.
+tree, a numbered command in `SKILL.md` if the agent should call it, and its command form in
+`USAGE.md`.

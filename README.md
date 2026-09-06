@@ -154,126 +154,32 @@ the generated maps under `data/` committable. It has **no npm dependencies**
 
 ## Usage
 
-There are two commands, each building one map (scan → graph → HTML in one shot):
+One command builds both maps; a second reviews them. Point `--src` at your source root(s):
 
 ```bash
-# Project structure map  ->  data/structure/{graph.json, vault/}  (+ data/explorer.html)
-python .agents/skills/code-archaeologist/scripts/archaeologist.py project --src ./src
-
-# Request/execution flow map  ->  data/flow/{flow_graph.json, notes/}  (+ data/explorer.html)
-python .agents/skills/code-archaeologist/scripts/archaeologist.py flow --src ./src
-
-# Monorepo: pass multiple roots (backend + frontend land in one graph)
-python .agents/skills/code-archaeologist/scripts/archaeologist.py flow --src ./backend ./frontend
-
-# ...or build both maps
-python .agents/skills/code-archaeologist/scripts/archaeologist.py both --src ./src
-```
-
-Then trace paths or impact on either graph (structure is the default; add `--graph` for flow):
-
-```bash
-# structure: how are two classes connected?
-python .agents/skills/code-archaeologist/scripts/trace_path.py --from OrderController --to OrderRepository
-
-# flow: how does a request travel, method by method?
-python .agents/skills/code-archaeologist/scripts/trace_path.py \
-  --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json \
-  --from OrderController.create_order --to OrderRepository.save
-
-# blast-radius: everything that breaks if a method changes
-python .agents/skills/code-archaeologist/scripts/trace_path.py \
-  --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json --impact-of PaymentClient.charge
-```
-
-Keep the maps honest and review changes:
-
-```bash
-# freshness: are the maps stale vs the current source? (rebuild if so)
-python .agents/skills/code-archaeologist/scripts/archaeologist.py check --src ./src
-
-# changeset blast-radius: what does my current git diff affect?
-python .agents/skills/code-archaeologist/scripts/trace_path.py \
-  --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json --impact-of-diff
-
-# smells + health grade: cycles, orphans, layer violations, hubs, god objects, idioms
-python .agents/skills/code-archaeologist/scripts/analyze.py \
-  --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json
-```
-
-Then review the whole codebase in one shot — grade, risks and hotspots — with `report`:
-
-```bash
-# writes data/report/<map>/architecture_report.md (+ .json, security.json, insights.json)
-# and re-renders each viewer with its report: health ring, churn/risk colors,
-# ownership, and the Patterns/Security tabs
+python .agents/skills/code-archaeologist/scripts/archaeologist.py both   --src ./src
 python .agents/skills/code-archaeologist/scripts/archaeologist.py report --src ./src
 ```
 
-Its two inputs are runnable on their own too:
+Then open `.agents/skills/code-archaeologist/data/explorer.html`, or let the agent answer from the
+graphs and notes.
 
-```bash
-# risk scan: hardcoded secrets, interpolated SQL, eval/innerHTML sinks, debug leftovers
-python .agents/skills/code-archaeologist/scripts/scan_security.py --src ./src
-
-# git churn/ownership + hotspot ranking (risk = commits x (1 + fan_in + fan_out))
-python .agents/skills/code-archaeologist/scripts/git_insights.py --src ./src --top 10
-```
-
-Each stage is also runnable on its own (`build_wiki.py`, `build_graph.py`, `build_flow.py`,
-`build_html.py`) — `archaeologist.py` just orchestrates them.
-
-### Example
-
-Running against the bundled `sample_src/` (a controller → service → repository/client trio):
-
-```console
-# Structure: how two classes connect
-$ trace_path.py --from OrderController --to OrderRepository
-{ "path": ["OrderController", "OrderService", "OrderRepository"], "found": true }
-
-# Flow: the actual request path, method by method
-$ trace_path.py --graph .../flow_graph.json --from OrderController.create_order --to OrderRepository.save
-{ "path": ["OrderController.create_order", "OrderService.place_order", "OrderRepository.save"], "found": true }
-
-# Flow blast-radius: what calls (directly or transitively) into the payment client?
-$ trace_path.py --graph .../flow_graph.json --impact-of PaymentClient.charge
-{ "impacted": ["OrderController.create_order", "OrderService.place_order",
-               "createOrder", "submitOrder"], "count": 4 }
-```
-
-The agent then reads only the notes on that path — e.g.
-`data/flow/notes/OrderController.create_order.md`, `OrderService.place_order.md`,
-`OrderRepository.save.md` — not the whole repo.
-
-The review pass over the same sample (the demo sources carry three deliberate smells) produces
-`data/report/flow/architecture_report.md` and its structure-map twin:
-
-```console
-$ archaeologist.py report --src ./sample_src
-  grade D (67/100), 4 risk finding(s), 7 ranked hotspot(s)
-```
-
-| Severity | Rule | Location | Owner node |
-| --- | --- | --- | --- |
-| high | `sql_injection` | `sample_src/backend/order_repository.py:14` | `OrderRepository.get` |
-| high | `hardcoded_secret` | `sample_src/backend/payment_client.py:5` | — (module level) |
-| medium | `dangerous_eval` | `sample_src/frontend/order_page.ts:11` | `loadOrder` |
-| low | `debug_statement` | `sample_src/backend/payment_client.py:13` | `PaymentClient.charge` |
-
-The generated `data/report/`, `data/structure/` and `data/flow/` folders in this repo are that
-demo output, committed so you can read a real example before running anything.
+**Full command reference — tracing, blast radius, freshness, scans, hotspots, worked example:
+[USAGE.md](USAGE.md).** The agent's own instructions (same commands, plus when to use each) live in
+[`SKILL.md`](.agents/skills/code-archaeologist/SKILL.md).
 
 ## How the agent uses it
 
 `SKILL.md` instructs the agent to:
 
-1. Never read raw source for architecture/flow questions.
-2. Check freshness (`archaeologist.py check`) and rebuild if the source changed since last build.
-3. Query the graph first with `trace_path.py` to find the exact path or blast-radius.
-4. Read only the specific `data/structure/vault/<Entity>.md` notes on that path.
-5. Preserve `[[EntityName]]` wikilinks in answers so responses stay cross-navigable.
-6. For review questions ("is this healthy?", "where's the risk?", "what should we refactor
+1. Run the setup preflight (Python 3.10+; `npm install` for the frontend parser only when the
+   project has JS/TS) before the first build.
+2. Never read raw source for architecture/flow questions.
+3. Check freshness (`archaeologist.py check`) and rebuild if the source changed since last build.
+4. Query the graph first with `trace_path.py` to find the exact path or blast-radius.
+5. Read only the specific `data/structure/vault/<Entity>.md` notes on that path.
+6. Preserve `[[EntityName]]` wikilinks in answers so responses stay cross-navigable.
+7. For review questions ("is this healthy?", "where's the risk?", "what should we refactor
    first?"), run `archaeologist.py report` and answer from
    `data/report/<map>/architecture_report.md`.
 
@@ -284,7 +190,7 @@ templates, and the generated `data/` workspace.
 
 ```
 .agents/skills/code-archaeologist/
-|-- SKILL.md                      # agent instructions & tool specs
+|-- SKILL.md                      # agent instructions & tool specs (paths rewritten on install)
 |-- .gitignore                    # keeps node_modules/ + build state out of your repo
 |-- scripts/
 |   |-- archaeologist.py          # entrypoint: project | flow | both | check | report
