@@ -96,7 +96,7 @@ SQL, an innerHTML sink — so the review path has something to find):
 - flow graph: 13 nodes / 9 edges, 3 endpoints, **0 pending** descriptions
 - traces: `create_order → place_order → {save, charge}` and `get_order → find_order → get`;
   cross-stack `submitOrder → createOrder → OrderController.create_order → …`
-- grades: structure **C (75)**, flow **D (67)**; 4 risk findings; 2 debt markers; 0 test files
+- grades: structure **C (75)**, flow **D (67)**; 4 risk findings; 2 debt markers
 - `archaeologist.py check --src ./sample_src` → `stale: false` right after a build
 
 Other checks worth running when you touch the relevant part:
