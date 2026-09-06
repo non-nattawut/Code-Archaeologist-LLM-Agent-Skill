@@ -1,22 +1,27 @@
 {
   "OrderController.__init__": {
     "hash": "c5dc7c651f48",
-    "summary": "Wires the controller to its OrderService dependency (constructor injection)."
+    "summary": "Wires the controller to its OrderService dependency (constructor injection).",
+    "file": "sample_src/backend/order_controller.py"
   },
   "OrderService.__init__": {
     "hash": "f28a779bfcd7",
-    "summary": "Stores the injected OrderRepository and PaymentClient used to place and look up orders."
+    "summary": "Stores the injected OrderRepository and PaymentClient used to place and look up orders.",
+    "file": "sample_src/backend/order_service.py"
   },
   "getOrder": {
     "hash": "57570b4f81dd",
-    "summary": "Frontend API client: GET /orders/:id and return the parsed order JSON."
+    "summary": "Frontend API client: GET /orders/:id and return the parsed order JSON.",
+    "file": "sample_src/frontend/api_client.ts"
   },
   "loadOrder": {
     "hash": "6137d29e34af",
-    "summary": "Fetches one order through the API client and renders it into the order element."
+    "summary": "Fetches one order through the API client and renders it into the order element.",
+    "file": "sample_src/frontend/order_page.ts"
   },
   "submitOrder": {
     "hash": "6f3c2a889bc3",
-    "summary": "Frontend page action: submits a new order form via the API client."
+    "summary": "Frontend page action: submits a new order form via the API client.",
+    "file": "sample_src/frontend/order_page.ts"
   }
 }

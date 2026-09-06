@@ -106,6 +106,8 @@ def collect(src=None, focus: str = "flow", top: int = 5) -> dict:
         "hotspots": insights.get("hotspots", [])[:top],
         "risks": findings[:top],
         "orphans": (smells.get("orphans") or [])[:top],
+        "debt": (rep.get("debt") or {}).get("summary") or {},
+        "tests": (rep.get("tests") or {}).get("summary") or {},
     }
     return digest
 
@@ -152,6 +154,14 @@ def to_text(d: dict) -> str:
     block("risks", [f"{f['severity']:<6} {f['rule']} {f['file']}:{f['line']}"
                     + (f" -> {f['node']}" if f.get("node") else "") for f in d["risks"]])
     block("orphans", d["orphans"])
+    if d["debt"]:
+        tags = ", ".join(f"{k} {v}" for k, v in d["debt"]["by_tag"].items()) or "none"
+        block("debt", [f"{d['debt']['markers']} marker(s) ({tags}), "
+                       f"{d['debt']['dead_nodes']} dead node(s), {d['debt']['dead_files']} dead file(s)"])
+    if d["tests"]:
+        t = d["tests"]
+        block("tests", [f"{t['referenced']}/{t['considered']} node(s) named by a test "
+                        f"({t['referenced_pct']}%), {t['test_files']} test file(s)"])
 
     out += ["", "NEXT",
             "  trace_path.py --graph <graph.json> --from <A> --to <B>     how does it get there",

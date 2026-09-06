@@ -55,10 +55,10 @@ line. Exists so the agent stops falling back to grep, which is where unbounded r
 
 ## Backlog
 
-- **TODO/FIXME + dead-code inventory** — extends the existing `scan_security.py` line pass
-  and `analyze.py` orphan detection into one "what is rotting" list.
-- **Test-coverage mapping** — which nodes are named in test files, and therefore which are
-  named nowhere. Name-based and deterministic; no runner, no instrumentation.
+- ~~**TODO/FIXME + dead-code inventory**~~ — done: `debt.py`, reusing `scan_security`'s file walk
+  and node attribution and `analyze`'s orphan detection, plus dead *files*.
+- ~~**Test-coverage mapping**~~ — done: `tests_map.py`. Name-based and deterministic; no runner,
+  no instrumentation.
 - **Duplicate-code clusters** — normalized token hashing of function bodies.
 - ~~**Trim `SKILL.md`**~~ — done: 17.8KB -> 13.1KB, all 14 commands kept, prose that duplicated
   README/USAGE cut. It loads into context every session, so this is a per-session win.

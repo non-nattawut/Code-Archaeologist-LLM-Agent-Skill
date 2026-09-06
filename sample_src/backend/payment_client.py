@@ -10,5 +10,6 @@ class PaymentClient:
 
     def charge(self, payload):
         """Charge the customer for an order."""
+        # TODO: retry once on a gateway timeout before giving up
         print("charging", payload)  # demo smell: debug statement left behind
         raise NotImplementedError

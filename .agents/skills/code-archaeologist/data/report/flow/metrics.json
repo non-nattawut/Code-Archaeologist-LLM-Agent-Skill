@@ -1,20 +1,20 @@
 {
-  "generated": "2026-09-06T11:13:14Z",
+  "generated": "2026-09-06T12:00:43Z",
   "roots": [
     "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
   ],
   "totals": {
     "files": 6,
-    "lines": 95,
+    "lines": 97,
     "code": 65,
-    "comment": 6,
+    "comment": 8,
     "blank": 24,
-    "comment_ratio": 0.063
+    "comment_ratio": 0.082
   },
   "languages": {
     "py": {
       "files": 4,
-      "lines": 71
+      "lines": 73
     },
     "ts": {
       "files": 2,
@@ -30,9 +30,9 @@
       "lang": "py"
     },
     "sample_src/backend/order_repository.py": {
-      "lines": 14,
+      "lines": 15,
       "code": 9,
-      "comment": 1,
+      "comment": 2,
       "blank": 4,
       "lang": "py"
     },
@@ -44,9 +44,9 @@
       "lang": "py"
     },
     "sample_src/backend/payment_client.py": {
-      "lines": 14,
+      "lines": 15,
       "code": 8,
-      "comment": 2,
+      "comment": 3,
       "blank": 4,
       "lang": "py"
     },
@@ -107,7 +107,7 @@
       "in_graph": true
     },
     "OrderRepository": {
-      "loc": 11,
+      "loc": 12,
       "complexity": 1,
       "depth": 1,
       "params": 0,
@@ -117,7 +117,7 @@
       "in_graph": false
     },
     "OrderRepository.get": {
-      "loc": 4,
+      "loc": 5,
       "complexity": 1,
       "depth": 0,
       "params": 2,
@@ -177,7 +177,7 @@
       "in_graph": true
     },
     "PaymentClient": {
-      "loc": 7,
+      "loc": 8,
       "complexity": 1,
       "depth": 1,
       "params": 0,
@@ -187,7 +187,7 @@
       "in_graph": false
     },
     "PaymentClient.charge": {
-      "loc": 4,
+      "loc": 5,
       "complexity": 1,
       "depth": 0,
       "params": 2,
@@ -200,9 +200,16 @@
   "top_loc": [
     {
       "id": "OrderRepository.get",
-      "loc": 4,
+      "loc": 5,
       "complexity": 1,
       "file": "sample_src/backend/order_repository.py",
+      "line": 11
+    },
+    {
+      "id": "PaymentClient.charge",
+      "loc": 5,
+      "complexity": 1,
+      "file": "sample_src/backend/payment_client.py",
       "line": 11
     },
     {
@@ -211,13 +218,6 @@
       "complexity": 1,
       "file": "sample_src/backend/order_service.py",
       "line": 13
-    },
-    {
-      "id": "PaymentClient.charge",
-      "loc": 4,
-      "complexity": 1,
-      "file": "sample_src/backend/payment_client.py",
-      "line": 11
     },
     {
       "id": "OrderController.create_order",
@@ -287,7 +287,7 @@
     {
       "id": "OrderRepository.get",
       "complexity": 1,
-      "loc": 4,
+      "loc": 5,
       "file": "sample_src/backend/order_repository.py",
       "line": 11
     },
@@ -322,7 +322,7 @@
     {
       "id": "PaymentClient.charge",
       "complexity": 1,
-      "loc": 4,
+      "loc": 5,
       "file": "sample_src/backend/payment_client.py",
       "line": 11
     }
@@ -340,12 +340,12 @@
     },
     {
       "file": "sample_src/backend/order_repository.py",
-      "lines": 14,
+      "lines": 15,
       "code": 9
     },
     {
       "file": "sample_src/backend/payment_client.py",
-      "lines": 14,
+      "lines": 15,
       "code": 8
     },
     {

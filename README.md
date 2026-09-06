@@ -85,6 +85,12 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
   the language mix, and for every Python node its LOC, cyclomatic complexity, nesting depth and
   parameter count. Node entries are **keyed like the graph nodes**, so "the longest and most
   tangled code in this repo" is a lookup, not a source read.
+- **Debt inventory** (`debt.py`) — TODO / FIXME / HACK / XXX / BUG / DEPRECATED markers found in
+  comments and attributed to the node that owns the line, plus dead code: nodes nothing calls and
+  files where *every* node is dead.
+- **Test coverage map** (`tests_map.py`) — which nodes the test suite names and which it never
+  mentions. Name-based, so there is no runner and nothing to install: a `Class.method` counts when
+  a test file names both the class and the method.
 - **Churn, ownership & hotspots** (`git_insights.py`) — one `git log --numstat` pass gives commits
   per file, the top author per file, and a **hotspot ranking** (`risk = commits x (1 + fan_in +
   fan_out)`): the code that changes most *and* has the most callers. Degrades to empty data outside
@@ -229,6 +235,8 @@ templates, and the generated `data/` workspace.
 |   |-- scan_security.py          # risk scan -> findings attributed to graph nodes
 |   |-- git_insights.py           # git churn/ownership -> hotspot ranking
 |   |-- metrics.py                # lines per file, LOC/complexity/depth per node
+|   |-- debt.py                   # TODO-style markers + dead code inventory
+|   |-- tests_map.py              # which nodes the tests name (name-based coverage)
 |   |-- brief.py                  # fixed-size digest of the built maps (`brief`)
 |   |-- report.py                 # all of the above -> report/<map>/architecture_report.*
 |   |   # --- query & render ---

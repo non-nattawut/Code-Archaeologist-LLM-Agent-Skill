@@ -71,7 +71,8 @@ def main(argv=None) -> int:
         if not info or "hash" not in info:
             skipped.append(node_id)
             continue
-        cache[node_id] = {"hash": info["hash"], "summary": str(summary).strip()}
+        cache[node_id] = {"hash": info["hash"], "summary": str(summary).strip(),
+                          "file": (info.get("source") or "").split(":")[0]}
         applied += 1
 
     _save_json(DESCRIPTIONS_PATH, cache)

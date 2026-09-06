@@ -1,6 +1,6 @@
 # Architecture report — graph.json
 
-Generated 2026-09-06 11:13 UTC · 4 nodes · 3 edges
+Generated 2026-09-06 12:00 UTC · 4 nodes · 3 edges
 
 ## Health: **C** (75/100)
 
@@ -12,7 +12,7 @@ Dead-code ratio 0.0% · cycles 0 · layer violations 0 · security findings 4
 
 ## Census
 
-- Source: 6 file(s), 95 lines (py 74.7%, ts 25.3%)
+- Source: 6 file(s), 97 lines (py 75.3%, ts 24.7%)
 - Layers: `client` 1, `controller` 1, `repository` 1, `service` 1
 - Kinds: `class` 4
 - Languages: `py` 4
@@ -24,7 +24,7 @@ _None._
 
 ## Size & complexity
 
-- 6 file(s), 95 lines — 65 code, 6 comment, 24 blank (comment ratio 6%)
+- 6 file(s), 97 lines — 65 code, 8 comment, 24 blank (comment ratio 8%)
 - Complexity is McCabe: 1 + every branch. Python nodes only.
 
 ### Longest nodes
@@ -33,17 +33,17 @@ _None._
 | --- | --- | --- | --- |
 | `OrderController` | 15 | 1 | `sample_src/backend/order_controller.py:9` |
 | `OrderService` | 15 | 1 | `sample_src/backend/order_service.py:6` |
-| `OrderRepository` | 11 | 1 | `sample_src/backend/order_repository.py:4` |
-| `PaymentClient` | 7 | 1 | `sample_src/backend/payment_client.py:8` |
+| `OrderRepository` | 12 | 1 | `sample_src/backend/order_repository.py:4` |
+| `PaymentClient` | 8 | 1 | `sample_src/backend/payment_client.py:8` |
 
 ### Most complex nodes
 
 | Node | Complexity | LOC | Location |
 | --- | --- | --- | --- |
 | `OrderController` | 1 | 15 | `sample_src/backend/order_controller.py:9` |
-| `OrderRepository` | 1 | 11 | `sample_src/backend/order_repository.py:4` |
+| `OrderRepository` | 1 | 12 | `sample_src/backend/order_repository.py:4` |
 | `OrderService` | 1 | 15 | `sample_src/backend/order_service.py:6` |
-| `PaymentClient` | 1 | 7 | `sample_src/backend/payment_client.py:8` |
+| `PaymentClient` | 1 | 8 | `sample_src/backend/payment_client.py:8` |
 
 ### Largest files
 
@@ -51,8 +51,8 @@ _None._
 | --- | --- | --- |
 | `sample_src/backend/order_controller.py` | 23 | 16 |
 | `sample_src/backend/order_service.py` | 20 | 15 |
-| `sample_src/backend/order_repository.py` | 14 | 9 |
-| `sample_src/backend/payment_client.py` | 14 | 8 |
+| `sample_src/backend/order_repository.py` | 15 | 9 |
+| `sample_src/backend/payment_client.py` | 15 | 8 |
 | `sample_src/frontend/order_page.ts` | 13 | 9 |
 | `sample_src/frontend/api_client.ts` | 11 | 8 |
 
@@ -88,10 +88,10 @@ _None._
 
 | Severity | Rule | Location | Owner | Snippet |
 | --- | --- | --- | --- | --- |
-| high | sql_injection | `sample_src/backend/order_repository.py:14` | `OrderRepository` | `return self.cursor.execute(f"SELECT * FROM orders WHERE id = {order_id}")` |
+| high | sql_injection | `sample_src/backend/order_repository.py:15` | `OrderRepository` | `return self.cursor.execute(f"SELECT * FROM orders WHERE id = {order_id}")` |
 | high | hardcoded_secret | `sample_src/backend/payment_client.py:5` | `PaymentClient` | `GATEWAY_API_KEY = "sk_...redacted"` |
 | medium | dangerous_eval | `sample_src/frontend/order_page.ts:11` | — | `document.getElementById("order").innerHTML = JSON.stringify(order);` |
-| low | debug_statement | `sample_src/backend/payment_client.py:13` | `PaymentClient` | `print("charging", payload)  # demo smell: debug statement left behind` |
+| low | debug_statement | `sample_src/backend/payment_client.py:14` | `PaymentClient` | `print("charging", payload)  # demo smell: debug statement left behind` |
 
 ## Hotspots (churn × connectivity)
 
@@ -101,6 +101,26 @@ _None._
 | `OrderRepository` | 2 | 1 | 0 | 4 | Nattawut Rodthong |
 | `OrderService` | 1 | 1 | 2 | 4 | Nattawut Rodthong |
 | `PaymentClient` | 2 | 1 | 0 | 4 | Nattawut Rodthong |
+
+## Debt — 2 marker(s) (FIXME 1, TODO 1), 0 dead node(s)
+
+| Tag | Location | Owner | Note |
+| --- | --- | --- | --- |
+| FIXME | `sample_src/backend/order_repository.py:14` | `OrderRepository` | parameterize this query (see the demo smell below) |
+| TODO | `sample_src/backend/payment_client.py:13` | `PaymentClient` | retry once on a gateway timeout before giving up |
+
+## Tests — 0/4 node(s) named by a test (0.0%)
+
+_0 test file(s). Name-based, not execution coverage: a node counts as referenced when a test file names it._
+
+### Named by no test
+
+| Node | Layer | Location |
+| --- | --- | --- |
+| `OrderController` | controller | `sample_src/backend/order_controller.py` |
+| `OrderRepository` | repository | `sample_src/backend/order_repository.py` |
+| `OrderService` | service | `sample_src/backend/order_service.py` |
+| `PaymentClient` | client | `sample_src/backend/payment_client.py` |
 
 ## Dig deeper
 

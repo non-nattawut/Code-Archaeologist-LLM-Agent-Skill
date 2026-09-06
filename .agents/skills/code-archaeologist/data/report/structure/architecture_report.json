@@ -1,6 +1,6 @@
 {
   "graph": "data/structure/graph.json",
-  "generated": "2026-09-06 11:13 UTC",
+  "generated": "2026-09-06 12:00 UTC",
   "census": {
     "nodes": 4,
     "edges": 3,
@@ -28,7 +28,7 @@
         "lang": "py"
       },
       "sample_src/backend/order_repository.py": {
-        "lines": 14,
+        "lines": 15,
         "lang": "py"
       },
       "sample_src/backend/order_service.py": {
@@ -36,7 +36,7 @@
         "lang": "py"
       },
       "sample_src/backend/payment_client.py": {
-        "lines": 14,
+        "lines": 15,
         "lang": "py"
       },
       "sample_src/frontend/api_client.ts": {
@@ -49,14 +49,14 @@
       }
     },
     "file_count": 6,
-    "loc": 95,
+    "loc": 97,
     "languages": {
-      "py": 71,
+      "py": 73,
       "ts": 24
     },
     "language_pct": {
-      "py": 74.7,
-      "ts": 25.3
+      "py": 75.3,
+      "ts": 24.7
     }
   },
   "analysis": {
@@ -96,7 +96,7 @@
         "severity": "high",
         "message": "SQL statement built by string interpolation",
         "file": "sample_src/backend/order_repository.py",
-        "line": 14,
+        "line": 15,
         "node": "OrderRepository",
         "snippet": "return self.cursor.execute(f\"SELECT * FROM orders WHERE id = {order_id}\")"
       },
@@ -123,7 +123,7 @@
         "severity": "low",
         "message": "Debug statement left in the code",
         "file": "sample_src/backend/payment_client.py",
-        "line": 13,
+        "line": 14,
         "node": "PaymentClient",
         "snippet": "print(\"charging\", payload)  # demo smell: debug statement left behind"
       }
@@ -386,22 +386,22 @@
     }
   },
   "metrics": {
-    "generated": "2026-09-06T11:13:14Z",
+    "generated": "2026-09-06T12:00:43Z",
     "roots": [
       "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
     ],
     "totals": {
       "files": 6,
-      "lines": 95,
+      "lines": 97,
       "code": 65,
-      "comment": 6,
+      "comment": 8,
       "blank": 24,
-      "comment_ratio": 0.063
+      "comment_ratio": 0.082
     },
     "languages": {
       "py": {
         "files": 4,
-        "lines": 71
+        "lines": 73
       },
       "ts": {
         "files": 2,
@@ -417,9 +417,9 @@
         "lang": "py"
       },
       "sample_src/backend/order_repository.py": {
-        "lines": 14,
+        "lines": 15,
         "code": 9,
-        "comment": 1,
+        "comment": 2,
         "blank": 4,
         "lang": "py"
       },
@@ -431,9 +431,9 @@
         "lang": "py"
       },
       "sample_src/backend/payment_client.py": {
-        "lines": 14,
+        "lines": 15,
         "code": 8,
-        "comment": 2,
+        "comment": 3,
         "blank": 4,
         "lang": "py"
       },
@@ -494,7 +494,7 @@
         "in_graph": false
       },
       "OrderRepository": {
-        "loc": 11,
+        "loc": 12,
         "complexity": 1,
         "depth": 1,
         "params": 0,
@@ -504,7 +504,7 @@
         "in_graph": true
       },
       "OrderRepository.get": {
-        "loc": 4,
+        "loc": 5,
         "complexity": 1,
         "depth": 0,
         "params": 2,
@@ -564,7 +564,7 @@
         "in_graph": false
       },
       "PaymentClient": {
-        "loc": 7,
+        "loc": 8,
         "complexity": 1,
         "depth": 1,
         "params": 0,
@@ -574,7 +574,7 @@
         "in_graph": true
       },
       "PaymentClient.charge": {
-        "loc": 4,
+        "loc": 5,
         "complexity": 1,
         "depth": 0,
         "params": 2,
@@ -601,14 +601,14 @@
       },
       {
         "id": "OrderRepository",
-        "loc": 11,
+        "loc": 12,
         "complexity": 1,
         "file": "sample_src/backend/order_repository.py",
         "line": 4
       },
       {
         "id": "PaymentClient",
-        "loc": 7,
+        "loc": 8,
         "complexity": 1,
         "file": "sample_src/backend/payment_client.py",
         "line": 8
@@ -625,7 +625,7 @@
       {
         "id": "OrderRepository",
         "complexity": 1,
-        "loc": 11,
+        "loc": 12,
         "file": "sample_src/backend/order_repository.py",
         "line": 4
       },
@@ -639,7 +639,7 @@
       {
         "id": "PaymentClient",
         "complexity": 1,
-        "loc": 7,
+        "loc": 8,
         "file": "sample_src/backend/payment_client.py",
         "line": 8
       }
@@ -657,12 +657,12 @@
       },
       {
         "file": "sample_src/backend/order_repository.py",
-        "lines": 14,
+        "lines": 15,
         "code": 9
       },
       {
         "file": "sample_src/backend/payment_client.py",
-        "lines": 14,
+        "lines": 15,
         "code": 8
       },
       {
@@ -677,5 +677,81 @@
       }
     ],
     "unmeasured_graph_ids": []
+  },
+  "debt": {
+    "generated": "2026-09-06T12:00:43Z",
+    "roots": [
+      "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
+    ],
+    "graph": "data/structure/graph.json",
+    "summary": {
+      "markers": 2,
+      "by_tag": {
+        "FIXME": 1,
+        "TODO": 1
+      },
+      "dead_nodes": 0,
+      "dead_files": 0
+    },
+    "markers": [
+      {
+        "tag": "FIXME",
+        "text": "parameterize this query (see the demo smell below)",
+        "file": "sample_src/backend/order_repository.py",
+        "line": 14,
+        "node": "OrderRepository"
+      },
+      {
+        "tag": "TODO",
+        "text": "retry once on a gateway timeout before giving up",
+        "file": "sample_src/backend/payment_client.py",
+        "line": 13,
+        "node": "PaymentClient"
+      }
+    ],
+    "dead_nodes": [],
+    "dead_files": []
+  },
+  "tests": {
+    "generated": "2026-09-06T12:00:43Z",
+    "roots": [
+      "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
+    ],
+    "graph": "data/structure/graph.json",
+    "summary": {
+      "test_files": 0,
+      "considered": 4,
+      "referenced": 0,
+      "unreferenced": 4,
+      "referenced_pct": 0.0
+    },
+    "test_files": [],
+    "referenced": {},
+    "unreferenced": [
+      {
+        "id": "OrderController",
+        "source": "sample_src/backend/order_controller.py",
+        "layer": "controller",
+        "kind": "class"
+      },
+      {
+        "id": "OrderRepository",
+        "source": "sample_src/backend/order_repository.py",
+        "layer": "repository",
+        "kind": "class"
+      },
+      {
+        "id": "OrderService",
+        "source": "sample_src/backend/order_service.py",
+        "layer": "service",
+        "kind": "class"
+      },
+      {
+        "id": "PaymentClient",
+        "source": "sample_src/backend/payment_client.py",
+        "layer": "client",
+        "kind": "class"
+      }
+    ]
   }
 }

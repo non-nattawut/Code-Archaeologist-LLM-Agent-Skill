@@ -11,4 +11,5 @@ class OrderRepository:
     def get(self, order_id):
         """Select an order by id."""
         # Demo smell: SQL built by interpolation — scan_security.py flags this.
+        # FIXME: parameterize this query (see the demo smell below)
         return self.cursor.execute(f"SELECT * FROM orders WHERE id = {order_id}")

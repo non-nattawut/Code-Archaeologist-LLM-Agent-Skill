@@ -23,7 +23,8 @@ returned path** — never by scanning source.
 archaeologist.py  project | flow | both | check | report        <- the only entrypoint
   project  -> build_wiki -> build_graph ------------------\
   flow     -> build_flow (+ js_bridge -> js_extract.js) ---+--> render_explorer()
-  report   -> report.py (scan_security + git_insights + analyze + metrics) -> data/report/<map>/
+  report   -> report.py (scan_security + git_insights + analyze + metrics + debt + tests_map)
+                                                                    -> data/report/<map>/
   brief    -> brief.py (reads the artifacts above, computes nothing)
   check    -> manifest.py (source hashes vs last build)
                                                             \-> build_html.py -> data/explorer.html
@@ -45,6 +46,9 @@ archaeologist.py  project | flow | both | check | report        <- the only entr
   source to find a starting node.
 - `context.py` is the per-node pack: graph facts + metrics/security/insights for one node and its
   neighbors, rendered under a hard `--max-chars` budget. Like `brief.py` it only reads artifacts.
+- `debt.py` (markers in comments + orphan nodes/files) and `tests_map.py` (which nodes a test file
+  names) are the two "what is rotting / what is untested" passes. Both are heuristics on purpose
+  and neither feeds the health grade -- they report, they do not judge.
 - `brief.py` is the fixed-size digest an agent should open a session with — it only reads what the
   other scripts wrote. Anything expensive belongs upstream of it, never inside it.
 - `report.py` joins all of it into `data/report/<map>/architecture_report.{md,json}` plus
@@ -92,7 +96,7 @@ SQL, an innerHTML sink — so the review path has something to find):
 - flow graph: 13 nodes / 9 edges, 3 endpoints, **0 pending** descriptions
 - traces: `create_order → place_order → {save, charge}` and `get_order → find_order → get`;
   cross-stack `submitOrder → createOrder → OrderController.create_order → …`
-- grades: structure **C (75)**, flow **D (67)**; 4 risk findings
+- grades: structure **C (75)**, flow **D (67)**; 4 risk findings; 2 debt markers; 0 test files
 - `archaeologist.py check --src ./sample_src` → `stale: false` right after a build
 
 Other checks worth running when you touch the relevant part:

@@ -5,7 +5,7 @@
       "severity": "high",
       "message": "SQL statement built by string interpolation",
       "file": "sample_src/backend/order_repository.py",
-      "line": 14,
+      "line": 15,
       "node": "OrderRepository.get",
       "snippet": "return self.cursor.execute(f\"SELECT * FROM orders WHERE id = {order_id}\")"
     },
@@ -32,7 +32,7 @@
       "severity": "low",
       "message": "Debug statement left in the code",
       "file": "sample_src/backend/payment_client.py",
-      "line": 13,
+      "line": 14,
       "node": "PaymentClient.charge",
       "snippet": "print(\"charging\", payload)  # demo smell: debug statement left behind"
     }

@@ -438,6 +438,7 @@ def resolve_descriptions(methods: dict, cache: dict) -> dict:
             info["summary"], info["desc_source"] = info["doc"], "docstring"
         elif node_id in cache and cache[node_id].get("hash") == info["hash"]:
             info["summary"], info["desc_source"] = cache[node_id]["summary"], "ai"
+            cache[node_id]["file"] = info["source"].split(":")[0]   # scopes future pruning
         else:
             info["summary"], info["desc_source"] = _auto_summary(info), "auto"
             pending[node_id] = {
@@ -520,13 +521,15 @@ def build(src, flow_dir: str, graph_path: str) -> int:
     cache = _load_json(DESCRIPTIONS_PATH, {})
     pending = resolve_descriptions(methods, cache)
     # Prune cache entries for nodes that no longer exist (handles deletes) -- but
-    # only when this build saw the whole codebase. With the frontend skipped (no
-    # Node / no @babel/parser) its nodes are absent from `methods`, and pruning
-    # would silently discard summaries for code that is still there.
+    # only the ones this build could actually have seen. The cache belongs to the
+    # skill install, not to a project, so a build of another codebase (or one that
+    # skipped the frontend) must not throw away summaries for files it never read.
     if frontend_degraded():
         print("  ! description cache left intact: this build skipped the frontend")
     else:
-        cache = {k: v for k, v in cache.items() if k in methods}
+        seen_files = {(m.get("source") or "").split(":")[0] for m in methods.values()}
+        cache = {k: v for k, v in cache.items()
+                 if k in methods or v.get("file") not in seen_files}
     _save_json(DESCRIPTIONS_PATH, cache)
     if pending:
         _save_json(PENDING_PATH, pending)

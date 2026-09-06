@@ -122,6 +122,12 @@ python .agents/skills/code-archaeologist/scripts/git_insights.py --src ./src --t
 
 # lines of code per file + LOC/complexity/depth per node (Python nodes)
 python .agents/skills/code-archaeologist/scripts/metrics.py --src ./src --top 10
+
+# TODO/FIXME/HACK markers + nodes nothing calls + files where every node is dead
+python .agents/skills/code-archaeologist/scripts/debt.py --src ./src --top 10
+
+# which nodes the test suite names, and which it never mentions
+python .agents/skills/code-archaeologist/scripts/tests_map.py --src ./src --top 15
 ```
 
 Every stage is runnable on its own (`build_wiki.py`, `build_graph.py`, `build_flow.py`,
@@ -160,10 +166,22 @@ $ archaeologist.py report --src ./sample_src
 
 | Severity | Rule | Location | Owner node |
 | --- | --- | --- | --- |
-| high | `sql_injection` | `sample_src/backend/order_repository.py:14` | `OrderRepository.get` |
+| high | `sql_injection` | `sample_src/backend/order_repository.py:15` | `OrderRepository.get` |
 | high | `hardcoded_secret` | `sample_src/backend/payment_client.py:5` | — (module level) |
 | medium | `dangerous_eval` | `sample_src/frontend/order_page.ts:11` | `loadOrder` |
-| low | `debug_statement` | `sample_src/backend/payment_client.py:13` | `PaymentClient.charge` |
+| low | `debug_statement` | `sample_src/backend/payment_client.py:14` | `PaymentClient.charge` |
+
+The same sample carries two deliberate markers, so the debt inventory has something to find:
+
+```console
+$ debt.py --src ./sample_src --graph .../flow_graph.json
+Debt: 2 marker(s) (FIXME 1, TODO 1), 2 dead node(s), 1 dead file(s)
+  FIXME  sample_src/backend/order_repository.py:15 [OrderRepository.get]  parameterize this query
+  TODO   sample_src/backend/payment_client.py:13 [PaymentClient.charge]   retry once on a gateway timeout
+```
+
+It has no tests, so `tests_map.py` reports `0/11 node(s) named by a test` — which is exactly the
+answer that command exists to give.
 
 The generated `data/report/`, `data/structure/` and `data/flow/` folders in this repo are that
 demo output, committed so you can read a real example before running anything.

@@ -1,0 +1,34 @@
+{
+  "generated": "2026-09-06T12:00:43Z",
+  "roots": [
+    "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
+  ],
+  "graph": "data/structure/graph.json",
+  "summary": {
+    "markers": 2,
+    "by_tag": {
+      "FIXME": 1,
+      "TODO": 1
+    },
+    "dead_nodes": 0,
+    "dead_files": 0
+  },
+  "markers": [
+    {
+      "tag": "FIXME",
+      "text": "parameterize this query (see the demo smell below)",
+      "file": "sample_src/backend/order_repository.py",
+      "line": 14,
+      "node": "OrderRepository"
+    },
+    {
+      "tag": "TODO",
+      "text": "retry once on a gateway timeout before giving up",
+      "file": "sample_src/backend/payment_client.py",
+      "line": 13,
+      "node": "PaymentClient"
+    }
+  ],
+  "dead_nodes": [],
+  "dead_files": []
+}

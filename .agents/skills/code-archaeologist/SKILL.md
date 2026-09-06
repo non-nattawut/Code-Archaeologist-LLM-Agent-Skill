@@ -189,14 +189,34 @@ this for you into `data/report/<map>/metrics.json`.
 
 ### 14. Full architecture report
 One review pass per built map — census, grade, smells, anti-patterns, risks, hotspots, size and
-complexity — into `data/report/<map>/architecture_report.md` (+ `.json`, `security.json`,
-`insights.json`, `metrics.json`). It also re-renders `data/explorer.html` with both reports
+complexity, debt and test references — into `data/report/<map>/architecture_report.md`
+(+ `.json`, `security.json`, `insights.json`, `metrics.json`, `debt.json`, `tests.json`). It also re-renders `data/explorer.html` with both reports
 embedded, enabling the health ring, churn/risk colors, ownership and the Patterns/Security tabs.
 ```bash
 python .agents/skills/code-archaeologist/scripts/archaeologist.py report --src ./src
 ```
 Use it for "review this codebase" / "where is the risk" / "what should we refactor first", then
 answer from the brief and the report — never from source.
+
+### 15. Debt inventory (markers + dead code)
+TODO / FIXME / HACK / XXX / BUG / DEPRECATED left in comments, each attributed to the node that
+owns the line, plus nodes nothing calls and files where *every* node is dead.
+```bash
+python .agents/skills/code-archaeologist/scripts/debt.py --src ./src --top 10
+```
+`--graph` picks the map, `--out <file>.json` saves it, `--format json` for tooling. Answers
+"what should we clean up first" without reading a file.
+
+### 16. Test coverage map (by name)
+Which nodes the test suite even mentions — and, more usefully, which it never names. A
+`Class.method` counts as referenced when a test file names both the class and the method; a
+function or class when the test names it.
+```bash
+python .agents/skills/code-archaeologist/scripts/tests_map.py --src ./src --top 15
+```
+Name-based, not execution coverage: no runner, nothing to install. A referenced node may still be
+untested, but an unreferenced one is a real gap. Dunder methods and nodes living in test files are
+left out of the count.
 
 ## Keeping the maps current (hybrid AI descriptions)
 

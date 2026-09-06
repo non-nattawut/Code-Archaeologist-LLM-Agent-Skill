@@ -1,0 +1,49 @@
+{
+  "generated": "2026-09-06T12:00:43Z",
+  "roots": [
+    "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
+  ],
+  "graph": "data/flow/flow_graph.json",
+  "summary": {
+    "markers": 2,
+    "by_tag": {
+      "FIXME": 1,
+      "TODO": 1
+    },
+    "dead_nodes": 2,
+    "dead_files": 1
+  },
+  "markers": [
+    {
+      "tag": "FIXME",
+      "text": "parameterize this query (see the demo smell below)",
+      "file": "sample_src/backend/order_repository.py",
+      "line": 14,
+      "node": "OrderRepository.get"
+    },
+    {
+      "tag": "TODO",
+      "text": "retry once on a gateway timeout before giving up",
+      "file": "sample_src/backend/payment_client.py",
+      "line": 13,
+      "node": "PaymentClient.charge"
+    }
+  ],
+  "dead_nodes": [
+    {
+      "id": "loadOrder",
+      "source": "sample_src/frontend/order_page.ts:8",
+      "layer": "ui",
+      "kind": "function"
+    },
+    {
+      "id": "submitOrder",
+      "source": "sample_src/frontend/order_page.ts:4",
+      "layer": "ui",
+      "kind": "function"
+    }
+  ],
+  "dead_files": [
+    "sample_src/frontend/order_page.ts"
+  ]
+}

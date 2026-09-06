@@ -6,6 +6,8 @@ can read top to bottom:
 
   graph      node/edge/layer/language census + route entry points
   metrics    line counts per file, LOC/complexity per node
+  debt       TODO-style markers + dead code
+  tests      which nodes the test suite names
   analyze    cycles, orphans, layer violations, hubs, god objects, patterns, grade
   security   scan_security.py findings, attributed to the owning node
   git        churn, ownership and hotspot ranking (risk = churn x connectivity)
@@ -35,9 +37,11 @@ DEFAULT_OUT_DIR = os.path.join(DATA_DIR, "report")
 sys.path.insert(0, SCRIPT_DIR)
 import analyze          # noqa: E402
 import console          # noqa: E402  (stdout must survive a non-UTF-8 console)
+import debt             # noqa: E402
 import git_insights     # noqa: E402
 import metrics          # noqa: E402
 import scan_security    # noqa: E402
+import tests_map        # noqa: E402
 
 TOP_FINDINGS = 20
 TOP_HOTSPOTS = 10
@@ -200,6 +204,31 @@ def to_markdown(data: dict) -> str:
     if insights.get("summary", {}).get("note"):
         lines += [f"_{insights['summary']['note']}_", ""]
 
+    rot = data.get("debt") or {}
+    if rot:
+        rs = rot["summary"]
+        tags = ", ".join(f"{k} {v}" for k, v in rs["by_tag"].items()) or "none"
+        lines += [f"## Debt — {rs['markers']} marker(s) ({tags}), {rs['dead_nodes']} dead node(s)", ""]
+        lines += _table(["Tag", "Location", "Owner", "Note"],
+                        [[m["tag"], f"`{m['file']}:{m['line']}`",
+                          f"`{m['node']}`" if m["node"] else "—", m["text"] or "—"]
+                         for m in rot["markers"][:TOP_FINDINGS]])
+        if rot["dead_files"]:
+            lines += ["Files where every node is dead: "
+                      + ", ".join(f"`{f}`" for f in rot["dead_files"]), ""]
+
+    tests = data.get("tests") or {}
+    if tests:
+        ts = tests["summary"]
+        lines += [f"## Tests — {ts['referenced']}/{ts['considered']} node(s) named by a test "
+                  f"({ts['referenced_pct']}%)", "",
+                  f"_{ts['test_files']} test file(s). Name-based, not execution coverage: a node "
+                  f"counts as referenced when a test file names it._", "",
+                  "### Named by no test", ""]
+        lines += _table(["Node", "Layer", "Location"],
+                        [[f"`{n['id']}`", n["layer"] or "—", f"`{n['source']}`"]
+                         for n in tests["unreferenced"][:TOP_ORPHANS]])
+
     lines += [
         "## Dig deeper",
         "",
@@ -225,12 +254,15 @@ def build(src, graph_path: str = DEFAULT_GRAPH, out_dir: str = DEFAULT_OUT_DIR) 
     insights = git_insights.build(src, graph_path)
     analysis = analyze.report(graph_path, security["summary"]["by_severity"])
     size = metrics.build(src, graph_path, os.path.join(out_dir, "metrics.json"), TOP_BIG)
+    rot = debt.build(src, graph_path, os.path.join(out_dir, "debt.json"))
+    tests = tests_map.build(src, graph_path, os.path.join(out_dir, "tests.json"))
 
     data = {
         "graph": os.path.relpath(graph_path, SKILL_ROOT).replace("\\", "/"),
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         "census": census(graph), "files": file_census(size), "analysis": analysis,
         "security": security, "insights": insights, "metrics": size,
+        "debt": rot, "tests": tests,
     }
 
     writes = {
@@ -252,7 +284,10 @@ def build(src, graph_path: str = DEFAULT_GRAPH, out_dir: str = DEFAULT_OUT_DIR) 
           f"{len(insights.get('hotspots', []))} ranked hotspot(s)")
     print(f"  {size['totals']['lines']} line(s) across {size['totals']['files']} file(s), "
           f"longest node {size['top_loc'][0]['id'] if size['top_loc'] else 'n/a'}")
-    print(f"  also: architecture_report.json, security.json, insights.json, metrics.json in {out_dir}")
+    print(f"  {rot['summary']['markers']} marker(s), {rot['summary']['dead_nodes']} dead node(s), "
+          f"{tests['summary']['referenced']}/{tests['summary']['considered']} node(s) named by a test")
+    print(f"  also: architecture_report.json, security.json, insights.json, metrics.json, "
+          f"debt.json, tests.json in {out_dir}")
     return data
 
 
