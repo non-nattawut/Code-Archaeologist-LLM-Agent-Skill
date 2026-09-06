@@ -1,24 +1,24 @@
 {
-  "generated": "2026-09-06T12:51:00Z",
+  "generated": "2026-09-06T13:05:30Z",
   "roots": [
     "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
   ],
   "totals": {
-    "files": 6,
-    "lines": 97,
-    "code": 65,
-    "comment": 8,
-    "blank": 24,
-    "comment_ratio": 0.082
+    "files": 8,
+    "lines": 135,
+    "code": 92,
+    "comment": 10,
+    "blank": 33,
+    "comment_ratio": 0.074
   },
   "languages": {
     "py": {
-      "files": 4,
-      "lines": 73
+      "files": 5,
+      "lines": 98
     },
     "ts": {
-      "files": 2,
-      "lines": 24
+      "files": 3,
+      "lines": 37
     }
   },
   "files": {
@@ -50,10 +50,24 @@
       "blank": 4,
       "lang": "py"
     },
+    "sample_src/backend/tests/test_orders.py": {
+      "lines": 25,
+      "code": 18,
+      "comment": 0,
+      "blank": 7,
+      "lang": "py"
+    },
     "sample_src/frontend/api_client.ts": {
       "lines": 11,
       "code": 8,
       "comment": 1,
+      "blank": 2,
+      "lang": "ts"
+    },
+    "sample_src/frontend/order_page.test.ts": {
+      "lines": 13,
+      "code": 9,
+      "comment": 2,
       "blank": 2,
       "lang": "ts"
     },
@@ -136,6 +150,26 @@
       "lang": "py",
       "in_graph": false
     },
+    "OrderRepositoryTest": {
+      "loc": 7,
+      "complexity": 1,
+      "depth": 1,
+      "params": 0,
+      "file": "sample_src/backend/tests/test_orders.py",
+      "line": 19,
+      "lang": "py",
+      "in_graph": true
+    },
+    "OrderRepositoryTest.test_get_returns_the_row": {
+      "loc": 4,
+      "complexity": 1,
+      "depth": 0,
+      "params": 1,
+      "file": "sample_src/backend/tests/test_orders.py",
+      "line": 22,
+      "lang": "py",
+      "in_graph": false
+    },
     "OrderService": {
       "loc": 15,
       "complexity": 1,
@@ -195,6 +229,16 @@
       "line": 11,
       "lang": "py",
       "in_graph": false
+    },
+    "test_place_order_charges_and_saves": {
+      "loc": 4,
+      "complexity": 2,
+      "depth": 0,
+      "params": 0,
+      "file": "sample_src/backend/tests/test_orders.py",
+      "line": 13,
+      "lang": "py",
+      "in_graph": false
     }
   },
   "top_loc": [
@@ -225,6 +269,13 @@
       "complexity": 1,
       "file": "sample_src/backend/payment_client.py",
       "line": 8
+    },
+    {
+      "id": "OrderRepositoryTest",
+      "loc": 7,
+      "complexity": 1,
+      "file": "sample_src/backend/tests/test_orders.py",
+      "line": 19
     }
   ],
   "top_complexity": [
@@ -243,6 +294,13 @@
       "line": 4
     },
     {
+      "id": "OrderRepositoryTest",
+      "complexity": 1,
+      "loc": 7,
+      "file": "sample_src/backend/tests/test_orders.py",
+      "line": 19
+    },
+    {
       "id": "OrderService",
       "complexity": 1,
       "loc": 15,
@@ -258,6 +316,11 @@
     }
   ],
   "top_files": [
+    {
+      "file": "sample_src/backend/tests/test_orders.py",
+      "lines": 25,
+      "code": 18
+    },
     {
       "file": "sample_src/backend/order_controller.py",
       "lines": 23,
@@ -279,6 +342,11 @@
       "code": 8
     },
     {
+      "file": "sample_src/frontend/order_page.test.ts",
+      "lines": 13,
+      "code": 9
+    },
+    {
       "file": "sample_src/frontend/order_page.ts",
       "lines": 13,
       "code": 9
@@ -289,5 +357,7 @@
       "code": 8
     }
   ],
-  "unmeasured_graph_ids": []
+  "unmeasured_graph_ids": [
+    "TestOrdersModule"
+  ]
 }

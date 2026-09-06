@@ -1,18 +1,34 @@
 {
-  "generated": "2026-09-06T12:51:00Z",
+  "generated": "2026-09-06T13:05:30Z",
   "roots": [
     "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
   ],
   "graph": "data/flow/flow_graph.json",
   "summary": {
-    "test_files": 0,
+    "test_files": 2,
     "considered": 11,
-    "referenced": 0,
-    "unreferenced": 11,
-    "referenced_pct": 0.0
+    "referenced": 4,
+    "unreferenced": 7,
+    "referenced_pct": 36.4
   },
-  "test_files": [],
-  "referenced": {},
+  "test_files": [
+    "sample_src/backend/tests/test_orders.py",
+    "sample_src/frontend/order_page.test.ts"
+  ],
+  "referenced": {
+    "OrderRepository.get": [
+      "sample_src/backend/tests/test_orders.py"
+    ],
+    "OrderService.place_order": [
+      "sample_src/backend/tests/test_orders.py"
+    ],
+    "loadOrder": [
+      "sample_src/frontend/order_page.test.ts"
+    ],
+    "submitOrder": [
+      "sample_src/frontend/order_page.test.ts"
+    ]
+  },
   "unreferenced": [
     {
       "id": "OrderController.create_order",
@@ -27,12 +43,6 @@
       "kind": "endpoint"
     },
     {
-      "id": "OrderRepository.get",
-      "source": "sample_src/backend/order_repository.py:11",
-      "layer": "repository",
-      "kind": "method"
-    },
-    {
       "id": "OrderRepository.save",
       "source": "sample_src/backend/order_repository.py:7",
       "layer": "repository",
@@ -41,12 +51,6 @@
     {
       "id": "OrderService.find_order",
       "source": "sample_src/backend/order_service.py:18",
-      "layer": "service",
-      "kind": "method"
-    },
-    {
-      "id": "OrderService.place_order",
-      "source": "sample_src/backend/order_service.py:13",
       "layer": "service",
       "kind": "method"
     },
@@ -66,18 +70,6 @@
       "id": "getOrder",
       "source": "sample_src/frontend/api_client.ts:8",
       "layer": "client",
-      "kind": "function"
-    },
-    {
-      "id": "loadOrder",
-      "source": "sample_src/frontend/order_page.ts:8",
-      "layer": "ui",
-      "kind": "function"
-    },
-    {
-      "id": "submitOrder",
-      "source": "sample_src/frontend/order_page.ts:4",
-      "layer": "ui",
       "kind": "function"
     }
   ]

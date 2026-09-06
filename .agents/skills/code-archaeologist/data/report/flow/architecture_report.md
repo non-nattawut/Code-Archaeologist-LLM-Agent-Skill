@@ -1,23 +1,23 @@
 # Architecture report — flow_graph.json
 
-Generated 2026-09-06 12:51 UTC · 13 nodes · 9 edges
+Generated 2026-09-06 13:05 UTC · 15 nodes · 11 edges
 
-## Health: **D** (67/100)
+## Health: **D** (68/100)
 
 | Deduction | Points |
 | --- | --- |
-| dead code | -8 |
+| dead code | -7 |
 | security | -25 |
 
-Dead-code ratio 15.4% · cycles 0 · layer violations 0 · security findings 4
+Dead-code ratio 13.3% · cycles 0 · layer violations 0 · security findings 4
 
 ## Census
 
-- Source: 6 file(s), 97 lines (py 75.3%, ts 24.7%)
-- Layers: `client` 3, `controller` 3, `repository` 2, `service` 3, `ui` 2
-- Kinds: `endpoint` 3, `function` 4, `method` 6
-- Languages: `js` 4, `py` 9
-- Edge types: `calls` 7, `http` 2
+- Source: 8 file(s), 135 lines (py 72.6%, ts 27.4%)
+- Layers: `client` 3, `controller` 3, `repository` 2, `service` 3, `test` 2, `ui` 2
+- Kinds: `endpoint` 3, `function` 5, `method` 7
+- Languages: `js` 4, `py` 11
+- Edge types: `calls` 9, `http` 2
 
 ## Entry points (routes)
 
@@ -28,7 +28,7 @@ Dead-code ratio 15.4% · cycles 0 · layer violations 0 · security findings 4
 
 ## Size & complexity
 
-- 6 file(s), 97 lines — 65 code, 8 comment, 24 blank (comment ratio 8%)
+- 8 file(s), 135 lines — 92 code, 10 comment, 33 blank (comment ratio 7%)
 - Complexity is McCabe: 1 + every branch. Python nodes only.
 
 ### Longest nodes
@@ -37,36 +37,40 @@ Dead-code ratio 15.4% · cycles 0 · layer violations 0 · security findings 4
 | --- | --- | --- | --- |
 | `OrderRepository.get` | 5 | 1 | `sample_src/backend/order_repository.py:11` |
 | `PaymentClient.charge` | 5 | 1 | `sample_src/backend/payment_client.py:11` |
+| `OrderRepositoryTest.test_get_returns_the_row` | 4 | 1 | `sample_src/backend/tests/test_orders.py:22` |
 | `OrderService.place_order` | 4 | 1 | `sample_src/backend/order_service.py:13` |
+| `test_place_order_charges_and_saves` | 4 | 2 | `sample_src/backend/tests/test_orders.py:13` |
 | `OrderController.create_order` | 3 | 1 | `sample_src/backend/order_controller.py:16` |
 | `OrderController.get_order` | 3 | 1 | `sample_src/backend/order_controller.py:21` |
 | `OrderRepository.save` | 3 | 1 | `sample_src/backend/order_repository.py:7` |
 | `OrderService.__init__` | 3 | 1 | `sample_src/backend/order_service.py:9` |
 | `OrderService.find_order` | 3 | 1 | `sample_src/backend/order_service.py:18` |
-| `OrderController.__init__` | 2 | 1 | `sample_src/backend/order_controller.py:12` |
 
 ### Most complex nodes
 
 | Node | Complexity | LOC | Location |
 | --- | --- | --- | --- |
+| `test_place_order_charges_and_saves` | 2 | 4 | `sample_src/backend/tests/test_orders.py:13` |
 | `OrderController.__init__` | 1 | 2 | `sample_src/backend/order_controller.py:12` |
 | `OrderController.create_order` | 1 | 3 | `sample_src/backend/order_controller.py:16` |
 | `OrderController.get_order` | 1 | 3 | `sample_src/backend/order_controller.py:21` |
 | `OrderRepository.get` | 1 | 5 | `sample_src/backend/order_repository.py:11` |
 | `OrderRepository.save` | 1 | 3 | `sample_src/backend/order_repository.py:7` |
+| `OrderRepositoryTest.test_get_returns_the_row` | 1 | 4 | `sample_src/backend/tests/test_orders.py:22` |
 | `OrderService.__init__` | 1 | 3 | `sample_src/backend/order_service.py:9` |
 | `OrderService.find_order` | 1 | 3 | `sample_src/backend/order_service.py:18` |
 | `OrderService.place_order` | 1 | 4 | `sample_src/backend/order_service.py:13` |
-| `PaymentClient.charge` | 1 | 5 | `sample_src/backend/payment_client.py:11` |
 
 ### Largest files
 
 | File | Lines | Code |
 | --- | --- | --- |
+| `sample_src/backend/tests/test_orders.py` | 25 | 18 |
 | `sample_src/backend/order_controller.py` | 23 | 16 |
 | `sample_src/backend/order_service.py` | 20 | 15 |
 | `sample_src/backend/order_repository.py` | 15 | 9 |
 | `sample_src/backend/payment_client.py` | 15 | 8 |
+| `sample_src/frontend/order_page.test.ts` | 13 | 9 |
 | `sample_src/frontend/order_page.ts` | 13 | 9 |
 | `sample_src/frontend/api_client.ts` | 11 | 8 |
 
@@ -114,12 +118,12 @@ _None._
 
 | Node | Commits | Fan-in | Fan-out | Risk | Owner |
 | --- | --- | --- | --- | --- | --- |
+| `OrderRepository.get` | 3 | 2 | 0 | 9 | non-nattawut |
 | `OrderController.create_order` | 2 | 1 | 1 | 6 | Nattawut Rodthong |
 | `OrderController.get_order` | 2 | 1 | 1 | 6 | Nattawut Rodthong |
-| `OrderRepository.get` | 3 | 1 | 0 | 6 | non-nattawut |
 | `OrderRepository.save` | 3 | 1 | 0 | 6 | non-nattawut |
 | `PaymentClient.charge` | 3 | 1 | 0 | 6 | non-nattawut |
-| `OrderService.place_order` | 1 | 1 | 2 | 4 | Nattawut Rodthong |
+| `OrderService.place_order` | 1 | 2 | 2 | 5 | Nattawut Rodthong |
 | `loadOrder` | 2 | 0 | 1 | 4 | Nattawut Rodthong |
 | `submitOrder` | 2 | 0 | 1 | 4 | Nattawut Rodthong |
 | `OrderService.find_order` | 1 | 1 | 1 | 3 | Nattawut Rodthong |
@@ -134,9 +138,9 @@ _None._
 
 Files where every node is dead: `sample_src/frontend/order_page.ts`
 
-## Tests — 0/11 node(s) named by a test (0.0%)
+## Tests — 4/11 node(s) named by a test (36.4%)
 
-_0 test file(s). Name-based, not execution coverage: a node counts as referenced when a test file names it._
+_2 test file(s). Name-based, not execution coverage: a node counts as referenced when a test file names it._
 
 ### Named by no test
 
@@ -144,15 +148,11 @@ _0 test file(s). Name-based, not execution coverage: a node counts as referenced
 | --- | --- | --- |
 | `OrderController.create_order` | controller | `sample_src/backend/order_controller.py:16` |
 | `OrderController.get_order` | controller | `sample_src/backend/order_controller.py:21` |
-| `OrderRepository.get` | repository | `sample_src/backend/order_repository.py:11` |
 | `OrderRepository.save` | repository | `sample_src/backend/order_repository.py:7` |
 | `OrderService.find_order` | service | `sample_src/backend/order_service.py:18` |
-| `OrderService.place_order` | service | `sample_src/backend/order_service.py:13` |
 | `PaymentClient.charge` | client | `sample_src/backend/payment_client.py:11` |
 | `createOrder` | client | `sample_src/frontend/api_client.ts:3` |
 | `getOrder` | client | `sample_src/frontend/api_client.ts:8` |
-| `loadOrder` | ui | `sample_src/frontend/order_page.ts:8` |
-| `submitOrder` | ui | `sample_src/frontend/order_page.ts:4` |
 
 ## Dig deeper
 

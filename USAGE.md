@@ -162,7 +162,7 @@ The review pass over the same sample (the demo sources carry three deliberate sm
 
 ```console
 $ archaeologist.py report --src ./sample_src
-  grade D (67/100), 4 risk finding(s), 13 ranked hotspot(s)
+  grade D (68/100), 4 risk finding(s), 13 ranked hotspot(s)
 ```
 
 | Severity | Rule | Location | Owner node |
@@ -181,8 +181,22 @@ Debt: 2 marker(s) (FIXME 1, TODO 1), 2 dead node(s), 1 dead file(s)
   TODO   sample_src/backend/payment_client.py:13 [PaymentClient.charge]   retry once on a gateway timeout
 ```
 
-It has no tests, so `tests_map.py` reports `0/11 node(s) named by a test` — which is exactly the
-answer that command exists to give.
+It also ships a small suite — `backend/tests/test_orders.py` (one pytest function, one
+`unittest.TestCase`) and `frontend/order_page.test.ts` — so the test path has something to show:
+
+```console
+$ tests_map.py --src ./sample_src
+Tests: 2 test file(s), 4/11 node(s) named by a test (36.4%)
+  untested  OrderController.create_order  sample_src/backend/order_controller.py:16
+  ...
+
+$ context.py --node OrderService.place_order
+## Covered by (1 test(s))
+- `test_place_order_charges_and_saves`
+```
+
+Those two test nodes carry `layer: test`: they are never counted as dead code, their calls never
+count as coupling, and the explorer's **Tests** checkbox hides them (15 nodes -> 13).
 
 The generated `data/report/`, `data/structure/` and `data/flow/` folders in this repo are that
 demo output, committed so you can read a real example before running anything.

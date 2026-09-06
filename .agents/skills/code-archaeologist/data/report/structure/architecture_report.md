@@ -1,6 +1,6 @@
 # Architecture report — graph.json
 
-Generated 2026-09-06 12:51 UTC · 4 nodes · 3 edges
+Generated 2026-09-06 13:05 UTC · 6 nodes · 9 edges
 
 ## Health: **C** (75/100)
 
@@ -12,11 +12,11 @@ Dead-code ratio 0.0% · cycles 0 · layer violations 0 · security findings 4
 
 ## Census
 
-- Source: 6 file(s), 97 lines (py 75.3%, ts 24.7%)
-- Layers: `client` 1, `controller` 1, `repository` 1, `service` 1
-- Kinds: `class` 4
-- Languages: `py` 4
-- Edge types: `references` 3
+- Source: 8 file(s), 135 lines (py 72.6%, ts 27.4%)
+- Layers: `client` 1, `controller` 1, `repository` 1, `service` 1, `test` 2
+- Kinds: `class` 5, `module` 1
+- Languages: `py` 6
+- Edge types: `references` 9
 
 ## Entry points (routes)
 
@@ -24,7 +24,7 @@ _None._
 
 ## Size & complexity
 
-- 6 file(s), 97 lines — 65 code, 8 comment, 24 blank (comment ratio 8%)
+- 8 file(s), 135 lines — 92 code, 10 comment, 33 blank (comment ratio 7%)
 - Complexity is McCabe: 1 + every branch. Python nodes only.
 
 ### Longest nodes
@@ -35,6 +35,7 @@ _None._
 | `OrderService` | 15 | 1 | `sample_src/backend/order_service.py:6` |
 | `OrderRepository` | 12 | 1 | `sample_src/backend/order_repository.py:4` |
 | `PaymentClient` | 8 | 1 | `sample_src/backend/payment_client.py:8` |
+| `OrderRepositoryTest` | 7 | 1 | `sample_src/backend/tests/test_orders.py:19` |
 
 ### Most complex nodes
 
@@ -42,6 +43,7 @@ _None._
 | --- | --- | --- | --- |
 | `OrderController` | 1 | 15 | `sample_src/backend/order_controller.py:9` |
 | `OrderRepository` | 1 | 12 | `sample_src/backend/order_repository.py:4` |
+| `OrderRepositoryTest` | 1 | 7 | `sample_src/backend/tests/test_orders.py:19` |
 | `OrderService` | 1 | 15 | `sample_src/backend/order_service.py:6` |
 | `PaymentClient` | 1 | 8 | `sample_src/backend/payment_client.py:8` |
 
@@ -49,10 +51,12 @@ _None._
 
 | File | Lines | Code |
 | --- | --- | --- |
+| `sample_src/backend/tests/test_orders.py` | 25 | 18 |
 | `sample_src/backend/order_controller.py` | 23 | 16 |
 | `sample_src/backend/order_service.py` | 20 | 15 |
 | `sample_src/backend/order_repository.py` | 15 | 9 |
 | `sample_src/backend/payment_client.py` | 15 | 8 |
+| `sample_src/frontend/order_page.test.ts` | 13 | 9 |
 | `sample_src/frontend/order_page.ts` | 13 | 9 |
 | `sample_src/frontend/api_client.ts` | 11 | 8 |
 
@@ -97,10 +101,10 @@ _None._
 
 | Node | Commits | Fan-in | Fan-out | Risk | Owner |
 | --- | --- | --- | --- | --- | --- |
-| `OrderRepository` | 3 | 1 | 0 | 6 | non-nattawut |
-| `PaymentClient` | 3 | 1 | 0 | 6 | non-nattawut |
+| `OrderRepository` | 3 | 3 | 0 | 12 | non-nattawut |
+| `PaymentClient` | 3 | 3 | 0 | 12 | non-nattawut |
+| `OrderService` | 1 | 3 | 2 | 6 | Nattawut Rodthong |
 | `OrderController` | 2 | 0 | 1 | 4 | Nattawut Rodthong |
-| `OrderService` | 1 | 1 | 2 | 4 | Nattawut Rodthong |
 
 ## Debt — 2 marker(s) (FIXME 1, TODO 1), 0 dead node(s)
 
@@ -109,18 +113,15 @@ _None._
 | FIXME | `sample_src/backend/order_repository.py:14` | `OrderRepository` | parameterize this query (see the demo smell below) |
 | TODO | `sample_src/backend/payment_client.py:13` | `PaymentClient` | retry once on a gateway timeout before giving up |
 
-## Tests — 0/4 node(s) named by a test (0.0%)
+## Tests — 3/4 node(s) named by a test (75.0%)
 
-_0 test file(s). Name-based, not execution coverage: a node counts as referenced when a test file names it._
+_2 test file(s). Name-based, not execution coverage: a node counts as referenced when a test file names it._
 
 ### Named by no test
 
 | Node | Layer | Location |
 | --- | --- | --- |
 | `OrderController` | controller | `sample_src/backend/order_controller.py` |
-| `OrderRepository` | repository | `sample_src/backend/order_repository.py` |
-| `OrderService` | service | `sample_src/backend/order_service.py` |
-| `PaymentClient` | client | `sample_src/backend/payment_client.py` |
 
 ## Dig deeper
 

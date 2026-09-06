@@ -100,12 +100,15 @@ python .agents/skills/code-archaeologist/scripts/archaeologist.py report --src .
 ```
 
 Expected on the current sample (it carries three deliberate smells — a hardcoded key, interpolated
-SQL, an innerHTML sink — so the review path has something to find):
+SQL, an innerHTML sink — plus a pytest/unittest file and a `.test.ts`, so both the review path and
+the test path have something to find):
 
-- flow graph: 13 nodes / 9 edges, 3 endpoints, **0 pending** descriptions
+- flow graph: 15 nodes / 11 edges, 3 endpoints, **0 pending** descriptions
 - traces: `create_order → place_order → {save, charge}` and `get_order → find_order → get`;
   cross-stack `submitOrder → createOrder → OrderController.create_order → …`
-- grades: structure **C (75)**, flow **D (67)**; 4 risk findings; 2 debt markers
+- grades: structure **C (75)**, flow **D (68)**; 4 risk findings; 2 debt markers
+- tests: 2 test files, flow **4/11 nodes named by a test**, and the two test nodes carry
+  `layer: test` with call edges into `OrderService.place_order` / `OrderRepository.get`
 - `archaeologist.py check --src ./sample_src` → `stale: false` right after a build
 
 Other checks worth running when you touch the relevant part:

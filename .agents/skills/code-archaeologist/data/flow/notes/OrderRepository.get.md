@@ -19,4 +19,5 @@ Select an order by id.
 _None._
 
 ## Called by
+- [[OrderRepositoryTest.test_get_returns_the_row]]
 - [[OrderService.find_order]]

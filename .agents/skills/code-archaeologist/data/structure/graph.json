@@ -15,6 +15,13 @@
       "doc": "Reads and writes orders to the database."
     },
     {
+      "id": "OrderRepositoryTest",
+      "layer": "test",
+      "kind": "class",
+      "source": "sample_src/backend/tests/test_orders.py",
+      "doc": "unittest style: detected the same way, by the file it lives in."
+    },
+    {
       "id": "OrderService",
       "layer": "service",
       "kind": "class",
@@ -27,6 +34,13 @@
       "kind": "class",
       "source": "sample_src/backend/payment_client.py",
       "doc": "Talks to the third-party payment gateway."
+    },
+    {
+      "id": "TestOrdersModule",
+      "layer": "test",
+      "kind": "module",
+      "source": "sample_src/backend/tests/test_orders.py",
+      "doc": "Demo tests: both common Python styles, so the skill has real test code to classify.\n\nThese call the production classes directly, which is what gives the flow map its\ntest -> production edges \u2014 the ones `context.py` reports under \"Covered by\"."
     }
   ],
   "edges": [
@@ -36,12 +50,42 @@
       "type": "references"
     },
     {
+      "source": "OrderRepositoryTest",
+      "target": "OrderRepository",
+      "type": "references"
+    },
+    {
+      "source": "OrderRepositoryTest",
+      "target": "OrderService",
+      "type": "references"
+    },
+    {
+      "source": "OrderRepositoryTest",
+      "target": "PaymentClient",
+      "type": "references"
+    },
+    {
       "source": "OrderService",
       "target": "OrderRepository",
       "type": "references"
     },
     {
       "source": "OrderService",
+      "target": "PaymentClient",
+      "type": "references"
+    },
+    {
+      "source": "TestOrdersModule",
+      "target": "OrderRepository",
+      "type": "references"
+    },
+    {
+      "source": "TestOrdersModule",
+      "target": "OrderService",
+      "type": "references"
+    },
+    {
+      "source": "TestOrdersModule",
       "target": "PaymentClient",
       "type": "references"
     }

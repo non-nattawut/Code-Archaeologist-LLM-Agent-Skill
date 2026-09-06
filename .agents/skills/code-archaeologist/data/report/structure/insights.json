@@ -140,9 +140,21 @@
       "author_count": 2,
       "last_commit": "2026-09-06T19:01:32+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
-      "fan_in": 1,
+      "fan_in": 3,
       "fan_out": 0,
-      "risk": 6
+      "risk": 12
+    },
+    "OrderRepositoryTest": {
+      "file": "sample_src/backend/tests/test_orders.py",
+      "commits": 0,
+      "owner": null,
+      "authors": {},
+      "author_count": 0,
+      "last_commit": null,
+      "first_commit": null,
+      "fan_in": 0,
+      "fan_out": 3,
+      "risk": 0
     },
     "OrderService": {
       "file": "sample_src/backend/order_service.py",
@@ -154,9 +166,9 @@
       "author_count": 1,
       "last_commit": "2026-09-02T16:10:56+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
-      "fan_in": 1,
+      "fan_in": 3,
       "fan_out": 2,
-      "risk": 4
+      "risk": 6
     },
     "PaymentClient": {
       "file": "sample_src/backend/payment_client.py",
@@ -169,9 +181,21 @@
       "author_count": 2,
       "last_commit": "2026-09-06T19:01:32+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
-      "fan_in": 1,
+      "fan_in": 3,
       "fan_out": 0,
-      "risk": 6
+      "risk": 12
+    },
+    "TestOrdersModule": {
+      "file": "sample_src/backend/tests/test_orders.py",
+      "commits": 0,
+      "owner": null,
+      "authors": {},
+      "author_count": 0,
+      "last_commit": null,
+      "first_commit": null,
+      "fan_in": 0,
+      "fan_out": 3,
+      "risk": 0
     }
   },
   "hotspots": [
@@ -187,9 +211,9 @@
       "author_count": 2,
       "last_commit": "2026-09-06T19:01:32+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
-      "fan_in": 1,
+      "fan_in": 3,
       "fan_out": 0,
-      "risk": 6
+      "risk": 12
     },
     {
       "node": "PaymentClient",
@@ -203,8 +227,23 @@
       "author_count": 2,
       "last_commit": "2026-09-06T19:01:32+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
-      "fan_in": 1,
+      "fan_in": 3,
       "fan_out": 0,
+      "risk": 12
+    },
+    {
+      "node": "OrderService",
+      "file": "sample_src/backend/order_service.py",
+      "commits": 1,
+      "owner": "Nattawut Rodthong",
+      "authors": {
+        "Nattawut Rodthong": 1
+      },
+      "author_count": 1,
+      "last_commit": "2026-09-02T16:10:56+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "fan_in": 3,
+      "fan_out": 2,
       "risk": 6
     },
     {
@@ -220,21 +259,6 @@
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 0,
       "fan_out": 1,
-      "risk": 4
-    },
-    {
-      "node": "OrderService",
-      "file": "sample_src/backend/order_service.py",
-      "commits": 1,
-      "owner": "Nattawut Rodthong",
-      "authors": {
-        "Nattawut Rodthong": 1
-      },
-      "author_count": 1,
-      "last_commit": "2026-09-02T16:10:56+07:00",
-      "first_commit": "2026-09-02T16:10:56+07:00",
-      "fan_in": 1,
-      "fan_out": 2,
       "risk": 4
     }
   ],

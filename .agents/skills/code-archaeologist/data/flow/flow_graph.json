@@ -64,6 +64,17 @@
       "ext": 0
     },
     {
+      "id": "OrderRepositoryTest.test_get_returns_the_row",
+      "layer": "test",
+      "kind": "method",
+      "cls": "OrderRepositoryTest",
+      "signature": "test_get_returns_the_row(self)",
+      "doc": "Reading an order back by id returns something.",
+      "source": "sample_src/backend/tests/test_orders.py:22",
+      "lang": "py",
+      "ext": 2
+    },
+    {
       "id": "OrderService.__init__",
       "layer": "service",
       "kind": "method",
@@ -162,6 +173,17 @@
       "source": "sample_src/frontend/order_page.ts:4",
       "lang": "js",
       "ext": 0
+    },
+    {
+      "id": "test_place_order_charges_and_saves",
+      "layer": "test",
+      "kind": "function",
+      "cls": null,
+      "signature": "test_place_order_charges_and_saves()",
+      "doc": "pytest style: placing an order goes through payment and persistence.",
+      "source": "sample_src/backend/tests/test_orders.py:13",
+      "lang": "py",
+      "ext": 3
     }
   ],
   "edges": [
@@ -173,6 +195,11 @@
     {
       "source": "OrderController.get_order",
       "target": "OrderService.find_order",
+      "type": "calls"
+    },
+    {
+      "source": "OrderRepositoryTest.test_get_returns_the_row",
+      "target": "OrderRepository.get",
       "type": "calls"
     },
     {
@@ -208,6 +235,11 @@
     {
       "source": "submitOrder",
       "target": "createOrder",
+      "type": "calls"
+    },
+    {
+      "source": "test_place_order_charges_and_saves",
+      "target": "OrderService.place_order",
       "type": "calls"
     }
   ]

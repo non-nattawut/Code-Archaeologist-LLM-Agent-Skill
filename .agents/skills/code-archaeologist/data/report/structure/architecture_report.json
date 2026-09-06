@@ -1,23 +1,25 @@
 {
   "graph": "data/structure/graph.json",
-  "generated": "2026-09-06 12:51 UTC",
+  "generated": "2026-09-06 13:05 UTC",
   "census": {
-    "nodes": 4,
-    "edges": 3,
+    "nodes": 6,
+    "edges": 9,
     "layers": {
       "client": 1,
       "controller": 1,
       "repository": 1,
-      "service": 1
+      "service": 1,
+      "test": 2
     },
     "langs": {
-      "py": 4
+      "py": 6
     },
     "kinds": {
-      "class": 4
+      "class": 5,
+      "module": 1
     },
     "edge_types": {
-      "references": 3
+      "references": 9
     },
     "routes": []
   },
@@ -39,8 +41,16 @@
         "lines": 15,
         "lang": "py"
       },
+      "sample_src/backend/tests/test_orders.py": {
+        "lines": 25,
+        "lang": "py"
+      },
       "sample_src/frontend/api_client.ts": {
         "lines": 11,
+        "lang": "ts"
+      },
+      "sample_src/frontend/order_page.test.ts": {
+        "lines": 13,
         "lang": "ts"
       },
       "sample_src/frontend/order_page.ts": {
@@ -48,15 +58,15 @@
         "lang": "ts"
       }
     },
-    "file_count": 6,
-    "loc": 97,
+    "file_count": 8,
+    "loc": 135,
     "languages": {
-      "py": 73,
-      "ts": 24
+      "py": 98,
+      "ts": 37
     },
     "language_pct": {
-      "py": 75.3,
-      "ts": 24.7
+      "py": 72.6,
+      "ts": 27.4
     }
   },
   "analysis": {
@@ -80,8 +90,8 @@
       }
     },
     "summary": {
-      "nodes": 4,
-      "edges": 3,
+      "nodes": 6,
+      "edges": 9,
       "cycles": 0,
       "orphans": 0,
       "layer_violations": 0,
@@ -142,7 +152,7 @@
         "debug_statement": 1
       },
       "files_scanned": 6,
-      "files_skipped": 0
+      "files_skipped": 2
     }
   },
   "insights": {
@@ -287,9 +297,21 @@
         "author_count": 2,
         "last_commit": "2026-09-06T19:01:32+07:00",
         "first_commit": "2026-09-02T16:10:56+07:00",
-        "fan_in": 1,
+        "fan_in": 3,
         "fan_out": 0,
-        "risk": 6
+        "risk": 12
+      },
+      "OrderRepositoryTest": {
+        "file": "sample_src/backend/tests/test_orders.py",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 0,
+        "fan_out": 3,
+        "risk": 0
       },
       "OrderService": {
         "file": "sample_src/backend/order_service.py",
@@ -301,9 +323,9 @@
         "author_count": 1,
         "last_commit": "2026-09-02T16:10:56+07:00",
         "first_commit": "2026-09-02T16:10:56+07:00",
-        "fan_in": 1,
+        "fan_in": 3,
         "fan_out": 2,
-        "risk": 4
+        "risk": 6
       },
       "PaymentClient": {
         "file": "sample_src/backend/payment_client.py",
@@ -316,9 +338,21 @@
         "author_count": 2,
         "last_commit": "2026-09-06T19:01:32+07:00",
         "first_commit": "2026-09-02T16:10:56+07:00",
-        "fan_in": 1,
+        "fan_in": 3,
         "fan_out": 0,
-        "risk": 6
+        "risk": 12
+      },
+      "TestOrdersModule": {
+        "file": "sample_src/backend/tests/test_orders.py",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 0,
+        "fan_out": 3,
+        "risk": 0
       }
     },
     "hotspots": [
@@ -334,9 +368,9 @@
         "author_count": 2,
         "last_commit": "2026-09-06T19:01:32+07:00",
         "first_commit": "2026-09-02T16:10:56+07:00",
-        "fan_in": 1,
+        "fan_in": 3,
         "fan_out": 0,
-        "risk": 6
+        "risk": 12
       },
       {
         "node": "PaymentClient",
@@ -350,8 +384,23 @@
         "author_count": 2,
         "last_commit": "2026-09-06T19:01:32+07:00",
         "first_commit": "2026-09-02T16:10:56+07:00",
-        "fan_in": 1,
+        "fan_in": 3,
         "fan_out": 0,
+        "risk": 12
+      },
+      {
+        "node": "OrderService",
+        "file": "sample_src/backend/order_service.py",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "authors": {
+          "Nattawut Rodthong": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 3,
+        "fan_out": 2,
         "risk": 6
       },
       {
@@ -368,21 +417,6 @@
         "fan_in": 0,
         "fan_out": 1,
         "risk": 4
-      },
-      {
-        "node": "OrderService",
-        "file": "sample_src/backend/order_service.py",
-        "commits": 1,
-        "owner": "Nattawut Rodthong",
-        "authors": {
-          "Nattawut Rodthong": 1
-        },
-        "author_count": 1,
-        "last_commit": "2026-09-02T16:10:56+07:00",
-        "first_commit": "2026-09-02T16:10:56+07:00",
-        "fan_in": 1,
-        "fan_out": 2,
-        "risk": 4
       }
     ],
     "summary": {
@@ -394,26 +428,26 @@
     }
   },
   "metrics": {
-    "generated": "2026-09-06T12:51:00Z",
+    "generated": "2026-09-06T13:05:30Z",
     "roots": [
       "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
     ],
     "totals": {
-      "files": 6,
-      "lines": 97,
-      "code": 65,
-      "comment": 8,
-      "blank": 24,
-      "comment_ratio": 0.082
+      "files": 8,
+      "lines": 135,
+      "code": 92,
+      "comment": 10,
+      "blank": 33,
+      "comment_ratio": 0.074
     },
     "languages": {
       "py": {
-        "files": 4,
-        "lines": 73
+        "files": 5,
+        "lines": 98
       },
       "ts": {
-        "files": 2,
-        "lines": 24
+        "files": 3,
+        "lines": 37
       }
     },
     "files": {
@@ -445,10 +479,24 @@
         "blank": 4,
         "lang": "py"
       },
+      "sample_src/backend/tests/test_orders.py": {
+        "lines": 25,
+        "code": 18,
+        "comment": 0,
+        "blank": 7,
+        "lang": "py"
+      },
       "sample_src/frontend/api_client.ts": {
         "lines": 11,
         "code": 8,
         "comment": 1,
+        "blank": 2,
+        "lang": "ts"
+      },
+      "sample_src/frontend/order_page.test.ts": {
+        "lines": 13,
+        "code": 9,
+        "comment": 2,
         "blank": 2,
         "lang": "ts"
       },
@@ -531,6 +579,26 @@
         "lang": "py",
         "in_graph": false
       },
+      "OrderRepositoryTest": {
+        "loc": 7,
+        "complexity": 1,
+        "depth": 1,
+        "params": 0,
+        "file": "sample_src/backend/tests/test_orders.py",
+        "line": 19,
+        "lang": "py",
+        "in_graph": true
+      },
+      "OrderRepositoryTest.test_get_returns_the_row": {
+        "loc": 4,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/backend/tests/test_orders.py",
+        "line": 22,
+        "lang": "py",
+        "in_graph": false
+      },
       "OrderService": {
         "loc": 15,
         "complexity": 1,
@@ -590,6 +658,16 @@
         "line": 11,
         "lang": "py",
         "in_graph": false
+      },
+      "test_place_order_charges_and_saves": {
+        "loc": 4,
+        "complexity": 2,
+        "depth": 0,
+        "params": 0,
+        "file": "sample_src/backend/tests/test_orders.py",
+        "line": 13,
+        "lang": "py",
+        "in_graph": false
       }
     },
     "top_loc": [
@@ -620,6 +698,13 @@
         "complexity": 1,
         "file": "sample_src/backend/payment_client.py",
         "line": 8
+      },
+      {
+        "id": "OrderRepositoryTest",
+        "loc": 7,
+        "complexity": 1,
+        "file": "sample_src/backend/tests/test_orders.py",
+        "line": 19
       }
     ],
     "top_complexity": [
@@ -638,6 +723,13 @@
         "line": 4
       },
       {
+        "id": "OrderRepositoryTest",
+        "complexity": 1,
+        "loc": 7,
+        "file": "sample_src/backend/tests/test_orders.py",
+        "line": 19
+      },
+      {
         "id": "OrderService",
         "complexity": 1,
         "loc": 15,
@@ -653,6 +745,11 @@
       }
     ],
     "top_files": [
+      {
+        "file": "sample_src/backend/tests/test_orders.py",
+        "lines": 25,
+        "code": 18
+      },
       {
         "file": "sample_src/backend/order_controller.py",
         "lines": 23,
@@ -674,6 +771,11 @@
         "code": 8
       },
       {
+        "file": "sample_src/frontend/order_page.test.ts",
+        "lines": 13,
+        "code": 9
+      },
+      {
         "file": "sample_src/frontend/order_page.ts",
         "lines": 13,
         "code": 9
@@ -684,10 +786,12 @@
         "code": 8
       }
     ],
-    "unmeasured_graph_ids": []
+    "unmeasured_graph_ids": [
+      "TestOrdersModule"
+    ]
   },
   "debt": {
-    "generated": "2026-09-06T12:51:00Z",
+    "generated": "2026-09-06T13:05:30Z",
     "roots": [
       "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
     ],
@@ -721,43 +825,38 @@
     "dead_files": []
   },
   "tests": {
-    "generated": "2026-09-06T12:51:00Z",
+    "generated": "2026-09-06T13:05:30Z",
     "roots": [
       "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
     ],
     "graph": "data/structure/graph.json",
     "summary": {
-      "test_files": 0,
+      "test_files": 2,
       "considered": 4,
-      "referenced": 0,
-      "unreferenced": 4,
-      "referenced_pct": 0.0
+      "referenced": 3,
+      "unreferenced": 1,
+      "referenced_pct": 75.0
     },
-    "test_files": [],
-    "referenced": {},
+    "test_files": [
+      "sample_src/backend/tests/test_orders.py",
+      "sample_src/frontend/order_page.test.ts"
+    ],
+    "referenced": {
+      "OrderRepository": [
+        "sample_src/backend/tests/test_orders.py"
+      ],
+      "OrderService": [
+        "sample_src/backend/tests/test_orders.py"
+      ],
+      "PaymentClient": [
+        "sample_src/backend/tests/test_orders.py"
+      ]
+    },
     "unreferenced": [
       {
         "id": "OrderController",
         "source": "sample_src/backend/order_controller.py",
         "layer": "controller",
-        "kind": "class"
-      },
-      {
-        "id": "OrderRepository",
-        "source": "sample_src/backend/order_repository.py",
-        "layer": "repository",
-        "kind": "class"
-      },
-      {
-        "id": "OrderService",
-        "source": "sample_src/backend/order_service.py",
-        "layer": "service",
-        "kind": "class"
-      },
-      {
-        "id": "PaymentClient",
-        "source": "sample_src/backend/payment_client.py",
-        "layer": "client",
         "kind": "class"
       }
     ]

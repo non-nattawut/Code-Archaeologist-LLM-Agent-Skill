@@ -168,9 +168,9 @@
       "author_count": 2,
       "last_commit": "2026-09-06T19:01:32+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
-      "fan_in": 1,
+      "fan_in": 2,
       "fan_out": 0,
-      "risk": 6
+      "risk": 9
     },
     "OrderRepository.save": {
       "file": "sample_src/backend/order_repository.py",
@@ -186,6 +186,18 @@
       "fan_in": 1,
       "fan_out": 0,
       "risk": 6
+    },
+    "OrderRepositoryTest.test_get_returns_the_row": {
+      "file": "sample_src/backend/tests/test_orders.py",
+      "commits": 0,
+      "owner": null,
+      "authors": {},
+      "author_count": 0,
+      "last_commit": null,
+      "first_commit": null,
+      "fan_in": 0,
+      "fan_out": 1,
+      "risk": 0
     },
     "OrderService.__init__": {
       "file": "sample_src/backend/order_service.py",
@@ -225,9 +237,9 @@
       "author_count": 1,
       "last_commit": "2026-09-02T16:10:56+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
-      "fan_in": 1,
+      "fan_in": 2,
       "fan_out": 2,
-      "risk": 4
+      "risk": 5
     },
     "PaymentClient.charge": {
       "file": "sample_src/backend/payment_client.py",
@@ -301,9 +313,37 @@
       "fan_in": 0,
       "fan_out": 1,
       "risk": 4
+    },
+    "test_place_order_charges_and_saves": {
+      "file": "sample_src/backend/tests/test_orders.py",
+      "commits": 0,
+      "owner": null,
+      "authors": {},
+      "author_count": 0,
+      "last_commit": null,
+      "first_commit": null,
+      "fan_in": 0,
+      "fan_out": 1,
+      "risk": 0
     }
   },
   "hotspots": [
+    {
+      "node": "OrderRepository.get",
+      "file": "sample_src/backend/order_repository.py",
+      "commits": 3,
+      "owner": "non-nattawut",
+      "authors": {
+        "non-nattawut": 2,
+        "Nattawut Rodthong": 1
+      },
+      "author_count": 2,
+      "last_commit": "2026-09-06T19:01:32+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "fan_in": 2,
+      "fan_out": 0,
+      "risk": 9
+    },
     {
       "node": "OrderController.create_order",
       "file": "sample_src/backend/order_controller.py",
@@ -332,22 +372,6 @@
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 1,
       "fan_out": 1,
-      "risk": 6
-    },
-    {
-      "node": "OrderRepository.get",
-      "file": "sample_src/backend/order_repository.py",
-      "commits": 3,
-      "owner": "non-nattawut",
-      "authors": {
-        "non-nattawut": 2,
-        "Nattawut Rodthong": 1
-      },
-      "author_count": 2,
-      "last_commit": "2026-09-06T19:01:32+07:00",
-      "first_commit": "2026-09-02T16:10:56+07:00",
-      "fan_in": 1,
-      "fan_out": 0,
       "risk": 6
     },
     {
@@ -393,9 +417,9 @@
       "author_count": 1,
       "last_commit": "2026-09-02T16:10:56+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
-      "fan_in": 1,
+      "fan_in": 2,
       "fan_out": 2,
-      "risk": 4
+      "risk": 5
     },
     {
       "node": "loadOrder",

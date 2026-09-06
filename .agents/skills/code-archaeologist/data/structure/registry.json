@@ -1,6 +1,8 @@
 {
   "OrderController": "structure/vault/OrderController.md",
   "OrderRepository": "structure/vault/OrderRepository.md",
+  "OrderRepositoryTest": "structure/vault/OrderRepositoryTest.md",
   "OrderService": "structure/vault/OrderService.md",
-  "PaymentClient": "structure/vault/PaymentClient.md"
+  "PaymentClient": "structure/vault/PaymentClient.md",
+  "TestOrdersModule": "structure/vault/TestOrdersModule.md"
 }
