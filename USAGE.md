@@ -39,6 +39,18 @@ python .agents/skills/code-archaeologist/scripts/brief.py --map structure --top 
 python .agents/skills/code-archaeologist/scripts/brief.py --json
 ```
 
+## Find the nodes
+
+Filter the graph instead of grepping the source:
+
+```bash
+python .agents/skills/code-archaeologist/scripts/search.py --name "payment|charge"
+python .agents/skills/code-archaeologist/scripts/search.py --doc "refund" --limit 10
+python .agents/skills/code-archaeologist/scripts/search.py --layer repository --kind method
+python .agents/skills/code-archaeologist/scripts/search.py --calls OrderRepository.save
+python .agents/skills/code-archaeologist/scripts/search.py --orphans --format json
+```
+
 ## Query the graphs
 
 Trace paths or impact on either graph (structure is the default; add `--graph` for flow). These print compact text - `A > B > C` for a path, a heading plus one node per line for an impact set; add `--format json` for the full envelope:

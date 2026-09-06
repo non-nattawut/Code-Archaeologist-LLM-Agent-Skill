@@ -71,6 +71,9 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
   counts and grade per map, staleness, size, entry points, and the top longest / most complex /
   most churned / riskiest nodes. Fixed size regardless of repo size, so an agent can start every
   session with it instead of reading the full report.
+- **Graph-aware search** (`search.py`) — find nodes by name, description, file, layer, kind,
+  language or connectivity (`--calls X`, `--called-by X`, `--orphans`) and get ids back, so
+  "where is X handled" never becomes a grep over source.
 - **Compact answers by default** — `trace_path.py` prints `A > B > C` and `analyze.py --format text`
   prints the grade, the counts and the lists; `--format json` is there when something machine-reads
   the output.
@@ -192,7 +195,8 @@ graphs and notes.
 2. Never read raw source for architecture/flow questions.
 3. Check freshness (`archaeologist.py check`) and rebuild if the source changed since last build,
    then orient with `archaeologist.py brief` rather than reading the full report.
-4. Query the graph first with `trace_path.py` to find the exact path or blast-radius.
+4. Find the nodes with `search.py`, then query the graph with `trace_path.py` for the exact path
+   or blast-radius.
 5. Pull the whole picture for those nodes in one call with `context.py`, and read individual
    `data/structure/vault/<Entity>.md` notes only when it needs more.
 6. Preserve `[[EntityName]]` wikilinks in answers so responses stay cross-navigable.
@@ -230,6 +234,7 @@ templates, and the generated `data/` workspace.
 |   |   # --- query & render ---
 |   |-- trace_path.py             # BFS flow (--from/--to), impact (--impact-of[-diff])
 |   |-- context.py               # one budgeted pack per node (facts + neighbors + risks)
+|   |-- search.py                # find nodes by name/doc/layer/kind/connectivity
 |   `-- build_html.py             # graphs + reports -> data/explorer.html (both maps)
 |-- templates/
 |   |-- viewer.html               # the explorer page (HTML/CSS/JS, 2 placeholders)

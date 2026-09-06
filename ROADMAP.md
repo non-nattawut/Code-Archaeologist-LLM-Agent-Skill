@@ -11,7 +11,7 @@ Each feature below removes one of those, by moving the work into a deterministic
 Same constraints as everything else in this skill: stdlib only, Python 3.10+, sorted output,
 paths resolved from the skill root, ASCII on stdout.
 
-Status: `planned` -> `in progress` -> `done <commit>`.
+Status: `planned` -> `in progress` -> `done`. The near-term five all landed; the backlog is next.
 
 ## Near term
 
@@ -21,7 +21,7 @@ Status: `planned` -> `in progress` -> `done <commit>`.
 | F3 | `archaeologist.py brief` | reading the full report to orient | done |
 | F2 | `context.py` | N note reads after every trace | done |
 | F4 | compact output modes | JSON envelopes around one-line answers | done |
-| F5 | `search.py` | grep over source | planned |
+| F5 | `search.py` | grep over source | done |
 
 Order is F1 -> F3 -> F2 -> F4 -> F5: `brief` reports F1's numbers, and `context.py` is
 the largest change, so it lands once the smaller pieces have settled the shape.
