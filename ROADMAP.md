@@ -20,7 +20,7 @@ Status: `planned` -> `in progress` -> `done <commit>`.
 | F1 | `metrics.py` | source reads to answer "how big / how tangled" | done |
 | F3 | `archaeologist.py brief` | reading the full report to orient | done |
 | F2 | `context.py` | N note reads after every trace | done |
-| F4 | compact output modes | JSON envelopes around one-line answers | planned |
+| F4 | compact output modes | JSON envelopes around one-line answers | done |
 | F5 | `search.py` | grep over source | planned |
 
 Order is F1 -> F3 -> F2 -> F4 -> F5: `brief` reports F1's numbers, and `context.py` is

@@ -127,7 +127,7 @@ python .agents/skills/code-archaeologist/scripts/trace_path.py \
   --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json \
   --from OrderController.create_order --to OrderRepository.save
 ```
-Add `--all` to enumerate every path.
+Add `--all` to enumerate every path. Output is one compact line per path (`A > B > C`); add `--format json` only when something machine-reads it.
 
 ### 5. Blast-Radius / Impact Analysis
 All upstream callers affected if a class or method changes:
@@ -197,6 +197,8 @@ score with an A-F grade (pass `--security <security.json>` to fold risk findings
 python .agents/skills/code-archaeologist/scripts/analyze.py
 # flow graph
 python .agents/skills/code-archaeologist/scripts/analyze.py --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json
+# grade + counts + the lists, without the JSON envelope
+python .agents/skills/code-archaeologist/scripts/analyze.py --format text
 ```
 
 ### 10. Risk / security scan

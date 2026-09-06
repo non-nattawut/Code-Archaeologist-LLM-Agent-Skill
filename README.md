@@ -71,6 +71,9 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
   counts and grade per map, staleness, size, entry points, and the top longest / most complex /
   most churned / riskiest nodes. Fixed size regardless of repo size, so an agent can start every
   session with it instead of reading the full report.
+- **Compact answers by default** — `trace_path.py` prints `A > B > C` and `analyze.py --format text`
+  prints the grade, the counts and the lists; `--format json` is there when something machine-reads
+  the output.
 - **One-call context packs** (`context.py`) — everything known about a node in a single budgeted
   block: facts, size and complexity, churn and owner, description, immediate callers and callees
   *each with their own description*, and the risks attributed to it. `--diff` packs every node the

@@ -41,7 +41,7 @@ python .agents/skills/code-archaeologist/scripts/brief.py --json
 
 ## Query the graphs
 
-Trace paths or impact on either graph (structure is the default; add `--graph` for flow):
+Trace paths or impact on either graph (structure is the default; add `--graph` for flow). These print compact text - `A > B > C` for a path, a heading plus one node per line for an impact set; add `--format json` for the full envelope:
 
 ```bash
 # structure: how are two classes connected?
@@ -83,6 +83,9 @@ python .agents/skills/code-archaeologist/scripts/trace_path.py \
 # smells + health grade: cycles, orphans, layer violations, hubs, god objects, idioms
 python .agents/skills/code-archaeologist/scripts/analyze.py \
   --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json
+
+# the same, as lines instead of JSON
+python .agents/skills/code-archaeologist/scripts/analyze.py --format text
 ```
 
 ## Review pass

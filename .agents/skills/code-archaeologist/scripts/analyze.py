@@ -248,19 +248,39 @@ def report(graph_path: str, security: dict | None = None) -> dict:
     }
 
 
+def to_text(d: dict) -> str:
+    """The findings without the JSON envelope: grade, counts, then each list."""
+    h, s = d["health"], d["summary"]
+    out = [f"grade {h['grade']} ({h['score']}/100) - {s['nodes']} node(s), {s['edges']} edge(s)",
+           f"cycles {s['cycles']}, orphans {s['orphans']}, layer violations {s['layer_violations']}, "
+           f"hubs {s['hubs']}, god objects {s['god_objects']}"]
+    out += [f"  deduction {k.replace('_', ' ')} -{v}" for k, v in h["deductions"].items() if v]
+    out += ["  cycle     " + " > ".join(c) for c in d["cycles"]]
+    out += [f"  violation {v['source']} -> {v['target']} ({v['from']} -> {v['to']})"
+            for v in d["layer_violations"]]
+    out += [f"  hub       {x['node']} in {x['fan_in']} / out {x['fan_out']}" for x in d["hubs"]]
+    out += [f"  god       {g['name']} {g['reason']} {g['count']}" for g in d["god_objects"]]
+    out += [f"  idiom     {k}: " + ", ".join(v) for k, v in d["patterns"].items()]
+    out += [f"  orphan    {n}" for n in d["orphans"]]
+    return "\n".join(out)
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         description="Report architectural smells, anti-patterns and a health grade.")
     parser.add_argument("--graph", default=DEFAULT_GRAPH, help="Path to graph.json / flow_graph.json")
     parser.add_argument("--security", default=None,
                         help="security.json from scan_security.py; folds findings into the grade")
+    parser.add_argument("--format", choices=["text", "json"], default="json",
+                        help="json (default, full detail) or text (grade + counts + the lists)")
     args = parser.parse_args(argv)
 
     counts = None
     if args.security:
         with open(args.security, "r", encoding="utf-8") as fh:
             counts = json.load(fh).get("summary", {}).get("by_severity")
-    print(json.dumps(report(args.graph, counts), indent=2))
+    data = report(args.graph, counts)
+    print(to_text(data) if args.format == "text" else json.dumps(data, indent=2))
     return 0
 
 

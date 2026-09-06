@@ -72,8 +72,32 @@ def _nodes_for_files(sources: dict[str, str], files: list[str]) -> list[str]:
     return sorted(hits)
 
 
+FORMAT = "text"     # set from --format; text is the default because it is far cheaper to read
+
+
+def _as_text(o: dict) -> str:
+    """The same answer as the JSON, minus the envelope."""
+    mode = o["mode"]
+    if mode == "flow":
+        return " > ".join(o["path"]) if o["found"] else f"no path: {o['from']} -> {o['to']}"
+    if mode == "flow-all":
+        head = f"{o['count']} path(s) {o['from']} -> {o['to']}"
+        return "\n".join([head] + [f"  {i}. " + " > ".join(p) for i, p in enumerate(o["paths"], 1)])
+    if mode == "impact":
+        head = f"{o['count']} node(s) reach {o['target']}"
+        return "\n".join([head] + [f"  {n}" for n in o["impacted"]])
+    if mode == "impact-diff":
+        changed = set(o["changed_nodes"])
+        head = (f"{len(o['changed_files'])} changed file(s), {len(changed)} changed node(s), "
+                f"{o['count']} impacted")
+        return "\n".join([head]
+                         + [f"  changed  {n}" for n in o["changed_nodes"]]
+                         + [f"  impacted {n}" for n in o["impacted"] if n not in changed])
+    return json.dumps(o, indent=2)
+
+
 def _emit(obj: dict, code: int = 0) -> int:
-    print(json.dumps(obj, indent=2))
+    print(_as_text(obj) if FORMAT == "text" else json.dumps(obj, indent=2))
     return code
 
 
@@ -151,7 +175,12 @@ def main(argv=None) -> int:
                         help="Blast-radius of the current git diff (all nodes touched by changed files)")
     parser.add_argument("--base", help="Diff against this git ref (with --impact-of-diff)")
     parser.add_argument("--staged", action="store_true", help="Use staged changes (with --impact-of-diff)")
+    parser.add_argument("--format", choices=["text", "json"], default="text",
+                        help="text (default, compact) or json (full envelope, for tooling)")
     args = parser.parse_args(argv)
+
+    global FORMAT
+    FORMAT = args.format
 
     nodes, adj, radj, sources = load_graph(args.graph)
     if not nodes:
