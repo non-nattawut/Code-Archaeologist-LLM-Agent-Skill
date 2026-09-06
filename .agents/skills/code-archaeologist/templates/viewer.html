@@ -232,7 +232,7 @@
       <div class="views" id="views"></div>
       <label><input type="checkbox" id="hulls" checked /> Folders</label>
       <label><input type="checkbox" id="blast" /> Blast radius</label>
-      <label id="testsToggle" hidden><input type="checkbox" id="showTests" checked /> Tests</label>
+      <label id="testsToggle" style="display:none"><input type="checkbox" id="showTests" checked /> Tests</label>
       <button class="tbtn" id="png" title="Export the current graph as PNG">⤓ PNG</button>
     </div>
     <div id="stage">
@@ -597,53 +597,103 @@ function hull(points) {
   return half(p).concat(half(p.slice().reverse()));
 }
 
+// Folder membership is not position: the force layout puts a node next to what it
+// calls, so one folder can land in two places on the canvas. A single hull around
+// all of it becomes a sliver stretched across unrelated nodes, which reads as a
+// group that is not there -- so split a folder by distance and draw a blob each.
+function spatialGroups(pts, radius) {
+  const out = [];
+  pts.forEach((p) => {
+    const near = out.filter((g) => g.some((q) => Math.hypot(q[0] - p[0], q[1] - p[1]) <= radius));
+    if (!near.length) { out.push([p]); return; }
+    const merged = near.reduce((a, g) => a.concat(g), [p]);
+    near.forEach((g) => out.splice(out.indexOf(g), 1));
+    out.push(merged);
+  });
+  return out;
+}
+
+// "Close together" only means something relative to how spread the graph is, so
+// take it from the layout itself: a few times the typical nearest-neighbor gap.
+function groupRadius(all) {
+  if (all.length < 3) return 140;
+  const gaps = all.map((p, i) => {
+    let best = Infinity;
+    all.forEach((q, j) => {
+      if (i !== j) best = Math.min(best, Math.hypot(p[0] - q[0], p[1] - q[1]));
+    });
+    return best;
+  }).sort((a, b) => a - b);
+  return Math.max(80, gaps[Math.floor(gaps.length / 2)] * 4);
+}
+
+function drawBlob(ctx, scale, pts, color, pad) {
+  const cx = pts.reduce((s, p) => s + p[0], 0) / pts.length;
+  const cy = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+  ctx.fillStyle = color + "12";
+  ctx.strokeStyle = color + "44";
+  ctx.lineWidth = 1 / scale;
+
+  const ring = hull(pts).map(([x, y]) => {
+    const dx = x - cx, dy = y - cy, len = Math.hypot(dx, dy) || 1;
+    return [x + (dx / len) * pad, y + (dy / len) * pad];
+  });
+  if (ring.length < 3) {
+    // One or two nodes: a padded stroke is the capsule a hull cannot express.
+    ctx.save();
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.lineWidth = pad * 2;
+    ctx.beginPath();
+    ctx.moveTo(ring[0][0], ring[0][1]);
+    ctx.lineTo(ring[ring.length - 1][0], ring[ring.length - 1][1]);
+    ctx.strokeStyle = color + "12"; ctx.stroke();
+    ctx.lineWidth = 1 / scale; ctx.strokeStyle = color + "44"; ctx.stroke();
+    ctx.restore();
+    return [cy - pad, cx];
+  }
+  const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  ctx.beginPath();
+  ctx.moveTo(...mid(ring[ring.length - 1], ring[0]));
+  ring.forEach((pt, i) => {
+    const next = ring[(i + 1) % ring.length];
+    const m = mid(pt, next);
+    ctx.quadraticCurveTo(pt[0], pt[1], m[0], m[1]);
+  });
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  return [Math.min(...ring.map((p) => p[1])), cx];
+}
+
 function drawHulls(ctx, scale) {
   // Only the free layouts group by position; in dag/radial views hulls just overlap.
   if (!el("hulls").checked || !(view === "graph" || view === "cluster")) return;
   const groups = new Map();
+  const all = [];
   nodes.forEach((n) => {
     if (n.x == null || !inFilter(n)) return;
     const f = dirOf(fileOf(n));
     if (!groups.has(f)) groups.set(f, []);
     groups.get(f).push([n.x, n.y]);
+    all.push([n.x, n.y]);
   });
+  const radius = groupRadius(all);
+  const pad = 24;
   groups.forEach((pts, folder) => {
     if (pts.length < 2) return;
     const color = folderColor(folder);
-    const cx = pts.reduce((s, p) => s + p[0], 0) / pts.length;
-    const cy = pts.reduce((s, p) => s + p[1], 0) / pts.length;
-    const pad = 24;
-    // Push each hull vertex outward, then round the corners by curving through
-    // the edge midpoints — a padded polygon reads as spikes, this reads as a blob.
-    const ring = hull(pts).map(([x, y]) => {
-      const dx = x - cx, dy = y - cy, len = Math.hypot(dx, dy) || 1;
-      return [x + (dx / len) * pad, y + (dy / len) * pad];
+    // Every piece gets the label: an unlabelled blob next to another folder's is
+    // exactly the confusion this whole change is about.
+    const parts = spatialGroups(pts, radius).sort((a, b) => b.length - a.length);
+    parts.forEach((part) => {
+      const [top, cx] = drawBlob(ctx, scale, part, color, pad);
+      ctx.fillStyle = color + "cc";
+      ctx.font = `${Math.max(3, 11 / scale)}px ui-monospace, monospace`;
+      ctx.textAlign = "center";
+      ctx.fillText(folder, cx, top - 6 / scale);
+      ctx.textAlign = "left";
     });
-    if (ring.length < 3) return;
-    const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-    ctx.beginPath();
-    let prev = ring[ring.length - 1];
-    ctx.moveTo(...mid(prev, ring[0]));
-    ring.forEach((pt, i) => {
-      const next = ring[(i + 1) % ring.length];
-      const m = mid(pt, next);
-      ctx.quadraticCurveTo(pt[0], pt[1], m[0], m[1]);
-    });
-    ctx.closePath();
-    ctx.fillStyle = color + "12";
-    ctx.strokeStyle = color + "44";
-    ctx.lineWidth = 1 / scale;
-    ctx.fill(); ctx.stroke();
-
-    const top = Math.min(...ring.map((p) => p[1]));
-    ctx.fillStyle = color + "cc";
-    ctx.font = `${Math.max(3, 11 / scale)}px ui-monospace, monospace`;
-    ctx.textAlign = "center";
-    ctx.fillText(folder, cx, top - 6 / scale);
-    ctx.textAlign = "left";
   });
 }
-
 // ---------------------------------------------------------------- views
 const VIEWS = [["graph", "Graph"], ["treemap", "Treemap"], ["matrix", "Matrix"], ["tree", "Tree"],
                ["flow", "Flow"], ["cluster", "Cluster"], ["bundle", "Bundle"]];
@@ -1147,7 +1197,9 @@ function applyMap(name) {
   highlightNodes = new Set(); highlightLinks = new Set();
   el("filterChip").classList.remove("on");
   if (!HAS_CHURN && (colorMode === "churn" || colorMode === "risk")) colorMode = "layer";
-  el("testsToggle").hidden = !HAS_TESTS;
+  // `.toolbar label { display: inline-flex }` outranks the UA rule for [hidden],
+  // so the attribute alone would leave the control on screen.
+  el("testsToggle").style.display = HAS_TESTS ? "" : "none";
   renderMapSwitch(); renderHealth(); renderColorModes(); renderLegend(); renderTiles();
   renderTree(); renderTabs(); renderPanel(); updateStatus();
   Graph.graphData({ nodes, links });
