@@ -24,9 +24,10 @@
   #app { display: grid; grid-template-columns: 296px 1fr 376px; grid-template-rows: auto 1fr;
     height: 100%; }
   #head { grid-column: 1 / -1; display: flex; align-items: stretch; height: 44px;
-    background: var(--panel); border-bottom: 1px solid var(--border); }
-  #head .pill { margin-left: auto; align-self: center; padding-right: 16px; }
-  .mapswitch { display: flex; }
+    background: var(--panel); border-bottom: 1px solid var(--border); overflow: hidden; }
+  #head .pill { margin-left: auto; align-self: center; padding: 0 16px 0 18px; white-space: nowrap;
+    flex: none; }
+  .mapswitch { display: flex; flex: none; }
   .mapswitch button { display: flex; align-items: center; gap: 8px; padding: 0 16px;
     color: var(--muted); border-right: 1px solid var(--border); }
   .mapswitch button:hover { color: var(--text); }
@@ -44,11 +45,14 @@
 
   /* ---- left ---- */
   .brand { display: flex; align-items: center; gap: 10px; width: 296px; padding: 0 16px;
-    border-right: 1px solid var(--border); }
+    border-right: 1px solid var(--border); flex: none; }
   .brand .dot { width: 18px; height: 18px; border: 1px solid var(--accent); display: grid;
     place-items: center; color: var(--accent); font-weight: 500; font-size: 11px; flex: none; }
-  .brand b { letter-spacing: .04em; font-size: 12px; font-weight: 500; color: var(--bright); }
-  .brand span { color: var(--muted); font-size: 10.5px; }
+  .brand b { letter-spacing: .04em; font-size: 12px; font-weight: 500; color: var(--bright);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1; }
+  /* One line, always: the header is a fixed 44px and must never clip its own text. */
+  #mapSub { align-self: center; min-width: 0; padding-left: 16px; color: var(--muted);
+    font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .health { padding: 16px; border-bottom: 1px solid var(--border); }
   .health .score { font-size: 30px; font-weight: 700; line-height: 1; color: var(--bright);
@@ -228,8 +232,9 @@
 <body>
 <div id="app">
   <header id="head">
-    <div class="brand"><span class="dot">C</span><div><b>CODE ARCHAEOLOGIST</b><br /><span id="mapSub"></span></div></div>
+    <div class="brand"><span class="dot">C</span><b>CODE ARCHAEOLOGIST</b></div>
     <div class="mapswitch" id="mapSwitch"></div>
+    <span id="mapSub"></span>
     <span class="pill" id="mapGrade"></span>
   </header>
 
@@ -1277,6 +1282,7 @@ function renderMapSwitch() {
   el("mapSwitch").querySelectorAll("button").forEach((b) =>
     b.addEventListener("click", () => { if (b.dataset.map !== mapName) applyMap(b.dataset.map); }));
   el("mapSub").textContent = MAPS[mapName].title;
+  el("mapSub").title = MAPS[mapName].title;
   el("mapGrade").innerHTML = HEALTH
     ? `grade <b>${HEALTH.grade}</b> (${HEALTH.score}/100)` : "no report embedded";
 }
