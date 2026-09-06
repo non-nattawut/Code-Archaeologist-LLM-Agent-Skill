@@ -97,6 +97,27 @@ One meaning, one colour, everywhere — a reader learns the scheme once, from an
   of them on the dark background — and if two must be close (the two greens are), keep them in
   different channels: node dots vs folder areas.
 
+### Layout rules
+
+The explorer is a three-pane desktop app, and it behaves like one: chrome holds still, content
+scrolls.
+
+- **One scroll region per pane, never two nested.** The left rail scrolls in the file tree only;
+  the right panel scrolls in its body only. If something does not fit, fold it or shrink it —
+  never add a second scrollbar.
+- **A pane is a flex column**: `overflow: hidden` on the pane, `flex: none` on the fixed blocks,
+  `flex: 1; min-height: 0` on the one region that grows, and `min-height: 0` again on the scroller
+  inside it (without it the scroller inherits its content's height and the pane scrolls instead).
+  Give the growing region a `min-height` floor so it cannot be squeezed to nothing.
+- **Rail sections fold from their own `h3`**, with the marker in `::before` and the body hidden by
+  a `folded` class on the section. Folding is how the user gives the tree room, so anything bulky
+  in the rail needs a header. A folded header still carries its count (`Explorer 7 files`) — a
+  section that says nothing when closed is a dead control.
+- **Fold state is a class on static markup**, so it survives every re-render and map switch by
+  construction. Do not store it in a variable that `applyMap()` resets.
+- **Below `max-height: 620px`** the rail gives up and scrolls as a whole — a 60px tree is worse
+  than a scrollbar.
+
 ## Hard constraints
 
 1. **Zero external Python dependencies.** stdlib only, Python 3.10+. The *single* exception is
