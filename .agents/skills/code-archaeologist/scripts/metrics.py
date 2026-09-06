@@ -41,8 +41,15 @@ sys.path.insert(0, SCRIPT_DIR)
 import console          # noqa: E402  (stdout must survive a non-UTF-8 console)
 import scan_security    # noqa: E402  (iter_source_files: one definition of "a source file")
 
-EXT_LANG = {".py": "py", ".js": "js", ".jsx": "jsx", ".ts": "ts", ".tsx": "tsx"}
-COMMENT_PREFIXES = {"py": ("#",)}
+EXT_LANG = {".py": "py", ".js": "js", ".jsx": "jsx", ".ts": "ts", ".tsx": "tsx",
+            ".mjs": "js", ".cjs": "js", ".java": "java", ".kt": "kotlin", ".kts": "kotlin",
+            ".go": "go", ".rs": "rust", ".cs": "csharp", ".rb": "ruby", ".php": "php",
+            ".swift": "swift", ".scala": "scala", ".groovy": "groovy", ".dart": "dart",
+            ".ex": "elixir", ".exs": "elixir", ".c": "c", ".cc": "cpp", ".cpp": "cpp",
+            ".h": "c", ".hpp": "cpp"}
+# Languages whose line comment is # rather than //.
+HASH_COMMENT = {"py", "ruby", "elixir"}
+HASH_PREFIXES = ("#",)
 DEFAULT_COMMENTS = ("//", "/*", "*")
 
 # Decision points: each is a place execution can go two ways, so each adds 1 to
@@ -57,7 +64,7 @@ DEFS = (ast.FunctionDef, ast.AsyncFunctionDef)
 
 def line_metrics(full: str, lang: str) -> dict:
     """Total / code / comment / blank lines for one file."""
-    prefixes = COMMENT_PREFIXES.get(lang, DEFAULT_COMMENTS)
+    prefixes = HASH_PREFIXES if lang in HASH_COMMENT else DEFAULT_COMMENTS
     total = comment = blank = 0
     try:
         with open(full, "r", encoding="utf-8", errors="replace") as fh:

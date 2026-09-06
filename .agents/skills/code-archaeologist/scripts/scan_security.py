@@ -37,11 +37,11 @@ DEFAULT_OUT = os.path.join(DATA_DIR, "report", "security.json")
 
 sys.path.insert(0, SCRIPT_DIR)
 from manifest import SOURCE_EXTS, SKIP_DIRS, _rel_key  # noqa: E402
+from taxonomy import is_test_path  # noqa: E402
 
-# Directories/filenames whose "secrets" and debug output are intentional.
-EXCLUDE_DIRS = {"test", "tests", "__tests__", "spec", "specs", "fixtures",
-                "docs", "doc", "examples", "example", "migrations"}
-EXCLUDE_FILE_RE = re.compile(r"(^test_|_test\.|\.test\.|\.spec\.|^conftest\.py$)", re.I)
+# Directories whose "secrets" and debug output are intentional. Test paths come
+# from taxonomy.is_test_path, so every script agrees on what a test is.
+EXCLUDE_DIRS = {"fixtures", "docs", "doc", "examples", "example", "migrations"}
 
 # Lines that look like a secret assignment but aren't one.
 PLACEHOLDER_RE = re.compile(
@@ -85,7 +85,7 @@ REDACT_RE = re.compile(r"""(["'])([^"']{8,})\1""")
 
 def _excluded(path: str) -> bool:
     parts = [p.lower() for p in path.replace("\\", "/").split("/")]
-    return bool(EXCLUDE_DIRS.intersection(parts[:-1])) or bool(EXCLUDE_FILE_RE.search(parts[-1]))
+    return bool(EXCLUDE_DIRS.intersection(parts[:-1])) or is_test_path(path)
 
 
 def iter_source_files(roots):

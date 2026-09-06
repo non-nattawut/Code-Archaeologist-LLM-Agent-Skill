@@ -1,6 +1,6 @@
 # Architecture report — flow_graph.json
 
-Generated 2026-09-06 12:00 UTC · 13 nodes · 9 edges
+Generated 2026-09-06 12:34 UTC · 13 nodes · 9 edges
 
 ## Health: **D** (67/100)
 
@@ -116,10 +116,10 @@ _None._
 | --- | --- | --- | --- | --- | --- |
 | `OrderController.create_order` | 2 | 1 | 1 | 6 | Nattawut Rodthong |
 | `OrderController.get_order` | 2 | 1 | 1 | 6 | Nattawut Rodthong |
-| `OrderRepository.get` | 2 | 1 | 0 | 4 | Nattawut Rodthong |
-| `OrderRepository.save` | 2 | 1 | 0 | 4 | Nattawut Rodthong |
+| `OrderRepository.get` | 3 | 1 | 0 | 6 | non-nattawut |
+| `OrderRepository.save` | 3 | 1 | 0 | 6 | non-nattawut |
+| `PaymentClient.charge` | 3 | 1 | 0 | 6 | non-nattawut |
 | `OrderService.place_order` | 1 | 1 | 2 | 4 | Nattawut Rodthong |
-| `PaymentClient.charge` | 2 | 1 | 0 | 4 | Nattawut Rodthong |
 | `loadOrder` | 2 | 0 | 1 | 4 | Nattawut Rodthong |
 | `submitOrder` | 2 | 0 | 1 | 4 | Nattawut Rodthong |
 | `OrderService.find_order` | 1 | 1 | 1 | 3 | Nattawut Rodthong |

@@ -28,7 +28,12 @@ SKILL_ROOT = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(SKILL_ROOT, "data")
 DEFAULT_MANIFEST = os.path.join(DATA_DIR, "cache", "manifest.json")
 
-SOURCE_EXTS = (".py", ".js", ".jsx", ".ts", ".tsx")
+# Files the skill looks at. The graph builders parse only .py and .js/.ts, but the
+# file-level passes (lines, risk scan, debt, tests) work on any of these.
+SOURCE_EXTS = (".py", ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs",
+               ".java", ".kt", ".kts", ".go", ".rs", ".cs", ".rb", ".php",
+               ".swift", ".scala", ".groovy", ".dart", ".ex", ".exs",
+               ".c", ".cc", ".cpp", ".h", ".hpp")
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data"}
 
 

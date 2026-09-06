@@ -85,12 +85,18 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
   the language mix, and for every Python node its LOC, cyclomatic complexity, nesting depth and
   parameter count. Node entries are **keyed like the graph nodes**, so "the longest and most
   tangled code in this repo" is a lookup, not a source read.
+- **Polyglot where it can be** — the graphs need an extractor (Python, JS/TS), but lines,
+  complexity, risk scan, debt markers and test detection also read Java, Kotlin, Go, Rust, C#,
+  Ruby, PHP, Swift, Scala, Dart, Elixir and C/C++.
 - **Debt inventory** (`debt.py`) — TODO / FIXME / HACK / XXX / BUG / DEPRECATED markers found in
   comments and attributed to the node that owns the line, plus dead code: nodes nothing calls and
   files where *every* node is dead.
 - **Test coverage map** (`tests_map.py`) — which nodes the test suite names and which it never
   mentions. Name-based, so there is no runner and nothing to install: a `Class.method` counts when
-  a test file names both the class and the method.
+  a test file names both the class and the method. Test files are recognized across languages —
+  pytest, Jest/Vitest, **JUnit 5 / Spring Boot** (`OrderServiceTest.java`, `@SpringBootTest`), Go
+  (`*_test.go`), Rust (`#[test]`), .NET (`[Fact]`), RSpec, PHPUnit — and their nodes are tagged
+  `layer: test`, so **test code is never reported as dead code**.
 - **Churn, ownership & hotspots** (`git_insights.py`) — one `git log --numstat` pass gives commits
   per file, the top author per file, and a **hotspot ranking** (`risk = commits x (1 + fan_in +
   fan_out)`): the code that changes most *and* has the most callers. Degrades to empty data outside

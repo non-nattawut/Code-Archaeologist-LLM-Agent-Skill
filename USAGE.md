@@ -127,6 +127,7 @@ python .agents/skills/code-archaeologist/scripts/metrics.py --src ./src --top 10
 python .agents/skills/code-archaeologist/scripts/debt.py --src ./src --top 10
 
 # which nodes the test suite names, and which it never mentions
+# (pytest, Jest, JUnit 5/Spring Boot, Go, Rust, .NET, RSpec, PHPUnit conventions)
 python .agents/skills/code-archaeologist/scripts/tests_map.py --src ./src --top 15
 ```
 
@@ -176,7 +177,7 @@ The same sample carries two deliberate markers, so the debt inventory has someth
 ```console
 $ debt.py --src ./sample_src --graph .../flow_graph.json
 Debt: 2 marker(s) (FIXME 1, TODO 1), 2 dead node(s), 1 dead file(s)
-  FIXME  sample_src/backend/order_repository.py:15 [OrderRepository.get]  parameterize this query
+  FIXME  sample_src/backend/order_repository.py:14 [OrderRepository.get]  parameterize this query
   TODO   sample_src/backend/payment_client.py:13 [PaymentClient.charge]   retry once on a gateway timeout
 ```
 

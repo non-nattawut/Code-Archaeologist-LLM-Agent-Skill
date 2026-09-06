@@ -325,7 +325,7 @@ const SEV_CLASS = { high: "high", medium: "med", low: "low" };
 
 const LAYER_COLORS = {
   controller: "#f778ba", endpoint: "#f778ba", service: "#6ea8fe", repository: "#3fb950",
-  model: "#e3b341", client: "#39c5cf", config: "#a371f7", ui: "#f0883e",
+  model: "#e3b341", client: "#39c5cf", config: "#a371f7", ui: "#f0883e", test: "#9e8a4f",
   function: "#adbac7", module: "#adbac7", unknown: "#8b98ad"
 };
 const FOLDER_COLORS = ["#6ea8fe", "#f778ba", "#3fb950", "#e3b341", "#a371f7", "#39c5cf",
@@ -1153,3 +1153,6 @@ try {
   el("panel").innerHTML = `<p class="empty">The explorer failed to start: ${esc(String(err))}</p>`;
   throw err;
 }
+</script>
+</body>
+</html>

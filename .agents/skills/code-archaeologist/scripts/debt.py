@@ -78,8 +78,8 @@ def find_markers(roots, graph_path: str) -> list[dict]:
             if not m:
                 continue
             text = " ".join(m.group(2).split())
-            if text.endswith("*/"):                 # /* BUG: off-by-one */
-                text = text[:-2].rstrip()
+            if "*/" in text:                        # /* BUG: off-by-one */ }
+                text = text[:text.rindex("*/")].rstrip()
             found.append({
                 "tag": m.group(1).upper(),
                 "text": text[:TEXT_CHARS],

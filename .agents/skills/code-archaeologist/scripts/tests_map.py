@@ -36,15 +36,9 @@ DEFAULT_OUT = os.path.join(DATA_DIR, "report", "tests.json")
 sys.path.insert(0, SCRIPT_DIR)
 import console          # noqa: E402  (stdout must survive a non-UTF-8 console)
 import scan_security    # noqa: E402  (one definition of "a source file")
+import taxonomy         # noqa: E402  (one definition of "a test file")
 
-TEST_DIRS = {"test", "tests", "__tests__", "spec", "specs"}
-TEST_FILE_RE = re.compile(r"(^test_|_test\.|\.test\.|\.spec\.|^conftest\.py$)", re.I)
 IDENT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
-
-
-def is_test_file(key: str) -> bool:
-    parts = key.replace("\\", "/").lower().split("/")
-    return bool(TEST_DIRS.intersection(parts[:-1])) or bool(TEST_FILE_RE.search(parts[-1]))
 
 
 def identifiers(full: str) -> set[str]:
@@ -59,7 +53,7 @@ def build(roots, graph_path: str = DEFAULT_GRAPH, out_path: str | None = None) -
     roots = [roots] if isinstance(roots, str) else list(roots)
     tests: dict[str, set[str]] = {}
     for full, key in scan_security.iter_source_files(roots):
-        if is_test_file(key):
+        if taxonomy.is_test_file(key, full):     # convention, else a framework marker
             tests[key] = identifiers(full)
 
     try:
@@ -75,7 +69,7 @@ def build(roots, graph_path: str = DEFAULT_GRAPH, out_path: str | None = None) -
         name = nid.rsplit(".", 1)[-1]
         if name.startswith("__") and name.endswith("__"):
             continue                                        # called implicitly
-        if is_test_file((n.get("source") or "").split(":")[0]):
+        if taxonomy.is_test_path((n.get("source") or "").split(":")[0]):
             continue                                        # the tests themselves
         cls = n.get("cls")
         hits = sorted(f for f, ids in tests.items()
@@ -135,7 +129,8 @@ def main(argv=None) -> int:
           f"named by a test ({s['referenced_pct']}%)")
     if not s["test_files"]:
         print("  no test files found under --src (looked for test/tests/__tests__/spec dirs, "
-              "test_*.py, *_test.*, *.test.*, *.spec.*)")
+              "test_*.py, *_test.*, *.test.*, *.spec.*, *Test.java/kt/cs, and files carrying "
+              "@Test / [Fact] / #[test] markers)")
     for n in d["unreferenced"][:args.top]:
         print(f"  untested  {n['id']:<32} {n['source']}")
     if len(d["unreferenced"]) > args.top:

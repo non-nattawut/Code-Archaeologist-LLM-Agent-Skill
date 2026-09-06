@@ -1,6 +1,6 @@
 # Architecture report — graph.json
 
-Generated 2026-09-06 12:00 UTC · 4 nodes · 3 edges
+Generated 2026-09-06 12:34 UTC · 4 nodes · 3 edges
 
 ## Health: **C** (75/100)
 
@@ -97,10 +97,10 @@ _None._
 
 | Node | Commits | Fan-in | Fan-out | Risk | Owner |
 | --- | --- | --- | --- | --- | --- |
+| `OrderRepository` | 3 | 1 | 0 | 6 | non-nattawut |
+| `PaymentClient` | 3 | 1 | 0 | 6 | non-nattawut |
 | `OrderController` | 2 | 0 | 1 | 4 | Nattawut Rodthong |
-| `OrderRepository` | 2 | 1 | 0 | 4 | Nattawut Rodthong |
 | `OrderService` | 1 | 1 | 2 | 4 | Nattawut Rodthong |
-| `PaymentClient` | 2 | 1 | 0 | 4 | Nattawut Rodthong |
 
 ## Debt — 2 marker(s) (FIXME 1, TODO 1), 0 dead node(s)
 

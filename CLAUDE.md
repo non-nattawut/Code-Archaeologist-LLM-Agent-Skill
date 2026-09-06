@@ -31,7 +31,11 @@ archaeologist.py  project | flow | both | check | report        <- the only entr
 ```
 
 - `taxonomy.py` owns every `kind`/`layer` value (mirrored in `templates/TAXONOMY.md`). Add values
-  there, never inline.
+  there, never inline. It also owns **what counts as a test file** (`is_test_path` /
+  `is_test_file`): path and filename conventions for a dozen languages plus framework markers
+  (`@Test`, `@SpringBootTest`, `[Fact]`, `#[test]`, `func TestX(t *testing.T)`). Nodes in test
+  files get `layer: test`, which is why `analyze.py` never calls them dead code and
+  `scan_security.py` skips them. Every pass must ask taxonomy, never re-implement the check.
 - `trace_path.py` is the query tool: `--from/--to` (BFS path), `--impact-of` (blast radius),
   `--impact-of-diff` (map a git diff to nodes, union their impact). Works on either graph.
 - `analyze.py` is graph-only: cycles, orphans, layer violations, hubs, god objects, name-based
@@ -175,7 +179,22 @@ For multi-step tasks, state a brief plan:
 Strong success criteria let the model loop independently. Weak criteria ("make it work") require
 constant clarification.
 
-### 5. Keep the docs in the same commit
+### 5. Push the work into a script, not into the context
+The skill exists because deterministic scripts are cheaper than an LLM reading files — and that
+applies to *building* it too. Before answering a question about this codebase by reading source,
+ask whether a script (or an existing tool: `git`, `python -c`, the skill's own commands) can
+produce the answer once, for every future session.
+
+- Reach for a script or an existing tool first; write ad-hoc analysis in the terminal, not in
+  prose you would have to re-derive next time.
+- If you find yourself reading many files to answer one question, that question wants a script.
+- The runtime rule still stands: the skill itself ships **stdlib only** (constraint 1). "Use a
+  library" means use what is already on the machine while developing, never add a dependency to
+  the skill.
+- A new script pays for itself the second time it runs. A one-off shell pipeline is fine; copy it
+  into `USAGE.md` if it will be wanted again.
+
+### 6. Keep the docs in the same commit
 Three files describe this skill to different readers — when behavior changes, update all that apply:
 
 | File | Reader | Covers |

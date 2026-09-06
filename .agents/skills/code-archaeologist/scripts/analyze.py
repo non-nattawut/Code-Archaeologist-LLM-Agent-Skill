@@ -138,14 +138,15 @@ def _is_dunder(name: str) -> bool:
 
 def find_orphans(nodes: dict, edges: list[tuple[str, str, str]]) -> list[str]:
     """Nodes with no incoming edges that aren't legitimate entry points.
-    Dunder methods (e.g. __init__) are excluded — they're called implicitly."""
+    Dunder methods (e.g. __init__) are excluded — they're called implicitly, and so
+    is test code — a runner calls it, so nothing in the graph ever will."""
     has_caller = {t for _, t, _ in edges}
     orphans = []
     for nid, n in nodes.items():
         if nid in has_caller or _is_dunder(nid):
             continue
-        is_entry = (n.get("kind") == "endpoint" or n.get("layer") == "controller"
-                    or bool(n.get("route")))
+        is_entry = (n.get("kind") == "endpoint" or bool(n.get("route"))
+                    or n.get("layer") in ("controller", "test"))
         if not is_entry:
             orphans.append(nid)
     return sorted(orphans)

@@ -11,7 +11,7 @@ sets — change the taxonomy instead).
 | --- | --- | --- |
 | `{{name}}` | any entity id | Class name, or `<Module>Module` for a file's module-level functions. |
 | `{{kind}}` | `class`, `module` | What the entity is. |
-| `{{layer}}` | `controller`, `service`, `repository`, `model`, `client`, `config`, `ui`, `function`, `module`, `unknown` | Architectural role (inferred from name/decorators). |
+| `{{layer}}` | `controller`, `service`, `repository`, `model`, `client`, `config`, `ui`, `test`, `function`, `module`, `unknown` | Architectural role (inferred from name/decorators; `test` wins for anything in a test file). |
 | `{{source}}` | `<area>/<path>` | Source file, prefixed with its root area (e.g. `backend/order_service.py`). |
 | `{{summary}}` | free text | Docstring / description. |
 | `{{bases}}`, `{{decorators}}`, `{{methods}}`, `{{references}}` | lists | `[[wikilinks]]` where the target is a known entity, else inline code. |
@@ -21,7 +21,7 @@ sets — change the taxonomy instead).
 | Field | Allowed values | Meaning |
 | --- | --- | --- |
 | `entity` | `Class.method` or `function` | The method/function node id. |
-| `kind` | `method`, `function`, `endpoint`, `component` | `endpoint` = a route handler (flow root). |
+| `kind` | `method`, `function`, `endpoint`, `component`, `test` | `endpoint` = a route handler (flow root). |
 | `layer` | same set as above | Role of the owning class/file. |
 | `lang` | `py`, `js` | Source language (Python backend vs JS/TS frontend). |
 | `desc_source` | `docstring`, `ai`, `auto` | Where "What it does" came from (see hybrid descriptions). |
@@ -54,6 +54,25 @@ Graph-only node fields (in `flow_graph.json`, not written into the pages):
 | `grade` | `A`, `B`, `C`, `D`, `F` | Health grade for the 0-100 score (`analyze.py`). |
 | `reason` (god objects) | `methods`, `references` | Why the entity was flagged. |
 | idiom keys | `singleton`, `factory`, `observer`, `react_hook` | Name-based pattern detection. |
+
+## Test code
+
+`taxonomy.py` also owns what counts as a test, because "is this a test?" has to mean the same
+thing in every pass. Detection is by convention, so it holds for languages this skill cannot
+build a graph for:
+
+| Signal | Examples |
+| --- | --- |
+| directory | `test/`, `tests/`, `__tests__/`, `spec/`, `specs/`, `testing/` |
+| filename (lowercase) | `test_orders.py`, `conftest.py`, `orders_test.go`, `order_spec.rb`, `order.test.tsx`, `order.spec.ts`, `OrderTest.php` |
+| filename (Java-style, case-sensitive) | `OrderServiceTest.java`, `FooTests.kt`, `PaymentIT.java`, `BazSpec.scala`, `QuxTests.cs`, `AppTests.swift` |
+| content marker | `@Test` / `@SpringBootTest` / `@ParameterizedTest` (JUnit 5, Spring Boot), `[Fact]` / `[TestMethod]` (.NET), `#[test]` (Rust), `func TestX(t *testing.T)` (Go), `unittest.TestCase` / `import pytest` |
+
+Consequences, all from that one definition: nodes in test files get `layer: test`; `analyze.py`
+does **not** count them as dead code (a runner calls them, so the graph never will);
+`scan_security.py` skips them (their "secrets" are fixtures); `tests_map.py` treats them as the
+test suite rather than as application code. Markers (`debt.py`) are still collected there — a
+TODO in a test is still a TODO.
 
 `kind` and `layer` come from `taxonomy.py` (`KINDS`, `LAYERS`, `LAYER_RULES`). Add a new value
 there once, and every extractor and template stays consistent. Scan rules and grade cutoffs live

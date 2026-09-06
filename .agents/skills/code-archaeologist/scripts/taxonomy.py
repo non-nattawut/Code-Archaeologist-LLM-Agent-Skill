@@ -26,11 +26,67 @@ LAYER_RULES = [
 ]
 LAYERS = [
     "controller", "service", "repository", "model", "client",
-    "config", "ui", "function", "module", "unknown",
+    "config", "ui", "test", "function", "module", "unknown",
 ]
 
 # Allowed `kind` values (what the node physically is).
-KINDS = ["class", "method", "function", "module", "endpoint", "component"]
+KINDS = ["class", "method", "function", "module", "endpoint", "component", "test"]
+
+# --- test code -----------------------------------------------------------------
+# Test code is *not* dead code: a runner calls it, so nothing in the graph does.
+# Detection is by convention, not by parsing, so it also holds for languages this
+# skill cannot build a graph for (JUnit 5 / Spring Boot, Go, Rust, .NET, ...).
+
+TEST_DIRS = {"test", "tests", "__tests__", "spec", "specs", "testing"}
+
+# Java/Kotlin/C#/Scala/Swift/Groovy: OrderServiceTest.java, FooTests.kt, PaymentIT.java.
+# Case-sensitive on purpose, so `latest.java` or `greatest.cs` are not tests.
+TEST_SUFFIX_RE = re.compile(r"(Test|Tests|TestCase|TestCases|IT|ITCase|Spec|Specs)"
+                            r"\.(java|kt|kts|cs|scala|groovy|swift)$")
+
+# Everything else follows lowercase conventions.
+TEST_FILE_RE = re.compile(
+    r"^test_.*\.(py|dart)$"                             # test_orders.py
+    r"|^conftest\.py$"                                  # pytest fixtures
+    r"|_test\.(py|go|dart|rb|exs|ex|js|jsx|ts|tsx|cc|cpp|c|php)$"   # orders_test.go
+    r"|_spec\.(rb|js|jsx|ts|tsx|exs)$"                  # orders_spec.rb
+    r"|\.(test|spec)\.(js|jsx|ts|tsx|mjs|cjs)$"         # orders.test.tsx
+    r"|Test\.php$"                                      # PHPUnit: OrderTest.php
+    r"|_test\.rs$", re.I)
+
+# Frameworks that mark a file as a test from the inside, for files whose name says
+# nothing. Checked against the head of the file only.
+TEST_CONTENT_RE = re.compile(
+    r"@(Test|ParameterizedTest|RepeatedTest|Nested|SpringBootTest|WebMvcTest|DataJpaTest"
+    r"|TestConfiguration|QuarkusTest|MicronautTest)\b"  # JUnit 5 / Spring Boot / Quarkus
+    r"|\[(TestMethod|TestClass|Fact|Theory|TestFixture)\]"          # .NET
+    r"|#\[(test|cfg\(test\))\]"                                     # Rust
+    r"|\bfunc\s+Test[A-Z]\w*\s*\(\s*\w+\s+\*testing\.T"             # Go
+    r"|\bunittest\.TestCase\b|^\s*import\s+pytest\b", re.M)         # Python
+TEST_CONTENT_BYTES = 8192
+
+
+def is_test_path(path: str) -> bool:
+    """True when a path follows any language's test-file convention."""
+    parts = path.replace("\\", "/").split("/")
+    name = parts[-1]
+    if TEST_DIRS.intersection(p.lower() for p in parts[:-1]):
+        return True
+    return bool(TEST_SUFFIX_RE.search(name) or TEST_FILE_RE.search(name))
+
+
+def has_test_markers(full_path: str) -> bool:
+    """True when the head of a file carries a test-framework marker (@Test, #[test], ...)."""
+    try:
+        with open(full_path, "r", encoding="utf-8", errors="replace") as fh:
+            return bool(TEST_CONTENT_RE.search(fh.read(TEST_CONTENT_BYTES)))
+    except OSError:
+        return False
+
+
+def is_test_file(path: str, full_path: str | None = None) -> bool:
+    """Convention first (free); only sniff the contents when a real path is given."""
+    return is_test_path(path) or (bool(full_path) and has_test_markers(full_path))
 
 # Decorators / patterns that mark a route handler (HTTP endpoint).
 ROUTE_DECORATOR_RE = re.compile(r"route|get|post|put|patch|delete|mapping|endpoint", re.I)

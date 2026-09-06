@@ -63,7 +63,7 @@ def _save_json(path: str, obj) -> None:
         fh.write("\n")
 
 sys.path.insert(0, SCRIPT_DIR)
-from taxonomy import infer_layer, ROUTE_DECORATOR_RE  # noqa: E402
+from taxonomy import infer_layer, is_test_path, ROUTE_DECORATOR_RE  # noqa: E402
 from js_bridge import find_js_files, extract_js_files, frontend_degraded   # noqa: E402
 
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data"}
@@ -296,6 +296,12 @@ def analyze(roots: list[str]):
     for s, t in js_edges:
         if s in methods and t in methods and s != t:
             edges.add((s, t, "calls"))
+
+    # Test code gets its own layer, in one pass so both extractors agree. It is not
+    # application code, and analyze.py must not count it as dead: a runner calls it.
+    for info in methods.values():
+        if is_test_path(info.get("source") or ""):
+            info["layer"] = "test"
 
     # --- Cross-stack: link frontend HTTP calls to backend route handlers ---
     for s, t in _api_edges(methods):

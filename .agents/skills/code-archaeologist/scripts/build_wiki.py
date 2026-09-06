@@ -26,7 +26,7 @@ DEFAULT_VAULT = os.path.join(DATA_DIR, "structure", "vault")
 TEMPLATE_PATH = os.path.join(SKILL_ROOT, "templates", "wiki_page_template.md")
 
 sys.path.insert(0, SCRIPT_DIR)
-from taxonomy import infer_layer  # noqa: E402
+from taxonomy import infer_layer, is_test_path  # noqa: E402
 
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data"}
 
@@ -186,7 +186,10 @@ def render_entity(ent: dict, known: set[str], template: str) -> str:
 
     out = template
     out = out.replace("{{name}}", ent["name"])
-    out = out.replace("{{layer}}", infer_layer(ent["name"], ent["decorators"], ent["bases"]))
+    # A class defined in a test file is test code whatever its name suggests.
+    layer = ("test" if is_test_path(ent["source"])
+             else infer_layer(ent["name"], ent["decorators"], ent["bases"]))
+    out = out.replace("{{layer}}", layer)
     out = out.replace("{{source}}", ent["source"])
     out = out.replace("{{kind}}", ent["kind"])
     out = out.replace("{{summary}}", summary)

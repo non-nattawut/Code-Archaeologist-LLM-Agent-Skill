@@ -218,6 +218,13 @@ Name-based, not execution coverage: no runner, nothing to install. A referenced 
 untested, but an unreferenced one is a real gap. Dunder methods and nodes living in test files are
 left out of the count.
 
+Test files are recognized by convention across languages — `test/`, `tests/`, `__tests__/`, `spec/`
+directories; `test_*.py`, `*_test.go`, `*.test.tsx`, `*_spec.rb`; `OrderServiceTest.java`,
+`FooTests.kt`, `PaymentIT.java`, `QuxTests.cs`; and files carrying `@Test` / `@SpringBootTest`
+(JUnit 5, Spring Boot), `[Fact]` (.NET), `#[test]` (Rust) or `func TestX(t *testing.T)` (Go).
+Such nodes get `layer: test` and are **never reported as dead code** — a runner calls them, so
+nothing in the graph does.
+
 ## Keeping the maps current (hybrid AI descriptions)
 
 Graph *structure* is always extracted by AST — exact, zero tokens. Method *descriptions* resolve
@@ -240,6 +247,10 @@ never re-described; deleted ones are pruned (except after a build that skipped t
 keeps the cache intact — those nodes are missing, not gone). **0 pending** means done.
 
 ## Notes
+- Graphs cover Python and JS/TS (the two languages with an extractor). The file-level passes —
+  lines/complexity, risk scan, debt markers, test detection — also read Java, Kotlin, Go, Rust,
+  C#, Ruby, PHP, Swift, Scala, Dart, Elixir and C/C++, so a polyglot repo still gets size, risk
+  and debt answers even where there is no call graph.
 - Python pipeline: stdlib only. Frontend parsing is the one exception (Node + `@babel/parser`);
   the generated HTML loads `force-graph` from a CDN.
 - Field values (`kind`, `layer`, `lang`, `desc_source`, and the review `severity`/`rule`/`grade`
