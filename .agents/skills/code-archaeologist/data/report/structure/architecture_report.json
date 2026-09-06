@@ -1,6 +1,6 @@
 {
   "graph": "data/structure/graph.json",
-  "generated": "2026-09-06 12:34 UTC",
+  "generated": "2026-09-06 12:51 UTC",
   "census": {
     "nodes": 4,
     "edges": 3,
@@ -269,6 +269,7 @@
         "authors": {
           "Nattawut Rodthong": 2
         },
+        "author_count": 1,
         "last_commit": "2026-09-02T16:14:28+07:00",
         "first_commit": "2026-09-02T16:10:56+07:00",
         "fan_in": 0,
@@ -283,6 +284,7 @@
           "non-nattawut": 2,
           "Nattawut Rodthong": 1
         },
+        "author_count": 2,
         "last_commit": "2026-09-06T19:01:32+07:00",
         "first_commit": "2026-09-02T16:10:56+07:00",
         "fan_in": 1,
@@ -296,6 +298,7 @@
         "authors": {
           "Nattawut Rodthong": 1
         },
+        "author_count": 1,
         "last_commit": "2026-09-02T16:10:56+07:00",
         "first_commit": "2026-09-02T16:10:56+07:00",
         "fan_in": 1,
@@ -310,6 +313,7 @@
           "non-nattawut": 2,
           "Nattawut Rodthong": 1
         },
+        "author_count": 2,
         "last_commit": "2026-09-06T19:01:32+07:00",
         "first_commit": "2026-09-02T16:10:56+07:00",
         "fan_in": 1,
@@ -327,6 +331,7 @@
           "non-nattawut": 2,
           "Nattawut Rodthong": 1
         },
+        "author_count": 2,
         "last_commit": "2026-09-06T19:01:32+07:00",
         "first_commit": "2026-09-02T16:10:56+07:00",
         "fan_in": 1,
@@ -342,6 +347,7 @@
           "non-nattawut": 2,
           "Nattawut Rodthong": 1
         },
+        "author_count": 2,
         "last_commit": "2026-09-06T19:01:32+07:00",
         "first_commit": "2026-09-02T16:10:56+07:00",
         "fan_in": 1,
@@ -356,6 +362,7 @@
         "authors": {
           "Nattawut Rodthong": 2
         },
+        "author_count": 1,
         "last_commit": "2026-09-02T16:14:28+07:00",
         "first_commit": "2026-09-02T16:10:56+07:00",
         "fan_in": 0,
@@ -370,6 +377,7 @@
         "authors": {
           "Nattawut Rodthong": 1
         },
+        "author_count": 1,
         "last_commit": "2026-09-02T16:10:56+07:00",
         "first_commit": "2026-09-02T16:10:56+07:00",
         "fan_in": 1,
@@ -386,7 +394,7 @@
     }
   },
   "metrics": {
-    "generated": "2026-09-06T12:34:52Z",
+    "generated": "2026-09-06T12:51:00Z",
     "roots": [
       "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
     ],
@@ -679,7 +687,7 @@
     "unmeasured_graph_ids": []
   },
   "debt": {
-    "generated": "2026-09-06T12:34:52Z",
+    "generated": "2026-09-06T12:51:00Z",
     "roots": [
       "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
     ],
@@ -713,7 +721,7 @@
     "dead_files": []
   },
   "tests": {
-    "generated": "2026-09-06T12:34:52Z",
+    "generated": "2026-09-06T12:51:00Z",
     "roots": [
       "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
     ],

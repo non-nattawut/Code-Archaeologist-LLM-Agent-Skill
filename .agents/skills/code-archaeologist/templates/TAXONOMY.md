@@ -69,10 +69,12 @@ build a graph for:
 | content marker | `@Test` / `@SpringBootTest` / `@ParameterizedTest` (JUnit 5, Spring Boot), `[Fact]` / `[TestMethod]` (.NET), `#[test]` (Rust), `func TestX(t *testing.T)` (Go), `unittest.TestCase` / `import pytest` |
 
 Consequences, all from that one definition: nodes in test files get `layer: test`; `analyze.py`
-does **not** count them as dead code (a runner calls them, so the graph never will);
-`scan_security.py` skips them (their "secrets" are fixtures); `tests_map.py` treats them as the
-test suite rather than as application code. Markers (`debt.py`) are still collected there — a
-TODO in a test is still a TODO.
+does **not** count them as dead code (a runner calls them, so the graph never will) and drops
+test edges from the hub / god-object degree counts (`app_edges`), so a well-tested function does
+not read as highly coupled; `scan_security.py` skips them (their "secrets" are fixtures);
+`tests_map.py` treats them as the test suite rather than as application code; `context.py` lists
+them under **Covered by**; the explorer can hide them with its **Tests** toggle. Markers
+(`debt.py`) are still collected there — a TODO in a test is still a TODO.
 
 `kind` and `layer` come from `taxonomy.py` (`KINDS`, `LAYERS`, `LAYER_RULES`). Add a new value
 there once, and every extractor and template stays consistent. Scan rules and grade cutoffs live

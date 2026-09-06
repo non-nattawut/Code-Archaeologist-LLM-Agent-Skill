@@ -96,7 +96,9 @@ gets the exact 3–5 relevant nodes, and reads only those Markdown notes (~1,500
   a test file names both the class and the method. Test files are recognized across languages —
   pytest, Jest/Vitest, **JUnit 5 / Spring Boot** (`OrderServiceTest.java`, `@SpringBootTest`), Go
   (`*_test.go`), Rust (`#[test]`), .NET (`[Fact]`), RSpec, PHPUnit — and their nodes are tagged
-  `layer: test`, so **test code is never reported as dead code**.
+  `layer: test`, so **test code is never reported as dead code** and its calls never count as
+  coupling. Where the call graph reaches, `context.py` also reports **which tests cover a node**
+  from real call edges, and the explorer can hide test nodes with one checkbox.
 - **Churn, ownership & hotspots** (`git_insights.py`) — one `git log --numstat` pass gives commits
   per file, the top author per file, and a **hotspot ranking** (`risk = commits x (1 + fan_in +
   fan_out)`): the code that changes most *and* has the most callers. Degrades to empty data outside

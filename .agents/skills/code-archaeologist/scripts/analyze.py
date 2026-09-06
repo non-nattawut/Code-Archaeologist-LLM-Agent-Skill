@@ -174,9 +174,19 @@ def degrees(nodes: dict, edges: list[tuple[str, str, str]]) -> dict[str, dict]:
     return deg
 
 
+def app_edges(nodes: dict, edges: list[tuple[str, str, str]]) -> list[tuple[str, str, str]]:
+    """Edges between application nodes only.
+
+    A test calls production code, which is coverage, not coupling: counting those
+    calls would make every well-tested function look like a hub.
+    """
+    return [e for e in edges
+            if nodes[e[0]].get("layer") != "test" and nodes[e[1]].get("layer") != "test"]
+
+
 def find_hubs(nodes: dict, edges: list[tuple[str, str, str]]) -> list[dict]:
     """Highly coupled nodes — everything routes through them."""
-    deg = degrees(nodes, edges)
+    deg = degrees(nodes, app_edges(nodes, edges))
     hubs = [{"node": nid, **d, "degree": d["fan_in"] + d["fan_out"]}
             for nid, d in deg.items() if d["fan_in"] + d["fan_out"] >= HUB_DEGREE]
     return sorted(hubs, key=lambda h: (-h["degree"], h["node"]))
@@ -193,7 +203,7 @@ def find_god_objects(nodes: dict, edges: list[tuple[str, str, str]]) -> list[dic
         if count >= GOD_METHODS:
             found.append({"name": cls, "reason": "methods", "count": count})
 
-    deg = degrees(nodes, edges)
+    deg = degrees(nodes, app_edges(nodes, edges))
     for nid, n in nodes.items():
         if n.get("kind") == "class" and deg[nid]["fan_out"] >= GOD_FANOUT:
             found.append({"name": nid, "reason": "references", "count": deg[nid]["fan_out"]})

@@ -122,6 +122,7 @@
       "authors": {
         "Nattawut Rodthong": 2
       },
+      "author_count": 1,
       "last_commit": "2026-09-02T16:14:28+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 0,
@@ -135,6 +136,7 @@
       "authors": {
         "Nattawut Rodthong": 2
       },
+      "author_count": 1,
       "last_commit": "2026-09-02T16:14:28+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 1,
@@ -148,6 +150,7 @@
       "authors": {
         "Nattawut Rodthong": 2
       },
+      "author_count": 1,
       "last_commit": "2026-09-02T16:14:28+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 1,
@@ -162,6 +165,7 @@
         "non-nattawut": 2,
         "Nattawut Rodthong": 1
       },
+      "author_count": 2,
       "last_commit": "2026-09-06T19:01:32+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 1,
@@ -176,6 +180,7 @@
         "non-nattawut": 2,
         "Nattawut Rodthong": 1
       },
+      "author_count": 2,
       "last_commit": "2026-09-06T19:01:32+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 1,
@@ -189,6 +194,7 @@
       "authors": {
         "Nattawut Rodthong": 1
       },
+      "author_count": 1,
       "last_commit": "2026-09-02T16:10:56+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 0,
@@ -202,6 +208,7 @@
       "authors": {
         "Nattawut Rodthong": 1
       },
+      "author_count": 1,
       "last_commit": "2026-09-02T16:10:56+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 1,
@@ -215,6 +222,7 @@
       "authors": {
         "Nattawut Rodthong": 1
       },
+      "author_count": 1,
       "last_commit": "2026-09-02T16:10:56+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 1,
@@ -229,6 +237,7 @@
         "non-nattawut": 2,
         "Nattawut Rodthong": 1
       },
+      "author_count": 2,
       "last_commit": "2026-09-06T19:01:32+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 1,
@@ -242,6 +251,7 @@
       "authors": {
         "Nattawut Rodthong": 1
       },
+      "author_count": 1,
       "last_commit": "2026-09-02T16:10:56+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 1,
@@ -255,6 +265,7 @@
       "authors": {
         "Nattawut Rodthong": 1
       },
+      "author_count": 1,
       "last_commit": "2026-09-02T16:10:56+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 1,
@@ -269,6 +280,7 @@
         "Nattawut Rodthong": 1,
         "non-nattawut": 1
       },
+      "author_count": 2,
       "last_commit": "2026-09-06T13:31:45+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 0,
@@ -283,6 +295,7 @@
         "Nattawut Rodthong": 1,
         "non-nattawut": 1
       },
+      "author_count": 2,
       "last_commit": "2026-09-06T13:31:45+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 0,
@@ -299,6 +312,7 @@
       "authors": {
         "Nattawut Rodthong": 2
       },
+      "author_count": 1,
       "last_commit": "2026-09-02T16:14:28+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 1,
@@ -313,6 +327,7 @@
       "authors": {
         "Nattawut Rodthong": 2
       },
+      "author_count": 1,
       "last_commit": "2026-09-02T16:14:28+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 1,
@@ -328,6 +343,7 @@
         "non-nattawut": 2,
         "Nattawut Rodthong": 1
       },
+      "author_count": 2,
       "last_commit": "2026-09-06T19:01:32+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 1,
@@ -343,6 +359,7 @@
         "non-nattawut": 2,
         "Nattawut Rodthong": 1
       },
+      "author_count": 2,
       "last_commit": "2026-09-06T19:01:32+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 1,
@@ -358,6 +375,7 @@
         "non-nattawut": 2,
         "Nattawut Rodthong": 1
       },
+      "author_count": 2,
       "last_commit": "2026-09-06T19:01:32+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 1,
@@ -372,6 +390,7 @@
       "authors": {
         "Nattawut Rodthong": 1
       },
+      "author_count": 1,
       "last_commit": "2026-09-02T16:10:56+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 1,
@@ -387,6 +406,7 @@
         "Nattawut Rodthong": 1,
         "non-nattawut": 1
       },
+      "author_count": 2,
       "last_commit": "2026-09-06T13:31:45+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 0,
@@ -402,6 +422,7 @@
         "Nattawut Rodthong": 1,
         "non-nattawut": 1
       },
+      "author_count": 2,
       "last_commit": "2026-09-06T13:31:45+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 0,
@@ -416,6 +437,7 @@
       "authors": {
         "Nattawut Rodthong": 1
       },
+      "author_count": 1,
       "last_commit": "2026-09-02T16:10:56+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 1,
@@ -430,6 +452,7 @@
       "authors": {
         "Nattawut Rodthong": 1
       },
+      "author_count": 1,
       "last_commit": "2026-09-02T16:10:56+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 1,
@@ -444,6 +467,7 @@
       "authors": {
         "Nattawut Rodthong": 1
       },
+      "author_count": 1,
       "last_commit": "2026-09-02T16:10:56+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 1,
@@ -458,6 +482,7 @@
       "authors": {
         "Nattawut Rodthong": 2
       },
+      "author_count": 1,
       "last_commit": "2026-09-02T16:14:28+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 0,
@@ -472,6 +497,7 @@
       "authors": {
         "Nattawut Rodthong": 1
       },
+      "author_count": 1,
       "last_commit": "2026-09-02T16:10:56+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 0,

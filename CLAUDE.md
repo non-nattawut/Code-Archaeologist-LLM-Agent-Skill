@@ -39,7 +39,9 @@ archaeologist.py  project | flow | both | check | report        <- the only entr
 - `trace_path.py` is the query tool: `--from/--to` (BFS path), `--impact-of` (blast radius),
   `--impact-of-diff` (map a git diff to nodes, union their impact). Works on either graph.
 - `analyze.py` is graph-only: cycles, orphans, layer violations, hubs, god objects, name-based
-  idioms, and the 0–100 / A–F `health()` score (accepts security counts).
+  idioms, and the 0–100 / A–F `health()` score (accepts security counts). Degree-based checks run
+  on `app_edges()`, which drops edges touching a `layer: test` node — test calls are coverage, not
+  coupling.
 - `scan_security.py` is line-regex over source; every finding is attributed to the node owning that
   line. `git_insights.py` is one `git log --numstat` pass → churn, owners, hotspot risk.
 - `metrics.py` is line counts per file plus LOC / cyclomatic complexity / nesting depth /
@@ -62,6 +64,9 @@ archaeologist.py  project | flow | both | check | report        <- the only entr
   `__MAPS_DATA__`, and writes **one** `data/explorer.html` holding both maps (header switch).
 
 ### Where the front-end lives
+
+The explorer filters test nodes at load (`loadMap` -> `HAS_TESTS` / `EDGES`), so the **Tests**
+checkbox re-renders through `applyMap`; anything reading edges must use `EDGES`, not `GRAPH.edges`.
 
 `templates/viewer.html` is a normal HTML/CSS/JS file (three-pane explorer: health ring + tiles +
 LOC/language mix + file tree | seven views: Graph/Treemap/Matrix/Tree/Flow/Cluster/Bundle |

@@ -232,6 +232,7 @@
       <div class="views" id="views"></div>
       <label><input type="checkbox" id="hulls" checked /> Folders</label>
       <label><input type="checkbox" id="blast" /> Blast radius</label>
+      <label id="testsToggle" hidden><input type="checkbox" id="showTests" checked /> Tests</label>
       <button class="tbtn" id="png" title="Export the current graph as PNG">⤓ PNG</button>
     </div>
     <div id="stage">
@@ -271,6 +272,8 @@ const lineOf = (n) => { const p = String(n.source || "").split(":")[1]; return p
 const dirOf = (path) => { const i = path.lastIndexOf("/"); return i < 0 ? "(root)" : path.slice(0, i); };
 const baseOf = (path) => path.slice(path.lastIndexOf("/") + 1);
 
+let EDGES = [], HAS_TESTS = false;
+
 function loadMap(name) {
   mapName = name;
   GRAPH = MAPS[name].graph;
@@ -283,16 +286,21 @@ function loadMap(name) {
   FILE_STATS = REPORT.files || {};
   HAS_CHURN = Object.keys(CHURN).length > 0;
 
-  nodes = GRAPH.nodes.map((n) => ({ ...n }));
+  // Test nodes are real nodes -- they call production code, which is how "covered by"
+  // works -- but they are noise on an architecture map, so they can be switched off.
+  HAS_TESTS = GRAPH.nodes.some((n) => n.layer === "test");
+  const showTests = !HAS_TESTS || el("showTests").checked;
+  nodes = GRAPH.nodes.filter((n) => showTests || n.layer !== "test").map((n) => ({ ...n }));
   byId = new Map(nodes.map((n) => [n.id, n]));
-  links = GRAPH.edges.map((e) => ({ source: e.source, target: e.target, type: e.type }));
+  EDGES = GRAPH.edges.filter((e) => byId.has(e.source) && byId.has(e.target));
+  links = EDGES.map((e) => ({ source: e.source, target: e.target, type: e.type }));
   isFlow = GRAPH.edges.some((e) => e.type === "calls");
   OUT_LABEL = isFlow ? "Calls" : "References";
   IN_LABEL = isFlow ? "Called by" : "Referenced by";
 
   outAdj = new Map(); inAdj = new Map();
   nodes.forEach((n) => { outAdj.set(n.id, []); inAdj.set(n.id, []); });
-  GRAPH.edges.forEach((e) => { outAdj.get(e.source)?.push(e.target); inAdj.get(e.target)?.push(e.source); });
+  EDGES.forEach((e) => { outAdj.get(e.source)?.push(e.target); inAdj.get(e.target)?.push(e.source); });
 
   filesIndex = new Map();                   // file -> {nodes:[], lines, lang}
   nodes.forEach((n) => {
@@ -717,8 +725,8 @@ function renderMatrix() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = "#0b0e14"; ctx.fillRect(0, 0, size, size);
 
-  const edgeSet = new Set(GRAPH.edges.map((e) => e.source + "|" + e.target));
-  const httpSet = new Set(GRAPH.edges.filter((e) => e.type === "http").map((e) => e.source + "|" + e.target));
+  const edgeSet = new Set(EDGES.map((e) => e.source + "|" + e.target));
+  const httpSet = new Set(EDGES.filter((e) => e.type === "http").map((e) => e.source + "|" + e.target));
 
   ctx.font = "10px ui-monospace, monospace";
   list.forEach((n, i) => {
@@ -988,7 +996,7 @@ function renderFile(node) {
       <div class="kv"><span>Commits</span><b>${m.commits}</b></div>
       <div class="kv"><span>Risk (churn x links)</span><b>${m.risk}</b></div>
       <div class="kv"><span>Last change</span><b>${esc((m.last_commit || "").slice(0, 10) || "—")}</b></div>
-      <div class="grp">Contributors</div>
+      <div class="grp">Contributors${m.author_count > 3 ? ` (top 3 of ${m.author_count})` : ""}</div>
       ${Object.entries(m.authors || {}).map(([a, c]) =>
         `<div class="kv"><span>${esc(a)}</span><b>${c}</b></div>`).join("") || '<span class="empty">—</span>'}`
       : '<span class="empty">No git history for this file (run the report inside a git repo).</span>'}
@@ -1087,6 +1095,7 @@ el("zoomOut").addEventListener("click", () => Graph.zoom(Graph.zoom() / 1.4, 250
 el("zoomFit").addEventListener("click", () => Graph.zoomToFit(400, 60));
 el("reset").addEventListener("click", () => { setFilter(null); clearSelection(); Graph.zoomToFit(400, 60); });
 el("hulls").addEventListener("change", repaint);
+el("showTests").addEventListener("change", () => applyMap(mapName));
 el("blast").addEventListener("change", () => {
   if (selected) { computeHighlight(selected); repaint(); }
 });
@@ -1138,6 +1147,7 @@ function applyMap(name) {
   highlightNodes = new Set(); highlightLinks = new Set();
   el("filterChip").classList.remove("on");
   if (!HAS_CHURN && (colorMode === "churn" || colorMode === "risk")) colorMode = "layer";
+  el("testsToggle").hidden = !HAS_TESTS;
   renderMapSwitch(); renderHealth(); renderColorModes(); renderLegend(); renderTiles();
   renderTree(); renderTabs(); renderPanel(); updateStatus();
   Graph.graphData({ nodes, links });

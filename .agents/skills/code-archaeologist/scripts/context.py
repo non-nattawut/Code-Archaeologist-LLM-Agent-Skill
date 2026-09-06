@@ -10,6 +10,7 @@ artifacts already on disk and returns it as one budgeted block:
   what it calls     immediate callees, each with its own one-line description
   what calls it     immediate callers, same
   what is risky     the scan findings attributed to it
+  what covers it    the tests that call it (real call edges, not name matching)
 
     python context.py --node OrderService.place_order
     python context.py --node A B C --depth 2 --max-chars 8000
@@ -108,6 +109,9 @@ def build(graph_path: str, node_ids: list[str], depth: int = 1, cap: int = NEIGH
             packs.append({"id": nid, "found": False})
             continue
         callees, callers = walk(nid, out), walk(nid, inc)
+        # A test that calls this node covers it -- real call edges, not name matching.
+        covered_by = sorted(i for i in inc.get(nid, []) if nodes[i].get("layer") == "test")
+        callers = [i for i in callers if i not in set(covered_by)]
         packs.append({
             "id": nid,
             "found": True,
@@ -127,6 +131,7 @@ def build(graph_path: str, node_ids: list[str], depth: int = 1, cap: int = NEIGH
             "called_by": _neighbors(callers, nodes, cap),
             "calls_total": len(callees),
             "called_by_total": len(callers),
+            "covered_by": covered_by,
         })
     return {"graph": os.path.relpath(graph_path, SKILL_ROOT).replace("\\", "/"),
             "map": _map_of(graph_path), "depth": depth, "nodes": packs}
@@ -160,6 +165,10 @@ def to_markdown(pack: dict) -> str:
             lines += [f"- `{r['id']}` - {r['doc'] or 'no description'}" for r in rows] or ["_None._"]
             if more > 0:
                 lines.append(f"- _...{more} more_")
+            lines.append("")
+        if n.get("covered_by"):
+            lines += [f"## Covered by ({len(n['covered_by'])} test(s))", ""]
+            lines += [f"- `{t}`" for t in n["covered_by"]]
             lines.append("")
         if n["risks"]:
             lines += ["## Risks", ""]

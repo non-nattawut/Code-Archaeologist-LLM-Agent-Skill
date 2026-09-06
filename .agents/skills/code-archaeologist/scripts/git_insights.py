@@ -138,6 +138,7 @@ def build(roots, graph_path: str = DEFAULT_GRAPH) -> dict:
         nodes[nid] = {
             "file": git_path or file_key, "commits": commits, "owner": stats.get("owner"),
             "authors": dict(list(authors.items())[:3]),  # top 3, already sorted by commits
+            "author_count": len(authors),                # ...of how many in total
             "last_commit": stats.get("last_commit"), "first_commit": stats.get("first_commit"),
             "fan_in": fin, "fan_out": fout,
             "risk": commits * (1 + fin + fout),

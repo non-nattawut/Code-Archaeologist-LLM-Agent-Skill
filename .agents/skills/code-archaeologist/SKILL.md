@@ -132,7 +132,9 @@ python .agents/skills/code-archaeologist/scripts/context.py --node A B --depth 2
 python .agents/skills/code-archaeologist/scripts/context.py --diff     # every node the diff touches
 ```
 `--max-chars` (default 6000) is a hard budget: neighbor lists shrink until it fits, and it says
-when it trimmed. `--graph` picks the map (default: flow), `--format json` for tooling.
+when it trimmed. `--graph` picks the map (default: flow), `--format json` for tooling. When tests
+call the node, the pack lists them under **Covered by** — real call edges, so it answers "which
+tests should I run for this change".
 
 ### 8. Regenerate the HTML explorer
 `archaeologist.py` refreshes `data/explorer.html` on every build; this rebuilds it alone:
@@ -141,7 +143,9 @@ python .agents/skills/code-archaeologist/scripts/build_html.py
 ```
 One page holds both maps (header switch): grade, tiles and file tree on the left; seven views
 (Graph, Treemap, Matrix, Tree, Flow, Cluster, Bundle) in the middle; FILE / PATTERNS / SECURITY
-tabs on the right. A map with no report still renders, minus the grade and review tabs.
+tabs on the right. A map with no report still renders, minus the grade and review tabs. A
+**Tests** checkbox appears when the map has test nodes and hides them, for when you want the
+architecture without the suite hanging off it.
 
 ### 9. Check freshness (are the maps stale?)
 Returns `{stale, changed, added, deleted}`. Rebuild if `stale`.
@@ -223,7 +227,9 @@ directories; `test_*.py`, `*_test.go`, `*.test.tsx`, `*_spec.rb`; `OrderServiceT
 `FooTests.kt`, `PaymentIT.java`, `QuxTests.cs`; and files carrying `@Test` / `@SpringBootTest`
 (JUnit 5, Spring Boot), `[Fact]` (.NET), `#[test]` (Rust) or `func TestX(t *testing.T)` (Go).
 Such nodes get `layer: test` and are **never reported as dead code** — a runner calls them, so
-nothing in the graph does.
+nothing in the graph does. Their calls into production code are coverage, not coupling, so they are
+also left out of the hub / god-object counts; what they *are* used for is Command 7's "Covered by"
+and `--impact-of`, which then tells you which tests a change puts at risk.
 
 ## Keeping the maps current (hybrid AI descriptions)
 

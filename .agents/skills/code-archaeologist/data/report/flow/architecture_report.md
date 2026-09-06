@@ -1,6 +1,6 @@
 # Architecture report — flow_graph.json
 
-Generated 2026-09-06 12:34 UTC · 13 nodes · 9 edges
+Generated 2026-09-06 12:51 UTC · 13 nodes · 9 edges
 
 ## Health: **D** (67/100)
 
