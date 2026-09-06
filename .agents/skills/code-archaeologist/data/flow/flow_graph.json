@@ -130,7 +130,7 @@
       "kind": "function",
       "cls": null,
       "signature": "getOrder()",
-      "doc": "Delegates to [[OrderController.get_order]].",
+      "doc": "Frontend API client: GET /orders/:id and return the parsed order JSON.",
       "source": "sample_src/frontend/api_client.ts:8",
       "lang": "js",
       "ext": 2,
@@ -147,7 +147,7 @@
       "kind": "function",
       "cls": null,
       "signature": "loadOrder()",
-      "doc": "Delegates to [[getOrder]].",
+      "doc": "Fetches one order through the API client and renders it into the order element.",
       "source": "sample_src/frontend/order_page.ts:8",
       "lang": "js",
       "ext": 2
@@ -158,7 +158,7 @@
       "kind": "function",
       "cls": null,
       "signature": "submitOrder()",
-      "doc": "Delegates to [[createOrder]].",
+      "doc": "Frontend page action: submits a new order form via the API client.",
       "source": "sample_src/frontend/order_page.ts:4",
       "lang": "js",
       "ext": 0

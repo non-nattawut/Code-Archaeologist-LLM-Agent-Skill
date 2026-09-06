@@ -5,12 +5,12 @@ layer: ui
 class: 
 source: sample_src/frontend/order_page.ts:8
 lang: js
-desc_source: auto
+desc_source: ai
 ---
 # loadOrder
 
 ## What it does
-Delegates to [[getOrder]].
+Fetches one order through the API client and renders it into the order element.
 
 ## Signature
 `loadOrder()`
