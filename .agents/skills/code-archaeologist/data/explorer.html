@@ -634,9 +634,23 @@ function drawBlob(ctx, scale, pts, color, pad) {
   ctx.strokeStyle = color + "44";
   ctx.lineWidth = 1 / scale;
 
-  const ring = hull(pts).map(([x, y]) => {
-    const dx = x - cx, dy = y - cy, len = Math.hypot(dx, dy) || 1;
-    return [x + (dx / len) * pad, y + (dy / len) * pad];
+  // Grow the hull along each vertex's outward bisector, not away from the centre:
+  // on a long thin cluster the radial push is almost parallel to the shape, so the
+  // end nodes get no sideways margin and end up sitting on the boundary. The miter
+  // (pad / cos) also buys back what the corner-rounding below cuts off.
+  const base = hull(pts), n = base.length;
+  const unit = (x, y) => { const l = Math.hypot(x, y) || 1; return [x / l, y / l]; };
+  const ring = base.map((p, i) => {
+    const prev = base[(i - 1 + n) % n], next = base[(i + 1) % n];
+    const e1 = unit(p[0] - prev[0], p[1] - prev[1]);
+    const e2 = unit(next[0] - p[0], next[1] - p[1]);
+    let n1 = [e1[1], -e1[0]], n2 = [e2[1], -e2[0]];
+    if ((p[0] - cx) * n1[0] + (p[1] - cy) * n1[1] < 0) {   // point them away from the middle
+      n1 = [-n1[0], -n1[1]]; n2 = [-n2[0], -n2[1]];
+    }
+    let b = unit(n1[0] + n2[0], n1[1] + n2[1]);
+    const cos = Math.max(0.45, b[0] * n1[0] + b[1] * n1[1]);   // capped, or spikes
+    return [p[0] + (b[0] * pad) / cos, p[1] + (b[1] * pad) / cos];
   });
   if (ring.length < 3) {
     // One or two nodes: a padded stroke is the capsule a hull cannot express.
