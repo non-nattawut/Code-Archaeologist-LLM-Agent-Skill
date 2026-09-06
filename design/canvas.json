@@ -1,0 +1,39 @@
+{
+  "artboards": [
+    {
+      "file": "Current.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 800,
+      "title": "Today \u2014 what ships now"
+    },
+    {
+      "file": "Main.dc.html",
+      "x": 1400,
+      "y": 0,
+      "w": 1280,
+      "h": 800,
+      "title": "Instrument \u2014 shipped"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "decision",
+      "x": 0,
+      "y": -190,
+      "w": 1240,
+      "text": "Decided: direction A, Instrument \u2014 now shipped in templates/viewer.html.\n\nTwo amendments folded in:\n\u2022 the health score is C's graded scale \u2014 F D C B A marked on the bar, the band you are in lit, a marker at the score\n\u2022 the file list is the old directory tree (folders, nesting, drill-through), restyled rather than replaced\n\nLeft artboard is what shipped before; right is what ships now. Same data in both."
+    },
+    {
+      "id": "what-changed",
+      "x": 1400,
+      "y": 838,
+      "w": 620,
+      "text": "What actually changed in the code: the token block and the stylesheet, four render functions (health, colour modes, census, tree) and the markup that carried emoji. Every id, class and handler the JS binds to is untouched \u2014 all seven views, four colour modes, both maps, the tree filter, tabs, search, blast/folders/tests toggles and PNG export were exercised after the change with no console errors.\n\nNo new network dependency: the mono stack is the system one (ui-monospace / SF Mono / Menlo / Consolas), not a webfont, because the explorer is meant to open from file:// with only force-graph coming off a CDN."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

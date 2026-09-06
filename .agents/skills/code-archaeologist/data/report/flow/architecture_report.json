@@ -1,6 +1,6 @@
 {
   "graph": "data/flow/flow_graph.json",
-  "generated": "2026-09-06 13:05 UTC",
+  "generated": "2026-09-06 13:42 UTC",
   "census": {
     "nodes": 15,
     "edges": 11,
@@ -221,6 +221,17 @@
         "first_commit": "2026-09-02T16:10:56+07:00",
         "owner": "non-nattawut"
       },
+      "sample_src/backend/tests/test_orders.py": {
+        "commits": 1,
+        "insertions": 25,
+        "deletions": 0,
+        "authors": {
+          "non-nattawut": 1
+        },
+        "last_commit": "2026-09-06T20:05:48+07:00",
+        "first_commit": "2026-09-06T20:05:48+07:00",
+        "owner": "non-nattawut"
+      },
       "sample_src/frontend/api_client.ts": {
         "commits": 1,
         "insertions": 11,
@@ -231,6 +242,17 @@
         "last_commit": "2026-09-02T16:10:56+07:00",
         "first_commit": "2026-09-02T16:10:56+07:00",
         "owner": "Nattawut Rodthong"
+      },
+      "sample_src/frontend/order_page.test.ts": {
+        "commits": 1,
+        "insertions": 13,
+        "deletions": 0,
+        "authors": {
+          "non-nattawut": 1
+        },
+        "last_commit": "2026-09-06T20:05:48+07:00",
+        "first_commit": "2026-09-06T20:05:48+07:00",
+        "owner": "non-nattawut"
       },
       "sample_src/frontend/order_page.ts": {
         "commits": 2,
@@ -364,15 +386,17 @@
       },
       "OrderRepositoryTest.test_get_returns_the_row": {
         "file": "sample_src/backend/tests/test_orders.py",
-        "commits": 0,
-        "owner": null,
-        "authors": {},
-        "author_count": 0,
-        "last_commit": null,
-        "first_commit": null,
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-06T20:05:48+07:00",
+        "first_commit": "2026-09-06T20:05:48+07:00",
         "fan_in": 0,
         "fan_out": 1,
-        "risk": 0
+        "risk": 2
       },
       "OrderService.__init__": {
         "file": "sample_src/backend/order_service.py",
@@ -491,15 +515,17 @@
       },
       "test_place_order_charges_and_saves": {
         "file": "sample_src/backend/tests/test_orders.py",
-        "commits": 0,
-        "owner": null,
-        "authors": {},
-        "author_count": 0,
-        "last_commit": null,
-        "first_commit": null,
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-06T20:05:48+07:00",
+        "first_commit": "2026-09-06T20:05:48+07:00",
         "fan_in": 0,
         "fan_out": 1,
-        "risk": 0
+        "risk": 2
       }
     },
     "hotspots": [
@@ -689,6 +715,36 @@
         "risk": 2
       },
       {
+        "node": "OrderRepositoryTest.test_get_returns_the_row",
+        "file": "sample_src/backend/tests/test_orders.py",
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-06T20:05:48+07:00",
+        "first_commit": "2026-09-06T20:05:48+07:00",
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 2
+      },
+      {
+        "node": "test_place_order_charges_and_saves",
+        "file": "sample_src/backend/tests/test_orders.py",
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-06T20:05:48+07:00",
+        "first_commit": "2026-09-06T20:05:48+07:00",
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 2
+      },
+      {
         "node": "OrderService.__init__",
         "file": "sample_src/backend/order_service.py",
         "commits": 1,
@@ -705,15 +761,15 @@
       }
     ],
     "summary": {
-      "files_with_history": 10,
-      "commits_counted": 20,
+      "files_with_history": 12,
+      "commits_counted": 22,
       "authors": 2,
       "graph": "flow_graph.json",
       "note": null
     }
   },
   "metrics": {
-    "generated": "2026-09-06T13:05:30Z",
+    "generated": "2026-09-06T13:42:12Z",
     "roots": [
       "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
     ],
@@ -1149,7 +1205,7 @@
     ]
   },
   "debt": {
-    "generated": "2026-09-06T13:05:30Z",
+    "generated": "2026-09-06T13:42:12Z",
     "roots": [
       "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
     ],
@@ -1198,7 +1254,7 @@
     ]
   },
   "tests": {
-    "generated": "2026-09-06T13:05:30Z",
+    "generated": "2026-09-06T13:42:12Z",
     "roots": [
       "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
     ],

@@ -87,6 +87,10 @@ One meaning, one colour, everywhere — a reader learns the scheme once, from an
 - **A new `layer` / `kind` value needs its colour in `LAYER_COLORS` in the same commit** that adds
   it to `taxonomy.py`. The legend, the node painter and every view read from there; nothing
   hard-codes a colour at a call site.
+- The chrome is deliberately quiet so the data can be loud: near-black ground `#08090b`, hairline
+  rules `#1b1f26`, one accent (amber `#d99f4a`) for the active state and nothing else, and a system
+  monospace stack. No emoji anywhere in the UI — icons are inline SVG on a 16px grid. Keep it that
+  way; the palette below is the only saturated thing on screen.
 - Already spoken for: controller/endpoint pink `#f778ba`, service blue `#6ea8fe`, repository green
   `#3fb950`, model amber `#e3b341`, client teal `#39c5cf`, config purple `#a371f7`, ui orange
   `#f0883e`, test green `#57ab5a`, unknown grey `#8b98ad`. Pick something distinguishable from all

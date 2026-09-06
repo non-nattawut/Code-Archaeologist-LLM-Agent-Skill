@@ -1,0 +1,229 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #d99f4a; text-decoration: none; } a:hover { color: #f0bd6c; }
+    .ins { font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+      font-variant-numeric: tabular-nums; }
+    .ins .lbl { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #5f6773; }
+  </style>
+</helmet>
+
+<div class="ins" style="width: 1280px; height: 800px; background: #08090b; color: #c9ced7; font-size: 12px;
+  line-height: 1.45; display: grid; grid-template-columns: 296px 1fr 376px; grid-template-rows: 44px 1fr;">
+
+  <!-- head: one hairline, no pills, no rounded chips -->
+  <div style="grid-column: 1 / -1; display: flex; align-items: stretch; border-bottom: 1px solid #1b1f26;">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 16px; border-right: 1px solid #1b1f26; width: 296px;">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#d99f4a" stroke-width="1.2">
+        <path d="M1 10.5 L 7 1.5 L 13 10.5"></path><path d="M3.4 7 H 10.6"></path><path d="M1 12.5 H 13"></path>
+      </svg>
+      <b style="letter-spacing: .04em; font-weight: 500; color: #e6e9ee;">code&#8202;archaeologist</b>
+    </div>
+    <div style="display: flex; align-items: stretch;">
+      <div style="display: flex; align-items: center; gap: 8px; padding: 0 16px; border-right: 1px solid #1b1f26;
+        color: #5f6773;">structure <span style="color: #3f4653;">6</span></div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 0 16px; border-right: 1px solid #1b1f26;
+        color: #e6e9ee; box-shadow: inset 0 -2px 0 #d99f4a;">flow <span style="color: #d99f4a;">15</span></div>
+    </div>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 18px; padding: 0 16px;">
+      <span class="lbl">method-level call map</span>
+      <span style="color: #5f6773;">grade <b style="color: #e0a33e; font-weight: 700;">D</b> 68</span>
+    </div>
+  </div>
+
+  <!-- left: hairline sections, data as tables not tiles -->
+  <div style="border-right: 1px solid #1b1f26; overflow: hidden;">
+    <div style="padding: 18px 16px 16px; border-bottom: 1px solid #1b1f26;">
+      <div class="lbl">health score</div>
+      <div style="display: flex; align-items: baseline; gap: 10px; margin-top: 10px;">
+        <span style="font-size: 30px; font-weight: 700; color: #e6e9ee; line-height: 1;">68</span>
+        <span style="color: #5f6773;">/ 100</span>
+        <span style="margin-left: auto; font-size: 19px; font-weight: 700; color: #e0a33e;">D</span>
+      </div>
+      <svg width="264" height="30" viewBox="0 0 264 30" style="display: block; margin: 12px 0 2px;">
+        <line x1="0" y1="20" x2="264" y2="20" stroke="#1b1f26" stroke-width="2"></line>
+        <line x1="0" y1="20" x2="180" y2="20" stroke="#e0a33e" stroke-width="2"></line>
+        <g stroke="#2a303a">
+          <line x1="158" y1="15" x2="158" y2="25"></line><line x1="185" y1="15" x2="185" y2="25"></line>
+          <line x1="211" y1="15" x2="211" y2="25"></line><line x1="238" y1="15" x2="238" y2="25"></line>
+        </g>
+        <g font-size="9" letter-spacing="1" font-family="'JetBrains Mono', monospace" fill="#444b57">
+          <text x="79" y="10" text-anchor="middle">F</text>
+          <text x="171" y="10" text-anchor="middle" fill="#e0a33e">D</text>
+          <text x="198" y="10" text-anchor="middle">C</text>
+          <text x="224" y="10" text-anchor="middle">B</text>
+          <text x="251" y="10" text-anchor="middle">A</text>
+        </g>
+        <path d="M176 27 L180 22 L184 27 Z" fill="#e0a33e"></path>
+      </svg>
+      <div style="color: #6b727e; font-size: 11px; margin-top: 6px;">security &minus;25, dead code &minus;7</div>
+    </div>
+
+    <div style="padding: 16px; border-bottom: 1px solid #1b1f26;">
+      <div class="lbl">color by</div>
+      <div style="display: flex; gap: 0; margin-top: 10px; border: 1px solid #1b1f26;">
+        <div style="flex: 1; padding: 7px 0; text-align: center; background: #14171d; color: #e6e9ee;
+          box-shadow: inset 0 -2px 0 #d99f4a;">layer</div>
+        <div style="flex: 1; padding: 7px 0; text-align: center; color: #6b727e; border-left: 1px solid #1b1f26;">folder</div>
+        <div style="flex: 1; padding: 7px 0; text-align: center; color: #6b727e; border-left: 1px solid #1b1f26;">churn</div>
+        <div style="flex: 1; padding: 7px 0; text-align: center; color: #6b727e; border-left: 1px solid #1b1f26;">risk</div>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; color: #6b727e; font-size: 11px;">
+        <span style="display: inline-flex; align-items: center; gap: 6px;"><i style="width: 7px; height: 7px; background: #f778ba; display: block;"></i>controller</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px;"><i style="width: 7px; height: 7px; background: #6ea8fe; display: block;"></i>service</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px;"><i style="width: 7px; height: 7px; background: #3fb950; display: block;"></i>repository</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px;"><i style="width: 7px; height: 7px; background: #39c5cf; display: block;"></i>client</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px;"><i style="width: 7px; height: 7px; background: #57ab5a; display: block;"></i>test</span>
+      </div>
+    </div>
+
+    <div style="padding: 16px; border-bottom: 1px solid #1b1f26;">
+      <div class="lbl">census</div>
+      <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 10px;">
+        <div style="display: flex; color: #6b727e;"><span>files</span><span style="margin-left: auto; color: #e6e9ee;">7</span></div>
+        <div style="display: flex; color: #6b727e;"><span>functions</span><span style="margin-left: auto; color: #e6e9ee;">15</span></div>
+        <div style="display: flex; color: #6b727e;"><span>call edges</span><span style="margin-left: auto; color: #e6e9ee;">11</span></div>
+        <div style="display: flex; color: #6b727e;"><span>never called</span><span style="margin-left: auto; color: #e0a33e;">2</span></div>
+        <div style="display: flex; color: #6b727e; padding-top: 7px; margin-top: 4px; border-top: 1px solid #14171d;">
+          <span>lines</span><span style="margin-left: auto; color: #e6e9ee;">135</span></div>
+      </div>
+      <div style="display: flex; height: 2px; margin: 12px 0 8px;">
+        <i style="display: block; height: 100%; width: 72.6%; background: #6ea8fe;"></i>
+        <i style="display: block; height: 100%; width: 27.4%; background: #39c5cf;"></i>
+      </div>
+      <div style="display: flex; gap: 14px; color: #6b727e; font-size: 11px;"><span>py 72.6</span><span>ts 27.4</span></div>
+    </div>
+
+    <div style="padding: 16px;">
+      <div class="lbl">explorer</div>
+      <div style="margin-top: 10px; border: 1px solid #1b1f26; padding: 7px 9px; color: #444b57;">Search node&hellip;</div>
+      <div style="margin-top: 12px;">
+        <div style="display: flex; align-items: center; gap: 7px; padding: 3px 6px 3px 4px;"><span style="width: 9px; color: #6b727e; font-size: 8px;">&ndash;</span><span style="color: #e6e9ee;">sample_src/</span><span style="margin-left: auto; display: flex; align-items: center; gap: 6px; color: #444b57; font-size: 11px;">15</span></div>
+        <div style="display: flex; align-items: center; gap: 7px; padding: 3px 6px 3px 16px;"><span style="width: 9px; color: #6b727e; font-size: 8px;">&ndash;</span><span style="color: #e6e9ee;">backend/</span><span style="margin-left: auto; display: flex; align-items: center; gap: 6px; color: #444b57; font-size: 11px;">11</span></div>
+        <div style="display: flex; align-items: center; gap: 7px; padding: 3px 6px 3px 28px;"><span style="width: 9px; color: #6b727e; font-size: 8px;">+</span><span style="color: #e6e9ee;">tests/</span><span style="margin-left: auto; display: flex; align-items: center; gap: 6px; color: #444b57; font-size: 11px;">2</span></div>
+        <div style="display: flex; align-items: center; gap: 7px; padding: 3px 6px 3px 45px;"><span style="color: #6b727e;">order_controller.py</span><span style="margin-left: auto; display: flex; align-items: center; gap: 6px; color: #444b57; font-size: 11px;">3</span></div>
+        <div style="display: flex; align-items: center; gap: 7px; padding: 3px 6px 3px 45px; background: #14171d; border-left: 2px solid #d99f4a;"><span style="color: #e6e9ee;">order_service.py</span><span style="margin-left: auto; display: flex; align-items: center; gap: 6px; color: #444b57; font-size: 11px;">3</span></div>
+        <div style="display: flex; align-items: center; gap: 7px; padding: 3px 6px 3px 45px;"><span style="color: #6b727e;">order_repository.py</span><span style="margin-left: auto; display: flex; align-items: center; gap: 6px; color: #444b57; font-size: 11px;"><i style="width: 5px; height: 5px; background: #e0574f; display: block;"></i>2</span></div>
+        <div style="display: flex; align-items: center; gap: 7px; padding: 3px 6px 3px 45px;"><span style="color: #6b727e;">payment_client.py</span><span style="margin-left: auto; display: flex; align-items: center; gap: 6px; color: #444b57; font-size: 11px;"><i style="width: 5px; height: 5px; background: #e0574f; display: block;"></i>1</span></div>
+        <div style="display: flex; align-items: center; gap: 7px; padding: 3px 6px 3px 16px;"><span style="width: 9px; color: #6b727e; font-size: 8px;">+</span><span style="color: #e6e9ee;">frontend/</span><span style="margin-left: auto; display: flex; align-items: center; gap: 6px; color: #444b57; font-size: 11px;">4</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- center -->
+  <div style="display: flex; flex-direction: column; min-width: 0;">
+    <div style="display: flex; align-items: stretch; border-bottom: 1px solid #1b1f26; height: 34px;">
+      <div style="display: flex; align-items: center;">
+        <div style="padding: 0 14px; color: #e6e9ee; box-shadow: inset 0 -2px 0 #d99f4a; display: flex; align-items: center;">graph</div>
+        <div style="padding: 0 14px; color: #6b727e; display: flex; align-items: center;">treemap</div>
+        <div style="padding: 0 14px; color: #6b727e; display: flex; align-items: center;">matrix</div>
+        <div style="padding: 0 14px; color: #6b727e; display: flex; align-items: center;">tree</div>
+        <div style="padding: 0 14px; color: #6b727e; display: flex; align-items: center;">cluster</div>
+      </div>
+      <div style="margin-left: auto; display: flex; align-items: center; gap: 16px; padding: 0 14px; color: #6b727e;">
+        <span>folders</span><span>blast</span><span>tests</span><span style="color: #c9ced7;">png</span>
+      </div>
+    </div>
+
+    <div style="flex: 1; position: relative; background:
+      linear-gradient(#0b0d10 1px, transparent 1px) 0 0 / 100% 32px,
+      linear-gradient(90deg, #0b0d10 1px, transparent 1px) 0 0 / 32px 100%, #08090b;">
+      <svg width="600" height="620" viewBox="0 0 600 620" style="position: absolute; inset: 0; margin: auto;">
+        <rect x="96" y="70" width="330" height="400" fill="none" stroke="#232830"></rect>
+        <text x="100" y="62" fill="#5f6773" font-size="10" font-family="'JetBrains Mono', monospace"
+          letter-spacing="1.4">SAMPLE_SRC/BACKEND</text>
+        <g stroke="#2f3641" stroke-width="1">
+          <path d="M262 130 L 262 214"></path><path d="M262 214 L 176 300"></path>
+          <path d="M262 214 L 348 300"></path><path d="M176 300 L 176 392"></path>
+        </g>
+        <g font-family="'JetBrains Mono', monospace" font-size="11" fill="#c9ced7">
+          <rect x="255" y="123" width="14" height="14" fill="#f778ba"></rect>
+          <text x="280" y="134">OrderController.create_order</text>
+          <rect x="254" y="206" width="16" height="16" fill="#6ea8fe"></rect>
+          <text x="282" y="218">OrderService.place_order</text>
+          <rect x="169" y="293" width="14" height="14" fill="#3fb950"></rect>
+          <text x="194" y="304">OrderRepository.save</text>
+          <rect x="341" y="293" width="14" height="14" fill="#39c5cf"></rect>
+          <text x="366" y="304">PaymentClient.charge</text>
+          <rect x="169" y="385" width="12" height="12" fill="#57ab5a"></rect>
+          <text x="192" y="395" fill="#6b727e">test_place_order_charges_and_saves</text>
+        </g>
+      </svg>
+    </div>
+
+    <div style="display: flex; gap: 24px; align-items: center; padding: 0 14px; height: 30px;
+      border-top: 1px solid #1b1f26; color: #5f6773; font-size: 11px;">
+      <span>7 files</span><span>15 nodes</span><span>11 edges</span><span>3 endpoints</span>
+      <span style="margin-left: auto;">click a node</span>
+    </div>
+  </div>
+
+  <!-- right: rows, not cards -->
+  <div style="border-left: 1px solid #1b1f26; display: flex; flex-direction: column;">
+    <div style="display: flex; border-bottom: 1px solid #1b1f26; height: 34px;">
+      <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #e6e9ee;
+        box-shadow: inset 0 -2px 0 #d99f4a;">node</div>
+      <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #6b727e;
+        border-left: 1px solid #1b1f26;">patterns <span style="color: #3f4653; margin-left: 6px;">2</span></div>
+      <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #6b727e;
+        border-left: 1px solid #1b1f26;">risk <span style="color: #e0574f; margin-left: 6px;">4</span></div>
+    </div>
+
+    <div style="padding: 18px 16px; border-bottom: 1px solid #1b1f26;">
+      <div style="font-size: 15px; color: #e6e9ee;">OrderService.place_order</div>
+      <div style="color: #5f6773; margin-top: 6px;">method &nbsp;service &nbsp;py</div>
+      <div style="color: #5f6773; margin-top: 2px;">backend/order_service.py:13</div>
+      <p style="margin: 14px 0 0; color: #c9ced7;">Charge payment then persist the order.</p>
+    </div>
+
+    <div style="padding: 16px; border-bottom: 1px solid #1b1f26;">
+      <div class="lbl">measurements</div>
+      <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 10px; color: #6b727e;">
+        <div style="display: flex;"><span>lines</span><span style="margin-left: auto; color: #e6e9ee;">4</span></div>
+        <div style="display: flex;"><span>complexity</span><span style="margin-left: auto; color: #e6e9ee;">1</span></div>
+        <div style="display: flex;"><span>fan-in / fan-out</span><span style="margin-left: auto; color: #e6e9ee;">1 / 2</span></div>
+        <div style="display: flex;"><span>commits</span><span style="margin-left: auto; color: #e6e9ee;">2</span></div>
+        <div style="display: flex;"><span>owner</span><span style="margin-left: auto; color: #e6e9ee;">n.rodthong</span></div>
+      </div>
+    </div>
+
+    <div style="padding: 16px; border-bottom: 1px solid #1b1f26;">
+      <div class="lbl">calls</div>
+      <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px;">
+        <div style="display: flex; align-items: baseline; gap: 8px;">
+          <i style="width: 7px; height: 7px; background: #3fb950; display: block;"></i>
+          <span style="color: #c9ced7;">OrderRepository.save</span></div>
+        <div style="display: flex; align-items: baseline; gap: 8px;">
+          <i style="width: 7px; height: 7px; background: #39c5cf; display: block;"></i>
+          <span style="color: #c9ced7;">PaymentClient.charge</span></div>
+      </div>
+      <div class="lbl" style="margin-top: 16px;">covered by</div>
+      <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 10px;">
+        <i style="width: 7px; height: 7px; background: #57ab5a; display: block;"></i>
+        <span style="color: #c9ced7;">test_place_order_charges_and_saves</span></div>
+    </div>
+
+    <div style="padding: 16px;">
+      <div class="lbl">risk on this path</div>
+      <div style="display: flex; gap: 10px; margin-top: 12px; padding-left: 10px; border-left: 2px solid #e0574f;">
+        <div>
+          <div style="color: #e6e9ee;">sql_injection</div>
+          <div style="color: #5f6773; margin-top: 3px;">order_repository.py:15 &nbsp;OrderRepository.get</div>
+        </div>
+        <span style="margin-left: auto; color: #e0574f;">high</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

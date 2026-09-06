@@ -14,3 +14,8 @@ Thumbs.db
 
 # The code-archaeologist skill ships its own .gitignore (node_modules, build state) - see
 # .agents/skills/code-archaeologist/.gitignore
+
+# Design canvases: the .dc.html artboards and canvas.json are the source and are kept;
+# the seeded page is a 2.5MB build artifact re-made by the design skill's helper.
+design/*.html
+!design/*.dc.html

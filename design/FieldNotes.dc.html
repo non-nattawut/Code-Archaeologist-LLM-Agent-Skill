@@ -1,0 +1,197 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #9c4221; } a:hover { color: #7c3319; }
+    .fn { font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; }
+    .fn .ser { font-family: 'Newsreader', Georgia, 'Times New Roman', serif; }
+    .fn .cap { font-family: 'Newsreader', Georgia, serif; font-size: 12px; font-style: italic; color: #8a8073; }
+  </style>
+</helmet>
+
+<div class="fn" style="width: 1280px; height: 800px; background: #f4efe6; color: #23201b; font-size: 12px;
+  line-height: 1.5; display: grid; grid-template-columns: 300px 1fr 372px; grid-template-rows: 62px 1fr;">
+
+  <!-- head -->
+  <div style="grid-column: 1 / -1; display: flex; align-items: flex-end; gap: 22px; padding: 0 22px 10px;
+    border-bottom: 2px solid #23201b;">
+    <div class="ser" style="font-size: 27px; letter-spacing: -.01em;">Code Archaeologist</div>
+    <div class="cap" style="padding-bottom: 5px;">method-level map &mdash; which method calls which</div>
+    <div style="margin-left: auto; display: flex; align-items: flex-end; gap: 20px; padding-bottom: 4px;">
+      <span style="color: #8a8073;">structure <span style="color: #23201b;">6</span></span>
+      <span style="border-bottom: 2px solid #9c4221; padding-bottom: 3px;">flow <span style="color: #9c4221;">15</span></span>
+    </div>
+  </div>
+
+  <!-- left -->
+  <div style="border-right: 1px solid #ddd4c5; overflow: hidden;">
+    <div style="padding: 20px 22px 18px; border-bottom: 1px solid #ddd4c5;">
+      <div class="cap">Condition of the site</div>
+      <div style="display: flex; align-items: baseline; gap: 12px; margin-top: 8px;">
+        <span class="ser" style="font-size: 46px; line-height: .9;">D</span>
+        <div>
+          <div class="ser" style="font-size: 20px;">68<span style="color: #8a8073; font-size: 13px;">&#8202;/&#8202;100</span></div>
+          <div style="color: #8a8073;">fair, with two known faults</div>
+        </div>
+      </div>
+      <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 4px;">
+        <div style="display: flex; border-bottom: 1px dotted #ddd4c5; padding-bottom: 3px;">
+          <span style="color: #756c5e;">security</span><span style="margin-left: auto;">&minus;25</span></div>
+        <div style="display: flex; border-bottom: 1px dotted #ddd4c5; padding-bottom: 3px;">
+          <span style="color: #756c5e;">dead code</span><span style="margin-left: auto;">&minus;7</span></div>
+      </div>
+    </div>
+
+    <div style="padding: 18px 22px; border-bottom: 1px solid #ddd4c5;">
+      <div class="cap">Shade the map by</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 10px;">
+        <span style="border-bottom: 2px solid #9c4221; padding-bottom: 2px;">layer</span>
+        <span style="color: #756c5e;">folder</span>
+        <span style="color: #756c5e;">churn</span>
+        <span style="color: #756c5e;">risk</span>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 14px; color: #756c5e; font-size: 11px;">
+        <span style="display: inline-flex; align-items: center; gap: 6px;"><i style="width: 8px; height: 8px; border-radius: 50%; background: #b03a72; display: block;"></i>controller</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px;"><i style="width: 8px; height: 8px; border-radius: 50%; background: #2f5fa8; display: block;"></i>service</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px;"><i style="width: 8px; height: 8px; border-radius: 50%; background: #2f7a3a; display: block;"></i>repository</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px;"><i style="width: 8px; height: 8px; border-radius: 50%; background: #1f7a86; display: block;"></i>client</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px;"><i style="width: 8px; height: 8px; border-radius: 50%; background: #4a7a3a; display: block;"></i>test</span>
+      </div>
+    </div>
+
+    <div style="padding: 18px 22px; border-bottom: 1px solid #ddd4c5;">
+      <div class="cap">Findings on site</div>
+      <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 10px;">
+        <div style="display: flex;"><span style="color: #756c5e;">files</span><span style="margin-left: auto;">7</span></div>
+        <div style="display: flex;"><span style="color: #756c5e;">functions</span><span style="margin-left: auto;">15</span></div>
+        <div style="display: flex;"><span style="color: #756c5e;">call edges</span><span style="margin-left: auto;">11</span></div>
+        <div style="display: flex;"><span style="color: #756c5e;">never called</span><span style="margin-left: auto; color: #9c4221;">2</span></div>
+        <div style="display: flex; border-top: 1px solid #ddd4c5; margin-top: 6px; padding-top: 7px;">
+          <span style="color: #756c5e;">lines</span><span style="margin-left: auto;">135</span></div>
+      </div>
+      <div style="display: flex; height: 6px; margin: 12px 0 7px; border: 1px solid #23201b;">
+        <i style="display: block; height: 100%; width: 72.6%; background: #23201b;"></i>
+        <i style="display: block; height: 100%; width: 27.4%; background: #f4efe6;"></i>
+      </div>
+      <div style="display: flex; gap: 14px; color: #756c5e; font-size: 11px;"><span>python 72.6</span><span>typescript 27.4</span></div>
+    </div>
+
+    <div style="padding: 18px 22px;">
+      <div class="cap">Excavated files</div>
+      <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 10px;">
+        <div style="display: flex;"><span>backend/order_service.py</span><span style="margin-left: auto; color: #8a8073;">3</span></div>
+        <div style="display: flex;"><span>backend/payment_client.py</span><span style="margin-left: auto; color: #a32d24;">2 faults</span></div>
+        <div style="display: flex;"><span>backend/order_repository.py</span><span style="margin-left: auto; color: #8a8073;">3</span></div>
+        <div style="display: flex;"><span>frontend/api_client.ts</span><span style="margin-left: auto; color: #8a8073;">2</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- center -->
+  <div style="display: flex; flex-direction: column; min-width: 0;">
+    <div style="display: flex; align-items: center; gap: 20px; padding: 0 22px; height: 38px;
+      border-bottom: 1px solid #ddd4c5;">
+      <span style="border-bottom: 2px solid #9c4221; padding-bottom: 2px;">graph</span>
+      <span style="color: #756c5e;">treemap</span>
+      <span style="color: #756c5e;">matrix</span>
+      <span style="color: #756c5e;">tree</span>
+      <span style="color: #756c5e;">cluster</span>
+      <span style="margin-left: auto; color: #756c5e;">folders &nbsp; blast &nbsp; tests &nbsp; <span style="color: #23201b;">export</span></span>
+    </div>
+
+    <div style="flex: 1; position: relative; background:
+      radial-gradient(#e6dccb 1px, transparent 1px) 0 0 / 22px 22px, #faf6ef;">
+      <svg width="600" height="620" viewBox="0 0 600 620" style="position: absolute; inset: 0; margin: auto;">
+        <path d="M110 90 C 90 240, 120 400, 200 470 C 300 550, 420 470, 420 330 C 420 190, 320 70, 200 76 Z"
+          fill="none" stroke="#c9bda8" stroke-dasharray="4 5"></path>
+        <text x="128" y="72" fill="#8a8073" font-size="12" font-family="Newsreader, Georgia, serif"
+          font-style="italic">sample_src/backend</text>
+        <g stroke="#a89d8a" stroke-width="1.1">
+          <path d="M262 130 L 262 214"></path><path d="M262 214 L 176 300"></path>
+          <path d="M262 214 L 348 300"></path><path d="M176 300 L 176 392"></path>
+        </g>
+        <g font-family="'IBM Plex Mono', monospace" font-size="11" fill="#23201b">
+          <circle cx="262" cy="130" r="9" fill="#b03a72"></circle>
+          <text x="280" y="134">OrderController.create_order</text>
+          <circle cx="262" cy="214" r="11" fill="#2f5fa8"></circle>
+          <text x="282" y="218">OrderService.place_order</text>
+          <circle cx="176" cy="300" r="9" fill="#2f7a3a"></circle>
+          <text x="194" y="304">OrderRepository.save</text>
+          <circle cx="348" cy="300" r="9" fill="#1f7a86"></circle>
+          <text x="366" y="304">PaymentClient.charge</text>
+          <circle cx="176" cy="392" r="8" fill="#4a7a3a"></circle>
+          <text x="192" y="396" fill="#756c5e">test_place_order_charges_and_saves</text>
+        </g>
+        <g font-family="Newsreader, Georgia, serif" font-style="italic" font-size="12" fill="#9c4221">
+          <text x="392" y="266">charges before it saves</text>
+          <path d="M388 262 C 360 250, 340 250, 320 258" stroke="#9c4221" fill="none" stroke-width="1"></path>
+        </g>
+      </svg>
+    </div>
+
+    <div style="display: flex; gap: 22px; align-items: center; padding: 0 22px; height: 32px;
+      border-top: 1px solid #ddd4c5; color: #756c5e; font-size: 11px;">
+      <span>7 files</span><span>15 nodes</span><span>11 edges</span>
+      <span class="cap" style="margin-left: auto;">click a node to read its note</span>
+    </div>
+  </div>
+
+  <!-- right -->
+  <div style="border-left: 1px solid #ddd4c5;">
+    <div style="display: flex; align-items: center; gap: 20px; padding: 0 22px; height: 38px;
+      border-bottom: 1px solid #ddd4c5;">
+      <span style="border-bottom: 2px solid #9c4221; padding-bottom: 2px;">note</span>
+      <span style="color: #756c5e;">patterns 2</span>
+      <span style="color: #756c5e;">risk <span style="color: #a32d24;">4</span></span>
+    </div>
+
+    <div style="padding: 22px; border-bottom: 1px solid #ddd4c5;">
+      <div class="ser" style="font-size: 21px; line-height: 1.25;">OrderService.place_order</div>
+      <div class="cap" style="margin-top: 4px;">method in the service layer &middot; order_service.py:13</div>
+      <p class="ser" style="margin: 14px 0 0; font-size: 16px; line-height: 1.5;">
+        Charge payment then persist the order.</p>
+    </div>
+
+    <div style="padding: 20px 22px; border-bottom: 1px solid #ddd4c5;">
+      <div class="cap">Measurements</div>
+      <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 10px;">
+        <div style="display: flex; border-bottom: 1px dotted #ddd4c5; padding-bottom: 3px;">
+          <span style="color: #756c5e;">lines</span><span style="margin-left: auto;">4</span></div>
+        <div style="display: flex; border-bottom: 1px dotted #ddd4c5; padding-bottom: 3px;">
+          <span style="color: #756c5e;">complexity</span><span style="margin-left: auto;">1</span></div>
+        <div style="display: flex; border-bottom: 1px dotted #ddd4c5; padding-bottom: 3px;">
+          <span style="color: #756c5e;">fan-in / fan-out</span><span style="margin-left: auto;">1 / 2</span></div>
+        <div style="display: flex;"><span style="color: #756c5e;">last touched by</span>
+          <span style="margin-left: auto;">n.rodthong</span></div>
+      </div>
+    </div>
+
+    <div style="padding: 20px 22px; border-bottom: 1px solid #ddd4c5;">
+      <div class="cap">It calls</div>
+      <div style="margin-top: 8px;">OrderRepository.save &nbsp;<span style="color: #8a8073;">&mdash; insert a new order row</span></div>
+      <div style="margin-top: 4px;">PaymentClient.charge &nbsp;<span style="color: #8a8073;">&mdash; charge the customer</span></div>
+      <div class="cap" style="margin-top: 16px;">Covered by</div>
+      <div style="margin-top: 8px;">test_place_order_charges_and_saves</div>
+    </div>
+
+    <div style="padding: 20px 22px;">
+      <div class="cap">Fault noted on this path</div>
+      <div style="margin-top: 10px; padding: 12px 14px; background: #ece2d2; border-left: 3px solid #a32d24;">
+        <div style="display: flex;"><b style="font-weight: 500;">sql_injection</b>
+          <span style="margin-left: auto; color: #a32d24;">high</span></div>
+        <div style="color: #756c5e; margin-top: 4px;">order_repository.py:15 &middot; OrderRepository.get</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

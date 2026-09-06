@@ -6,181 +6,199 @@
 <title>Code Archaeologist</title>
 <style>
   :root {
-    --bg: #0b0e14; --panel: #11161f; --panel2: #0e131b; --border: #222b39;
-    --text: #d7dde8; --muted: #8b98ad; --accent: #3fe0a0; --link: #6ea8fe;
-    --danger: #f85149; --warn: #e3b341; --ok: #3fb950;
+    /* Instrument: near-black ground, hairline rules, one amber accent. Data colours
+       (layers, risk, languages) are the only saturated things on screen. */
+    --bg: #08090b; --panel: #0b0d10; --panel2: #0d0f12; --border: #1b1f26;
+    --rule: #14171d; --text: #c9ced7; --bright: #e6e9ee; --muted: #6b727e; --dim: #444b57;
+    --accent: #d99f4a; --link: #6ea8fe;
+    --danger: #e0574f; --warn: #e0a33e; --ok: #3fb950;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    font-size: 13px; overflow: hidden; }
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 12px; line-height: 1.45; font-variant-numeric: tabular-nums; overflow: hidden; }
   button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
   ::-webkit-scrollbar { width: 9px; height: 9px; }
-  ::-webkit-scrollbar-thumb { background: #202a38; border-radius: 6px; }
+  ::-webkit-scrollbar-thumb { background: #1d222a; }
 
-  #app { display: grid; grid-template-columns: 300px 1fr 380px; grid-template-rows: auto 1fr;
+  #app { display: grid; grid-template-columns: 296px 1fr 376px; grid-template-rows: auto 1fr;
     height: 100%; }
-  #head { grid-column: 1 / -1; display: flex; align-items: center; gap: 18px; padding: 10px 16px;
+  #head { grid-column: 1 / -1; display: flex; align-items: stretch; height: 44px;
     background: var(--panel); border-bottom: 1px solid var(--border); }
-  #head .pill { margin-left: auto; }
-  .mapswitch { display: flex; gap: 4px; background: var(--panel2); border: 1px solid var(--border);
-    border-radius: 10px; padding: 3px; }
-  .mapswitch button { display: flex; align-items: center; gap: 7px; padding: 7px 14px;
-    border-radius: 7px; font-size: 12px; color: var(--muted); }
-  .mapswitch button.on { background: #16241f; color: #a9f5d0; }
+  #head .pill { margin-left: auto; align-self: center; padding-right: 16px; }
+  .mapswitch { display: flex; }
+  .mapswitch button { display: flex; align-items: center; gap: 8px; padding: 0 16px;
+    color: var(--muted); border-right: 1px solid var(--border); }
+  .mapswitch button:hover { color: var(--text); }
+  .mapswitch button.on { color: var(--bright); box-shadow: inset 0 -2px 0 var(--accent); }
   aside { background: var(--panel); overflow-y: auto; }
   #left { border-right: 1px solid var(--border); }
   #right { border-left: 1px solid var(--border); }
   #center { display: flex; flex-direction: column; min-width: 0; }
 
   /* ---- left ---- */
-  .brand { display: flex; align-items: center; gap: 9px; }
-  .brand .dot { width: 22px; height: 22px; border-radius: 6px; background: var(--accent);
-    display: grid; place-items: center; color: #06231a; font-weight: 800; font-size: 13px; }
-  .brand b { letter-spacing: .6px; font-size: 13px; }
-  .brand span { color: var(--muted); font-size: 11px; }
+  .brand { display: flex; align-items: center; gap: 10px; width: 296px; padding: 0 16px;
+    border-right: 1px solid var(--border); }
+  .brand .dot { width: 18px; height: 18px; border: 1px solid var(--accent); display: grid;
+    place-items: center; color: var(--accent); font-weight: 500; font-size: 11px; flex: none; }
+  .brand b { letter-spacing: .04em; font-size: 12px; font-weight: 500; color: var(--bright); }
+  .brand span { color: var(--muted); font-size: 10.5px; }
 
-  .health { display: flex; align-items: center; gap: 14px; padding: 16px;
-    border-bottom: 1px solid var(--border); }
-  .health .score { font-size: 22px; font-weight: 700; line-height: 1; }
-  .health .label { color: var(--muted); font-size: 11px; text-transform: uppercase;
-    letter-spacing: .8px; margin-top: 4px; }
-  .health .why { color: var(--muted); font-size: 11px; margin-top: 6px; }
+  .health { padding: 16px; border-bottom: 1px solid var(--border); }
+  .health .score { font-size: 30px; font-weight: 700; line-height: 1; color: var(--bright);
+    display: flex; align-items: baseline; gap: 8px; }
+  .health .label { color: var(--muted); font-size: 10px; text-transform: uppercase;
+    letter-spacing: .14em; }
+  .health .why { color: var(--muted); font-size: 11px; margin-top: 8px; }
+  #ring { display: block; margin: 12px 0 2px; }
 
-  .sect { padding: 14px 16px; border-bottom: 1px solid var(--border); }
-  .sect > h3 { margin: 0 0 10px; font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
-    color: var(--muted); font-weight: 600; }
-  .modes { display: flex; flex-direction: column; gap: 4px; }
-  .modes button { display: flex; align-items: center; gap: 9px; padding: 9px 11px;
-    border-radius: 8px; border: 1px solid transparent; text-align: left; }
-  .modes button:hover { background: #161d28; }
-  .modes button.on { background: #16241f; border-color: #24513f; color: #a9f5d0; }
-  .modes button[disabled] { opacity: .35; cursor: not-allowed; }
+  .sect { padding: 16px; border-bottom: 1px solid var(--border); }
+  .sect > h3 { margin: 0 0 12px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted); font-weight: 400; }
+  .modes { display: flex; border: 1px solid var(--border); }
+  .modes button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 7px 0; color: var(--muted); border-left: 1px solid var(--border); }
+  .modes button:first-child { border-left: none; }
+  .modes button svg { flex: none; }
+  .modes button:hover { color: var(--text); background: var(--rule); }
+  .modes button.on { background: var(--rule); color: var(--bright); box-shadow: inset 0 -2px 0 var(--accent); }
+  .modes button[disabled] { opacity: .3; cursor: not-allowed; }
 
-  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .tile { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px;
-    padding: 12px; text-align: center; }
-  .tile b { display: block; font-size: 19px; color: var(--accent); }
+  /* census rows: a readout, not a scoreboard */
+  .tiles { display: flex; flex-direction: column; }
+  .tile { display: flex; align-items: baseline; gap: 10px; padding: 4px 0; }
+  .tile b { margin-left: auto; font-weight: 500; color: var(--bright); font-size: 13px; }
   .tile.alt b { color: var(--warn); }
-  .tile span { font-size: 10px; letter-spacing: .8px; color: var(--muted); text-transform: uppercase; }
+  .tile span { font-size: 12px; color: var(--muted); }
 
-  .loc { text-align: center; }
-  .loc b { display: block; font-size: 21px; color: var(--link); }
-  .bar { display: flex; height: 7px; border-radius: 4px; overflow: hidden; margin: 10px 0 8px; }
+  .loc { padding-top: 14px; }
+  .loc b { font-weight: 500; color: var(--bright); font-size: 13px; }
+  .bar { display: flex; height: 2px; overflow: hidden; margin: 10px 0 7px; }
   .bar i { display: block; height: 100%; }
-  .langs { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11px; color: var(--muted); }
-  .langs span { display: inline-flex; align-items: center; gap: 5px; }
-  .langs i { width: 8px; height: 8px; border-radius: 2px; }
+  .langs { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11px; color: var(--muted); }
+  .langs span { display: inline-flex; align-items: center; gap: 6px; }
+  .langs i { width: 7px; height: 7px; }
 
   #filterChip { display: none; align-items: center; gap: 8px; width: 100%; margin-bottom: 8px;
-    padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); }
+    padding: 6px 9px; border: 1px solid var(--border); color: var(--muted); font-size: 11px; }
   #filterChip.on { display: flex; }
-  #search { width: 100%; background: var(--panel2); color: var(--text); font-size: 12px;
-    border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; outline: none; }
+  #search { width: 100%; background: var(--panel2); color: var(--text); font: inherit; font-size: 12px;
+    border: 1px solid var(--border); padding: 7px 9px; outline: none; }
+  #search::placeholder { color: var(--dim); }
   #search:focus { border-color: var(--accent); }
-  .tree { margin-top: 10px; }
-  .row { display: flex; align-items: center; gap: 6px; padding: 3px 4px; border-radius: 6px;
-    cursor: pointer; white-space: nowrap; }
-  .row:hover { background: #161d28; }
-  .row.on { background: #16241f; color: #a9f5d0; }
+  .tree { margin-top: 12px; }
+  .row { display: flex; align-items: center; gap: 7px; padding: 3px 6px 3px 4px;
+    cursor: pointer; white-space: nowrap; border-left: 2px solid transparent; }
+  .row:hover { background: var(--rule); }
+  .row.on { background: var(--rule); border-left-color: var(--accent); color: var(--bright); }
   .row .name { overflow: hidden; text-overflow: ellipsis; }
-  .row .n { margin-left: auto; color: var(--muted); font-size: 10px; }
-  .row .tw { width: 10px; color: var(--muted); font-size: 9px; }
+  .row .dir { color: var(--bright); }
+  .row .n { margin-left: auto; display: flex; align-items: center; gap: 6px;
+    color: var(--dim); font-size: 11px; }
+  .row .tw { width: 9px; color: var(--muted); font-size: 8px; flex: none; }
+  .row .n i { width: 5px; height: 5px; background: var(--danger); flex: none; }
 
   /* ---- center ---- */
-  .toolbar { display: flex; align-items: center; gap: 8px; padding: 9px 12px;
-    border-bottom: 1px solid var(--border); background: var(--panel); flex-wrap: wrap; }
-  .tbtn { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px;
-    background: var(--panel2); font-size: 12px; }
-  .tbtn:hover { border-color: #33415a; }
-  .tbtn.on { background: #16241f; border-color: #24513f; color: #a9f5d0; }
-  .views { display: flex; gap: 4px; margin: 0 auto; background: var(--panel2);
-    border: 1px solid var(--border); border-radius: 10px; padding: 3px; }
-  .views button { padding: 6px 12px; border-radius: 7px; font-size: 12px; color: var(--muted); }
-  .views button.on { background: #16241f; color: #a9f5d0; }
-  .toolbar label { display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
-    color: var(--muted); cursor: pointer; }
+  .toolbar { display: flex; align-items: stretch; height: 34px;
+    border-bottom: 1px solid var(--border); background: var(--panel); }
+  .tbtn { display: flex; align-items: center; gap: 6px; padding: 0 12px; color: var(--muted);
+    border-right: 1px solid var(--border); font-size: 12px; }
+  .tbtn:hover { color: var(--text); background: var(--rule); }
+  .tbtn.on { color: var(--bright); background: var(--rule); box-shadow: inset 0 -2px 0 var(--accent); }
+  .views { display: flex; }
+  .views button { padding: 0 14px; color: var(--muted); }
+  .views button:hover { color: var(--text); background: var(--rule); }
+  .views button.on { color: var(--bright); box-shadow: inset 0 -2px 0 var(--accent); }
+  .toolbar label { display: inline-flex; align-items: center; gap: 6px; padding: 0 12px;
+    font-size: 11.5px; color: var(--muted); cursor: pointer; border-left: 1px solid var(--border); }
+  .toolbar label:hover { color: var(--text); }
+  .toolbar label input { accent-color: var(--accent); }
+  .toolbar .sp { margin-left: auto; }
 
   #stage { position: relative; flex: 1; min-height: 0; }
   #graph, #matrix, #treemap { position: absolute; inset: 0; }
   #matrix, #treemap { display: none; overflow: auto; background: var(--bg); }
-  #treemap { padding: 14px; }
+  #treemap { padding: 16px; }
   .tm { position: relative; width: 100%; height: 100%; }
-  .tmf { position: absolute; border: 1px solid rgba(0,0,0,.45); border-radius: 4px;
-    overflow: hidden; cursor: pointer; padding: 4px 6px; font-size: 10px; line-height: 1.25;
-    color: #06121a; }
-  .tmf:hover { outline: 2px solid #fff; }
-  .tmg { position: absolute; border: 1px solid var(--border); border-radius: 6px; }
-  .tmg > b { position: absolute; top: -9px; left: 8px; background: var(--bg); padding: 0 6px;
-    font-size: 10px; color: var(--muted); font-weight: 500; }
+  .tmf { position: absolute; border: 1px solid rgba(0,0,0,.5); overflow: hidden; cursor: pointer;
+    padding: 4px 6px; font-size: 10px; line-height: 1.25; color: #06121a; }
+  .tmf:hover { outline: 1px solid var(--bright); }
+  .tmg { position: absolute; border: 1px solid var(--border); }
+  .tmg > b { position: absolute; top: -8px; left: 8px; background: var(--bg); padding: 0 6px;
+    font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
 
-  .status { display: flex; gap: 8px; align-items: center; padding: 8px 12px;
-    border-top: 1px solid var(--border); background: var(--panel); font-size: 11px; }
-  .pill { border: 1px solid var(--border); border-radius: 999px; padding: 4px 11px;
-    background: var(--panel2); color: var(--muted); }
-  .pill b { color: var(--text); }
-  .pill.hot { border-color: #5b2222; color: #ff9d94; }
+  .status { display: flex; gap: 22px; align-items: center; padding: 0 14px; height: 30px;
+    border-top: 1px solid var(--border); background: var(--panel); font-size: 11px; color: var(--muted); }
+  .pill { color: var(--muted); }
+  .pill b { color: var(--bright); font-weight: 500; }
+  .pill:empty { display: none; }
+  .pill.hot { color: var(--danger); }
+  .pill.hot b { color: var(--danger); }
 
   /* ---- right ---- */
   .tabs { display: flex; border-bottom: 1px solid var(--border); position: sticky; top: 0;
-    background: var(--panel); z-index: 5; }
-  .tabs button { flex: 1; padding: 12px 8px; font-size: 11px; letter-spacing: .8px;
-    text-transform: uppercase; color: var(--muted); border-bottom: 2px solid transparent; }
-  .tabs button.on { color: var(--accent); border-bottom-color: var(--accent); }
+    background: var(--panel); z-index: 5; height: 34px; }
+  .tabs button { flex: 1; font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--muted); border-left: 1px solid var(--border); }
+  .tabs button:first-child { border-left: none; }
+  .tabs button:hover { color: var(--text); }
+  .tabs button.on { color: var(--bright); box-shadow: inset 0 -2px 0 var(--accent); }
   .tabs .badge { margin-left: 6px; }
-  .badge { display: inline-block; border-radius: 999px; padding: 1px 7px; font-size: 10px;
-    background: #1b2431; color: var(--muted); }
-  .badge.crit { background: #3a1113; color: #ff9d94; }
-  .badge.high { background: #3a1113; color: #ff9d94; }
-  .badge.med { background: #3a2f10; color: #f2cc60; }
-  .badge.low { background: #12283a; color: #79c0ff; }
+  .badge { display: inline-block; padding: 0 5px; font-size: 10px; background: #171b22;
+    color: var(--muted); }
+  .badge.crit, .badge.high { background: #2a1614; color: #f0857c; }
+  .badge.med { background: #2a2213; color: #e3b341; }
+  .badge.low { background: #12202e; color: #79c0ff; }
   .pad { padding: 16px; }
-  #backBtn { display: none; width: 100%; margin-bottom: 14px; padding: 9px 11px; text-align: left;
-    border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 12px; }
+  #backBtn { display: none; width: 100%; margin-bottom: 14px; padding: 7px 9px; text-align: left;
+    border: 1px solid var(--border); color: var(--muted); font-size: 11.5px; }
+  #backBtn:hover { color: var(--text); background: var(--rule); }
   #backBtn.on { display: block; }
-  h2.node { margin: 0 0 4px; font-size: 15px; word-break: break-all; }
+  h2.node { margin: 0 0 6px; font-size: 15px; font-weight: 500; color: var(--bright);
+    word-break: break-all; }
   .sub { color: var(--muted); font-size: 11px; word-break: break-all; }
-  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0 4px; }
-  .chip { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border);
-    display: inline-flex; align-items: center; gap: 5px; text-transform: capitalize; }
-  .chip i { width: 8px; height: 8px; border-radius: 50%; }
+  .chips { display: flex; gap: 14px; flex-wrap: wrap; margin: 12px 0 4px; }
+  .chip { font-size: 11px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+  .chip i { width: 7px; height: 7px; }
 
-  .acc { border: 1px solid var(--border); border-radius: 10px; margin-top: 12px;
-    background: var(--panel2); }
-  .acc > summary { list-style: none; cursor: pointer; padding: 12px 14px; display: flex;
-    align-items: center; gap: 8px; font-size: 12px; }
+  .acc { border-top: 1px solid var(--border); margin-top: 14px; }
+  .acc > summary { list-style: none; cursor: pointer; padding: 12px 0 10px; display: flex;
+    align-items: center; gap: 9px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted); }
+  .acc > summary:hover { color: var(--text); }
   .acc > summary::-webkit-details-marker { display: none; }
-  .acc > summary::before { content: "▶"; font-size: 8px; color: var(--muted); transition: .15s; }
-  .acc[open] > summary::before { transform: rotate(90deg); }
-  .acc > summary .grow { margin-left: auto; }
-  .acc .body { padding: 0 14px 14px; }
-  .meter { height: 6px; border-radius: 4px; background: #1b2431; overflow: hidden; margin: 6px 0; }
-  .meter i { display: block; height: 100%; background: linear-gradient(90deg,#e3b341,#f85149); }
-  .kv { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0;
-    font-size: 12px; border-bottom: 1px dashed #1b2431; }
-  .kv:last-child { border-bottom: none; }
+  .acc > summary::before { content: "+"; font-size: 11px; color: var(--dim); }
+  .acc[open] > summary::before { content: "−"; }
+  .acc > summary .grow { margin-left: auto; letter-spacing: 0; text-transform: none; }
+  .acc .body { padding: 0 0 14px; }
+  .meter { height: 2px; background: var(--rule); overflow: hidden; margin: 8px 0; }
+  .meter i { display: block; height: 100%; background: var(--warn); }
+  .kv { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; font-size: 12px; }
+  .kv + .kv { border-top: 1px solid var(--rule); }
   .kv span { color: var(--muted); }
+  .kv b { font-weight: 500; color: var(--bright); }
   .list { display: flex; flex-direction: column; }
   .item { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 12px;
-    border-bottom: 1px dashed #1b2431; cursor: pointer; }
-  .item:last-child { border-bottom: none; }
+    cursor: pointer; }
+  .item + .item { border-top: 1px solid var(--rule); }
   .item:hover .mono { color: var(--accent); }
-  .item .grow { margin-left: auto; display: flex; gap: 5px; }
-  .mono, code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .item .grow { margin-left: auto; display: flex; gap: 6px; }
+  .mono, code { font-family: inherit; }
   .link { color: var(--link); cursor: pointer; }
   .link:hover { text-decoration: underline; }
-  .empty { color: var(--muted); font-style: italic; font-size: 12px; }
-  .doc { font-size: 13px; line-height: 1.55; margin: 10px 0 0; }
-  .issue { border-left: 2px solid var(--danger); padding: 2px 0 2px 9px; margin: 8px 0;
+  .empty { color: var(--dim); font-size: 12px; }
+  .doc { font-size: 12.5px; line-height: 1.6; margin: 12px 0 0; color: var(--text); }
+  .issue { border-left: 2px solid var(--danger); padding: 2px 0 2px 10px; margin: 10px 0;
     font-size: 12px; cursor: pointer; }
   .issue.med { border-color: var(--warn); }
   .issue.low { border-color: var(--link); }
   .issue .m { color: var(--muted); font-size: 11px; }
-  .grp { margin: 16px 0 6px; font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+  .grp { margin: 18px 0 8px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
     color: var(--muted); }
 
   @media (max-width: 1180px) {
-    #app { grid-template-columns: 240px 1fr 320px; }
+    #app { grid-template-columns: 244px 1fr 320px; }
+    .brand { width: 244px; }
   }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/force-graph@1.43.5/dist/force-graph.min.js"></script>
@@ -195,12 +213,10 @@
 
   <aside id="left">
     <div class="health">
-      <svg width="62" height="62" viewBox="0 0 62 62" id="ring"></svg>
-      <div>
-        <div class="score" id="healthScore">—</div>
-        <div class="label">Health score</div>
-        <div class="why" id="healthWhy"></div>
-      </div>
+      <div class="score" id="healthScore">—</div>
+      <div class="label">Health score</div>
+      <svg width="264" height="30" viewBox="0 0 264 30" id="ring"></svg>
+      <div class="why" id="healthWhy"></div>
     </div>
 
     <div class="sect">
@@ -227,13 +243,20 @@
     <div class="toolbar">
       <button class="tbtn" id="zoomIn" title="Zoom in">+</button>
       <button class="tbtn" id="zoomOut" title="Zoom out">−</button>
-      <button class="tbtn" id="zoomFit" title="Fit to screen">⤢</button>
-      <button class="tbtn" id="reset" title="Reset selection & filter">⟲</button>
+      <button class="tbtn" id="zoomFit" title="Fit to screen"><svg width="12" height="12"
+        viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path
+        d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/></svg></button>
+      <button class="tbtn" id="reset" title="Reset selection & filter"><svg width="12" height="12"
+        viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path
+        d="M13.5 8a5.5 5.5 0 1 1-1.9-4.2M13.5 1.5v3.2h-3.2"/></svg></button>
       <div class="views" id="views"></div>
+      <span class="sp"></span>
       <label><input type="checkbox" id="hulls" checked /> Folders</label>
       <label><input type="checkbox" id="blast" /> Blast radius</label>
       <label id="testsToggle" style="display:none"><input type="checkbox" id="showTests" checked /> Tests</label>
-      <button class="tbtn" id="png" title="Export the current graph as PNG">⤓ PNG</button>
+      <button class="tbtn" id="png" title="Export the current graph as PNG"><svg width="12"
+        height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path
+        d="M8 1.5v9M4.5 7L8 10.5 11.5 7M2 13.5h12"/></svg> PNG</button>
     </div>
     <div id="stage">
       <div id="graph"></div>
@@ -398,18 +421,27 @@ function renderHealth() {
   if (!HEALTH) {
     el("healthScore").textContent = "n/a";
     el("healthWhy").textContent = "run `archaeologist.py report` for a grade";
-    el("ring").innerHTML = '<circle cx="31" cy="31" r="26" fill="none" stroke="#1b2431" stroke-width="6"/>';
+    el("ring").innerHTML = '<line x1="0" y1="20" x2="264" y2="20" stroke="#1b1f26" stroke-width="2"/>';
     return;
   }
-  const gradeColor = { A: "#3fb950", B: "#7ee787", C: "#e3b341", D: "#f0883e", F: "#f85149" }[HEALTH.grade];
-  const circ = 2 * Math.PI * 26, on = circ * HEALTH.score / 100;
+  const gradeColor = { A: "#3fb950", B: "#7ee787", C: "#e3b341", D: "#e0a33e", F: "#e0574f" }[HEALTH.grade];
+  // A measuring scale with the grade bands marked on it, rather than a score ring.
+  const W = 264, x = (v) => (v / 100) * W;
+  const bands = [["F", 0, 60], ["D", 60, 70], ["C", 70, 80], ["B", 80, 90], ["A", 90, 100]];
   el("ring").innerHTML =
-    `<circle cx="31" cy="31" r="26" fill="none" stroke="#1b2431" stroke-width="6"/>
-     <circle cx="31" cy="31" r="26" fill="none" stroke="${gradeColor}" stroke-width="6"
-       stroke-linecap="round" stroke-dasharray="${on} ${circ}" transform="rotate(-90 31 31)"/>
-     <text x="31" y="37" text-anchor="middle" fill="${gradeColor}" font-size="19"
-       font-weight="700">${HEALTH.grade}</text>`;
-  el("healthScore").innerHTML = `${HEALTH.score}<span style="color:var(--muted);font-size:13px">/100</span>`;
+    `<line x1="0" y1="20" x2="${W}" y2="20" stroke="#1b1f26" stroke-width="2"/>
+     <line x1="0" y1="20" x2="${x(HEALTH.score)}" y2="20" stroke="${gradeColor}" stroke-width="2"/>
+     ${[60, 70, 80, 90].map((v) =>
+        `<line x1="${x(v)}" y1="15" x2="${x(v)}" y2="25" stroke="#2a303a"/>`).join("")}
+     ${bands.map(([g, lo, hi]) =>
+        `<text x="${(x(lo) + x(hi)) / 2}" y="10" text-anchor="middle" font-size="9"
+           font-family="inherit" letter-spacing="1"
+           fill="${g === HEALTH.grade ? gradeColor : "#444b57"}">${g}</text>`).join("")}
+     <path d="M${x(HEALTH.score) - 4} 27 L${x(HEALTH.score)} 22 L${x(HEALTH.score) + 4} 27 Z"
+       fill="${gradeColor}"/>`;
+  el("healthScore").innerHTML =
+    `${HEALTH.score}<span style="color:var(--muted);font-size:13px">/100</span>
+     <b style="margin-left:auto;color:${gradeColor};font-size:19px">${HEALTH.grade}</b>`;
   const worst = Object.entries(HEALTH.deductions).filter(([, v]) => v > 0)
     .sort((a, b) => b[1] - a[1]).slice(0, 2)
     .map(([k, v]) => `${k.replace(/_/g, " ")} −${v}`).join(", ");
@@ -418,8 +450,14 @@ function renderHealth() {
 
 // ---------------------------------------------------------------- left: color modes, tiles, loc
 function renderColorModes() {
-  const modes = [["layer", "Layer", "▦"], ["folder", "Folder", "📁"],
-                 ["churn", "Churn", "🔥"], ["risk", "Risk", "⚡"]];
+  const ico = (d) => `<svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+    stroke="currentColor" stroke-width="1.2" stroke-linecap="square">${d}</svg>`;
+  const modes = [
+    ["layer", "Layer", ico('<path d="M2 4h12M2 8h9M2 12h5"/>')],
+    ["folder", "Folder", ico('<path d="M2 3.5h4l1.4 2H14v7H2z"/>')],
+    ["churn", "Churn", ico('<path d="M1.5 11l3-5 3 3 3-6 4 8"/>')],
+    ["risk", "Risk", ico('<path d="M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z"/>')],
+  ];
   el("colorModes").innerHTML = modes.map(([id, label, icon]) =>
     `<button data-mode="${id}" class="${id === colorMode ? "on" : ""}"
       ${(id === "churn" || id === "risk") && !HAS_CHURN ? "disabled" : ""}>
@@ -456,14 +494,14 @@ function renderTiles() {
     [links.length, "Links"], [orphans, "Unused", "alt"],
   ];
   el("tiles").innerHTML = tiles.map(([v, l, cls]) =>
-    `<div class="tile ${cls || ""}"><b>${num(v)}</b><span>${l}</span></div>`).join("");
+    `<div class="tile ${cls || ""}"><span>${l.toLowerCase()}</span><b>${num(v)}</b></div>`).join("");
 
   const loc = FILE_STATS.loc || 0;
   el("locBox").style.display = loc ? "" : "none";
   if (!loc) return;
   const pct = FILE_STATS.language_pct || {};
   el("locBox").innerHTML =
-    `<b>${num(loc)}</b><span style="font-size:10px;letter-spacing:.8px;color:var(--muted)">LINES OF CODE</span>
+    `<div class="tile"><span>lines of code</span><b>${num(loc)}</b></div>
      <div class="bar">${Object.entries(pct).map(([k, v]) =>
         `<i style="width:${v}%;background:${LANG_COLORS[k] || LANG_COLORS.other}"></i>`).join("")}</div>
      <div class="langs">${Object.entries(pct).map(([k, v]) =>
@@ -504,16 +542,16 @@ function renderTree() {
     [...node.dirs.values()].sort((a, b) => a.name.localeCompare(b.name)).forEach((d) => {
       const open = openDirs.has(d.path);
       out.push(`<div class="row ${fileFilter === d.path ? "on" : ""}" data-dir="${esc(d.path)}"
-        style="padding-left:${depth * 12 + 4}px"><span class="tw">${open ? "▼" : "▶"}</span>
-        <span>📁</span><span class="name">${esc(d.name)}</span><span class="n">${d.count}</span></div>`);
+        style="padding-left:${depth * 12 + 4}px"><span class="tw">${open ? "–" : "+"}</span>
+        <span class="name dir">${esc(d.name)}/</span><span class="n">${d.count}</span></div>`);
       if (open) walk(d, depth + 1);
     });
     node.files.sort((a, b) => a.name.localeCompare(b.name)).forEach((f) => {
       const bad = (issuesByFile.get(f.path) || []).length;
       out.push(`<div class="row ${fileFilter === f.path ? "on" : ""}" data-file="${esc(f.path)}"
-        style="padding-left:${depth * 12 + 16}px"><span>📄</span>
+        style="padding-left:${depth * 12 + 17}px">
         <span class="name">${esc(f.name)}</span>
-        ${bad ? `<span class="badge high">${bad}</span>` : ""}<span class="n">${f.count}</span></div>`);
+        <span class="n">${bad ? `<i title="${bad} risk finding(s)"></i>` : ""}${f.count}</span></div>`);
     });
   };
   walk(treeRoot, 0);
@@ -1042,7 +1080,7 @@ function renderFile(node) {
   if (node.route) parts.push(`<p class="doc"><span class="badge low">${esc(node.route.method)}</span>
     <code>${esc(node.route.path)}</code></p>`);
 
-  parts.push(`<details class="acc" open><summary>💥 Blast radius
+  parts.push(`<details class="acc" open><summary>Blast radius
       <span class="grow badge ${sevCls}">${sevLabel}</span></summary>
     <div class="body">
       <div class="kv"><span>Impact</span><b>${affected} node(s) (${pct}%)</b></div>
@@ -1055,7 +1093,7 @@ function renderFile(node) {
       ${up.set.size > 12 ? `<div class="sub">+${up.set.size - 12} more</div>` : ""}
     </div></details>`);
 
-  parts.push(`<details class="acc"><summary>🔗 Connections
+  parts.push(`<details class="acc"><summary>Connections
       <span class="grow badge">${degree(node.id)}</span></summary>
     <div class="body">
       <div class="grp">${OUT_LABEL}</div>
@@ -1064,7 +1102,7 @@ function renderFile(node) {
       <div class="list">${(inAdj.get(node.id) || []).map(nodeItem).join("") || '<span class="empty">None</span>'}</div>
     </div></details>`);
 
-  parts.push(`<details class="acc"><summary>👥 Ownership
+  parts.push(`<details class="acc"><summary>Ownership
       <span class="grow badge">${m.commits != null ? m.commits + " commits" : "n/a"}</span></summary>
     <div class="body">${m.commits ? `
       <div class="kv"><span>Owner</span><b>${esc(m.owner || "unknown")}</b></div>
@@ -1077,12 +1115,12 @@ function renderFile(node) {
       : '<span class="empty">No git history for this file (run the report inside a git repo).</span>'}
     </div></details>`);
 
-  parts.push(`<details class="acc" ${issues.length ? "open" : ""}><summary>🔒 Risk findings
+  parts.push(`<details class="acc" ${issues.length ? "open" : ""}><summary>Risk findings
       <span class="grow badge ${issues.length ? "high" : ""}">${issues.length}</span></summary>
     <div class="body">${issues.map(issueRow).join("") || '<span class="empty">None on this node.</span>'}</div>
     </details>`);
 
-  parts.push(`<details class="acc"><summary>⚡ Functions in this file
+  parts.push(`<details class="acc"><summary>Functions in this file
       <span class="grow badge">${siblings.length}</span></summary>
     <div class="body"><div class="list">${siblings.map((s) => nodeItem(s.id)).join("")}</div></div>
     </details>`);
