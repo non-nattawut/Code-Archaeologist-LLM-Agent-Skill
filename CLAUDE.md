@@ -74,6 +74,25 @@ FILE/PATTERNS/SECURITY tabs). Edit it directly; don't move markup back into Pyth
 state is rebuilt by `loadMap()` / `applyMap()` — anything derived from a graph belongs in there,
 not in a top-level `const`.
 
+### Colour rules
+
+One meaning, one colour, everywhere — a reader learns the scheme once, from any view.
+
+- **Test code is green** (`TEST_COLOR` in `viewer.html`): the node (`LAYER_COLORS.test`), its
+  folder area, the legend, all the same green. It is deliberately kept out of `FOLDER_COLORS`, so
+  an ordinary folder can never be handed it.
+- **A folder's colour comes from its index in `allFolders`** — every folder in the map — never
+  from the visible list. Colouring off the visible list meant hiding the test folder re-coloured
+  everything after it, and pink stopped meaning the same folder from one screenshot to the next.
+- **A new `layer` / `kind` value needs its colour in `LAYER_COLORS` in the same commit** that adds
+  it to `taxonomy.py`. The legend, the node painter and every view read from there; nothing
+  hard-codes a colour at a call site.
+- Already spoken for: controller/endpoint pink `#f778ba`, service blue `#6ea8fe`, repository green
+  `#3fb950`, model amber `#e3b341`, client teal `#39c5cf`, config purple `#a371f7`, ui orange
+  `#f0883e`, test green `#57ab5a`, unknown grey `#8b98ad`. Pick something distinguishable from all
+  of them on the dark background — and if two must be close (the two greens are), keep them in
+  different channels: node dots vs folder areas.
+
 ## Hard constraints
 
 1. **Zero external Python dependencies.** stdlib only, Python 3.10+. The *single* exception is

@@ -272,7 +272,7 @@ const lineOf = (n) => { const p = String(n.source || "").split(":")[1]; return p
 const dirOf = (path) => { const i = path.lastIndexOf("/"); return i < 0 ? "(root)" : path.slice(0, i); };
 const baseOf = (path) => path.slice(path.lastIndexOf("/") + 1);
 
-let EDGES = [], HAS_TESTS = false;
+let EDGES = [], HAS_TESTS = false, allFolders = [];
 
 function loadMap(name) {
   mapName = name;
@@ -309,6 +309,8 @@ function loadMap(name) {
     filesIndex.get(f).nodes.push(n.id);
   });
   folders = [...new Set(nodes.map((n) => dirOf(fileOf(n))))].sort();
+  // Colours are keyed off this one, so it must not change with the Tests toggle.
+  allFolders = [...new Set(GRAPH.nodes.map((n) => dirOf(fileOf(n))))].sort().filter((f) => !isTestFolder(f));
 
   issuesByNode = new Map(); issuesByFile = new Map();
   FINDINGS.forEach((f) => {
@@ -331,9 +333,13 @@ const num = (n) => (n == null ? "—" : n.toLocaleString());
 const el = (id) => document.getElementById(id);
 const SEV_CLASS = { high: "high", medium: "med", low: "low" };
 
+// Test code is green wherever it appears -- the node, its folder area, the legend.
+// Kept out of FOLDER_COLORS so a normal folder can never be handed the same green.
+const TEST_COLOR = "#57ab5a";
+
 const LAYER_COLORS = {
   controller: "#f778ba", endpoint: "#f778ba", service: "#6ea8fe", repository: "#3fb950",
-  model: "#e3b341", client: "#39c5cf", config: "#a371f7", ui: "#f0883e", test: "#9e8a4f",
+  model: "#e3b341", client: "#39c5cf", config: "#a371f7", ui: "#f0883e", test: TEST_COLOR,
   function: "#adbac7", module: "#adbac7", unknown: "#8b98ad"
 };
 const FOLDER_COLORS = ["#6ea8fe", "#f778ba", "#3fb950", "#e3b341", "#a371f7", "#39c5cf",
@@ -348,7 +354,12 @@ const heat = (v, max) => {
 };
 const metrics = (id) => CHURN[id] || {};
 const maxOf = (f) => Math.max(0, ...nodes.map((n) => metrics(n.id)[f] || 0));
-const folderColor = (path) => FOLDER_COLORS[folders.indexOf(path) % FOLDER_COLORS.length];
+// Index into ALL folders of the map, not the visible ones: hiding the test folder
+// used to shift every colour after it, so "pink" stopped meaning the same folder.
+const isTestFolder = (path) => (path || "").split("/").some((p) =>
+  ["test", "tests", "__tests__", "spec", "specs", "testing"].includes(p.toLowerCase()));
+const folderColor = (path) => (isTestFolder(path) ? TEST_COLOR
+  : FOLDER_COLORS[Math.max(0, allFolders.indexOf(path)) % FOLDER_COLORS.length]);
 
 let colorMode = "layer";
 function colorFor(n) {
