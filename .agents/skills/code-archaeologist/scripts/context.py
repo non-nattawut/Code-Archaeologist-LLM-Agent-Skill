@@ -36,6 +36,7 @@ REPORT_DIR = os.path.join(DATA_DIR, "report")
 DEFAULT_GRAPH = os.path.join(DATA_DIR, "flow", "flow_graph.json")
 
 sys.path.insert(0, SCRIPT_DIR)
+import console         # noqa: E402  (stdout must survive a non-UTF-8 console)
 import trace_path      # noqa: E402  (one definition of "which nodes did this diff touch")
 
 DOC_CHARS = 200
@@ -106,6 +107,7 @@ def build(graph_path: str, node_ids: list[str], depth: int = 1, cap: int = NEIGH
         if node is None:
             packs.append({"id": nid, "found": False})
             continue
+        callees, callers = walk(nid, out), walk(nid, inc)
         packs.append({
             "id": nid,
             "found": True,
@@ -121,10 +123,10 @@ def build(graph_path: str, node_ids: list[str], depth: int = 1, cap: int = NEIGH
             "metrics": side["metrics"].get(nid, {}),
             "churn": side["churn"].get(nid, {}),
             "risks": side["risks"].get(nid, []),
-            "calls": _neighbors(walk(nid, out), nodes, cap),
-            "called_by": _neighbors(walk(nid, inc), nodes, cap),
-            "calls_total": len(walk(nid, out)),
-            "called_by_total": len(walk(nid, inc)),
+            "calls": _neighbors(callees, nodes, cap),
+            "called_by": _neighbors(callers, nodes, cap),
+            "calls_total": len(callees),
+            "called_by_total": len(callers),
         })
     return {"graph": os.path.relpath(graph_path, SKILL_ROOT).replace("\\", "/"),
             "map": _map_of(graph_path), "depth": depth, "nodes": packs}
@@ -194,10 +196,7 @@ def main(argv=None) -> int:
     parser.add_argument("--max-chars", type=int, default=6000, help="Hard budget for the output")
     parser.add_argument("--format", choices=["md", "json"], default="md", help="Output format")
     args = parser.parse_args(argv)
-    try:                          # descriptions carry whatever the source did; a cp1252/cp874
-        sys.stdout.reconfigure(errors="replace")   # console must not crash on one em dash
-    except (AttributeError, ValueError):
-        pass
+    console.safe_stdout()
 
     ids = list(args.node or [])
     if args.diff:

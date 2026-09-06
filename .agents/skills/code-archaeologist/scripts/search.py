@@ -32,6 +32,9 @@ SKILL_ROOT = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(SKILL_ROOT, "data")
 DEFAULT_GRAPH = os.path.join(DATA_DIR, "flow", "flow_graph.json")
 
+sys.path.insert(0, SCRIPT_DIR)
+import console     # noqa: E402  (stdout must survive a non-UTF-8 console)
+
 DOC_CHARS = 90
 
 
@@ -126,10 +129,7 @@ def main(argv=None) -> int:
     parser.add_argument("--limit", type=int, default=40, help="Maximum rows to print")
     parser.add_argument("--format", choices=["text", "json"], default="text", help="Output format")
     args = parser.parse_args(argv)
-    try:
-        sys.stdout.reconfigure(errors="replace")   # descriptions carry whatever the source did
-    except (AttributeError, ValueError):
-        pass
+    console.safe_stdout()
 
     hits = search(args.graph, name=args.name, doc=args.doc, layer=args.layer, kind=args.kind,
                   lang=args.lang, file=args.file, calls=args.calls, called_by=args.called_by,

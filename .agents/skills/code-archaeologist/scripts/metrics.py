@@ -38,6 +38,7 @@ DEFAULT_GRAPH = os.path.join(DATA_DIR, "flow", "flow_graph.json")
 DEFAULT_OUT = os.path.join(DATA_DIR, "report", "metrics.json")
 
 sys.path.insert(0, SCRIPT_DIR)
+import console          # noqa: E402  (stdout must survive a non-UTF-8 console)
 import scan_security    # noqa: E402  (iter_source_files: one definition of "a source file")
 
 EXT_LANG = {".py": "py", ".js": "js", ".jsx": "jsx", ".ts": "ts", ".tsx": "tsx"}
@@ -122,9 +123,9 @@ def node_metrics(full: str, key: str) -> dict:
     Only the levels the graphs model: module functions, classes, and their direct
     methods. A closure inside a function is measured as part of that function.
     """
-    try:
-        with open(full, "r", encoding="utf-8") as fh:
-            tree = ast.parse(fh.read())
+    try:                                    # errors="replace": a latin-1 source still parses,
+        with open(full, "r", encoding="utf-8", errors="replace") as fh:   # and we only read
+            tree = ast.parse(fh.read())     # names and line numbers off the tree
     except (OSError, SyntaxError, ValueError):
         return {}
     out: dict[str, dict] = {}
@@ -216,6 +217,7 @@ def main(argv=None) -> int:
     parser.add_argument("--out", default=None, help=f"Write the payload here (e.g. {DEFAULT_OUT})")
     parser.add_argument("--top", type=int, default=10, help="How many entries in each ranking")
     args = parser.parse_args(argv)
+    console.safe_stdout()
 
     missing = [r for r in args.src if not os.path.isdir(r)]
     if missing:
@@ -236,7 +238,8 @@ def main(argv=None) -> int:
         cx = m["top_complexity"][0]
         print(f"  most complex: {cx['id']} cx {cx['complexity']} ({cx['file']}:{cx['line']})")
     if m["unmeasured_graph_ids"]:
-        print(f"  {len(m['unmeasured_graph_ids'])} graph node(s) not measured (non-Python)")
+        print(f"  {len(m['unmeasured_graph_ids'])} graph node(s) have no metrics "
+              f"(non-Python, or outside --src)")
     if args.out:
         print(f"  -> {args.out}")
     return 0

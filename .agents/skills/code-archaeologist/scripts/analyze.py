@@ -37,6 +37,10 @@ SKILL_ROOT = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(SKILL_ROOT, "data")
 DEFAULT_GRAPH = os.path.join(DATA_DIR, "structure", "graph.json")
 
+sys.path.insert(0, SCRIPT_DIR)
+import console      # noqa: E402  (stdout must survive a non-UTF-8 console)
+
+
 # Standard layering, shallow -> deep. A call from a deeper layer to a shallower
 # one is a backwards dependency. Layers absent here (function/module/ui/...) are
 # not ranked, so their edges are never flagged (avoids noise).
@@ -274,6 +278,7 @@ def main(argv=None) -> int:
     parser.add_argument("--format", choices=["text", "json"], default="json",
                         help="json (default, full detail) or text (grade + counts + the lists)")
     args = parser.parse_args(argv)
+    console.safe_stdout()
 
     counts = None
     if args.security:

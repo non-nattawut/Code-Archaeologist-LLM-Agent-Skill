@@ -235,6 +235,7 @@ templates, and the generated `data/` workspace.
 |   |-- trace_path.py             # BFS flow (--from/--to), impact (--impact-of[-diff])
 |   |-- context.py               # one budgeted pack per node (facts + neighbors + risks)
 |   |-- search.py                # find nodes by name/doc/layer/kind/connectivity
+|   |-- console.py               # keeps stdout alive on a non-UTF-8 console
 |   `-- build_html.py             # graphs + reports -> data/explorer.html (both maps)
 |-- templates/
 |   |-- viewer.html               # the explorer page (HTML/CSS/JS, 2 placeholders)

@@ -36,6 +36,7 @@ GRAPHS = {
 }
 
 sys.path.insert(0, SCRIPT_DIR)
+import console     # noqa: E402  (stdout must survive a non-UTF-8 console)
 import manifest    # noqa: E402
 
 SEV_ORDER = {"high": 0, "medium": 1, "low": 2}
@@ -52,8 +53,8 @@ def _load(path: str):
 def _map_summary(name: str) -> dict:
     """Counts + grade for one map, from its graph and (if built) its report."""
     graph = _load(GRAPHS[name])
-    if graph is None:
-        return {}
+    if not (graph or {}).get("nodes"):
+        return {}          # missing, or the empty skeleton the installer seeds
     rep = _load(os.path.join(REPORT_DIR, name, "architecture_report.json")) or {}
     health = (rep.get("analysis") or {}).get("health") or {}
     return {
@@ -167,6 +168,7 @@ def main(argv=None) -> int:
     parser.add_argument("--top", type=int, default=5, help="Rows per detail section")
     parser.add_argument("--json", action="store_true", help="Emit the digest as JSON")
     args = parser.parse_args(argv)
+    console.safe_stdout()
 
     digest = collect(args.src, args.focus, args.top)
     if not digest["maps"]:

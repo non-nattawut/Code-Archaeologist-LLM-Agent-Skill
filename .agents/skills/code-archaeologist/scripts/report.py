@@ -34,6 +34,7 @@ DEFAULT_OUT_DIR = os.path.join(DATA_DIR, "report")
 
 sys.path.insert(0, SCRIPT_DIR)
 import analyze          # noqa: E402
+import console          # noqa: E402  (stdout must survive a non-UTF-8 console)
 import git_insights     # noqa: E402
 import metrics          # noqa: E402
 import scan_security    # noqa: E402
@@ -261,6 +262,7 @@ def main(argv=None) -> int:
     parser.add_argument("--graph", default=DEFAULT_GRAPH, help="Graph to report on")
     parser.add_argument("--out-dir", default=DEFAULT_OUT_DIR, help="Where to write the report files")
     args = parser.parse_args(argv)
+    console.safe_stdout()
     if not os.path.isfile(args.graph):
         print(f"error: graph not found at {args.graph} — build a map first", file=sys.stderr)
         return 1

@@ -73,7 +73,8 @@ not in a top-level `const`.
 4. **The explorer is one self-contained file.** Data embedded inline, only `force-graph` from a CDN,
    opens from `file://` with no server.
 5. **Windows-first testing.** Console is cp874 here: keep `print()` output ASCII (files can be
-   UTF-8). Bash heredocs mangle backslash-continuations — use the Edit/Write tools for content with
+   UTF-8). Anything that echoes repo text (node ids, descriptions, paths, git author names) calls
+   `console.safe_stdout()` first, so one accented author name cannot end a run. Bash heredocs mangle backslash-continuations — use the Edit/Write tools for content with
    `\` line continuations.
 
 ## Verify changes
