@@ -64,7 +64,7 @@ def _save_json(path: str, obj) -> None:
 
 sys.path.insert(0, SCRIPT_DIR)
 from taxonomy import infer_layer, ROUTE_DECORATOR_RE  # noqa: E402
-from js_bridge import find_js_files, extract_js_files   # noqa: E402
+from js_bridge import find_js_files, extract_js_files, frontend_degraded   # noqa: E402
 
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data"}
 
@@ -519,8 +519,14 @@ def build(src, flow_dir: str, graph_path: str) -> int:
     # Hybrid descriptions: docstring -> cached AI summary -> auto fallback.
     cache = _load_json(DESCRIPTIONS_PATH, {})
     pending = resolve_descriptions(methods, cache)
-    # Prune cache entries for nodes that no longer exist (handles deletes).
-    cache = {k: v for k, v in cache.items() if k in methods}
+    # Prune cache entries for nodes that no longer exist (handles deletes) -- but
+    # only when this build saw the whole codebase. With the frontend skipped (no
+    # Node / no @babel/parser) its nodes are absent from `methods`, and pruning
+    # would silently discard summaries for code that is still there.
+    if frontend_degraded():
+        print("  ! description cache left intact: this build skipped the frontend")
+    else:
+        cache = {k: v for k, v in cache.items() if k in methods}
     _save_json(DESCRIPTIONS_PATH, cache)
     if pending:
         _save_json(PENDING_PATH, pending)

@@ -22,6 +22,7 @@ JS_EXTS = (".js", ".jsx", ".ts", ".tsx")
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data", "dist", "build"}
 
 _warned = False
+_degraded = False
 
 
 def find_js_files(root: str) -> list[str]:
@@ -43,8 +44,20 @@ def _skill_path() -> str:
     return SKILL_DIR if rel.startswith("..") else rel.replace("\\", "/")
 
 
+def frontend_degraded() -> bool:
+    """True if JS/TS extraction was attempted and skipped (no Node, no parser, bad output).
+
+    Callers must not prune per-node state on such a build: the frontend nodes are
+    missing from the result but not from the codebase.
+    """
+    return _degraded
+
+
 def _warn_once(msg: str) -> None:
-    global _warned
+    # Every skip path funnels through here, so this is also where "the frontend
+    # is missing from this build" gets recorded.
+    global _warned, _degraded
+    _degraded = True
     if not _warned:
         print(msg, file=sys.stderr)
         _warned = True
