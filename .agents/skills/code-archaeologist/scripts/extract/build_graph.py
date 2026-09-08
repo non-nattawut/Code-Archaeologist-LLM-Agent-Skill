@@ -15,9 +15,8 @@ import os
 import re
 import sys
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-SKILL_ROOT = os.path.dirname(SCRIPT_DIR)
-DATA_DIR = os.path.join(SKILL_ROOT, "data")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from paths import DATA_DIR  # noqa: E402  (also puts sibling script dirs on sys.path)
 STRUCTURE_DIR = os.path.join(DATA_DIR, "structure")
 DEFAULT_VAULT = os.path.join(STRUCTURE_DIR, "vault")
 

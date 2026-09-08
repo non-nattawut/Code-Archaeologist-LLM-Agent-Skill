@@ -27,13 +27,11 @@ import re
 import sys
 from datetime import datetime, timezone
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-SKILL_ROOT = os.path.dirname(SCRIPT_DIR)
-DATA_DIR = os.path.join(SKILL_ROOT, "data")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from paths import DATA_DIR, SKILL_ROOT  # noqa: E402  (also puts sibling script dirs on sys.path)
 DEFAULT_GRAPH = os.path.join(DATA_DIR, "flow", "flow_graph.json")
 DEFAULT_OUT = os.path.join(DATA_DIR, "report", "debt.json")
 
-sys.path.insert(0, SCRIPT_DIR)
 import manifest  # noqa: E402
 import analyze          # noqa: E402  (one definition of "which nodes are orphans")
 import console          # noqa: E402  (stdout must survive a non-UTF-8 console)

@@ -26,16 +26,14 @@ import json
 import os
 import sys
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-SKILL_ROOT = os.path.dirname(SCRIPT_DIR)
-DATA_DIR = os.path.join(SKILL_ROOT, "data")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from paths import DATA_DIR  # noqa: E402  (also puts sibling script dirs on sys.path)
 REPORT_DIR = os.path.join(DATA_DIR, "report")
 GRAPHS = {
     "structure": os.path.join(DATA_DIR, "structure", "graph.json"),
     "flow": os.path.join(DATA_DIR, "flow", "flow_graph.json"),
 }
 
-sys.path.insert(0, SCRIPT_DIR)
 import console     # noqa: E402  (stdout must survive a non-UTF-8 console)
 import manifest    # noqa: E402
 

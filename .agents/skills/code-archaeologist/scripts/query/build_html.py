@@ -34,11 +34,11 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-SKILL_ROOT = os.path.dirname(SCRIPT_DIR)
-DATA_DIR = os.path.join(SKILL_ROOT, "data")
-TEMPLATE_PATH = os.path.join(SKILL_ROOT, "templates", "viewer.html")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from paths import DATA_DIR, TEMPLATES_DIR  # noqa: E402  (also puts sibling script dirs on sys.path)
+TEMPLATE_PATH = os.path.join(TEMPLATES_DIR, "viewer.html")
 DEFAULT_OUT = os.path.join(DATA_DIR, "explorer.html")
 
 # map name -> (switch label, subtitle, default graph, default report)

@@ -19,13 +19,11 @@ import sys
 # ---------------------------------------------------------------------------
 # Path resolution (relative to the skill root, not the CWD)
 # ---------------------------------------------------------------------------
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-SKILL_ROOT = os.path.dirname(SCRIPT_DIR)
-DATA_DIR = os.path.join(SKILL_ROOT, "data")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from paths import DATA_DIR, TEMPLATES_DIR  # noqa: E402  (also puts sibling script dirs on sys.path)
 DEFAULT_VAULT = os.path.join(DATA_DIR, "structure", "vault")
-TEMPLATE_PATH = os.path.join(SKILL_ROOT, "templates", "wiki_page_template.md")
+TEMPLATE_PATH = os.path.join(TEMPLATES_DIR, "wiki_page_template.md")
 
-sys.path.insert(0, SCRIPT_DIR)
 from taxonomy import infer_layer, is_test_path  # noqa: E402
 
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data"}

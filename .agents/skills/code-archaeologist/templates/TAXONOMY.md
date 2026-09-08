@@ -2,7 +2,7 @@
 
 Reference for every `{{placeholder}}` written into a generated page, so values stay
 **consistent** across the Python and JS/TS extractors and both maps. The code source of
-truth is `scripts/taxonomy.py` (do not hand-edit generated pages to values outside these
+truth is `scripts/core/taxonomy.py` (do not hand-edit generated pages to values outside these
 sets — change the taxonomy instead).
 
 ## Structure pages (`data/structure/vault/<Entity>.md`, from `wiki_page_template.md`)

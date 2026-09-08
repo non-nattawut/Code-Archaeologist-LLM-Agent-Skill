@@ -15,8 +15,12 @@ import shutil
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from paths import SKILL_ROOT  # noqa: E402  (also puts sibling script dirs on sys.path)
+
+# The extractor script sits next to this file; Node is run from that directory
+# so `require("@babel/parser")` resolves against the skill's own node_modules.
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-SKILL_DIR = os.path.dirname(SCRIPT_DIR)
 JS_EXTRACT = os.path.join(SCRIPT_DIR, "js_extract.js")
 JS_EXTS = (".js", ".jsx", ".ts", ".tsx")
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data", "dist", "build"}
@@ -38,10 +42,10 @@ def find_js_files(root: str) -> list[str]:
 def _skill_path() -> str:
     """The skill folder as the user would type it (wherever the skill was installed)."""
     try:
-        rel = os.path.relpath(SKILL_DIR)
+        rel = os.path.relpath(SKILL_ROOT)
     except ValueError:                      # different drive on Windows
-        return SKILL_DIR
-    return SKILL_DIR if rel.startswith("..") else rel.replace("\\", "/")
+        return SKILL_ROOT
+    return SKILL_ROOT if rel.startswith("..") else rel.replace("\\", "/")
 
 
 def frontend_degraded() -> bool:

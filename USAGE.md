@@ -35,8 +35,8 @@ biggest/most complex/most churned/riskiest nodes — instead of reading the full
 python .agents/skills/code-archaeologist/scripts/archaeologist.py brief --src ./src
 
 # same digest, other map / more rows / machine-readable
-python .agents/skills/code-archaeologist/scripts/brief.py --map structure --top 3
-python .agents/skills/code-archaeologist/scripts/brief.py --json
+python .agents/skills/code-archaeologist/scripts/review/brief.py --map structure --top 3
+python .agents/skills/code-archaeologist/scripts/review/brief.py --json
 ```
 
 ## Find the nodes
@@ -44,11 +44,11 @@ python .agents/skills/code-archaeologist/scripts/brief.py --json
 Filter the graph instead of grepping the source:
 
 ```bash
-python .agents/skills/code-archaeologist/scripts/search.py --name "payment|charge"
-python .agents/skills/code-archaeologist/scripts/search.py --doc "refund" --limit 10
-python .agents/skills/code-archaeologist/scripts/search.py --layer repository --kind method
-python .agents/skills/code-archaeologist/scripts/search.py --calls OrderRepository.save
-python .agents/skills/code-archaeologist/scripts/search.py --orphans --format json
+python .agents/skills/code-archaeologist/scripts/query/search.py --name "payment|charge"
+python .agents/skills/code-archaeologist/scripts/query/search.py --doc "refund" --limit 10
+python .agents/skills/code-archaeologist/scripts/query/search.py --layer repository --kind method
+python .agents/skills/code-archaeologist/scripts/query/search.py --calls OrderRepository.save
+python .agents/skills/code-archaeologist/scripts/query/search.py --orphans --format json
 ```
 
 ## Query the graphs
@@ -57,15 +57,15 @@ Trace paths or impact on either graph (structure is the default; add `--graph` f
 
 ```bash
 # structure: how are two classes connected?
-python .agents/skills/code-archaeologist/scripts/trace_path.py --from OrderController --to OrderRepository
+python .agents/skills/code-archaeologist/scripts/query/trace_path.py --from OrderController --to OrderRepository
 
 # flow: how does a request travel, method by method?
-python .agents/skills/code-archaeologist/scripts/trace_path.py \
+python .agents/skills/code-archaeologist/scripts/query/trace_path.py \
   --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json \
   --from OrderController.create_order --to OrderRepository.save
 
 # blast-radius: everything that breaks if a method changes
-python .agents/skills/code-archaeologist/scripts/trace_path.py \
+python .agents/skills/code-archaeologist/scripts/query/trace_path.py \
   --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json --impact-of PaymentClient.charge
 ```
 
@@ -74,10 +74,10 @@ python .agents/skills/code-archaeologist/scripts/trace_path.py \
 ```bash
 # one budgeted pack: facts, size, churn, description, callers/callees with their
 # own descriptions, and the risks attributed to it
-python .agents/skills/code-archaeologist/scripts/context.py --node OrderService.place_order
+python .agents/skills/code-archaeologist/scripts/query/context.py --node OrderService.place_order
 
 # every node the current diff touches, two hops out, in 8000 chars or less
-python .agents/skills/code-archaeologist/scripts/context.py --diff --depth 2 --max-chars 8000
+python .agents/skills/code-archaeologist/scripts/query/context.py --diff --depth 2 --max-chars 8000
 ```
 
 ## Keep them honest
@@ -89,15 +89,15 @@ Freshness, changeset impact, and the deterministic smell checks:
 python .agents/skills/code-archaeologist/scripts/archaeologist.py check --src ./src
 
 # changeset blast-radius: what does my current git diff affect?
-python .agents/skills/code-archaeologist/scripts/trace_path.py \
+python .agents/skills/code-archaeologist/scripts/query/trace_path.py \
   --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json --impact-of-diff
 
 # smells + health grade: cycles, orphans, layer violations, hubs, god objects, idioms
-python .agents/skills/code-archaeologist/scripts/analyze.py \
+python .agents/skills/code-archaeologist/scripts/review/analyze.py \
   --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json
 
 # the same, as lines instead of JSON
-python .agents/skills/code-archaeologist/scripts/analyze.py --format text
+python .agents/skills/code-archaeologist/scripts/review/analyze.py --format text
 ```
 
 ## Review pass
@@ -115,20 +115,20 @@ Its inputs run on their own too:
 
 ```bash
 # risk scan: hardcoded secrets, interpolated SQL, eval/innerHTML sinks, debug leftovers
-python .agents/skills/code-archaeologist/scripts/scan_security.py --src ./src
+python .agents/skills/code-archaeologist/scripts/review/scan_security.py --src ./src
 
 # git churn/ownership + hotspot ranking (risk = commits x (1 + fan_in + fan_out))
-python .agents/skills/code-archaeologist/scripts/git_insights.py --src ./src --top 10
+python .agents/skills/code-archaeologist/scripts/review/git_insights.py --src ./src --top 10
 
 # lines of code per file + LOC/complexity/depth per node (Python nodes)
-python .agents/skills/code-archaeologist/scripts/metrics.py --src ./src --top 10
+python .agents/skills/code-archaeologist/scripts/review/metrics.py --src ./src --top 10
 
 # TODO/FIXME/HACK markers + nodes nothing calls + files where every node is dead
-python .agents/skills/code-archaeologist/scripts/debt.py --src ./src --top 10
+python .agents/skills/code-archaeologist/scripts/review/debt.py --src ./src --top 10
 
 # which nodes the test suite names, and which it never mentions
 # (pytest, Jest, JUnit 5/Spring Boot, Go, Rust, .NET, RSpec, PHPUnit conventions)
-python .agents/skills/code-archaeologist/scripts/tests_map.py --src ./src --top 15
+python .agents/skills/code-archaeologist/scripts/review/tests_map.py --src ./src --top 15
 ```
 
 Every stage is runnable on its own (`build_wiki.py`, `build_graph.py`, `build_flow.py`,

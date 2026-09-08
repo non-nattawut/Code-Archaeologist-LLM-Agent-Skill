@@ -30,13 +30,11 @@ import json
 import os
 import sys
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-SKILL_ROOT = os.path.dirname(SCRIPT_DIR)
-DATA_DIR = os.path.join(SKILL_ROOT, "data")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from paths import DATA_DIR, SKILL_ROOT  # noqa: E402  (also puts sibling script dirs on sys.path)
 REPORT_DIR = os.path.join(DATA_DIR, "report")
 DEFAULT_GRAPH = os.path.join(DATA_DIR, "flow", "flow_graph.json")
 
-sys.path.insert(0, SCRIPT_DIR)
 import console         # noqa: E402  (stdout must survive a non-UTF-8 console)
 import trace_path      # noqa: E402  (one definition of "which nodes did this diff touch")
 

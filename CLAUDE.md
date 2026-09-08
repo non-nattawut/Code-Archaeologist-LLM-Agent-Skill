@@ -20,7 +20,7 @@ returned path** — never by scanning source.
 ### Pipeline (what calls what)
 
 ```
-archaeologist.py  project | flow | both | check | report        <- the only entrypoint
+archaeologist.py  project | flow | both | check | report | brief   <- the only entrypoint
   project  -> build_wiki -> build_graph ------------------\
   flow     -> build_flow (+ js_bridge -> js_extract.js) ---+--> render_explorer()
   report   -> report.py (scan_security + git_insights + analyze + metrics + debt + tests_map)
@@ -29,6 +29,40 @@ archaeologist.py  project | flow | both | check | report        <- the only entr
   check    -> manifest.py (source hashes vs last build)
                                                             \-> build_html.py -> data/explorer.html
 ```
+
+### Where the scripts live
+
+`scripts/` is grouped by role, and `archaeologist.py` is the only file at its root because it is
+the only entrypoint:
+
+```
+scripts/
+  archaeologist.py   the entrypoint
+  paths.py           SKILL_ROOT / DATA_DIR / TEMPLATES_DIR, and the sys.path bootstrap
+  core/     taxonomy.py  manifest.py  console.py
+  extract/  build_wiki.py  build_graph.py  build_flow.py  js_bridge.py  js_extract.js
+            apply_descriptions.py
+  review/   analyze.py  scan_security.py  git_insights.py  metrics.py  debt.py
+            tests_map.py  report.py  brief.py
+  query/    trace_path.py  context.py  search.py  build_html.py
+```
+
+Dependencies point one way: `core/` imports nothing of the skill's, everything else imports
+`core/`, and no two categories import each other in a cycle. Keep it that way — a new script goes
+in the category it *depends on*, not the one it reads like.
+
+Every script therefore opens with the same two lines instead of re-deriving its own paths:
+
+```python
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from paths import DATA_DIR  # noqa: E402  (also puts sibling script dirs on sys.path)
+```
+
+Importing `paths` puts `scripts/` and all four category dirs on `sys.path`, which is why sibling
+imports stay bare (`import taxonomy`) and why every script still runs directly from any working
+directory (constraint 3). `extract/js_bridge.py` keeps a `SCRIPT_DIR` of its own on top of that —
+it needs the directory holding `js_extract.js`, not the skill root — and `console.py` and
+`taxonomy.py` need no preamble at all because they touch neither `data/` nor a sibling.
 
 - `taxonomy.py` owns every `kind`/`layer` value (mirrored in `templates/TAXONOMY.md`). Add values
   there, never inline. It also owns **what counts as a test file** (`is_test_path` /
@@ -159,6 +193,7 @@ Other checks worth running when you touch the relevant part:
 
 ```bash
 python -m compileall -q .agents/skills/code-archaeologist/scripts     # syntax
+python tools/check_docs.py                                            # docs vs code
 node bin/cli.js --harness claude --target <tmpdir> --self-test        # installer
 ```
 
@@ -247,18 +282,49 @@ produce the answer once, for every future session.
   into `USAGE.md` if it will be wanted again.
 
 ### 6. Keep the docs in the same commit
-Three files describe this skill to different readers — when behavior changes, update all that apply:
+Every document in this repo describes the skill to some reader. When behavior changes, they all
+move with it — in the same commit, not in a follow-up that never comes.
 
-| File | Reader | Covers |
+There are **two disciplines**, and confusing them destroys the two files whose entire value is
+that nobody rewrites them.
+
+**Mirror current truth** — rewrite freely, so the file matches how the skill behaves *today*:
+
+| File | Reader | Goes stale when |
 | --- | --- | --- |
-| `SKILL.md` | the agent using the skill | operating principles + numbered tool commands |
-| `README.md` | a human evaluating/installing it | features, requirements, install, layout |
-| `USAGE.md` | a human running it by hand | the full command reference + worked example |
-| `templates/TAXONOMY.md` | anyone adding a field value | allowed `kind`/`layer`/severity/grade values |
+| `CLAUDE.md` | the next session working on the skill | the pipeline, script inventory, layout, constraints, colour/layout rules or the expected-numbers block change |
+| `SKILL.md` | the agent using the skill | a command or an operating rule changes |
+| `README.md` | a human evaluating/installing it | features, language table, requirements or the structure tree change |
+| `USAGE.md` | a human running it by hand | any command's form or flags change |
+| `templates/TAXONOMY.md` | anyone adding a field value | a `kind`/`layer`/severity/grade value changes |
+| `PRESENTATION.html` | someone being shown the project | Features, Architecture, Honest limitations or Commands drift |
+
+**Append, never revise** — these are records of what was actually done and thought at the time;
+editing them to match the present is the one way to make them worthless:
+
+| File | Discipline |
+| --- | --- |
+| `PROJECT_HISTORY.md` | extend with new phases; never rewrite a past entry to agree with the present |
+| `prompt.md` | append the turn verbatim at the end of every turn (principle 7) |
+
+**This file is not exempt.** `CLAUDE.md` describes the repo to its next session, so when the repo
+changes, `CLAUDE.md` changes in the same commit. It has drifted before precisely because it was
+the one doc outside its own rule — its pipeline diagram lost `brief` and nobody noticed.
 
 A new script also needs: a docstring saying what it is and why, a line in the README structure
-tree, a numbered command in `SKILL.md` if the agent should call it, and its command form in
-`USAGE.md`.
+tree **and** in this file's script layout, a numbered command in `SKILL.md` if the agent should
+call it, and its command form in `USAGE.md`.
+
+The mechanical half of this rule is checked, so it cannot quietly rot:
+
+```bash
+python tools/check_docs.py
+```
+
+It verifies that every script is listed in `README.md` and named in `CLAUDE.md`, that every
+`scripts/...` path quoted in any doc actually exists, and that every `kind`/`layer` value in
+`taxonomy.py` is documented in `TAXONOMY.md`. It deliberately checks facts, never prose — keeping
+the *words* honest is still the writer's job.
 
 ### 7. Log every exchange to `prompt.md`
 This repo keeps a running transcript of its own construction. **At the end of every turn, append

@@ -29,13 +29,11 @@ import os
 import re
 import sys
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-SKILL_ROOT = os.path.dirname(SCRIPT_DIR)
-DATA_DIR = os.path.join(SKILL_ROOT, "data")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from paths import DATA_DIR  # noqa: E402  (also puts sibling script dirs on sys.path)
 DEFAULT_GRAPH = os.path.join(DATA_DIR, "flow", "flow_graph.json")
 DEFAULT_OUT = os.path.join(DATA_DIR, "report", "security.json")
 
-sys.path.insert(0, SCRIPT_DIR)
 from manifest import SOURCE_EXTS, SKIP_DIRS, _rel_key  # noqa: E402
 from taxonomy import is_test_path  # noqa: E402
 

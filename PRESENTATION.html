@@ -557,7 +557,7 @@ const FEATURES = [
     d:"Every kind, layer and test rule is defined in exactly one file.",
     how:"A single taxonomy module owns the allowed <code>kind</code> and <code>layer</code> values, the rules that infer a layer from a name, and the definition of what counts as a test file. Every pass asks it rather than re-implementing the check.",
     tech:["Single definition point","Shared across extractors","Mirrored in docs"],
-    cmd:"— scripts/taxonomy.py",
+    cmd:"— scripts/core/taxonomy.py",
     qa:[
       ["Why is that worth a whole module?","Because the alternative is drift. If the security scanner and the dead-code check disagree about what a test file is, the report contradicts itself — and a report that contradicts itself gets ignored."]
     ]

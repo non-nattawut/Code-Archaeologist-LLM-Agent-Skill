@@ -398,3 +398,88 @@ Kept strictly within prompt scope:
   3. Obsolete ROADMAP removal and history update (`ROADMAP.md`, `PROJECT_HISTORY.md`)
   4. Logging setup (`CLAUDE.md`, `prompt.md`)
 
+
+## [24] 2026-09-08 — Phase 0: categorize scripts/, and make the docs-sync rule checkable
+
+**Prompt**
+> git pull then plan to implement all the roadmap in README.md phase by phase after finish all update README.md
+
+(then, across the same arc)
+
+> 1. also now script is plain in the future it will bloat so categorize it
+> 2. edit CLAUDE.md that it should always sync it self to the project
+> 3. PRESENTATION.html, README.md, PROJECT_HISTORY.md, USAGE.md, PROMPT.md should always sync too
+
+> after finish each phase test and fix until polished then commit and push
+>
+> then I will prompt you to continue since you might hit limit due to many features add
+
+**Response**
+
+Planned all four README roadmap items as one phase each, preceded by a Phase 0 of the housekeeping
+above — done first deliberately, because all five feature phases add scripts and change documented
+commands, and doing the reorganization afterwards means touching every doc twice.
+
+Decisions the user made during planning, after asking for explanations rather than accepting a
+proposal: frontend structure entities mirror Python's rule **plus React components**; the offline
+viewer **vendors** force-graph rather than being skipped; graphs extend to **Java + Go + C#, both
+maps**.
+
+The Java/Go/C# question was the interesting one. The user asked why the dozen-language passes
+(lines, complexity, risk, debt, tests) work everywhere but graphs do not. The honest answer is that
+those passes are *local, independent, per-line observations* — an error is contained and visible —
+whereas a graph is *relational*, and its errors compound through BFS, blast radius, cycle detection
+and the A–F grade, where a 90%-accurate graph looks exactly like a correct one. Splitting that into
+two separable bets (structure graphs ~95%, read from declarations; flow graphs ~85%) is what made
+the decision possible.
+
+This turn implemented Phase 0.
+
+**0a — script layout.** `git mv`'d 21 scripts into `core/` (taxonomy, manifest, console),
+`extract/` (build_wiki, build_graph, build_flow, js_bridge, js_extract.js, apply_descriptions),
+`review/` (analyze, scan_security, git_insights, metrics, debt, tests_map, report, brief) and
+`query/` (trace_path, context, search, build_html). `archaeologist.py` stays at the scripts root
+because it is the only entrypoint.
+
+The move breaks every file's path preamble, which was `SKILL_ROOT = os.path.dirname(SCRIPT_DIR)` —
+one `dirname` too few once a file sits a level deeper. New `scripts/paths.py` owns the layout once,
+and putting `scripts/` plus all four category dirs on `sys.path` as an import side effect is what
+keeps all ~35 existing bare sibling imports (`import taxonomy`) working untouched. Preambles went
+from four lines to two.
+
+Two special cases: `extract/js_bridge.py` keeps a `SCRIPT_DIR` of its own (it needs the directory
+holding `js_extract.js` for `cwd=`, not the skill root) and its `SKILL_DIR` became `SKILL_ROOT`
+from `paths`; `archaeologist.py` needs one `dirname`, not two. `build_html.py` turned out not to
+import `sys` at all — the bootstrap needed it added.
+
+**Verification.** The reproducibility baseline was captured *before* the move: full pipeline on
+`sample_src`, `git status` on `data/` clean. After the move, the only diff in `data/` was
+`"generated"` timestamps — confirmed by diffing with timestamp lines filtered out — so this is a
+pure refactor and `data/` was reverted rather than committed. Numbers still match CLAUDE.md:
+structure 6/9 grade C (75), flow 15/11 grade D (68), 3 endpoints, 0 pending, `check` → stale false.
+`compileall` clean; `trace_path`, `debt`, `search` and `context` all still run standalone from
+`C:\Users\User` (constraint 3); `node bin/cli.js --self-test` passes with no `cli.js` change,
+because `copyDir` was already recursive.
+
+**0b — the docs-sync rule.** Rewrote CLAUDE.md principle 6 around the distinction that actually
+matters: **mirror-truth** files (CLAUDE.md, SKILL.md, README.md, USAGE.md, TAXONOMY.md,
+PRESENTATION.html) get rewritten to match today's behavior, while **append-only** records
+(PROJECT_HISTORY.md, prompt.md) are extended and never revised — "syncing" the latter by rewriting
+would destroy the only reason they exist. Added the self-referential clause: CLAUDE.md is not
+exempt from its own rule. Also added a "Where the scripts live" section documenting the new layout,
+the one-way dependency direction, and the two-line preamble.
+
+**0c — the check.** A rule with no check is a wish, which is exactly how CLAUDE.md's pipeline
+diagram silently lost `brief`. New `tools/check_docs.py` verifies three mechanical facts only:
+every script is listed in README.md's tree and named in CLAUDE.md; every `scripts/...` path quoted
+in any doc exists; every `kind`/`layer` value in `taxonomy.py` appears in TAXONOMY.md. It sits in
+`tools/`, not in the skill's `scripts/` — a deliberate deviation from the plan, because it reads
+repo files that are not part of an installed skill and would error out immediately in a user's
+install.
+
+It found real drift on its first run: `console.py`, `js_bridge.py` and `paths.py` were mentioned
+nowhere in CLAUDE.md. Fixed, along with the missing `brief` in the pipeline diagram.
+
+**Doc paths.** 20 references in USAGE.md, 27 in SKILL.md and one each in PRESENTATION.html and
+TAXONOMY.md rewritten to the categorized form, and README's structure tree redrawn around the four
+categories.

@@ -218,30 +218,36 @@ It has no npm dependencies of its own.
 ├── SKILL.md              agent instructions
 ├── scripts/
 │   ├── archaeologist.py  entrypoint: project | flow | both | check | report | brief
-│   ├── taxonomy.py       the one source of truth for kind/layer values
+│   ├── paths.py          one definition of where the skill's files live
 │   │
-│   ├── build_wiki.py     ─┐
-│   ├── build_graph.py     │ extract: source -> graphs + notes
-│   ├── build_flow.py      │
-│   ├── js_extract.js      │ (Node/@babel)
-│   ├── js_bridge.py       │
-│   ├── apply_descriptions.py
-│   └── manifest.py       ─┘ freshness hashes
+│   ├── core/             vocabulary every other script shares
+│   │   ├── taxonomy.py     the one source of truth for kind/layer values
+│   │   ├── manifest.py     what counts as a source file + freshness hashes
+│   │   └── console.py      stdout that survives a non-UTF-8 console
 │   │
-│   ├── analyze.py        ─┐
-│   ├── scan_security.py   │
-│   ├── git_insights.py    │ review: graphs -> findings
-│   ├── metrics.py         │
-│   ├── debt.py            │
-│   ├── tests_map.py       │
-│   ├── brief.py           │
-│   └── report.py         ─┘
+│   ├── extract/          source -> graphs + notes
+│   │   ├── build_wiki.py
+│   │   ├── build_graph.py
+│   │   ├── build_flow.py
+│   │   ├── js_extract.js   (Node/@babel)
+│   │   ├── js_bridge.py
+│   │   └── apply_descriptions.py
 │   │
-│   ├── trace_path.py     ─┐
-│   ├── context.py         │ query & render
-│   ├── search.py          │
-│   ├── console.py         │
-│   └── build_html.py     ─┘ -> data/explorer.html
+│   ├── review/           graphs -> findings
+│   │   ├── analyze.py
+│   │   ├── scan_security.py
+│   │   ├── git_insights.py
+│   │   ├── metrics.py
+│   │   ├── debt.py
+│   │   ├── tests_map.py
+│   │   ├── brief.py
+│   │   └── report.py
+│   │
+│   └── query/            ask questions, render the page
+│       ├── trace_path.py
+│       ├── context.py
+│       ├── search.py
+│       └── build_html.py  -> data/explorer.html
 ├── templates/            viewer.html · wiki_page_template.md · TAXONOMY.md
 └── data/
     ├── explorer.html     both maps, one page

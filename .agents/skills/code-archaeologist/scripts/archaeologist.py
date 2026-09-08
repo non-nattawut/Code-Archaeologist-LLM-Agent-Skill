@@ -36,9 +36,8 @@ import argparse
 import os
 import sys
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-SKILL_ROOT = os.path.dirname(SCRIPT_DIR)
-DATA_DIR = os.path.join(SKILL_ROOT, "data")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from paths import DATA_DIR  # noqa: E402  (also puts the script category dirs on sys.path)
 
 STRUCTURE_DIR = os.path.join(DATA_DIR, "structure")
 FLOW_DIR = os.path.join(DATA_DIR, "flow")
@@ -51,8 +50,6 @@ GRAPHS = {
     "flow": os.path.join(FLOW_DIR, "flow_graph.json"),
 }
 
-
-sys.path.insert(0, SCRIPT_DIR)
 import brief           # noqa: E402
 import build_wiki      # noqa: E402
 import build_graph     # noqa: E402

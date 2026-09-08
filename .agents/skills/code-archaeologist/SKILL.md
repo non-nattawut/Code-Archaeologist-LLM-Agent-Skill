@@ -92,11 +92,11 @@ edges — so one trace can run frontend → API → service → repository.
 Filter the graph and get ids back for the commands below. Never grep source to find "where is X
 handled".
 ```bash
-python .agents/skills/code-archaeologist/scripts/search.py --name "payment|charge"
-python .agents/skills/code-archaeologist/scripts/search.py --doc "refund"
-python .agents/skills/code-archaeologist/scripts/search.py --layer repository --kind method
-python .agents/skills/code-archaeologist/scripts/search.py --calls OrderRepository.save
-python .agents/skills/code-archaeologist/scripts/search.py --orphans
+python .agents/skills/code-archaeologist/scripts/query/search.py --name "payment|charge"
+python .agents/skills/code-archaeologist/scripts/query/search.py --doc "refund"
+python .agents/skills/code-archaeologist/scripts/query/search.py --layer repository --kind method
+python .agents/skills/code-archaeologist/scripts/query/search.py --calls OrderRepository.save
+python .agents/skills/code-archaeologist/scripts/query/search.py --orphans
 ```
 Filters AND together; `--graph` picks the map (default: flow), `--limit` caps rows.
 
@@ -104,8 +104,8 @@ Filters AND together; `--graph` picks the map (default: flow), `--limit` caps ro
 Structure is the default graph; flow needs `--graph`. Output is one line per path (`A > B > C`);
 add `--all` for every path, `--format json` only when something machine-reads it.
 ```bash
-python .agents/skills/code-archaeologist/scripts/trace_path.py --from <SourceClass> --to <TargetClass>
-python .agents/skills/code-archaeologist/scripts/trace_path.py \
+python .agents/skills/code-archaeologist/scripts/query/trace_path.py --from <SourceClass> --to <TargetClass>
+python .agents/skills/code-archaeologist/scripts/query/trace_path.py \
   --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json \
   --from OrderController.create_order --to OrderRepository.save
 ```
@@ -114,12 +114,12 @@ python .agents/skills/code-archaeologist/scripts/trace_path.py \
 Everything upstream of a node — and, with `--impact-of-diff`, of a whole changeset (changed files
 are mapped to nodes, then their impact is unioned). Works on either graph.
 ```bash
-python .agents/skills/code-archaeologist/scripts/trace_path.py --impact-of <ClassName>
-python .agents/skills/code-archaeologist/scripts/trace_path.py \
+python .agents/skills/code-archaeologist/scripts/query/trace_path.py --impact-of <ClassName>
+python .agents/skills/code-archaeologist/scripts/query/trace_path.py \
   --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json --impact-of <Class.method>
-python .agents/skills/code-archaeologist/scripts/trace_path.py --impact-of-diff            # working tree
-python .agents/skills/code-archaeologist/scripts/trace_path.py --impact-of-diff --staged
-python .agents/skills/code-archaeologist/scripts/trace_path.py --impact-of-diff --base origin/main
+python .agents/skills/code-archaeologist/scripts/query/trace_path.py --impact-of-diff            # working tree
+python .agents/skills/code-archaeologist/scripts/query/trace_path.py --impact-of-diff --staged
+python .agents/skills/code-archaeologist/scripts/query/trace_path.py --impact-of-diff --base origin/main
 ```
 
 ### 7. Context pack for a node (one call, budgeted)
@@ -127,9 +127,9 @@ Everything known about a node from the artifacts: kind/layer/source, size and co
 and owner, description, immediate callers and callees *each with their own description*, and the
 risks attributed to it. Replaces "trace, then open five notes".
 ```bash
-python .agents/skills/code-archaeologist/scripts/context.py --node OrderService.place_order
-python .agents/skills/code-archaeologist/scripts/context.py --node A B --depth 2 --max-chars 8000
-python .agents/skills/code-archaeologist/scripts/context.py --diff     # every node the diff touches
+python .agents/skills/code-archaeologist/scripts/query/context.py --node OrderService.place_order
+python .agents/skills/code-archaeologist/scripts/query/context.py --node A B --depth 2 --max-chars 8000
+python .agents/skills/code-archaeologist/scripts/query/context.py --diff     # every node the diff touches
 ```
 `--max-chars` (default 6000) is a hard budget: neighbor lists shrink until it fits, and it says
 when it trimmed. `--graph` picks the map (default: flow), `--format json` for tooling. When tests
@@ -139,7 +139,7 @@ tests should I run for this change".
 ### 8. Regenerate the HTML explorer
 `archaeologist.py` refreshes `data/explorer.html` on every build; this rebuilds it alone:
 ```bash
-python .agents/skills/code-archaeologist/scripts/build_html.py
+python .agents/skills/code-archaeologist/scripts/query/build_html.py
 ```
 One page holds both maps (header switch): grade, tiles and file tree on the left; seven views
 (Graph, Treemap, Matrix, Tree, Flow, Cluster, Bundle) in the middle; FILE / PATTERNS / SECURITY
@@ -158,9 +158,9 @@ Cycles, orphans/dead nodes, backwards layer violations, high-coupling hubs, god 
 name-based idioms, and a 0-100 / A-F health score (`--security <security.json>` folds risk
 findings into the grade).
 ```bash
-python .agents/skills/code-archaeologist/scripts/analyze.py                    # structure (default)
-python .agents/skills/code-archaeologist/scripts/analyze.py --format text      # no JSON envelope
-python .agents/skills/code-archaeologist/scripts/analyze.py \
+python .agents/skills/code-archaeologist/scripts/review/analyze.py                    # structure (default)
+python .agents/skills/code-archaeologist/scripts/review/analyze.py --format text      # no JSON envelope
+python .agents/skills/code-archaeologist/scripts/review/analyze.py \
   --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json
 ```
 
@@ -169,7 +169,7 @@ Line scan for hardcoded secrets, interpolated SQL, `eval`/`innerHTML` sinks and 
 statements. Each finding names the node owning the line, so it can be traced and blast-radiused
 (tests/fixtures/docs skipped, secrets redacted).
 ```bash
-python .agents/skills/code-archaeologist/scripts/scan_security.py --src ./src
+python .agents/skills/code-archaeologist/scripts/review/scan_security.py --src ./src
 ```
 `--graph <flow_graph.json>` attributes findings to methods instead of classes; `--out <file.json>`
 saves the report.
@@ -178,7 +178,7 @@ saves the report.
 Commits per file, top author per file, and a hotspot ranking where
 `risk = commits x (1 + fan_in + fan_out)`. Outside a git repo it returns empty data with a note.
 ```bash
-python .agents/skills/code-archaeologist/scripts/git_insights.py --src ./src --top 10
+python .agents/skills/code-archaeologist/scripts/review/git_insights.py --src ./src --top 10
 ```
 
 ### 13. Size & complexity (lines of code)
@@ -186,7 +186,7 @@ Lines per file (total / code / comment / blank + language mix) and, for Python n
 cyclomatic complexity, nesting depth and parameter count — keyed by the graph's node ids, so
 "how long / how tangled is `OrderService.place_order`" needs no file read.
 ```bash
-python .agents/skills/code-archaeologist/scripts/metrics.py --src ./src --top 10
+python .agents/skills/code-archaeologist/scripts/review/metrics.py --src ./src --top 10
 ```
 `--graph <graph.json>` ranks only that map's nodes; `--out <path>.json` saves it. Command 14 runs
 this for you into `data/report/<map>/metrics.json`.
@@ -206,7 +206,7 @@ answer from the brief and the report — never from source.
 TODO / FIXME / HACK / XXX / BUG / DEPRECATED left in comments, each attributed to the node that
 owns the line, plus nodes nothing calls and files where *every* node is dead.
 ```bash
-python .agents/skills/code-archaeologist/scripts/debt.py --src ./src --top 10
+python .agents/skills/code-archaeologist/scripts/review/debt.py --src ./src --top 10
 ```
 `--graph` picks the map, `--out <file>.json` saves it, `--format json` for tooling. Answers
 "what should we clean up first" without reading a file.
@@ -216,7 +216,7 @@ Which nodes the test suite even mentions — and, more usefully, which it never 
 `Class.method` counts as referenced when a test file names both the class and the method; a
 function or class when the test names it.
 ```bash
-python .agents/skills/code-archaeologist/scripts/tests_map.py --src ./src --top 15
+python .agents/skills/code-archaeologist/scripts/review/tests_map.py --src ./src --top 15
 ```
 Name-based, not execution coverage: no runner, nothing to install. A referenced node may still be
 untested, but an unreferenced one is a real gap. Dunder methods and nodes living in test files are
@@ -244,7 +244,7 @@ After any code change, rebuild the map (Command 3). If it reports **pending** de
    a one-line summary per method as JSON `{ "<Class.method>": "<summary>", ... }`.
 2. Apply them, then rebuild to fold them in:
    ```bash
-   python .agents/skills/code-archaeologist/scripts/apply_descriptions.py --input <summaries.json>
+   python .agents/skills/code-archaeologist/scripts/extract/apply_descriptions.py --input <summaries.json>
    python .agents/skills/code-archaeologist/scripts/archaeologist.py flow --src ./src
    ```
 
@@ -260,7 +260,7 @@ keeps the cache intact — those nodes are missing, not gone). **0 pending** mea
 - Python pipeline: stdlib only. Frontend parsing is the one exception (Node + `@babel/parser`);
   the generated HTML loads `force-graph` from a CDN.
 - Field values (`kind`, `layer`, `lang`, `desc_source`, and the review `severity`/`rule`/`grade`
-  sets) live in `scripts/taxonomy.py` and `scripts/scan_security.py` — see `templates/TAXONOMY.md`
+  sets) live in `scripts/core/taxonomy.py` and `scripts/review/scan_security.py` — see `templates/TAXONOMY.md`
   for the allowed values, and edit those rather than individual pages.
 - Call resolution is heuristic, not type inference: `self.<dep>.m()` via `__init__` hints or
   assignments, typed params/locals, and same-class `self.m()`. Unresolved calls (libraries,
