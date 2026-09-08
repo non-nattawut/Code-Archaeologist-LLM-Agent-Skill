@@ -195,7 +195,7 @@ path.
 │                     git_insights, manifest, taxonomy, console, js_*
 ├── templates/        viewer.html · TAXONOMY.md · wiki_page_template.md
 └── data/             structure/ · flow/ · report/ · cache/
-CLAUDE.md · README.md · USAGE.md · ROADMAP.md · package.json · bin/cli.js
+CLAUDE.md · README.md · USAGE.md · PROJECT_HISTORY.md · prompt.md · package.json · bin/cli.js
 ```
 
 Four docs, four readers: **SKILL.md** (the agent), **README.md** (someone evaluating it),
@@ -208,6 +208,10 @@ Four docs, four readers: **SKILL.md** (the agent), **README.md** (someone evalua
   `node_modules`. That `node_modules` happened to hold the machine's only copy of
   `@babel/parser`, so deleting it silently degraded JS/TS parsing until the dependency was
   reinstalled in the live skill; the build now says so loudly instead of quietly shrinking.
+- `ROADMAP.md` was **removed** (2026-09-08). Every near-term item and three of four backlog
+  items had shipped, so it had become a record of finished work that this document now covers.
+  Its one surviving idea — duplicate-code clusters via normalized token hashing — moved to the
+  README roadmap.
 - Distribution went the GitHub route rather than the npm registry — publishing hit an npm 2FA wall,
   so install is `npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill`. The package is
   publish-ready if that is ever revisited.
