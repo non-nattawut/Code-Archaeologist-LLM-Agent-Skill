@@ -17,7 +17,7 @@ _None._
 _None._
 
 ## Methods
-- `createOrder()` — Thin HTTP client for the orders backend.
+- `createOrder()`
 - `getOrder()`
 
 ## References

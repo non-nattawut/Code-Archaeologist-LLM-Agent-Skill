@@ -550,3 +550,37 @@ exercised on the Python side (`OrderRepositoryTest`, `TestOrdersModule`); the sa
 reach it from JS. Also noticed but deliberately left alone: `firstDocLine` attributes a file's
 header comment to the first exported symbol, which is why `createOrder`'s summary reads "Thin HTTP
 client for the orders backend." Pre-existing, affects both maps, and out of this phase's scope.
+
+## [26] 2026-09-08 — Fix firstDocLine's comment attribution
+
+**Prompt**
+> fix it -> I noticed but left alone: firstDocLine
+>
+> then continue phase 2
+
+**Response**
+
+`js_extract.js`'s `firstDocLine` took the last of a node's `leadingComments` unconditionally. Babel
+hands the first statement in a file every comment that precedes it, so a file header became the
+summary of whichever symbol happened to be declared first — which is why `createOrder`'s
+description read "Thin HTTP client for the orders backend.", a sentence about the file, not about
+that function.
+
+Fixed with an adjacency test: a comment documents a node only when it ends on the line directly
+above the node starts. A header separated by a blank line, or one sitting above an `import`,
+belongs to the file. Verified against all three frontend sample files — `createOrder`, `getOrder`,
+`submitOrder` and `loadOrder` now report no docstring, while `StatusBadge` and `OrderCard`, whose
+comments really do sit directly above them, keep theirs.
+
+The knock-on was the interesting part: `createOrder` had been living off that borrowed sentence, so
+removing it left the node with no description and the build correctly reported **1 pending**. That
+is the hybrid description pipeline doing its job — docstring first, cached AI second, nothing
+invented. Wrote the summary, ran it through `apply_descriptions.py`, rebuilt: back to **0 pending**,
+now 11 docstring / 6 cached-AI rather than 12 / 5.
+
+Grades unchanged (structure C 70, flow D 69) and two consecutive builds differ only in `generated`
+timestamps. The `data/` diff against the previous commit also carries new `git_insights` churn for
+`OrderCard.tsx` — that file has a commit now, which it did not when the last report was generated.
+
+Used the Edit tool rather than a bash heredoc after the heredoc silently collapsed `\n` to `\n`
+inside the replacement string, exactly as CLAUDE.md constraint 5 warns.

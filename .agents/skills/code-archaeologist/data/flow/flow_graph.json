@@ -146,7 +146,7 @@
       "kind": "function",
       "cls": null,
       "signature": "createOrder()",
-      "doc": "Thin HTTP client for the orders backend.",
+      "doc": "Frontend API client: POST /orders with the form payload and return the created order JSON.",
       "source": "sample_src/frontend/api_client.ts:3",
       "lang": "js",
       "ext": 3,

@@ -33,9 +33,15 @@ function pluginsFor(file) {
   return ["jsx"]; // .js — allow JSX, harmless if absent
 }
 
+// A comment documents a node only when it sits directly above it. Babel hands the
+// first statement in a file every comment that precedes it, so without the
+// adjacency test a file header becomes the summary of whichever symbol happens to
+// be declared first -- which is how "Thin HTTP client for the orders backend."
+// ended up describing one function inside that client.
 function firstDocLine(node) {
-  const c = node.leadingComments && node.leadingComments[node.leadingComments.length - 1];
-  if (!c) return "";
+  const cs = node.leadingComments;
+  const c = cs && cs[cs.length - 1];
+  if (!c || !c.loc || !node.loc || c.loc.end.line !== node.loc.start.line - 1) return "";
   const line = c.value.split("\n").map((l) => l.replace(/^\s*\*?\s?/, "").trim()).find((l) => l);
   return line || "";
 }

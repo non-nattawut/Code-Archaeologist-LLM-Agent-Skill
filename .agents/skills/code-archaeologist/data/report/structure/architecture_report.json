@@ -1,6 +1,6 @@
 {
   "graph": "data/structure/graph.json",
-  "generated": "2026-09-08 13:50 UTC",
+  "generated": "2026-09-08 14:02 UTC",
   "census": {
     "nodes": 10,
     "edges": 12,
@@ -225,6 +225,17 @@
         "first_commit": "2026-09-06T20:05:48+07:00",
         "owner": "non-nattawut"
       },
+      "sample_src/frontend/OrderCard.tsx": {
+        "commits": 1,
+        "insertions": 27,
+        "deletions": 0,
+        "authors": {
+          "non-nattawut": 1
+        },
+        "last_commit": "2026-09-08T20:53:05+07:00",
+        "first_commit": "2026-09-08T20:53:05+07:00",
+        "owner": "non-nattawut"
+      },
       "sample_src/frontend/api_client.ts": {
         "commits": 1,
         "insertions": 11,
@@ -321,15 +332,17 @@
       },
       "OrderCard": {
         "file": "sample_src/frontend/OrderCard.tsx",
-        "commits": 0,
-        "owner": null,
-        "authors": {},
-        "author_count": 0,
-        "last_commit": null,
-        "first_commit": null,
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-08T20:53:05+07:00",
+        "first_commit": "2026-09-08T20:53:05+07:00",
         "fan_in": 0,
         "fan_out": 2,
-        "risk": 0
+        "risk": 3
       },
       "OrderController": {
         "file": "sample_src/backend/order_controller.py",
@@ -420,15 +433,17 @@
       },
       "StatusBadge": {
         "file": "sample_src/frontend/OrderCard.tsx",
-        "commits": 0,
-        "owner": null,
-        "authors": {},
-        "author_count": 0,
-        "last_commit": null,
-        "first_commit": null,
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-08T20:53:05+07:00",
+        "first_commit": "2026-09-08T20:53:05+07:00",
         "fan_in": 1,
         "fan_out": 0,
-        "risk": 0
+        "risk": 2
       },
       "TestOrdersModule": {
         "file": "sample_src/backend/tests/test_orders.py",
@@ -568,18 +583,48 @@
         "fan_in": 2,
         "fan_out": 0,
         "risk": 3
+      },
+      {
+        "node": "OrderCard",
+        "file": "sample_src/frontend/OrderCard.tsx",
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-08T20:53:05+07:00",
+        "first_commit": "2026-09-08T20:53:05+07:00",
+        "fan_in": 0,
+        "fan_out": 2,
+        "risk": 3
+      },
+      {
+        "node": "StatusBadge",
+        "file": "sample_src/frontend/OrderCard.tsx",
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-08T20:53:05+07:00",
+        "first_commit": "2026-09-08T20:53:05+07:00",
+        "fan_in": 1,
+        "fan_out": 0,
+        "risk": 2
       }
     ],
     "summary": {
-      "files_with_history": 12,
-      "commits_counted": 22,
+      "files_with_history": 13,
+      "commits_counted": 23,
       "authors": 2,
       "graph": "graph.json",
       "note": null
     }
   },
   "metrics": {
-    "generated": "2026-09-08T13:50:07Z",
+    "generated": "2026-09-08T14:02:53Z",
     "roots": [
       "sample_src"
     ],
@@ -962,7 +1007,7 @@
     ]
   },
   "debt": {
-    "generated": "2026-09-08T13:50:07Z",
+    "generated": "2026-09-08T14:02:53Z",
     "roots": [
       "sample_src"
     ],
@@ -1005,7 +1050,7 @@
     ]
   },
   "tests": {
-    "generated": "2026-09-08T13:50:07Z",
+    "generated": "2026-09-08T14:02:53Z",
     "roots": [
       "sample_src"
     ],
