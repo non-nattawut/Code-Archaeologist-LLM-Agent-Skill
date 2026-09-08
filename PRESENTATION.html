@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code Archaeologist — Feature Guide</title>
+<style>
+  :root{
+    --ground:#08090b; --panel:#0d0f13; --raised:#12151a;
+    --rule:#1b1f26; --rule-lit:#2a3038;
+    --ink:#e6e9ef; --ink-2:#9aa4b2; --ink-3:#6b7686;
+    --accent:#d99f4a;
+    --ok:#3fb950; --warn:#e3b341; --bad:#f2544b;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--ground); color:var(--ink);
+    font-family:var(--mono); font-size:14px; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent); text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1180px; margin:0 auto; padding:0 28px}
+  section{padding:56px 0; border-bottom:1px solid var(--rule)}
+  h1,h2,h3{line-height:1.25; margin:0}
+  h2{font-size:20px; letter-spacing:.02em}
+  .eyebrow{
+    font-size:11px; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--ink-3); margin-bottom:14px;
+  }
+  .lede{color:var(--ink-2); max-width:74ch; margin-top:14px}
+
+  /* ---------- header ---------- */
+  header{border-bottom:1px solid var(--rule); background:var(--panel)}
+  .hero{padding:64px 0 56px}
+  .hero h1{font-size:34px; letter-spacing:-.01em}
+  .hero .tag{color:var(--accent); font-size:13px; margin-bottom:16px; letter-spacing:.04em}
+  .hero p{color:var(--ink-2); max-width:76ch; margin:16px 0 0}
+  .demo{
+    margin-top:28px; background:var(--ground); border:1px solid var(--rule);
+    border-radius:6px; padding:18px 20px; font-size:13px; overflow-x:auto;
+  }
+  .demo .q{color:var(--ink)}
+  .demo .arrow{color:var(--accent)}
+  .demo .dim{color:var(--ink-3)}
+  .demo .hit{color:var(--ok)}
+
+  /* ---------- stat tiles ---------- */
+  .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1px;
+         background:var(--rule); border:1px solid var(--rule); border-radius:6px; overflow:hidden}
+  .stat{background:var(--panel); padding:18px 20px}
+  .stat .v{font-size:26px; color:var(--ink); letter-spacing:-.01em}
+  .stat .l{font-size:11px; color:var(--ink-3); text-transform:uppercase; letter-spacing:.12em; margin-top:6px}
+
+  /* ---------- tables ---------- */
+  table{width:100%; border-collapse:collapse; margin-top:20px; font-size:13px}
+  th,td{text-align:left; padding:11px 14px; border-bottom:1px solid var(--rule); vertical-align:top}
+  th{color:var(--ink-3); font-weight:400; font-size:11px; text-transform:uppercase; letter-spacing:.12em}
+  td.k{color:var(--ink-2); white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+
+  /* ---------- pipeline ---------- */
+  .pipe{margin-top:24px; overflow-x:auto}
+  .pipe pre{
+    margin:0; color:var(--ink-2); font-size:12.5px; line-height:1.75;
+    background:var(--panel); border:1px solid var(--rule); border-radius:6px; padding:22px;
+  }
+  .pipe b{color:var(--accent); font-weight:400}
+
+  /* ---------- feature grid ---------- */
+  .cat{margin-top:36px}
+  .cat h3{
+    font-size:12px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--ink-3); padding-bottom:10px; border-bottom:1px solid var(--rule);
+  }
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(268px,1fr)); gap:12px; margin-top:16px}
+  .card{
+    background:var(--panel); border:1px solid var(--rule); border-radius:6px;
+    padding:16px 18px; cursor:pointer; text-align:left; color:inherit;
+    font:inherit; transition:border-color .12s, background .12s;
+  }
+  .card:hover,.card:focus{border-color:var(--accent); background:var(--raised); outline:none}
+  .card .t{font-size:14px; margin-bottom:6px}
+  .card .d{font-size:12.5px; color:var(--ink-2); line-height:1.55}
+  .card .more{font-size:11px; color:var(--ink-3); margin-top:10px; letter-spacing:.08em}
+
+  /* ---------- detail drawer ---------- */
+  .scrim{
+    position:fixed; inset:0; background:rgba(0,0,0,.66);
+    opacity:0; pointer-events:none; transition:opacity .16s; z-index:40;
+  }
+  .scrim.on{opacity:1; pointer-events:auto}
+  .drawer{
+    position:fixed; top:0; right:0; height:100%; width:min(660px,94vw);
+    background:var(--panel); border-left:1px solid var(--rule-lit);
+    transform:translateX(100%); transition:transform .2s ease; z-index:41;
+    display:flex; flex-direction:column;
+  }
+  .drawer.on{transform:none}
+  .dhead{
+    padding:22px 26px; border-bottom:1px solid var(--rule);
+    display:flex; align-items:flex-start; gap:16px; flex:none;
+  }
+  .dhead h3{font-size:17px}
+  .dhead .cat-tag{font-size:11px; color:var(--accent); letter-spacing:.12em; text-transform:uppercase}
+  .dbody{padding:26px; overflow-y:auto; flex:1; min-height:0}
+  .x{
+    margin-left:auto; background:none; border:1px solid var(--rule-lit); color:var(--ink-2);
+    width:30px; height:30px; border-radius:5px; cursor:pointer; font:inherit; flex:none;
+  }
+  .x:hover{border-color:var(--accent); color:var(--accent)}
+  .blk{margin-bottom:24px}
+  .blk h4{
+    font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--ink-3); margin:0 0 9px;
+  }
+  .blk p{margin:0; color:var(--ink-2); font-size:13px}
+  code,.cmd{
+    font-family:var(--mono); background:var(--ground); border:1px solid var(--rule);
+    border-radius:4px; padding:2px 6px; font-size:12.5px; color:var(--accent);
+  }
+  .cmd{display:block; padding:12px 14px; overflow-x:auto; white-space:pre; color:var(--ink)}
+  .qa{border-left:2px solid var(--rule-lit); padding:2px 0 2px 15px; margin-bottom:16px}
+  .qa .q{color:var(--ink); font-size:13px; margin-bottom:5px}
+  .qa .a{color:var(--ink-2); font-size:12.5px}
+  .tech{display:flex; flex-wrap:wrap; gap:6px}
+  .chip{
+    font-size:11.5px; color:var(--ink-2); background:var(--ground);
+    border:1px solid var(--rule); border-radius:99px; padding:3px 11px;
+  }
+
+  /* ---------- limits ---------- */
+  .limit{
+    background:var(--panel); border:1px solid var(--rule); border-left:2px solid var(--warn);
+    border-radius:5px; padding:15px 18px; margin-bottom:11px;
+  }
+  .limit .h{color:var(--ink); font-size:13px; margin-bottom:5px}
+  .limit .b{color:var(--ink-2); font-size:12.5px}
+
+  /* ---------- palette ---------- */
+  .sw{display:flex; align-items:center; gap:9px; font-size:12.5px; color:var(--ink-2)}
+  .dot{width:11px; height:11px; border-radius:50%; flex:none}
+
+  .hint{color:var(--ink-3); font-size:12px; margin-top:14px}
+  @media print{ .scrim,.drawer{display:none} body{background:#fff; color:#000} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap hero">
+    <div class="tag">ZERO-RAG CODEBASE INTELLIGENCE</div>
+    <h1>Code Archaeologist</h1>
+    <p>A codebase map an AI agent can <strong>query</strong> instead of reading your whole repo.
+       It scans your code once, builds two graphs plus one note per class and method, then answers
+       architecture questions by walking those graphs — deterministically, with zero Python
+       dependencies and no vector database.</p>
+
+    <div class="demo">
+<span class="dim">?</span> <span class="q">"How does a request reach the database?"</span>
+
+  <span class="arrow">trace</span>  submitOrder <span class="dim">></span> createOrder <span class="dim">></span> OrderController.create_order
+         <span class="dim">></span> OrderService.place_order <span class="dim">></span> OrderRepository.save
+
+  <span class="arrow">read</span>   <span class="hit">5 notes (~1,500 tokens)</span>  <span class="dim">instead of the entire repository</span>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">At a glance</div>
+    <div class="stats">
+      <div class="stat"><div class="v">2</div><div class="l">Graphs</div></div>
+      <div class="stat"><div class="v">22</div><div class="l">Scripts</div></div>
+      <div class="stat"><div class="v">7</div><div class="l">Explorer views</div></div>
+      <div class="stat"><div class="v">16</div><div class="l">Languages scanned</div></div>
+      <div class="stat"><div class="v">0</div><div class="l">Python deps</div></div>
+      <div class="stat"><div class="v">1</div><div class="l">HTML file out</div></div>
+    </div>
+    <p class="hint">Python 3.10+ standard library only. Node + <code>@babel/parser</code> is the single
+       optional dependency, and only for parsing JavaScript/TypeScript.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">The problem</div>
+    <h2>Why not just use RAG?</h2>
+    <p class="lede">RAG chops code into ~500-token chunks and retrieves by similarity. That destroys
+       exactly the two things architecture questions are about: <strong>scope</strong> and
+       <strong>call hierarchy</strong>. A chunk boundary can land mid-function; a similarity search
+       has no idea that one method calls another.</p>
+    <table>
+      <tr><th></th><th>Standard RAG</th><th>Code Archaeologist</th></tr>
+      <tr><td class="k">Unit</td><td>arbitrary ~500-token chunk</td><td>one whole class / method per note</td></tr>
+      <tr><td class="k">Relationships</td><td>lost at chunking time</td><td>explicit graph edges</td></tr>
+      <tr><td class="k">Retrieval</td><td>similarity search, non-deterministic</td><td>BFS traversal — same answer every run</td></tr>
+      <tr><td class="k">Cost per query</td><td>re-reads large context</td><td>only the nodes on the path</td></tr>
+      <tr><td class="k">Infrastructure</td><td>embedding model + vector DB</td><td>a JSON file</td></tr>
+      <tr><td class="k">Goes stale</td><td>silently</td><td>detected — the build is hash-checked</td></tr>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Architecture</div>
+    <h2>How it fits together</h2>
+    <div class="pipe"><pre>
+   your source                        two graphs                      one page
+  ┌────────────┐   ast / @babel    ┌───────────────┐   analysis    ┌───────────────┐
+  │ .py  .ts   │ ────────────────▶ │ <b>structure</b>  ────────────────▶ │ explorer.html │
+  │ .jsx .tsx  │     extract       │ <b>flow</b>       │   + report    │  (both maps)  │
+  └────────────┘                   └───────────────┘               └───────────────┘
+                                          │
+                                          ▼   one Markdown note per node
+                                   [[wikilinked]] vault
+                                          │
+                                          ▼
+                          trace · impact · search · context · brief
+</pre></div>
+    <table>
+      <tr><th></th><th>Structure map</th><th>Flow map</th></tr>
+      <tr><td class="k">Node</td><td>a class / entity</td><td>a method / function</td></tr>
+      <tr><td class="k">Edge</td><td>references, imports</td><td>calls</td></tr>
+      <tr><td class="k">Answers</td><td>"how is this organised?", "who uses X?"</td><td>"how does a request travel?"</td></tr>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Features</div>
+    <h2>Click any capability for how it works</h2>
+    <p class="lede">Every answer below is <em>computed</em> from the graphs. Nothing here is an LLM
+       guessing about your code — the only place a model contributes is one-line prose summaries,
+       and even those are cached by source hash.</p>
+    <div id="features"></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Be ready for this</div>
+    <h2>Honest limitations</h2>
+    <p class="lede">The fastest way to lose an audience is to oversell. Each of these is a real
+       boundary — say it plainly and explain the trade-off that bought it.</p>
+    <div id="limits" style="margin-top:22px"></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Reference</div>
+    <h2>Colour scheme &amp; command cheat sheet</h2>
+    <p class="lede">One meaning, one colour, everywhere — a reader learns the scheme once and it
+       holds across every view. Each swatch is always shown with its label, so identity never
+       depends on colour alone.</p>
+    <div class="grid" style="margin-top:18px" id="palette"></div>
+
+    <h3 style="margin-top:38px; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3)">Commands</h3>
+    <table>
+      <tr><th>Goal</th><th>Command</th></tr>
+      <tr><td class="k">Build both maps</td><td><code>archaeologist.py both --src ./src</code></td></tr>
+      <tr><td class="k">Full review report</td><td><code>archaeologist.py report --src ./src</code></td></tr>
+      <tr><td class="k">Are the maps stale?</td><td><code>archaeologist.py check --src ./src</code></td></tr>
+      <tr><td class="k">Orient on a repo</td><td><code>archaeologist.py brief</code></td></tr>
+      <tr><td class="k">Find a node</td><td><code>search.py --name X</code></td></tr>
+      <tr><td class="k">Connect two nodes</td><td><code>trace_path.py --from A --to B</code></td></tr>
+      <tr><td class="k">What breaks if X changes</td><td><code>trace_path.py --impact-of X</code></td></tr>
+      <tr><td class="k">What does this PR affect</td><td><code>trace_path.py --impact-of-diff</code></td></tr>
+      <tr><td class="k">Everything about a node</td><td><code>context.py --node X</code></td></tr>
+    </table>
+  </div>
+</section>
+
+<section style="border-bottom:none">
+  <div class="wrap">
+    <p class="hint">Generated feature guide for Code Archaeologist · self-contained, works offline ·
+       press <code>Esc</code> to close a panel</p>
+  </div>
+</section>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dtitle">
+  <div class="dhead">
+    <div>
+      <div class="cat-tag" id="dcat"></div>
+      <h3 id="dtitle"></h3>
+    </div>
+    <button class="x" id="dclose" aria-label="Close">✕</button>
+  </div>
+  <div class="dbody" id="dbody"></div>
+</aside>
+
+<script>
+/* ------------------------------------------------------------------
+   Feature data. Each entry carries what an audience actually asks:
+   what it does, the mechanism, the named technique, the command,
+   and the questions that follow.
+------------------------------------------------------------------ */
+const CATEGORIES = [
+  ["extract", "Building the map"],
+  ["navigate", "Navigating the code"],
+  ["review",  "Reviewing quality & risk"],
+  ["trust",   "Keeping it honest"],
+  ["output",  "What you get out"]
+];
+
+const FEATURES = [
+  /* ---------------- extract ---------------- */
+  {
+    id:"structure", cat:"extract", title:"Structure map",
+    d:"A class-level graph: which entity references or imports which.",
+    how:"Walks every Python file with the standard-library <code>ast</code> module and pulls out each class — its name, docstring, base classes, decorators, methods and imports. Each becomes one Markdown note carrying <code>[[wikilinks]]</code> to the other entities it mentions. A second pass reads those notes back and turns every wikilink into a graph edge.",
+    tech:["Python <code>ast</code>","Markdown front-matter","Wikilink regex → edges"],
+    cmd:"archaeologist.py project --src ./src",
+    qa:[
+      ["Why go through Markdown instead of straight to a graph?","The notes are the product, not an intermediate. A human can read them in Obsidian, and an agent reads exactly the ones on a traced path. The graph falls out of them for free."],
+      ["Is the parse accurate or regex-guessing?","It is a real AST parse, so it understands syntax rather than pattern-matching text. Where it cannot be certain — resolving a call target — it drops the edge rather than inventing one."]
+    ]
+  },
+  {
+    id:"flow", cat:"extract", title:"Flow map",
+    d:"A method-level call graph — the actual execution path through your code.",
+    how:"Two passes. The first indexes every method and function and records the types it can see: attributes assigned in <code>__init__</code>, annotated parameters and locals. The second pass re-walks each body and resolves every call site against that index, emitting an edge only when the target genuinely exists.",
+    tech:["Two-pass AST","Deferred call resolution","Endpoint root detection"],
+    cmd:"archaeologist.py flow --src ./src",
+    qa:[
+      ["Why two passes?","A method can call something defined later in the file, or in a file not yet read. Resolving on the first pass would miss those, so call sites are deferred until every node is known."],
+      ["What marks an entry point?","A route decorator, or a class the layer rules classify as a controller. Those become <code>endpoint</code> roots so a request flow has a clear place to start."]
+    ]
+  },
+  {
+    id:"resolve", cat:"extract", title:"Call resolution without a type checker",
+    d:"Works out that self.repo.save() means OrderRepository.save — with no type inference engine.",
+    how:"Four heuristics, cheapest first. <code>self.&lt;attr&gt;.m()</code> resolves through the attribute's type recorded from <code>__init__</code> annotations or assignments. <code>&lt;param&gt;.m()</code> uses the parameter annotation. <code>&lt;local&gt;.m()</code> uses a <code>x = SomeClass()</code> constructor assignment. <code>self.m()</code> resolves inside the same class.",
+    tech:["Annotation reading","Constructor inference","Conservative drop on ambiguity"],
+    cmd:"— internal to build_flow.py",
+    qa:[
+      ["What happens to calls it cannot resolve?","They are dropped. An unresolved call into a third-party library or the standard library would add noise without adding architectural meaning, and a wrong edge is worse than a missing one."],
+      ["So the graph is incomplete?","Deliberately, yes. It is a high-precision graph rather than a high-recall one: every edge shown is one the code really makes. Dynamic dispatch and duck typing are the known blind spots."]
+    ]
+  },
+  {
+    id:"crossstack", cat:"extract", title:"Cross-stack API linking",
+    d:"Connects a frontend fetch() to the backend route handler that serves it.",
+    how:"Route decorators such as <code>@router.post(\"/orders\")</code> are read for their method and path; frontend <code>fetch</code>/<code>axios</code> calls are read for theirs. Both paths are normalised so <code>:id</code>, <code>{id}</code> and <code>&lt;id&gt;</code> all collapse to a wildcard, then matched on the pair (METHOD, path).",
+    tech:["Route decorator extraction","Path normalisation","HTTP edge type"],
+    cmd:"archaeologist.py flow --src ./backend ./frontend",
+    qa:[
+      ["Why does this matter?","It is the join most tools miss. Without it you have two disconnected graphs; with it a single trace runs from a button click all the way to the database row."],
+      ["Which frameworks are covered?","Decorator-style routes today — FastAPI, Flask. Express and Nest are on the roadmap. The matching itself is framework-neutral once a route is recognised."]
+    ]
+  },
+  {
+    id:"frontend", cat:"extract", title:"Frontend extraction",
+    d:"JavaScript and TypeScript parsed properly, and degrading loudly when it cannot.",
+    how:"Python shells out to a small Node script that parses with <code>@babel/parser</code> and returns JSON. If Node or the parser is missing, the run prints one clear warning, skips frontend files and still builds the Python graph — and the summary is labelled <code>(BACKEND ONLY)</code> so a partial map is never mistaken for a complete one.",
+    tech:["@babel/parser","Subprocess JSON bridge","Explicit degraded state"],
+    cmd:"cd .agents/skills/code-archaeologist && npm install",
+    qa:[
+      ["Why is this the one dependency?","Writing a correct TypeScript parser is not a side quest. Everything else is standard library; this one place buys real accuracy on JSX and TS syntax."],
+      ["What if a teammate forgets to install it?","The build still succeeds but says so in the summary and warns that the graph is incomplete and should not be committed as the project's map."]
+    ]
+  },
+  {
+    id:"descriptions", cat:"extract", title:"Hybrid descriptions",
+    d:"Prose summaries that cost tokens only for code that actually changed.",
+    how:"Each node's description is resolved cheapest-first: an existing docstring wins; otherwise a cached AI summary is used if the method's source hash still matches; otherwise a deterministic fallback is written and the method is queued for summarising. Summaries are keyed by a SHA-1 of the method source, so editing a method invalidates only that entry.",
+    tech:["SHA-1 source hashing","Cache invalidation by content","Deterministic fallback"],
+    cmd:"apply_descriptions.py --input summaries.json",
+    qa:[
+      ["Is the graph itself AI-generated?","No — and this is the important distinction. Structure, edges, signatures and call relationships are all extracted deterministically. A model only ever writes one-line prose, and never influences the graph."],
+      ["What does re-running cost after a small change?","Only the changed methods. Unchanged ones keep their cached summary and deleted ones are pruned, so keeping the map current costs roughly the diff."]
+    ]
+  },
+
+  /* ---------------- navigate ---------------- */
+  {
+    id:"trace", cat:"navigate", title:"Path tracing",
+    d:"The shortest call path between any two nodes — or every path.",
+    how:"Breadth-first search over the adjacency list gives the shortest path and, because BFS explores in order of distance, the first path found is provably the shortest. A bounded depth-first search enumerates all simple paths, capped on both path count and depth so a dense graph cannot hang the query.",
+    tech:["BFS shortest path","Bounded DFS enumeration","Cycle-safe visited set"],
+    cmd:"trace_path.py --from OrderController --to OrderRepository",
+    qa:[
+      ["Why is this better than asking the model to read the code?","It is exact and it is cheap. The traversal costs no tokens at all; the model only reads the handful of notes the path names."],
+      ["Same answer every time?","Yes. The graph is sorted deterministically and BFS is deterministic, so the same repository always yields the same path — which is what makes it reviewable."]
+    ]
+  },
+  {
+    id:"impact", cat:"navigate", title:"Blast radius",
+    d:"Everything upstream that breaks if you change one node.",
+    how:"The graph is transposed — every edge reversed — and a breadth-first search runs outward from the target. That yields the transitive set of callers: not just direct callers but everything that reaches the node through any chain.",
+    tech:["Graph transposition","Reverse BFS","Transitive closure"],
+    cmd:"trace_path.py --impact-of PaymentClient.charge",
+    qa:[
+      ["Why not just search for the function name?","Text search finds direct mentions. This finds the transitive set — the caller three hops up that nobody would think to grep for is exactly the one that breaks in production."],
+      ["Does it cross the frontend boundary?","Yes. Because HTTP edges are real edges, a backend change can surface the frontend function that ultimately triggers it."]
+    ]
+  },
+  {
+    id:"diffimpact", cat:"navigate", title:"Changeset blast radius",
+    d:"Point it at a git diff and it tells you what the whole PR affects.",
+    how:"Runs <code>git diff --name-only</code> (working tree, staged, or against any base ref), maps each changed file back to the graph nodes that live in it by path-suffix match, then unions the blast radius of every one of those nodes.",
+    tech:["git diff parsing","Path-suffix node mapping","Union of impact sets"],
+    cmd:"trace_path.py --impact-of-diff --base origin/main",
+    qa:[
+      ["What is this for in practice?","Reviewing a pull request. Instead of judging a diff by the lines it touches, you see the surface it actually moves — often much larger than the diff suggests."],
+      ["How does it match files to nodes?","Node sources are stored relative with a root prefix, so matching is done on a path suffix with a boundary check. That keeps it correct whether git reports paths from the repo root or a subdirectory."]
+    ]
+  },
+  {
+    id:"search", cat:"navigate", title:"Graph-aware search",
+    d:"Find nodes by name, doc, layer, kind, language — or by connectivity.",
+    how:"A filter over one graph rather than a text search over source. Beyond the obvious fields it can select structurally: everything a node calls, everything that calls it, or every node with no callers at all.",
+    tech:["Graph filter","Connectivity predicates","ID-returning output"],
+    cmd:"search.py --name order --layer service",
+    qa:[
+      ["Why does this exist when grep exists?","Because it returns node IDs, which are the keys every other command takes. It is the entry point of a workflow: search to find, trace to connect, context to load."],
+      ["Can it find dead code?","<code>--orphans</code> lists nodes nothing calls. Test code is excluded from that by design, since a runner calls tests rather than the graph."]
+    ]
+  },
+  {
+    id:"context", cat:"navigate", title:"One-call context packs",
+    d:"Everything known about a node in a single, size-budgeted block.",
+    how:"Joins the graph facts, size and complexity, churn and ownership, the description, the immediate callers and callees each with their own description, and any risk findings attributed to that node — then renders it under a hard character budget so the output cannot blow a context window.",
+    tech:["Multi-source join","Hard character budget","Neighbour expansion"],
+    cmd:"context.py --node OrderService.place_order",
+    qa:[
+      ["What problem does this solve?","It replaces \"trace, then open five notes, then look up the metrics\" with one call — fewer round trips and a predictable size."],
+      ["Why cap the size?","So the cost is bounded no matter how connected a node is. A hub with sixty callers must not silently produce a huge payload."]
+    ]
+  },
+  {
+    id:"brief", cat:"navigate", title:"Orientation brief",
+    d:"The whole codebase as a fixed-size digest, whatever its size.",
+    how:"Reads only artifacts the other passes already wrote — it computes nothing itself — and prints counts and grade per map, freshness, size and language mix, entry points, and the top longest, most complex, most churned and riskiest nodes.",
+    tech:["Artifact-only read","Fixed output size","Zero recomputation"],
+    cmd:"archaeologist.py brief",
+    qa:[
+      ["Why is fixed size the point?","It is what an agent opens a session with. A digest that grew with the repository would defeat the purpose on exactly the large codebases that need it most."],
+      ["Why compute nothing?","Anything expensive belongs upstream in a build. Keeping this a pure read means it is always fast and always consistent with the last build."]
+    ]
+  },
+
+  /* ---------------- review ---------------- */
+  {
+    id:"smells", cat:"review", title:"Architectural smells",
+    d:"Cycles, dead code, backwards dependencies, hubs and god objects.",
+    how:"Cycles come from Tarjan's strongly-connected-components algorithm, run iteratively so a deep graph cannot overflow the stack — any component with more than one node is a dependency cycle. Orphans are nodes with in-degree zero that are not entry points. Layer violations are edges that call <em>upward</em> against the ranking controller → service → repository/client → model. Hubs are nodes whose fan-in plus fan-out reaches 10; god objects are classes with 12+ methods.",
+    tech:["Tarjan SCC (iterative)","In-degree analysis","Layer ranking"],
+    cmd:"analyze.py --graph <graph.json>",
+    qa:[
+      ["Why is a cycle worth flagging?","It is the hardest coupling to untangle — no module in the loop can be understood, tested or extracted alone."],
+      ["Do cross-stack calls trip the layer check?","No. A frontend client calling a backend controller is the correct direction across an API boundary, so HTTP edges are excluded from that check."],
+      ["Are the thresholds tunable?","They are named constants in one place, deliberately conservative so the report stays credible rather than noisy."]
+    ]
+  },
+  {
+    id:"grade", cat:"review", title:"Health grade (0–100, A–F)",
+    d:"One number for the codebase, with every deduction itemised.",
+    how:"Starts at 100 and subtracts per category: dead code, cycles, layer violations, high coupling, god objects and security findings. <strong>Every category is capped</strong>, so one bad dimension cannot sink the grade alone. Cutoffs are A ≥ 90, B ≥ 80, C ≥ 70, D ≥ 60.",
+    tech:["Capped deductions","Weighted severity","Transparent breakdown"],
+    cmd:"analyze.py   # or: archaeologist.py report",
+    qa:[
+      ["Isn't a single grade reductive?","On its own, yes — which is why the breakdown ships with it. The grade opens the conversation; the deductions are the actual content."],
+      ["Why cap each category?","Without caps, one file with forty TODOs would score the same as a genuinely broken architecture. Caps keep the number meaningful across very different failure modes."],
+      ["Can I compare grades between projects?","Compare a project to its own history rather than to another project. The score is most useful as a trend line."]
+    ]
+  },
+  {
+    id:"security", cat:"review", title:"Risk scan",
+    d:"Hardcoded secrets, SQL injection, eval/innerHTML sinks, debug leftovers.",
+    how:"A line-level regular-expression sweep. SQL injection needs three signals on one line — a query call, a SQL keyword and string interpolation — which keeps false positives down. Every finding is attributed to the graph node that owns that line, secret values are redacted before they are written, and test files, fixtures and comments are skipped.",
+    tech:["Multi-signal regex","Node attribution","Automatic redaction"],
+    cmd:"scan_security.py --src ./src",
+    qa:[
+      ["Is this a replacement for a real SAST tool?","No, and it should not be pitched as one. It is a fast first pass with one unusual property: findings are graph-attributed, so you can blast-radius a risk like any other node."],
+      ["Why redact?","The report is a committable artifact. Writing a live secret into it would turn a finding into a second incident."],
+      ["Why skip tests?","A fixture password is not a leaked credential. Scanning them produces noise that trains people to ignore the report."]
+    ]
+  },
+  {
+    id:"metrics", cat:"review", title:"Size & complexity",
+    d:"Lines, cyclomatic complexity, nesting depth and parameter count per node.",
+    how:"File lines are split into code, comment and blank. Per node, cyclomatic complexity is 1 plus every branch in the subtree — with <code>a and b and c</code> correctly counted as two branches and comprehension conditions included. Entries are keyed exactly like the graph nodes.",
+    tech:["Cyclomatic complexity","AST subtree walk","Graph-aligned keys"],
+    cmd:"metrics.py --src ./src",
+    qa:[
+      ["Why key it like the graph?","So \"what is the most tangled code here\" is a lookup rather than a source read. Metrics that cannot be joined to the graph would just be another file to open."],
+      ["Any gaps?","Per-node metrics are Python-only today, because the JS extractor does not yet record an end line. Frontend files still count toward file totals."]
+    ]
+  },
+  {
+    id:"debt", cat:"review", title:"Debt inventory",
+    d:"TODO/FIXME/HACK markers and dead code, attributed to owning nodes.",
+    how:"Finds markers in comments only — so a string containing the word \"todo\" is not a false hit — and attributes each to the node that owns the line. Dead code is reported at two levels: individual nodes nothing calls, and files where every node is dead.",
+    tech:["Comment-only matching","Node attribution","File-level rollup"],
+    cmd:"debt.py --src ./src",
+    qa:[
+      ["Why does the file-level rollup matter?","One dead function is a loose end; a file where everything is dead is a deletion you can actually make. The rollup turns a list into an action."],
+      ["Does debt affect the grade?","Markers do not — they are reported, not judged. Dead code does, through the dead-code deduction."]
+    ]
+  },
+  {
+    id:"tests", cat:"review", title:"Test coverage map",
+    d:"Which nodes the test suite names — no runner, nothing to install.",
+    how:"Name-based: a <code>Class.method</code> counts as covered when a test file names both. Test files are recognised across languages by path, filename and framework markers — pytest, Jest/Vitest, JUnit and Spring, Go's <code>func TestX(t *testing.T)</code>, Rust's <code>#[test]</code>, .NET's <code>[Fact]</code>, RSpec, PHPUnit — and their nodes are tagged <code>layer: test</code>.",
+    tech:["Name-based matching","Multi-language detection","layer: test tagging"],
+    cmd:"tests_map.py --src ./src",
+    qa:[
+      ["Is this real coverage?","No — and say so first. Real coverage needs instrumentation. This answers a different question: which parts of the codebase the test suite even mentions, with zero setup and in any language."],
+      ["Why does the tagging matter so much?","Because it prevents a whole class of wrong answers. Tests have no in-graph callers, so without the tag every test would be reported as dead code and every test call would inflate coupling."]
+    ]
+  },
+  {
+    id:"git", cat:"review", title:"Churn, ownership & hotspots",
+    d:"What changes most, who owns it, and where that overlaps with coupling.",
+    how:"A single <code>git log --numstat</code> pass yields commits per file and the top author per file. Hotspot risk is <code>commits × (1 + fan_in + fan_out)</code> — code that both changes often <em>and</em> has many callers. Outside a git repository it degrades to empty data rather than failing.",
+    tech:["Single git log pass","Churn × coupling ranking","Graceful degradation"],
+    cmd:"git_insights.py",
+    qa:[
+      ["Why multiply churn by coupling?","Either signal alone misleads. A volatile file nobody depends on is harmless; a heavily depended-on file that never changes is stable. Risk lives where both are true."],
+      ["Why one pass?","Per-file git calls are slow on a large history. One pass keeps the whole report fast enough to run routinely."]
+    ]
+  },
+
+  /* ---------------- trust ---------------- */
+  {
+    id:"stale", cat:"trust", title:"Staleness guard",
+    d:"Detects when the maps no longer match the source — before you trust them.",
+    how:"Every build records a SHA-1 of every source file it scanned, keyed by a portable relative path. <code>check</code> re-scans and reports exactly what was added, changed or deleted. Content hashing is used rather than timestamps, so a fresh clone or a touched file does not produce a false alarm.",
+    tech:["SHA-1 content hashing","Portable relative keys","Added/changed/deleted diff"],
+    cmd:"archaeologist.py check --src ./src",
+    qa:[
+      ["Why is this the most important feature?","Because every other answer depends on it. A confident trace over a stale graph is worse than no answer at all — it is wrong and it looks right."],
+      ["Why hashes and not modification times?","Timestamps change on checkout, on branch switches, on any file copy. Content hashing only fires when the content genuinely differs."]
+    ]
+  },
+  {
+    id:"determinism", cat:"trust", title:"Determinism by construction",
+    d:"Same source in, same bytes out — on any machine.",
+    how:"Nodes and edges are sorted before writing, paths are stored relative with forward slashes rather than absolute, and no model output ever reaches the graph. The result is that a rebuild produces an identical file, so the maps can be committed and reviewed in a diff.",
+    tech:["Sorted output","Relative path storage","No model in the structure path"],
+    cmd:"— a property, not a command",
+    qa:[
+      ["Why does this matter commercially?","It makes the output auditable. You can commit the graph, diff it in code review, and see precisely how an architecture changed between two releases."],
+      ["What would break it?","Anything machine-specific leaking into an artifact — absolute paths were exactly that bug, and were fixed by storing roots relative."]
+    ]
+  },
+  {
+    id:"taxonomy", cat:"trust", title:"One source of truth for vocabulary",
+    d:"Every kind, layer and test rule is defined in exactly one file.",
+    how:"A single taxonomy module owns the allowed <code>kind</code> and <code>layer</code> values, the rules that infer a layer from a name, and the definition of what counts as a test file. Every pass asks it rather than re-implementing the check.",
+    tech:["Single definition point","Shared across extractors","Mirrored in docs"],
+    cmd:"— scripts/taxonomy.py",
+    qa:[
+      ["Why is that worth a whole module?","Because the alternative is drift. If the security scanner and the dead-code check disagree about what a test file is, the report contradicts itself — and a report that contradicts itself gets ignored."]
+    ]
+  },
+
+  /* ---------------- output ---------------- */
+  {
+    id:"explorer", cat:"output", title:"The explorer",
+    d:"Both maps in one self-contained HTML file — no server, works offline.",
+    how:"Graph data is embedded inline into a template, producing a single file you can open from <code>file://</code>, commit, or email. Three panes: a left rail with the health ring, colour-by selector, stat tiles and a file tree; a centre canvas with seven views of the same graph; a right panel with FILE, PATTERNS and SECURITY tabs that click through into each other.",
+    tech:["Inline data embedding","Seven graph layouts","Cross-linked panels"],
+    cmd:"open data/explorer.html",
+    qa:[
+      ["Why one file?","Distribution. It is the difference between \"here is the architecture\" as an attachment and \"deploy this service to look at the architecture\"."],
+      ["Why seven views?","Different questions have different shapes. Force layout shows clusters, treemap shows where the bulk is, matrix shows density, tree and flow show hierarchy and direction."],
+      ["Does it need my source?","No. Everything needed is embedded, so it can be shared with people who have no repository access."]
+    ]
+  },
+  {
+    id:"report", cat:"output", title:"Architecture report",
+    d:"Census, grade, smells, risks and hotspots as one committable artifact.",
+    how:"Joins every analysis pass into a Markdown report plus machine-readable JSON, written once per map — because node IDs differ between the two graphs, a report from one must never be shown against the other.",
+    tech:["Per-map isolation","Markdown + JSON output","PR-pasteable"],
+    cmd:"archaeologist.py report --src ./src",
+    qa:[
+      ["Who is this for?","Three readers at once: paste it into a pull request, feed the JSON to the explorer's panels, or let an agent answer \"how healthy is this?\" from it without recomputing anything."],
+      ["Why one report per map?","Because the same string means different things in each graph. Mixing them would produce confident nonsense, so the code enforces the separation."]
+    ]
+  },
+  {
+    id:"vault", cat:"output", title:"The Markdown vault",
+    d:"One readable, wikilinked note per class and per method.",
+    how:"Every node gets a note with front-matter metadata and <code>[[wikilinks]]</code> to its neighbours — what it does, its signature, what it calls and what calls it. Readable in Obsidian or any Markdown viewer, and the exact unit an agent reads after a trace.",
+    tech:["One note per node","Obsidian-compatible wikilinks","Front-matter metadata"],
+    cmd:"data/structure/vault/ · data/flow/notes/",
+    qa:[
+      ["Why Markdown rather than a database?","Because both audiences read it. A human browses it, an agent reads the three notes a trace named, and it diffs cleanly in git."],
+      ["Do the wikilinks matter?","They are what makes an answer navigable. When the agent replies with [[OrderService]], that is a link a reader can follow — the answer stays connected to the map."]
+    ]
+  }
+];
+
+const LIMITS = [
+  ["Call resolution is heuristic, not type inference",
+   "Dynamic dispatch, duck typing, dependency injection by string key and monkey-patching are invisible to it. It chooses precision over recall: every edge shown is real, but some real edges are missing. Say this before someone finds it."],
+  ["Graph extraction covers Python and JS/TS only",
+   "Sixteen languages are scanned for lines, complexity, risk, debt and tests — but nodes and edges exist only for Python and JavaScript/TypeScript. A Java shop gets the review passes, not the call graph."],
+  ["Test coverage is name-based, not instrumented",
+   "It reports which nodes the test suite <em>mentions</em>. A test that names a method but asserts nothing counts as covered. It complements a real coverage tool; it does not replace one."],
+  ["The risk scan is regex, not dataflow",
+   "It finds patterns on a line. It cannot follow a tainted value across function boundaries, so it will miss real injections and occasionally flag safe code. Treat it as a fast first pass."],
+  ["Idiom detection reads names, not behaviour",
+   "\"Singleton\" means the naming claims a singleton. It is a navigation aid, not a verified structural finding."],
+  ["Per-node metrics are Python-only",
+   "The JS extractor does not record an end line yet, so frontend files appear in file totals but not in per-node complexity."],
+  ["The graph is only as fresh as the last build",
+   "This is why the staleness guard exists — but it must actually be run. An agent that skips the check can produce a confident answer from a stale map."]
+];
+
+const PALETTE = [
+  ["#f778ba","controller / endpoint"], ["#6ea8fe","service"],
+  ["#3fb950","repository"],            ["#e3b341","model"],
+  ["#39c5cf","client"],                ["#a371f7","config"],
+  ["#f0883e","ui"],                    ["#57ab5a","test"],
+  ["#8b98ad","unknown"],               ["#d99f4a","active / accent"]
+];
+
+/* ---------------- render ---------------- */
+const host = document.getElementById("features");
+CATEGORIES.forEach(([key, label]) => {
+  const items = FEATURES.filter(f => f.cat === key);
+  if (!items.length) return;
+  const sec = document.createElement("div");
+  sec.className = "cat";
+  sec.innerHTML = `<h3>${label} · ${items.length}</h3><div class="grid"></div>`;
+  const grid = sec.querySelector(".grid");
+  items.forEach(f => {
+    const b = document.createElement("button");
+    b.className = "card";
+    b.setAttribute("aria-haspopup", "dialog");
+    b.innerHTML = `<div class="t">${f.title}</div><div class="d">${f.d}</div>
+                   <div class="more">HOW IT WORKS →</div>`;
+    b.addEventListener("click", () => open(f));
+    grid.appendChild(b);
+  });
+  host.appendChild(sec);
+});
+
+document.getElementById("limits").innerHTML = LIMITS.map(
+  ([h, b]) => `<div class="limit"><div class="h">${h}</div><div class="b">${b}</div></div>`
+).join("");
+
+document.getElementById("palette").innerHTML = PALETTE.map(
+  ([hex, name]) => `<div class="sw"><span class="dot" style="background:${hex}"></span>
+                    <span>${name}</span><span style="color:var(--ink-3);margin-left:auto">${hex}</span></div>`
+).join("");
+
+/* ---------------- drawer ---------------- */
+const scrim  = document.getElementById("scrim");
+const drawer = document.getElementById("drawer");
+let lastFocus = null;
+
+function open(f){
+  lastFocus = document.activeElement;
+  document.getElementById("dcat").textContent =
+    (CATEGORIES.find(c => c[0] === f.cat) || ["", ""])[1];
+  document.getElementById("dtitle").textContent = f.title;
+  document.getElementById("dbody").innerHTML = `
+    <div class="blk"><h4>What it does</h4><p>${f.d}</p></div>
+    <div class="blk"><h4>How it works</h4><p>${f.how}</p></div>
+    <div class="blk"><h4>Technique</h4><div class="tech">${
+      f.tech.map(t => `<span class="chip">${t}</span>`).join("")}</div></div>
+    <div class="blk"><h4>Command</h4><div class="cmd">${f.cmd}</div></div>
+    <div class="blk"><h4>If they ask…</h4>${
+      f.qa.map(([q, a]) => `<div class="qa"><div class="q">${q}</div><div class="a">${a}</div></div>`).join("")
+    }</div>`;
+  scrim.classList.add("on");
+  drawer.classList.add("on");
+  document.getElementById("dclose").focus();
+}
+function close(){
+  scrim.classList.remove("on");
+  drawer.classList.remove("on");
+  if (lastFocus) lastFocus.focus();
+}
+scrim.addEventListener("click", close);
+document.getElementById("dclose").addEventListener("click", close);
+document.addEventListener("keydown", e => { if (e.key === "Escape") close(); });
+</script>
+</body>
+</html>
