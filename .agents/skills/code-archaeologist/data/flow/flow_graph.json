@@ -1,6 +1,23 @@
 {
   "nodes": [
     {
+      "id": "GET /orders/:id/status",
+      "layer": "controller",
+      "kind": "endpoint",
+      "cls": null,
+      "signature": "GET /orders/:id/status",
+      "doc": "Report one order's current status.",
+      "source": "sample_src/api_express/order_router.js:24",
+      "lang": "js",
+      "ext": 1,
+      "routes": [
+        {
+          "method": "GET",
+          "path": "/orders/:id/status"
+        }
+      ]
+    },
+    {
       "id": "OrderCard",
       "layer": "ui",
       "kind": "component",
@@ -32,10 +49,12 @@
       "source": "sample_src/backend/order_controller.py:16",
       "lang": "py",
       "ext": 1,
-      "route": {
-        "method": "POST",
-        "path": "/orders"
-      }
+      "routes": [
+        {
+          "method": "POST",
+          "path": "/orders"
+        }
+      ]
     },
     {
       "id": "OrderController.get_order",
@@ -47,10 +66,12 @@
       "source": "sample_src/backend/order_controller.py:21",
       "lang": "py",
       "ext": 1,
-      "route": {
-        "method": "GET",
-        "path": "/orders/{order_id}"
-      }
+      "routes": [
+        {
+          "method": "GET",
+          "path": "/orders/{order_id}"
+        }
+      ]
     },
     {
       "id": "OrderRepository.get",
@@ -119,6 +140,40 @@
       "ext": 0
     },
     {
+      "id": "OrdersController.create",
+      "layer": "controller",
+      "kind": "endpoint",
+      "cls": "OrdersController",
+      "signature": "create()",
+      "doc": "Place a new order.",
+      "source": "sample_src/api_nest/orders.controller.ts:10",
+      "lang": "js",
+      "ext": 0,
+      "routes": [
+        {
+          "method": "POST",
+          "path": "/nest/orders"
+        }
+      ]
+    },
+    {
+      "id": "OrdersController.findOne",
+      "layer": "controller",
+      "kind": "endpoint",
+      "cls": "OrdersController",
+      "signature": "findOne()",
+      "doc": "Fetch one order by id.",
+      "source": "sample_src/api_nest/orders.controller.ts:16",
+      "lang": "js",
+      "ext": 0,
+      "routes": [
+        {
+          "method": "GET",
+          "path": "/nest/orders/:id"
+        }
+      ]
+    },
+    {
       "id": "PaymentClient.charge",
       "layer": "client",
       "kind": "method",
@@ -147,7 +202,7 @@
       "cls": null,
       "signature": "createOrder()",
       "doc": "Frontend API client: POST /orders with the form payload and return the created order JSON.",
-      "source": "sample_src/frontend/api_client.ts:3",
+      "source": "sample_src/frontend/api_client.ts:8",
       "lang": "js",
       "ext": 3,
       "http": [
@@ -158,19 +213,53 @@
       ]
     },
     {
+      "id": "createOrderHandler",
+      "layer": "controller",
+      "kind": "endpoint",
+      "cls": null,
+      "signature": "createOrderHandler()",
+      "doc": "Create an order and return it.",
+      "source": "sample_src/api_express/order_router.js:11",
+      "lang": "js",
+      "ext": 1,
+      "routes": [
+        {
+          "method": "POST",
+          "path": "/api/orders"
+        }
+      ]
+    },
+    {
       "id": "getOrder",
       "layer": "client",
       "kind": "function",
       "cls": null,
       "signature": "getOrder()",
       "doc": "Frontend API client: GET /orders/:id and return the parsed order JSON.",
-      "source": "sample_src/frontend/api_client.ts:8",
+      "source": "sample_src/frontend/api_client.ts:13",
       "lang": "js",
       "ext": 2,
       "http": [
         {
           "method": "GET",
           "url": "/orders/:orderId"
+        }
+      ]
+    },
+    {
+      "id": "getOrderStatus",
+      "layer": "client",
+      "kind": "function",
+      "cls": null,
+      "signature": "getOrderStatus()",
+      "doc": "to its mount point - so this only links via the unique-suffix fallback.",
+      "source": "sample_src/frontend/api_client.ts:20",
+      "lang": "js",
+      "ext": 1,
+      "http": [
+        {
+          "method": "GET",
+          "url": "/api/orders/:orderId/status"
         }
       ]
     },
@@ -184,6 +273,55 @@
       "source": "sample_src/frontend/order_page.ts:8",
       "lang": "js",
       "ext": 2
+    },
+    {
+      "id": "order_detail",
+      "layer": "controller",
+      "kind": "endpoint",
+      "cls": null,
+      "signature": "order_detail(order_id: int)",
+      "doc": "Fetch one order by id. Flask's `<int:id>` converter normalizes like any param.",
+      "source": "sample_src/api_flask/order_routes.py:25",
+      "lang": "py",
+      "ext": 3,
+      "routes": [
+        {
+          "method": "GET",
+          "path": "/legacy/orders/<int:order_id>"
+        }
+      ]
+    },
+    {
+      "id": "orders",
+      "layer": "controller",
+      "kind": "endpoint",
+      "cls": null,
+      "signature": "orders()",
+      "doc": "List orders, or place a new one - one handler, two verbs.",
+      "source": "sample_src/api_flask/order_routes.py:16",
+      "lang": "py",
+      "ext": 4,
+      "routes": [
+        {
+          "method": "GET",
+          "path": "/legacy/orders"
+        },
+        {
+          "method": "POST",
+          "path": "/legacy/orders"
+        }
+      ]
+    },
+    {
+      "id": "saveOrder",
+      "layer": "controller",
+      "kind": "function",
+      "cls": null,
+      "signature": "saveOrder()",
+      "doc": "Persist an order. Stands in for a real repository call.",
+      "source": "sample_src/api_express/order_router.js:17",
+      "lang": "js",
+      "ext": 0
     },
     {
       "id": "submitOrder",
@@ -250,13 +388,33 @@
       "type": "http"
     },
     {
+      "source": "createOrderHandler",
+      "target": "saveOrder",
+      "type": "calls"
+    },
+    {
       "source": "getOrder",
       "target": "OrderController.get_order",
       "type": "http"
     },
     {
+      "source": "getOrderStatus",
+      "target": "GET /orders/:id/status",
+      "type": "http"
+    },
+    {
       "source": "loadOrder",
       "target": "getOrder",
+      "type": "calls"
+    },
+    {
+      "source": "order_detail",
+      "target": "OrderService.find_order",
+      "type": "calls"
+    },
+    {
+      "source": "orders",
+      "target": "OrderService.place_order",
       "type": "calls"
     },
     {

@@ -148,6 +148,18 @@
     }
   },
   "nodes": {
+    "GET /orders/:id/status": {
+      "file": "sample_src/api_express/order_router.js",
+      "commits": 0,
+      "owner": null,
+      "authors": {},
+      "author_count": 0,
+      "last_commit": null,
+      "first_commit": null,
+      "fan_in": 1,
+      "fan_out": 0,
+      "risk": 0
+    },
     "OrderCard": {
       "file": "sample_src/frontend/OrderCard.tsx",
       "commits": 1,
@@ -272,9 +284,9 @@
       "author_count": 1,
       "last_commit": "2026-09-02T16:10:56+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
-      "fan_in": 1,
+      "fan_in": 2,
       "fan_out": 1,
-      "risk": 3
+      "risk": 4
     },
     "OrderService.place_order": {
       "file": "sample_src/backend/order_service.py",
@@ -286,9 +298,33 @@
       "author_count": 1,
       "last_commit": "2026-09-02T16:10:56+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
-      "fan_in": 2,
+      "fan_in": 3,
       "fan_out": 2,
-      "risk": 5
+      "risk": 6
+    },
+    "OrdersController.create": {
+      "file": "sample_src/api_nest/orders.controller.ts",
+      "commits": 0,
+      "owner": null,
+      "authors": {},
+      "author_count": 0,
+      "last_commit": null,
+      "first_commit": null,
+      "fan_in": 0,
+      "fan_out": 0,
+      "risk": 0
+    },
+    "OrdersController.findOne": {
+      "file": "sample_src/api_nest/orders.controller.ts",
+      "commits": 0,
+      "owner": null,
+      "authors": {},
+      "author_count": 0,
+      "last_commit": null,
+      "first_commit": null,
+      "fan_in": 0,
+      "fan_out": 0,
+      "risk": 0
     },
     "PaymentClient.charge": {
       "file": "sample_src/backend/payment_client.py",
@@ -333,6 +369,18 @@
       "fan_out": 1,
       "risk": 3
     },
+    "createOrderHandler": {
+      "file": "sample_src/api_express/order_router.js",
+      "commits": 0,
+      "owner": null,
+      "authors": {},
+      "author_count": 0,
+      "last_commit": null,
+      "first_commit": null,
+      "fan_in": 0,
+      "fan_out": 1,
+      "risk": 0
+    },
     "getOrder": {
       "file": "sample_src/frontend/api_client.ts",
       "commits": 1,
@@ -346,6 +394,20 @@
       "fan_in": 2,
       "fan_out": 1,
       "risk": 4
+    },
+    "getOrderStatus": {
+      "file": "sample_src/frontend/api_client.ts",
+      "commits": 1,
+      "owner": "Nattawut Rodthong",
+      "authors": {
+        "Nattawut Rodthong": 1
+      },
+      "author_count": 1,
+      "last_commit": "2026-09-02T16:10:56+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "fan_in": 0,
+      "fan_out": 1,
+      "risk": 2
     },
     "loadOrder": {
       "file": "sample_src/frontend/order_page.ts",
@@ -361,6 +423,42 @@
       "fan_in": 0,
       "fan_out": 1,
       "risk": 4
+    },
+    "order_detail": {
+      "file": "sample_src/api_flask/order_routes.py",
+      "commits": 0,
+      "owner": null,
+      "authors": {},
+      "author_count": 0,
+      "last_commit": null,
+      "first_commit": null,
+      "fan_in": 0,
+      "fan_out": 1,
+      "risk": 0
+    },
+    "orders": {
+      "file": "sample_src/api_flask/order_routes.py",
+      "commits": 0,
+      "owner": null,
+      "authors": {},
+      "author_count": 0,
+      "last_commit": null,
+      "first_commit": null,
+      "fan_in": 0,
+      "fan_out": 1,
+      "risk": 0
+    },
+    "saveOrder": {
+      "file": "sample_src/api_express/order_router.js",
+      "commits": 0,
+      "owner": null,
+      "authors": {},
+      "author_count": 0,
+      "last_commit": null,
+      "first_commit": null,
+      "fan_in": 1,
+      "fan_out": 0,
+      "risk": 0
     },
     "submitOrder": {
       "file": "sample_src/frontend/order_page.ts",
@@ -456,6 +554,21 @@
       "risk": 6
     },
     {
+      "node": "OrderService.place_order",
+      "file": "sample_src/backend/order_service.py",
+      "commits": 1,
+      "owner": "Nattawut Rodthong",
+      "authors": {
+        "Nattawut Rodthong": 1
+      },
+      "author_count": 1,
+      "last_commit": "2026-09-02T16:10:56+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "fan_in": 3,
+      "fan_out": 2,
+      "risk": 6
+    },
+    {
       "node": "PaymentClient.charge",
       "file": "sample_src/backend/payment_client.py",
       "commits": 3,
@@ -472,7 +585,7 @@
       "risk": 6
     },
     {
-      "node": "OrderService.place_order",
+      "node": "OrderService.find_order",
       "file": "sample_src/backend/order_service.py",
       "commits": 1,
       "owner": "Nattawut Rodthong",
@@ -483,8 +596,8 @@
       "last_commit": "2026-09-02T16:10:56+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 2,
-      "fan_out": 2,
-      "risk": 5
+      "fan_out": 1,
+      "risk": 4
     },
     {
       "node": "getOrder",
@@ -532,21 +645,6 @@
       "fan_in": 0,
       "fan_out": 1,
       "risk": 4
-    },
-    {
-      "node": "OrderService.find_order",
-      "file": "sample_src/backend/order_service.py",
-      "commits": 1,
-      "owner": "Nattawut Rodthong",
-      "authors": {
-        "Nattawut Rodthong": 1
-      },
-      "author_count": 1,
-      "last_commit": "2026-09-02T16:10:56+07:00",
-      "first_commit": "2026-09-02T16:10:56+07:00",
-      "fan_in": 1,
-      "fan_out": 1,
-      "risk": 3
     },
     {
       "node": "createOrder",
@@ -604,6 +702,21 @@
       "author_count": 1,
       "last_commit": "2026-09-06T20:05:48+07:00",
       "first_commit": "2026-09-06T20:05:48+07:00",
+      "fan_in": 0,
+      "fan_out": 1,
+      "risk": 2
+    },
+    {
+      "node": "getOrderStatus",
+      "file": "sample_src/frontend/api_client.ts",
+      "commits": 1,
+      "owner": "Nattawut Rodthong",
+      "authors": {
+        "Nattawut Rodthong": 1
+      },
+      "author_count": 1,
+      "last_commit": "2026-09-02T16:10:56+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 0,
       "fan_out": 1,
       "risk": 2

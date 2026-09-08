@@ -179,22 +179,30 @@ python .agents/skills/code-archaeologist/scripts/archaeologist.py report --src .
 ```
 
 Expected on the current sample (it carries three deliberate smells — a hardcoded key, interpolated
-SQL, an innerHTML sink — plus a pytest/unittest file, a `.test.ts` and a `.tsx` with two React
-components, so the review path, the test path and the component path all have something to find):
+SQL, an innerHTML sink — plus a pytest/unittest file, a `.test.ts`, a `.tsx` with two React
+components, and four API frameworks, so the review path, the test path, the component path and
+every route shape all have something to find):
 
-- structure graph: 10 nodes / 12 edges — 6 Python, 4 JS/TS, of which `OrderCard` and `StatusBadge`
+- structure graph: 13 nodes / 13 edges — 7 Python, 6 JS/TS, of which `OrderCard` and `StatusBadge`
   are `kind: component` / `layer: ui`
-- flow graph: 17 nodes / 12 edges, 3 endpoints, **0 pending** descriptions
-- traces: `create_order → place_order → {save, charge}` and `get_order → find_order → get`;
-  cross-stack `submitOrder → createOrder → OrderController.create_order → …`;
-  structure `OrderCard → {ApiClientModule, StatusBadge}`
-- grades: structure **C (70)**, flow **D (69)**; 4 risk findings each; 2 debt markers
-- tests: 2 test files, flow **4/13 nodes named by a test**, and the two test nodes carry
+- flow graph: 25 nodes / 16 edges, 9 endpoints, **0 pending** descriptions
+- routes, one per framework shape: FastAPI `OrderController.create_order`; Flask `orders` with
+  **two** entries (`GET` + `POST /legacy/orders`) and `order_detail` (`<int:order_id>`); Express
+  `createOrderHandler` (named handler) and the endpoint node `GET /orders/:id/status` (inline
+  arrow); Nest `OrdersController.{create,findOne}` under the `@Controller("nest/orders")` prefix
+- traces: `create_order → place_order → {save, charge}`, `get_order → find_order → get`, and the
+  Flask handler `orders → place_order → save`; cross-stack `submitOrder → createOrder →
+  OrderController.create_order → …`; structure `OrderCard → {ApiClientModule, StatusBadge}`
+- `getOrderStatus → GET /orders/:id/status` is the **suffix fallback**: the call is
+  `/api/orders/:id/status`, the router registers `/orders/:id/status`, and it links because
+  exactly one route matches
+- grades: structure **C (71)**, flow **D (69)**; 4 risk findings each; 2 debt markers
+- tests: 2 test files, flow **4/21 nodes named by a test**, and the two test nodes carry
   `layer: test` with call edges into `OrderService.place_order` / `OrderRepository.get`
 - `archaeologist.py check --src ./sample_src` → `stale: false` right after a build
 
 With `node_modules` renamed away the same build must still succeed, print the one
-`frontend skipped` warning, and fall back to the Python-only 6 nodes / 9 edges.
+`frontend skipped` warning, and fall back to a Python-only graph.
 
 Other checks worth running when you touch the relevant part:
 

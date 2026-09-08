@@ -34,7 +34,7 @@ Graph-only node fields (in `flow_graph.json`, not written into the pages):
 | Field | Allowed values | Meaning |
 | --- | --- | --- |
 | `ext` | integer | Call sites that leave the graph (library/stdlib); the explorer shows `N ext`. |
-| `route` | `{method, path}` | Route handled by this node (endpoints only). |
+| `routes` | list of `{method, path}` | Routes handled by this node (endpoints only). A **list**: one handler often serves several verbs (Flask `methods=["GET", "POST"]`) or carries stacked route decorators. |
 | `http` | list of `{method, url}` | Frontend HTTP calls, used for cross-stack `http` edges. |
 
 ## Edge `type` (in graph.json / flow_graph.json)

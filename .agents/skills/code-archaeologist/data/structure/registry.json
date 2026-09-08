@@ -5,7 +5,10 @@
   "OrderPageModule": "structure/vault/OrderPageModule.md",
   "OrderRepository": "structure/vault/OrderRepository.md",
   "OrderRepositoryTest": "structure/vault/OrderRepositoryTest.md",
+  "OrderRouterModule": "structure/vault/OrderRouterModule.md",
+  "OrderRoutesModule": "structure/vault/OrderRoutesModule.md",
   "OrderService": "structure/vault/OrderService.md",
+  "OrdersController": "structure/vault/OrdersController.md",
   "PaymentClient": "structure/vault/PaymentClient.md",
   "StatusBadge": "structure/vault/StatusBadge.md",
   "TestOrdersModule": "structure/vault/TestOrdersModule.md"

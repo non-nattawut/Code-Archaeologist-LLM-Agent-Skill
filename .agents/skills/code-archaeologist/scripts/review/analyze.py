@@ -147,7 +147,7 @@ def find_orphans(nodes: dict, edges: list[tuple[str, str, str]]) -> list[str]:
         # A React component is mounted by the framework and a route handler is
         # called by the server: in both cases the caller is outside the graph, so
         # having no incoming edge says nothing about whether the code is used.
-        is_entry = (n.get("kind") in ("endpoint", "component") or bool(n.get("route"))
+        is_entry = (n.get("kind") in ("endpoint", "component") or bool(n.get("routes"))
                     or n.get("layer") in ("controller", "test"))
         if not is_entry:
             orphans.append(nid)

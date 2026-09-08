@@ -137,7 +137,8 @@ Every stage is runnable on its own (`build_wiki.py`, `build_graph.py`, `build_fl
 ## Worked example
 
 Running against the bundled `sample_src/` (a controller → service → repository/client trio on the
-backend, an API client, a page module and two React components on the frontend):
+backend, an API client, a page module and two React components on the frontend, plus one small
+API per framework shape — FastAPI, Flask, Express and Nest):
 
 ```console
 # Structure: how two classes connect
@@ -171,8 +172,29 @@ The review pass over the same sample (the demo sources carry three deliberate sm
 
 ```console
 $ archaeologist.py report --src ./sample_src
-  grade D (69/100), 4 risk finding(s), 15 ranked hotspot(s)
+  grade D (69/100), 4 risk finding(s), 18 ranked hotspot(s)
 ```
+
+Routes come from all four frameworks, and a handler carries a **list** of them because one
+handler often serves several:
+
+```console
+$ context.py --node orders --graph .../flow_graph.json
+**Routes:** `GET /legacy/orders`, `POST /legacy/orders`
+
+$ search.py --kind endpoint --graph .../flow_graph.json
+GET /orders/:id/status        endpoint/controller  sample_src/api_express/order_router.js:24
+OrderController.create_order  endpoint/controller  sample_src/backend/order_controller.py:16
+OrdersController.findOne      endpoint/controller  sample_src/api_nest/orders.controller.ts:16
+order_detail                  endpoint/controller  sample_src/api_flask/order_routes.py:25
+...
+```
+
+`GET /orders/:id/status` is an endpoint node in its own right: the Express route is registered
+with an inline arrow, so there is no named function to hang it on. It is also what the
+**unique-suffix fallback** exists for — the frontend calls `/api/orders/:id/status` while the
+router registers `/orders/:id/status`, and the link is made only because exactly one route
+matches. Two routes ending the same way are left unlinked rather than guessed.
 
 | Severity | Rule | Location | Owner node |
 | --- | --- | --- | --- |
@@ -199,7 +221,7 @@ It also ships a small suite — `backend/tests/test_orders.py` (one pytest funct
 
 ```console
 $ tests_map.py --src ./sample_src
-Tests: 2 test file(s), 4/13 node(s) named by a test (30.8%)
+Tests: 2 test file(s), 4/21 node(s) named by a test (19.0%)
   untested  OrderCard                    sample_src/frontend/OrderCard.tsx:11
   ...
 
@@ -209,7 +231,7 @@ $ context.py --node OrderService.place_order
 ```
 
 Those two test nodes carry `layer: test`: they are never counted as dead code, their calls never
-count as coupling, and the explorer's **Tests** checkbox hides them (17 nodes -> 15).
+count as coupling, and the explorer's **Tests** checkbox hides them (25 nodes -> 23).
 
 The generated `data/report/`, `data/structure/` and `data/flow/` folders in this repo are that
 demo output, committed so you can read a real example before running anything.

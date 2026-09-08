@@ -16,7 +16,9 @@ import re
 # Allowed `layer` values, with the name/decorator patterns used to infer them.
 # First match wins.
 LAYER_RULES = [
-    (re.compile(r"controller|handler|router|resource|endpoint", re.I), "controller"),
+    # `route` rather than `router`, so order_routes.py and order_router.js -- the
+    # same thing in two languages -- do not land in different layers.
+    (re.compile(r"controller|handler|route|resource|endpoint", re.I), "controller"),
     (re.compile(r"service|usecase|manager", re.I), "service"),
     (re.compile(r"repository|repo|dao|store|mapper", re.I), "repository"),
     (re.compile(r"model|entity|schema|dto|record", re.I), "model"),

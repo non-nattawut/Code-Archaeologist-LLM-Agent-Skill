@@ -584,3 +584,69 @@ timestamps. The `data/` diff against the previous commit also carries new `git_i
 
 Used the Edit tool rather than a bash heredoc after the heredoc silently collapsed `\n` to `\n`
 inside the replacement string, exactly as CLAUDE.md constraint 5 warns.
+
+## [27] 2026-09-08 — Phase 2: route and framework coverage
+
+**Prompt**
+> (same turn) then continue phase 2
+
+**Response**
+
+Roadmap item 2. Before this, `_route_of` only matched `@<obj>.<verb>("path")` on **class methods**,
+which is the FastAPI shape and almost nothing else.
+
+**Schema first: `route` -> `routes`.** A single dict could not represent what handlers actually do.
+Flask's `methods=["GET", "POST"]` is one handler serving two verbs and the old code kept `elts[0]`
+and dropped the rest, so a POST call to a dual-verb handler never linked. Migrated every consumer
+in the same commit: `build_flow` (`_route_of`, `_api_edges`, `write_graph`), `analyze.py`'s
+entry-point test, `report.py`'s census, `context.py` (which now prints "Routes:" plural when there
+is more than one), `viewer.html`, and `TAXONOMY.md`.
+
+**Python.** `_route_of` now returns every verb of every route decorator, accepts bare-name
+decorators (`@get("/x")`) alongside attribute ones, handles `add_url_rule`, and — the single
+biggest gap — is called in the **module-level function loop**. Flask's normal shape is a decorator
+on a plain `def`, so the whole framework was invisible.
+
+**JS/TS.** Enabled babel's `decorators-legacy` everywhere (a file without decorators parses
+identically with it on). Added three passes: **Express** reads top-level `<obj>.<verb>("/path",
+handler)` registrations only, so a `.get()` inside application logic is never mistaken for a route;
+**Nest** joins the `@Controller` prefix to the method's `@Get`/`@Post` suffix, and its class
+decorators now feed `infer_layer`, which is better evidence than the class name and file stem a JS
+class used to offer; **axios instances** track `const api = axios.create(...)` so `api.get(...)` is
+recognised as HTTP, which is how most apps really call an API.
+
+A named Express handler attaches its route to that function's own node. An inline arrow has no node
+to attach to, so the registration itself becomes an endpoint node — `GET /orders/:id/status`, with
+the route as its signature, because `nid()` reads as nonsense.
+
+**Matching.** Every verb is indexed. When the exact `(METHOD, path)` misses, one documented
+fallback: a route whose path is a trailing run of **whole segments** of the call's path, and only
+when exactly one route matches. `_norm_path` also learned Flask's `<int:id>` and Nest's `:id?`, and
+strips a query string.
+
+**The finding that changed the sample.** First build with Flask and Express added produced **zero**
+`http` edges — worse than before. Cause: all three frameworks were serving `POST /orders`, so every
+match was ambiguous and the uniqueness rule correctly refused all of them. The rule was right; the
+sample was pathological. Real repos do not have three frameworks fighting over one path, so each
+sample app now owns a prefix (`/legacy`, `/api`, `/nest`) and the FastAPI controller keeps `/orders`
+for the frontend to call. Exercised the fallback deliberately instead: the Express router registers
+`/orders/:id/status` the way a real router does — relative to its mount — and `getOrderStatus`
+calls `/api/orders/:id/status`.
+
+Tested the guard rails directly rather than committing a pathology: an ambiguous suffix does not
+link, a non-boundary suffix (`/myorders` vs `/orders`) does not link, a verb mismatch does not
+link, and all five param syntaxes normalize together. Also confirmed a *pre-existing* gap while
+there: a hardcoded id (`/orders/7`) never matches `/orders/{id}`, on the exact path as much as the
+fallback. Left alone — treating a numeric segment as a param is a guess, and `/orders/2024` could
+be a real collection route.
+
+**One taxonomy fix.** `order_routes.py` landed in `layer: unknown` while `order_router.js` landed in
+`controller`, because the rule matched `router` but not `routes`. Same thing in two languages, two
+different layers. Changed the pattern to `route`, which covers all three spellings.
+
+**Verification.** structure 10 nodes/12 edges -> **13/13**, grade C (71); flow 17/12 -> **25/16**,
+**9 endpoints**, 0 pending, grade D (69). Route census lists all four frameworks; `orders` carries
+two entries; `orders -> OrderService.place_order -> OrderRepository.save` traces through Flask; the
+explorer renders both of a handler's routes on separate lines. Two builds differ only in
+timestamps. `check_docs`, `compileall`, `node --check`, `check --src` and the installer self-test
+all pass, and the degraded (no `@babel/parser`) build still succeeds with the loud banner.

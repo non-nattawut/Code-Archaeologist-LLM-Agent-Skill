@@ -68,7 +68,9 @@ service class, and a function that returns JSX is typed `component` rather than 
 file's module page.
 
 They cross the stack. Frontend `fetch`/`axios` calls are matched to backend route handlers by HTTP
-method + normalized path, so **one trace runs from a button click to the database**.
+method + normalized path, so **one trace runs from a button click to the database**. Routes are
+read from FastAPI, Flask, Express and Nest; where the path does not match exactly, a unique
+suffix still links (so an `/api` mount prefix works) and an ambiguous one is left alone.
 
 ---
 
@@ -264,7 +266,8 @@ It has no npm dependencies of its own.
 
 - Frontend entities in the *structure* map. **Done** — classes, React components (`kind:
   component`) and module function-groups from `.js/.jsx/.ts/.tsx`.
-- Wider route/framework coverage for API linking (Flask, Express, Nest).
+- Wider route/framework coverage for API linking. **Done** — FastAPI, Flask (module-level
+  `@app.route`, `methods=[...]`), Express (named + inline handlers) and Nest.
 - Graph extractors for more languages; a fully offline viewer.
 - Duplicate-code clusters, via normalized token hashing of function bodies.
 

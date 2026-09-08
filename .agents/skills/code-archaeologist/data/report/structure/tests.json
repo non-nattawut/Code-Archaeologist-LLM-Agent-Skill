@@ -1,15 +1,15 @@
 {
-  "generated": "2026-09-08T14:02:53Z",
+  "generated": "2026-09-08T14:11:30Z",
   "roots": [
     "sample_src"
   ],
   "graph": "data/structure/graph.json",
   "summary": {
     "test_files": 2,
-    "considered": 8,
+    "considered": 11,
     "referenced": 3,
-    "unreferenced": 5,
-    "referenced_pct": 37.5
+    "unreferenced": 8,
+    "referenced_pct": 27.3
   },
   "test_files": [
     "sample_src/backend/tests/test_orders.py",
@@ -50,6 +50,24 @@
       "source": "sample_src/frontend/order_page.ts",
       "layer": "ui",
       "kind": "module"
+    },
+    {
+      "id": "OrderRouterModule",
+      "source": "sample_src/api_express/order_router.js",
+      "layer": "controller",
+      "kind": "module"
+    },
+    {
+      "id": "OrderRoutesModule",
+      "source": "sample_src/api_flask/order_routes.py",
+      "layer": "controller",
+      "kind": "module"
+    },
+    {
+      "id": "OrdersController",
+      "source": "sample_src/api_nest/orders.controller.ts",
+      "layer": "controller",
+      "kind": "class"
     },
     {
       "id": "StatusBadge",

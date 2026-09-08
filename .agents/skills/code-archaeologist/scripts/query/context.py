@@ -118,7 +118,7 @@ def build(graph_path: str, node_ids: list[str], depth: int = 1, cap: int = NEIGH
             "lang": node.get("lang"),
             "source": node.get("source"),
             "signature": node.get("signature"),
-            "route": node.get("route"),
+            "routes": node.get("routes"),
             "http": node.get("http"),
             "ext_calls": node.get("ext"),
             "doc": _trim(node.get("doc", "")),
@@ -151,9 +151,9 @@ def to_markdown(pack: dict) -> str:
         if n.get("signature"):
             lines += [f"`{n['signature']}`", ""]
         lines += [n["doc"] or "_No description._", ""]
-        if n.get("route"):
-            r = n["route"]
-            lines += [f"**Route:** `{r.get('method', '')} {r.get('path', '')}`", ""]
+        if n.get("routes"):
+            served = ", ".join(f"`{r.get('method', '')} {r.get('path', '')}`" for r in n["routes"])
+            lines += [f"**Route{'s' if len(n['routes']) > 1 else ''}:** {served}", ""]
         for label, key, total in (("Calls", "calls", "calls_total"),
                                   ("Called by", "called_by", "called_by_total")):
             rows = n[key]

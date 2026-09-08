@@ -1,36 +1,71 @@
 {
   "graph": "data/flow/flow_graph.json",
-  "generated": "2026-09-08 14:02 UTC",
+  "generated": "2026-09-08 14:11 UTC",
   "census": {
-    "nodes": 17,
-    "edges": 12,
+    "nodes": 25,
+    "edges": 16,
     "layers": {
-      "client": 3,
-      "controller": 3,
+      "client": 4,
+      "controller": 10,
       "repository": 2,
       "service": 3,
       "test": 2,
       "ui": 4
     },
     "langs": {
-      "js": 6,
-      "py": 11
+      "js": 12,
+      "py": 13
     },
     "kinds": {
       "component": 2,
-      "endpoint": 3,
-      "function": 5,
+      "endpoint": 9,
+      "function": 7,
       "method": 7
     },
     "edge_types": {
-      "calls": 10,
-      "http": 2
+      "calls": 13,
+      "http": 3
     },
     "routes": [
       {
         "method": "POST",
+        "path": "/api/orders",
+        "node": "createOrderHandler"
+      },
+      {
+        "method": "GET",
+        "path": "/legacy/orders",
+        "node": "orders"
+      },
+      {
+        "method": "POST",
+        "path": "/legacy/orders",
+        "node": "orders"
+      },
+      {
+        "method": "GET",
+        "path": "/legacy/orders/<int:order_id>",
+        "node": "order_detail"
+      },
+      {
+        "method": "POST",
+        "path": "/nest/orders",
+        "node": "OrdersController.create"
+      },
+      {
+        "method": "GET",
+        "path": "/nest/orders/:id",
+        "node": "OrdersController.findOne"
+      },
+      {
+        "method": "POST",
         "path": "/orders",
         "node": "OrderController.create_order"
+      },
+      {
+        "method": "GET",
+        "path": "/orders/:id/status",
+        "node": "GET /orders/:id/status"
       },
       {
         "method": "GET",
@@ -41,6 +76,18 @@
   },
   "files": {
     "files": {
+      "sample_src/api_express/order_router.js": {
+        "lines": 28,
+        "lang": "js"
+      },
+      "sample_src/api_flask/order_routes.py": {
+        "lines": 28,
+        "lang": "py"
+      },
+      "sample_src/api_nest/orders.controller.ts": {
+        "lines": 20,
+        "lang": "ts"
+      },
       "sample_src/backend/order_controller.py": {
         "lines": 23,
         "lang": "py"
@@ -66,7 +113,7 @@
         "lang": "tsx"
       },
       "sample_src/frontend/api_client.ts": {
-        "lines": 11,
+        "lines": 23,
         "lang": "ts"
       },
       "sample_src/frontend/order_page.test.ts": {
@@ -78,22 +125,25 @@
         "lang": "ts"
       }
     },
-    "file_count": 9,
-    "loc": 162,
+    "file_count": 12,
+    "loc": 250,
     "languages": {
-      "py": 98,
-      "ts": 37,
+      "py": 126,
+      "ts": 69,
+      "js": 28,
       "tsx": 27
     },
     "language_pct": {
-      "py": 60.5,
-      "ts": 22.8,
-      "tsx": 16.7
+      "py": 50.4,
+      "ts": 27.6,
+      "js": 11.2,
+      "tsx": 10.8
     }
   },
   "analysis": {
     "cycles": [],
     "orphans": [
+      "getOrderStatus",
       "loadOrder",
       "submitOrder"
     ],
@@ -104,7 +154,7 @@
     "health": {
       "score": 69,
       "grade": "D",
-      "dead_code_pct": 11.8,
+      "dead_code_pct": 12.0,
       "deductions": {
         "dead_code": 6,
         "cycles": 0,
@@ -115,10 +165,10 @@
       }
     },
     "summary": {
-      "nodes": 17,
-      "edges": 12,
+      "nodes": 25,
+      "edges": 16,
       "cycles": 0,
-      "orphans": 2,
+      "orphans": 3,
       "layer_violations": 0,
       "hubs": 0,
       "god_objects": 0
@@ -176,7 +226,7 @@
         "dangerous_eval": 1,
         "debug_statement": 1
       },
-      "files_scanned": 7,
+      "files_scanned": 10,
       "files_skipped": 2
     }
   },
@@ -330,6 +380,18 @@
       }
     },
     "nodes": {
+      "GET /orders/:id/status": {
+        "file": "sample_src/api_express/order_router.js",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 1,
+        "fan_out": 0,
+        "risk": 0
+      },
       "OrderCard": {
         "file": "sample_src/frontend/OrderCard.tsx",
         "commits": 1,
@@ -454,9 +516,9 @@
         "author_count": 1,
         "last_commit": "2026-09-02T16:10:56+07:00",
         "first_commit": "2026-09-02T16:10:56+07:00",
-        "fan_in": 1,
+        "fan_in": 2,
         "fan_out": 1,
-        "risk": 3
+        "risk": 4
       },
       "OrderService.place_order": {
         "file": "sample_src/backend/order_service.py",
@@ -468,9 +530,33 @@
         "author_count": 1,
         "last_commit": "2026-09-02T16:10:56+07:00",
         "first_commit": "2026-09-02T16:10:56+07:00",
-        "fan_in": 2,
+        "fan_in": 3,
         "fan_out": 2,
-        "risk": 5
+        "risk": 6
+      },
+      "OrdersController.create": {
+        "file": "sample_src/api_nest/orders.controller.ts",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 0,
+        "fan_out": 0,
+        "risk": 0
+      },
+      "OrdersController.findOne": {
+        "file": "sample_src/api_nest/orders.controller.ts",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 0,
+        "fan_out": 0,
+        "risk": 0
       },
       "PaymentClient.charge": {
         "file": "sample_src/backend/payment_client.py",
@@ -515,6 +601,18 @@
         "fan_out": 1,
         "risk": 3
       },
+      "createOrderHandler": {
+        "file": "sample_src/api_express/order_router.js",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 0
+      },
       "getOrder": {
         "file": "sample_src/frontend/api_client.ts",
         "commits": 1,
@@ -528,6 +626,20 @@
         "fan_in": 2,
         "fan_out": 1,
         "risk": 4
+      },
+      "getOrderStatus": {
+        "file": "sample_src/frontend/api_client.ts",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "authors": {
+          "Nattawut Rodthong": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 2
       },
       "loadOrder": {
         "file": "sample_src/frontend/order_page.ts",
@@ -543,6 +655,42 @@
         "fan_in": 0,
         "fan_out": 1,
         "risk": 4
+      },
+      "order_detail": {
+        "file": "sample_src/api_flask/order_routes.py",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 0
+      },
+      "orders": {
+        "file": "sample_src/api_flask/order_routes.py",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 0
+      },
+      "saveOrder": {
+        "file": "sample_src/api_express/order_router.js",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 1,
+        "fan_out": 0,
+        "risk": 0
       },
       "submitOrder": {
         "file": "sample_src/frontend/order_page.ts",
@@ -638,6 +786,21 @@
         "risk": 6
       },
       {
+        "node": "OrderService.place_order",
+        "file": "sample_src/backend/order_service.py",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "authors": {
+          "Nattawut Rodthong": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 3,
+        "fan_out": 2,
+        "risk": 6
+      },
+      {
         "node": "PaymentClient.charge",
         "file": "sample_src/backend/payment_client.py",
         "commits": 3,
@@ -654,7 +817,7 @@
         "risk": 6
       },
       {
-        "node": "OrderService.place_order",
+        "node": "OrderService.find_order",
         "file": "sample_src/backend/order_service.py",
         "commits": 1,
         "owner": "Nattawut Rodthong",
@@ -665,8 +828,8 @@
         "last_commit": "2026-09-02T16:10:56+07:00",
         "first_commit": "2026-09-02T16:10:56+07:00",
         "fan_in": 2,
-        "fan_out": 2,
-        "risk": 5
+        "fan_out": 1,
+        "risk": 4
       },
       {
         "node": "getOrder",
@@ -714,21 +877,6 @@
         "fan_in": 0,
         "fan_out": 1,
         "risk": 4
-      },
-      {
-        "node": "OrderService.find_order",
-        "file": "sample_src/backend/order_service.py",
-        "commits": 1,
-        "owner": "Nattawut Rodthong",
-        "authors": {
-          "Nattawut Rodthong": 1
-        },
-        "author_count": 1,
-        "last_commit": "2026-09-02T16:10:56+07:00",
-        "first_commit": "2026-09-02T16:10:56+07:00",
-        "fan_in": 1,
-        "fan_out": 1,
-        "risk": 3
       },
       {
         "node": "createOrder",
@@ -791,6 +939,21 @@
         "risk": 2
       },
       {
+        "node": "getOrderStatus",
+        "file": "sample_src/frontend/api_client.ts",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "authors": {
+          "Nattawut Rodthong": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 2
+      },
+      {
         "node": "test_place_order_charges_and_saves",
         "file": "sample_src/backend/tests/test_orders.py",
         "commits": 1,
@@ -845,26 +1008,30 @@
     }
   },
   "metrics": {
-    "generated": "2026-09-08T14:02:53Z",
+    "generated": "2026-09-08T14:11:30Z",
     "roots": [
       "sample_src"
     ],
     "totals": {
-      "files": 9,
-      "lines": 162,
-      "code": 112,
-      "comment": 13,
-      "blank": 37,
-      "comment_ratio": 0.08
+      "files": 12,
+      "lines": 250,
+      "code": 165,
+      "comment": 31,
+      "blank": 54,
+      "comment_ratio": 0.124
     },
     "languages": {
       "py": {
-        "files": 5,
-        "lines": 98
+        "files": 6,
+        "lines": 126
       },
       "ts": {
-        "files": 3,
-        "lines": 37
+        "files": 4,
+        "lines": 69
+      },
+      "js": {
+        "files": 1,
+        "lines": 28
       },
       "tsx": {
         "files": 1,
@@ -872,6 +1039,27 @@
       }
     },
     "files": {
+      "sample_src/api_express/order_router.js": {
+        "lines": 28,
+        "code": 14,
+        "comment": 8,
+        "blank": 6,
+        "lang": "js"
+      },
+      "sample_src/api_flask/order_routes.py": {
+        "lines": 28,
+        "code": 21,
+        "comment": 0,
+        "blank": 7,
+        "lang": "py"
+      },
+      "sample_src/api_nest/orders.controller.ts": {
+        "lines": 20,
+        "code": 12,
+        "comment": 6,
+        "blank": 2,
+        "lang": "ts"
+      },
       "sample_src/backend/order_controller.py": {
         "lines": 23,
         "code": 16,
@@ -915,10 +1103,10 @@
         "lang": "tsx"
       },
       "sample_src/frontend/api_client.ts": {
-        "lines": 11,
-        "code": 8,
-        "comment": 1,
-        "blank": 2,
+        "lines": 23,
+        "code": 14,
+        "comment": 5,
+        "blank": 4,
         "lang": "ts"
       },
       "sample_src/frontend/order_page.test.ts": {
@@ -1087,6 +1275,26 @@
         "lang": "py",
         "in_graph": true
       },
+      "order_detail": {
+        "loc": 4,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/api_flask/order_routes.py",
+        "line": 25,
+        "lang": "py",
+        "in_graph": true
+      },
+      "orders": {
+        "loc": 6,
+        "complexity": 2,
+        "depth": 1,
+        "params": 0,
+        "file": "sample_src/api_flask/order_routes.py",
+        "line": 16,
+        "lang": "py",
+        "in_graph": true
+      },
       "test_place_order_charges_and_saves": {
         "loc": 4,
         "complexity": 2,
@@ -1099,6 +1307,13 @@
       }
     },
     "top_loc": [
+      {
+        "id": "orders",
+        "loc": 6,
+        "complexity": 2,
+        "file": "sample_src/api_flask/order_routes.py",
+        "line": 16
+      },
       {
         "id": "OrderRepository.get",
         "loc": 5,
@@ -1128,6 +1343,13 @@
         "line": 13
       },
       {
+        "id": "order_detail",
+        "loc": 4,
+        "complexity": 1,
+        "file": "sample_src/api_flask/order_routes.py",
+        "line": 25
+      },
+      {
         "id": "test_place_order_charges_and_saves",
         "loc": 4,
         "complexity": 2,
@@ -1154,23 +1376,16 @@
         "complexity": 1,
         "file": "sample_src/backend/order_repository.py",
         "line": 7
-      },
-      {
-        "id": "OrderService.__init__",
-        "loc": 3,
-        "complexity": 1,
-        "file": "sample_src/backend/order_service.py",
-        "line": 9
-      },
-      {
-        "id": "OrderService.find_order",
-        "loc": 3,
-        "complexity": 1,
-        "file": "sample_src/backend/order_service.py",
-        "line": 18
       }
     ],
     "top_complexity": [
+      {
+        "id": "orders",
+        "complexity": 2,
+        "loc": 6,
+        "file": "sample_src/api_flask/order_routes.py",
+        "line": 16
+      },
       {
         "id": "test_place_order_charges_and_saves",
         "complexity": 2,
@@ -1233,16 +1448,19 @@
         "loc": 3,
         "file": "sample_src/backend/order_service.py",
         "line": 18
-      },
-      {
-        "id": "OrderService.place_order",
-        "complexity": 1,
-        "loc": 4,
-        "file": "sample_src/backend/order_service.py",
-        "line": 13
       }
     ],
     "top_files": [
+      {
+        "file": "sample_src/api_express/order_router.js",
+        "lines": 28,
+        "code": 14
+      },
+      {
+        "file": "sample_src/api_flask/order_routes.py",
+        "lines": 28,
+        "code": 21
+      },
       {
         "file": "sample_src/frontend/OrderCard.tsx",
         "lines": 27,
@@ -1259,6 +1477,16 @@
         "code": 16
       },
       {
+        "file": "sample_src/frontend/api_client.ts",
+        "lines": 23,
+        "code": 14
+      },
+      {
+        "file": "sample_src/api_nest/orders.controller.ts",
+        "lines": 20,
+        "code": 12
+      },
+      {
         "file": "sample_src/backend/order_service.py",
         "lines": 20,
         "code": 15
@@ -1272,34 +1500,25 @@
         "file": "sample_src/backend/payment_client.py",
         "lines": 15,
         "code": 8
-      },
-      {
-        "file": "sample_src/frontend/order_page.test.ts",
-        "lines": 13,
-        "code": 9
-      },
-      {
-        "file": "sample_src/frontend/order_page.ts",
-        "lines": 13,
-        "code": 9
-      },
-      {
-        "file": "sample_src/frontend/api_client.ts",
-        "lines": 11,
-        "code": 8
       }
     ],
     "unmeasured_graph_ids": [
+      "GET /orders/:id/status",
       "OrderCard",
+      "OrdersController.create",
+      "OrdersController.findOne",
       "StatusBadge",
       "createOrder",
+      "createOrderHandler",
       "getOrder",
+      "getOrderStatus",
       "loadOrder",
+      "saveOrder",
       "submitOrder"
     ]
   },
   "debt": {
-    "generated": "2026-09-08T14:02:53Z",
+    "generated": "2026-09-08T14:11:30Z",
     "roots": [
       "sample_src"
     ],
@@ -1310,7 +1529,7 @@
         "FIXME": 1,
         "TODO": 1
       },
-      "dead_nodes": 2,
+      "dead_nodes": 3,
       "dead_files": 1
     },
     "markers": [
@@ -1331,6 +1550,12 @@
     ],
     "dead_nodes": [
       {
+        "id": "getOrderStatus",
+        "source": "sample_src/frontend/api_client.ts:20",
+        "layer": "client",
+        "kind": "function"
+      },
+      {
         "id": "loadOrder",
         "source": "sample_src/frontend/order_page.ts:8",
         "layer": "ui",
@@ -1348,17 +1573,17 @@
     ]
   },
   "tests": {
-    "generated": "2026-09-08T14:02:53Z",
+    "generated": "2026-09-08T14:11:30Z",
     "roots": [
       "sample_src"
     ],
     "graph": "data/flow/flow_graph.json",
     "summary": {
       "test_files": 2,
-      "considered": 13,
+      "considered": 21,
       "referenced": 4,
-      "unreferenced": 9,
-      "referenced_pct": 30.8
+      "unreferenced": 17,
+      "referenced_pct": 19.0
     },
     "test_files": [
       "sample_src/backend/tests/test_orders.py",
@@ -1379,6 +1604,12 @@
       ]
     },
     "unreferenced": [
+      {
+        "id": "GET /orders/:id/status",
+        "source": "sample_src/api_express/order_router.js:24",
+        "layer": "controller",
+        "kind": "endpoint"
+      },
       {
         "id": "OrderCard",
         "source": "sample_src/frontend/OrderCard.tsx:11",
@@ -1410,6 +1641,18 @@
         "kind": "method"
       },
       {
+        "id": "OrdersController.create",
+        "source": "sample_src/api_nest/orders.controller.ts:10",
+        "layer": "controller",
+        "kind": "endpoint"
+      },
+      {
+        "id": "OrdersController.findOne",
+        "source": "sample_src/api_nest/orders.controller.ts:16",
+        "layer": "controller",
+        "kind": "endpoint"
+      },
+      {
         "id": "PaymentClient.charge",
         "source": "sample_src/backend/payment_client.py:11",
         "layer": "client",
@@ -1423,14 +1666,44 @@
       },
       {
         "id": "createOrder",
-        "source": "sample_src/frontend/api_client.ts:3",
+        "source": "sample_src/frontend/api_client.ts:8",
         "layer": "client",
         "kind": "function"
       },
       {
+        "id": "createOrderHandler",
+        "source": "sample_src/api_express/order_router.js:11",
+        "layer": "controller",
+        "kind": "endpoint"
+      },
+      {
         "id": "getOrder",
-        "source": "sample_src/frontend/api_client.ts:8",
+        "source": "sample_src/frontend/api_client.ts:13",
         "layer": "client",
+        "kind": "function"
+      },
+      {
+        "id": "getOrderStatus",
+        "source": "sample_src/frontend/api_client.ts:20",
+        "layer": "client",
+        "kind": "function"
+      },
+      {
+        "id": "order_detail",
+        "source": "sample_src/api_flask/order_routes.py:25",
+        "layer": "controller",
+        "kind": "endpoint"
+      },
+      {
+        "id": "orders",
+        "source": "sample_src/api_flask/order_routes.py:16",
+        "layer": "controller",
+        "kind": "endpoint"
+      },
+      {
+        "id": "saveOrder",
+        "source": "sample_src/api_express/order_router.js:17",
+        "layer": "controller",
         "kind": "function"
       }
     ]

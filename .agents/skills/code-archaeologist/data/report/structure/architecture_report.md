@@ -1,23 +1,23 @@
 # Architecture report — graph.json
 
-Generated 2026-09-08 14:02 UTC · 10 nodes · 12 edges
+Generated 2026-09-08 14:11 UTC · 13 nodes · 13 edges
 
-## Health: **C** (70/100)
+## Health: **C** (71/100)
 
 | Deduction | Points |
 | --- | --- |
-| dead code | -5 |
+| dead code | -4 |
 | security | -25 |
 
-Dead-code ratio 10.0% · cycles 0 · layer violations 0 · security findings 4
+Dead-code ratio 7.7% · cycles 0 · layer violations 0 · security findings 4
 
 ## Census
 
-- Source: 9 file(s), 162 lines (py 60.5%, ts 22.8%, tsx 16.7%)
-- Layers: `client` 2, `controller` 1, `repository` 1, `service` 1, `test` 2, `ui` 3
-- Kinds: `class` 5, `component` 2, `module` 3
-- Languages: `js` 4, `py` 6
-- Edge types: `references` 12
+- Source: 12 file(s), 250 lines (py 50.4%, ts 27.6%, js 11.2%, tsx 10.8%)
+- Layers: `client` 2, `controller` 4, `repository` 1, `service` 1, `test` 2, `ui` 3
+- Kinds: `class` 6, `component` 2, `module` 5
+- Languages: `js` 6, `py` 7
+- Edge types: `references` 13
 
 ## Entry points (routes)
 
@@ -25,7 +25,7 @@ _None._
 
 ## Size & complexity
 
-- 9 file(s), 162 lines — 112 code, 13 comment, 37 blank (comment ratio 8%)
+- 12 file(s), 250 lines — 165 code, 31 comment, 54 blank (comment ratio 12%)
 - Complexity is McCabe: 1 + every branch. Python nodes only.
 
 ### Longest nodes
@@ -52,15 +52,16 @@ _None._
 
 | File | Lines | Code |
 | --- | --- | --- |
+| `sample_src/api_express/order_router.js` | 28 | 14 |
+| `sample_src/api_flask/order_routes.py` | 28 | 21 |
 | `sample_src/frontend/OrderCard.tsx` | 27 | 20 |
 | `sample_src/backend/tests/test_orders.py` | 25 | 18 |
 | `sample_src/backend/order_controller.py` | 23 | 16 |
+| `sample_src/frontend/api_client.ts` | 23 | 14 |
+| `sample_src/api_nest/orders.controller.ts` | 20 | 12 |
 | `sample_src/backend/order_service.py` | 20 | 15 |
 | `sample_src/backend/order_repository.py` | 15 | 9 |
 | `sample_src/backend/payment_client.py` | 15 | 8 |
-| `sample_src/frontend/order_page.test.ts` | 13 | 9 |
-| `sample_src/frontend/order_page.ts` | 13 | 9 |
-| `sample_src/frontend/api_client.ts` | 11 | 8 |
 
 ## Smells
 
@@ -107,7 +108,7 @@ _None._
 | --- | --- | --- | --- | --- | --- |
 | `OrderRepository` | 3 | 3 | 0 | 12 | non-nattawut |
 | `PaymentClient` | 3 | 3 | 0 | 12 | non-nattawut |
-| `OrderService` | 1 | 3 | 2 | 6 | Nattawut Rodthong |
+| `OrderService` | 1 | 4 | 2 | 7 | Nattawut Rodthong |
 | `OrderController` | 2 | 0 | 1 | 4 | Nattawut Rodthong |
 | `OrderPageModule` | 2 | 0 | 1 | 4 | Nattawut Rodthong |
 | `OrderRepositoryTest` | 1 | 0 | 3 | 4 | non-nattawut |
@@ -125,7 +126,7 @@ _None._
 
 Files where every node is dead: `sample_src/frontend/order_page.ts`
 
-## Tests — 3/8 node(s) named by a test (37.5%)
+## Tests — 3/11 node(s) named by a test (27.3%)
 
 _2 test file(s). Name-based, not execution coverage: a node counts as referenced when a test file names it._
 
@@ -137,6 +138,9 @@ _2 test file(s). Name-based, not execution coverage: a node counts as referenced
 | `OrderCard` | ui | `sample_src/frontend/OrderCard.tsx` |
 | `OrderController` | controller | `sample_src/backend/order_controller.py` |
 | `OrderPageModule` | ui | `sample_src/frontend/order_page.ts` |
+| `OrderRouterModule` | controller | `sample_src/api_express/order_router.js` |
+| `OrderRoutesModule` | controller | `sample_src/api_flask/order_routes.py` |
+| `OrdersController` | controller | `sample_src/api_nest/orders.controller.ts` |
 | `StatusBadge` | ui | `sample_src/frontend/OrderCard.tsx` |
 
 ## Dig deeper

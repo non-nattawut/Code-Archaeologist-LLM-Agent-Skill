@@ -19,6 +19,7 @@ _None._
 ## Methods
 - `createOrder()`
 - `getOrder()`
+- `getOrderStatus()` — to its mount point - so this only links via the unique-suffix fallback.
 
 ## References
 _None._

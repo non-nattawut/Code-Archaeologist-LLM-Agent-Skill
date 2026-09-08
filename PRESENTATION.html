@@ -353,7 +353,8 @@ const FEATURES = [
     cmd:"archaeologist.py flow --src ./backend ./frontend",
     qa:[
       ["Why does this matter?","It is the join most tools miss. Without it you have two disconnected graphs; with it a single trace runs from a button click all the way to the database row."],
-      ["Which frameworks are covered?","Decorator-style routes today — FastAPI, Flask. Express and Nest are on the roadmap. The matching itself is framework-neutral once a route is recognised."]
+      ["Which frameworks are covered?","FastAPI, Flask, Express and Nest. Flask’s <code>methods=[...]</code> and stacked decorators mean one handler can serve several routes, so a node carries a <em>list</em> of them. The matching itself is framework-neutral once a route is recognised."],
+      ["What if the path does not match exactly?","It falls back to a route whose path is a suffix of the call’s — which is how a mount prefix like <code>/api</code> still links — but only when exactly one route matches. An ambiguous path is left unlinked rather than guessed."]
     ]
   },
   {

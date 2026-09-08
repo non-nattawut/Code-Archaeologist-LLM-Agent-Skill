@@ -73,8 +73,7 @@ def census(graph: dict) -> dict:
         layers[n.get("layer", "unknown")] = layers.get(n.get("layer", "unknown"), 0) + 1
         langs[n.get("lang", "py")] = langs.get(n.get("lang", "py"), 0) + 1
         kinds[n.get("kind", "unknown")] = kinds.get(n.get("kind", "unknown"), 0) + 1
-        route = n.get("route")
-        if route:
+        for route in n.get("routes") or []:
             routes.append({"method": route.get("method", ""), "path": route.get("path", ""),
                            "node": n["id"]})
     edge_types: dict[str, int] = {}

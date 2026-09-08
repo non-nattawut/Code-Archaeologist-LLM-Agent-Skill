@@ -25,12 +25,14 @@ try {
   process.exit(3);
 }
 
+// `decorators-legacy` is on everywhere: it is what Nest, Angular and TypeORM emit,
+// and a file without decorators parses identically with it enabled.
 function pluginsFor(file) {
   const ext = path.extname(file).toLowerCase();
-  if (ext === ".tsx") return ["typescript", "jsx"];
-  if (ext === ".ts") return ["typescript"];
-  if (ext === ".jsx") return ["jsx"];
-  return ["jsx"]; // .js — allow JSX, harmless if absent
+  if (ext === ".tsx") return ["typescript", "jsx", "decorators-legacy"];
+  if (ext === ".ts") return ["typescript", "decorators-legacy"];
+  if (ext === ".jsx") return ["jsx", "decorators-legacy"];
+  return ["jsx", "decorators-legacy"]; // .js — allow JSX, harmless if absent
 }
 
 // A comment documents a node only when it sits directly above it. Babel hands the
@@ -67,8 +69,33 @@ function methodFromOptions(arg) {
   return "GET";
 }
 
+const HTTP_VERBS = ["get", "post", "put", "patch", "delete"];
+
+// `const api = axios.create({...})` is how most apps actually call an API, and
+// `api.get(...)` looked like any other method call. Collecting the instance names
+// first is deterministic -- only identifiers assigned from axios.create() count,
+// never an arbitrary object that happens to have a .get().
+function axiosInstances(body) {
+  const names = new Set(["axios"]);
+  for (const raw of body) {
+    const node = unwrapExport(raw) || raw;
+    if (node.type !== "VariableDeclaration") continue;
+    for (const d of node.declarations) {
+      const init = d.init;
+      if (!d.id || !d.id.name || !init || init.type !== "CallExpression") continue;
+      const callee = init.callee;
+      if (callee.type === "MemberExpression" && callee.object && callee.object.name === "axios"
+          && callee.property && callee.property.name === "create") {
+        names.add(d.id.name);
+      }
+    }
+  }
+  return names;
+}
+
 // Walk a subtree collecting called names and HTTP calls (fetch/axios).
-function collectCalls(root) {
+function collectCalls(root, axiosNames) {
+  const names = axiosNames || new Set(["axios"]);
   const calls = new Set();
   const http = [];
   (function walk(node) {
@@ -85,7 +112,7 @@ function collectCalls(root) {
         const prop = callee.property.name;
         if (prop) calls.add(prop);
         const objName = callee.object && callee.object.name;
-        if (objName === "axios" && ["get", "post", "put", "patch", "delete"].includes(prop)) {
+        if (names.has(objName) && HTTP_VERBS.includes(prop)) {
           http.push({ method: prop.toUpperCase(), url: urlOf(node.arguments[0]) });
         }
       }
@@ -96,6 +123,75 @@ function collectCalls(root) {
     }
   })(root);
   return { calls: [...calls], http };
+}
+
+// --- routes -------------------------------------------------------------------
+// A decorator's name and its first string argument: @Get(":id") -> ["get", ":id"],
+// @Controller("orders") -> ["controller", "orders"].
+function decoratorInfo(dec) {
+  const expr = dec.expression || dec;
+  if (expr.type === "CallExpression") {
+    const name = expr.callee.name || (expr.callee.property && expr.callee.property.name);
+    return { name: (name || "").toLowerCase(), arg: urlOf(expr.arguments[0]) };
+  }
+  return { name: ((expr.name || "")).toLowerCase(), arg: "" };
+}
+
+function joinPath(prefix, suffix) {
+  const parts = [prefix, suffix].filter((p) => p !== "" && p != null)
+    .map((p) => String(p).replace(/^\/+|\/+$/g, "")).filter((p) => p !== "");
+  return "/" + parts.join("/");
+}
+
+// Nest: @Controller('orders') on the class gives the prefix, @Get(':id') on the
+// method gives verb and suffix.
+function nestRoutes(classDecorators, methodDecorators) {
+  let prefix = "";
+  for (const d of classDecorators || []) {
+    const info = decoratorInfo(d);
+    if (info.name === "controller") prefix = info.arg;
+  }
+  const routes = [];
+  for (const d of methodDecorators || []) {
+    const info = decoratorInfo(d);
+    if (HTTP_VERBS.includes(info.name)) {
+      routes.push({ method: info.name.toUpperCase(), path: joinPath(prefix, info.arg) });
+    }
+  }
+  return routes;
+}
+
+// Express: `router.post("/orders", createOrder)` or the same with an inline arrow.
+// Only a top-level ExpressionStatement counts, so a `.get()` buried in application
+// logic is never mistaken for a route registration.
+function expressRoutes(body, axiosNames) {
+  const routes = [];
+  for (const raw of body) {
+    if (raw.type !== "ExpressionStatement") continue;
+    const call = raw.expression;
+    if (!call || call.type !== "CallExpression") continue;
+    const callee = call.callee;
+    if (callee.type !== "MemberExpression" || !callee.property) continue;
+    const verb = (callee.property.name || "").toLowerCase();
+    if (!HTTP_VERBS.includes(verb)) continue;
+    const routePath = urlOf(call.arguments[0]);
+    if (!routePath.startsWith("/")) continue;   // a path, not a URL fetched from somewhere
+    const handler = call.arguments[call.arguments.length - 1];
+    if (!handler) continue;
+    const entry = {
+      method: verb.toUpperCase(), path: routePath,
+      line: raw.loc.start.line, endLine: raw.loc.end.line, doc: firstDocLine(raw),
+    };
+    if (handler.type === "Identifier") {
+      entry.handler = handler.name;             // attaches to that function's node
+    } else if (handler.type === "ArrowFunctionExpression" || handler.type === "FunctionExpression") {
+      Object.assign(entry, collectCalls(handler.body, axiosNames));
+    } else {
+      continue;
+    }
+    routes.push(entry);
+  }
+  return routes;
 }
 
 // A JSX tag starting with a capital letter names another component; lowercase tags
@@ -144,9 +240,11 @@ function extractFile(file) {
     return null;
   }
 
-  const out = { file, classes: [], functions: [], imports: [] };
+  const body = ast.program.body;
+  const axiosNames = axiosInstances(body);
+  const out = { file, classes: [], functions: [], imports: [], routes: expressRoutes(body, axiosNames) };
 
-  for (const raw of ast.program.body) {
+  for (const raw of body) {
     const node = unwrapExport(raw) || raw;
 
     if (node.type === "ImportDeclaration") {
@@ -155,13 +253,16 @@ function extractFile(file) {
         names: node.specifiers.map((s) => (s.imported && s.imported.name) || s.local.name),
       });
     } else if (node.type === "ClassDeclaration" && node.id) {
+      const classDecorators = node.decorators || raw.decorators || [];
       const methods = node.body.body
         .filter((m) => m.type === "ClassMethod" && m.key)
         .map((m) => ({ name: m.key.name, doc: firstDocLine(m), line: m.loc.start.line,
-                       endLine: m.loc.end.line, ...collectCalls(m.body) }));
+                       endLine: m.loc.end.line, routes: nestRoutes(classDecorators, m.decorators),
+                       ...collectCalls(m.body, axiosNames) }));
       out.classes.push({
         name: node.id.name,
         bases: node.superClass && node.superClass.name ? [node.superClass.name] : [],
+        decorators: classDecorators.map((d) => decoratorInfo(d).name).filter(Boolean),
         doc: firstDocLine(raw),
         line: node.loc.start.line,
         endLine: node.loc.end.line,
@@ -170,14 +271,14 @@ function extractFile(file) {
     } else if (node.type === "FunctionDeclaration" && node.id) {
       out.functions.push({ name: node.id.name, doc: firstDocLine(raw),
                            line: node.loc.start.line, endLine: node.loc.end.line,
-                           ...collectCalls(node.body), ...collectJsx(node.body) });
+                           ...collectCalls(node.body, axiosNames), ...collectJsx(node.body) });
     } else if (node.type === "VariableDeclaration") {
       for (const d of node.declarations) {
         if (d.id && d.id.name && d.init &&
             (d.init.type === "ArrowFunctionExpression" || d.init.type === "FunctionExpression")) {
           out.functions.push({ name: d.id.name, doc: firstDocLine(raw),
                                line: d.loc.start.line, endLine: d.loc.end.line,
-                               ...collectCalls(d.init.body), ...collectJsx(d.init.body) });
+                               ...collectCalls(d.init.body, axiosNames), ...collectJsx(d.init.body) });
         }
       }
     }

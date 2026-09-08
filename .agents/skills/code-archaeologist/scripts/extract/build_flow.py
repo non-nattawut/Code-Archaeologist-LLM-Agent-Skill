@@ -152,39 +152,69 @@ def _is_self_attr(node) -> bool:
 HTTP_VERBS = {"get", "post", "put", "patch", "delete"}
 
 
-def _route_of(decorators: list) -> dict | None:
-    """Extract {method, path} from a route decorator, e.g. @router.post("/orders")
-    or @app.route("/orders", methods=["POST"])."""
+def _route_of(decorators: list) -> list[dict]:
+    """Every {method, path} a set of decorators declares.
+
+    A list, not a single route, because one handler routinely serves several: Flask
+    writes `@app.route("/orders", methods=["GET", "POST"])`, and stacking two
+    decorators on one function is normal in every framework here. Returning only
+    the first match silently dropped the rest, so a POST to a handler that also
+    accepts GET never linked to its frontend caller.
+    """
+    routes: list[dict] = []
     for d in decorators:
-        if not (isinstance(d, ast.Call) and isinstance(d.func, ast.Attribute)):
+        if not isinstance(d, ast.Call):
             continue
-        verb = d.func.attr.lower()
+        # @router.post(...) as well as a bare `@get(...)` imported from the framework.
+        if isinstance(d.func, ast.Attribute):
+            verb = d.func.attr.lower()
+        elif isinstance(d.func, ast.Name):
+            verb = d.func.id.lower()
+        else:
+            continue
         path = None
         if d.args and isinstance(d.args[0], ast.Constant) and isinstance(d.args[0].value, str):
             path = d.args[0].value
         if not path:
             continue
         if verb in HTTP_VERBS:
-            return {"method": verb.upper(), "path": path}
-        if verb == "route":
-            method = "GET"
+            routes.append({"method": verb.upper(), "path": path})
+        elif verb in ("route", "add_url_rule"):
+            methods = []
             for kw in d.keywords:
-                if kw.arg == "methods" and isinstance(kw.value, (ast.List, ast.Tuple)) and kw.value.elts:
-                    first = kw.value.elts[0]
-                    if isinstance(first, ast.Constant):
-                        method = str(first.value).upper()
-            return {"method": method, "path": path}
-    return None
+                if kw.arg == "methods" and isinstance(kw.value, (ast.List, ast.Tuple)):
+                    methods = [str(e.value).upper() for e in kw.value.elts
+                               if isinstance(e, ast.Constant)]
+            for method in (methods or ["GET"]):
+                routes.append({"method": method, "path": path})
+    return _dedupe_routes(routes)
+
+
+def _dedupe_routes(routes: list[dict]) -> list[dict]:
+    """Unique routes in a fixed order (constraint 2: same source, same bytes)."""
+    seen: set[tuple[str, str]] = set()
+    out: list[dict] = []
+    for r in sorted(routes, key=lambda r: (r["path"], r["method"])):
+        key = (r["method"], r["path"])
+        if key not in seen:
+            seen.add(key)
+            out.append(r)
+    return out
 
 
 def _norm_path(path: str) -> str:
-    """Normalize a URL/route path so `:id`, `{id}`, `<id>` params all compare equal."""
+    """Normalize a URL/route path so every framework's param syntax compares equal.
+
+    Handles `:id` (Express/Nest), `{id}` (FastAPI), `<id>` and `<int:id>` (Flask),
+    and Nest's optional `:id?`. A query string is not part of the route.
+    """
+    path = path.split("?", 1)[0]        # a query string is not part of the route
     segs = []
     for seg in path.strip("/").split("/"):
         if not seg:
             continue
         if seg.startswith(":") or (seg.startswith("{") and seg.endswith("}")) \
-                or (seg.startswith("<") and seg.endswith(">")):
+                or (seg.startswith("<") and seg.endswith(">")) or seg.startswith("*"):
             segs.append("*")
         else:
             segs.append(seg)
@@ -192,19 +222,43 @@ def _norm_path(path: str) -> str:
 
 
 def _api_edges(methods: dict) -> set[tuple[str, str]]:
-    """Link frontend HTTP calls to backend route handlers (method + path match)."""
-    routes: dict[tuple[str, str], str] = {}
+    """Link frontend HTTP calls to backend route handlers (method + path match).
+
+    Exact `(METHOD, path)` first. Failing that, one documented fallback: a route
+    whose path is a *suffix* of the call's, and only when exactly one route
+    matches. That is what makes a mount prefix work -- a frontend `/api/orders`
+    reaching a handler registered as `/orders` under an `/api` mount -- without
+    guessing when two routes could both be meant.
+    """
+    routes: dict[tuple[str, str], list[str]] = {}
     for nid, info in methods.items():
-        r = info.get("route")
-        if r:
-            routes[(r["method"].upper(), _norm_path(r["path"]))] = nid
+        for r in info.get("routes") or []:
+            routes.setdefault((r["method"].upper(), _norm_path(r["path"])), []).append(nid)
+
     edges: set[tuple[str, str]] = set()
     for nid, info in methods.items():
         for h in info.get("http") or []:
-            target = routes.get((h["method"].upper(), _norm_path(h["url"])))
-            if target and target != nid:
-                edges.add((nid, target))
+            method, url = h["method"].upper(), _norm_path(h["url"])
+            owners = routes.get((method, url))
+            if not owners:
+                owners = _suffix_match(routes, method, url)
+            if owners and len(owners) == 1 and owners[0] != nid:
+                edges.add((nid, owners[0]))
     return edges
+
+
+def _suffix_match(routes: dict, method: str, url: str) -> list[str] | None:
+    """Routes whose path is a trailing run of *whole segments* of `url`, same verb.
+
+    Segment-aligned on purpose: `/api/orders` matches a route `/orders`, but
+    `/myorders` must not.
+    """
+    parts = url.strip("/").split("/")
+    candidates = {"/" + "/".join(parts[i:]) for i in range(1, len(parts))}
+    hits: list[str] = []
+    for suffix in candidates:
+        hits.extend(routes.get((method, suffix), []))
+    return sorted(set(hits)) or None
 
 
 def _rel_source(path: str, root: str) -> str:
@@ -249,8 +303,8 @@ def analyze(roots: list[str]):
                 node_id = f"{cls.name}.{m.name}"
                 class_methods[cls.name].add(m.name)
                 decos = [_name_of(d) for d in m.decorator_list]
-                route = _route_of(m.decorator_list)
-                is_endpoint = bool(route) or layer == "controller" or any(ROUTE_DECORATOR_RE.search(d) for d in decos)
+                routes = _route_of(m.decorator_list)
+                is_endpoint = bool(routes) or layer == "controller" or any(ROUTE_DECORATOR_RE.search(d) for d in decos)
                 doc = ast.get_docstring(m) or ""
                 code = ast.get_source_segment(src_text, m) or ""
                 methods[node_id] = {
@@ -259,7 +313,7 @@ def analyze(roots: list[str]):
                     "signature": _signature(m),
                     "doc": doc.strip().splitlines()[0] if doc.strip() else "",
                     "source": f"{rel}:{m.lineno}", "calls": [], "callers": [],
-                    "hash": _hash(code), "code": code, "route": route,
+                    "hash": _hash(code), "code": code, "routes": routes,
                 }
                 local_types = _local_types(m, attr_types)
                 pending.append((node_id, cls.name, {"attr_types": attr_types, "local_types": local_types}, m))
@@ -269,12 +323,17 @@ def analyze(roots: list[str]):
             func_nodes[fn.name] = node_id
             doc = ast.get_docstring(fn) or ""
             code = ast.get_source_segment(src_text, fn) or ""
+            # Flask's normal shape is @app.route on a module-level def, not on a
+            # class method -- so a whole framework was invisible until this loop
+            # asked the same question the class loop already asked.
+            routes = _route_of(fn.decorator_list)
             methods[node_id] = {
-                "id": node_id, "name": fn.name, "cls": None, "layer": "function",
-                "kind": "function", "signature": _signature(fn),
+                "id": node_id, "name": fn.name, "cls": None,
+                "layer": "controller" if routes else "function",
+                "kind": "endpoint" if routes else "function", "signature": _signature(fn),
                 "doc": doc.strip().splitlines()[0] if doc.strip() else "",
                 "source": f"{rel}:{fn.lineno}", "calls": [], "callers": [],
-                "hash": _hash(code), "code": code,
+                "hash": _hash(code), "code": code, "routes": routes,
             }
             local_types = _local_types(fn, {})
             pending.append((node_id, None, {"attr_types": {}, "local_types": local_types}, fn))
@@ -328,6 +387,7 @@ def _js_node(nid: str, name: str, cls, layer: str, kind: str, data: dict, rel: s
         "doc": doc.splitlines()[0] if doc else "",
         "source": f"{rel}:{data.get('line', 0)}", "calls": [], "callers": [],
         "hash": _hash(content), "code": code, "http": http, "lang": "js",
+        "routes": _dedupe_routes(data.get("routes") or []),
     }
 
 
@@ -352,11 +412,35 @@ def _analyze_js(roots: list[str]):
                 func_nodes.add(nid)
                 raw_calls.append((nid, fn.get("calls", [])))
             for cls in res.get("classes", []):
+                # Nest hands us real decorator names (@Controller, @Injectable), which
+                # is better evidence of a layer than the class name and file stem that
+                # were all a JS class used to offer.
+                layer = infer_layer(f'{cls["name"]} {stem}', cls.get("decorators", []))
                 for m in cls.get("methods", []):
                     nid = f'{cls["name"]}.{m["name"]}'
+                    routed = bool(m.get("routes"))
                     methods[nid] = _js_node(nid, m["name"], cls["name"],
-                                            infer_layer(f'{cls["name"]} {stem}'), "method", m, rel)
+                                            "controller" if routed else layer,
+                                            "endpoint" if routed else "method", m, rel)
                     raw_calls.append((nid, m.get("calls", [])))
+
+            # Express registrations. A named handler attaches to that function's own
+            # node; an inline arrow has no node to attach to, so the registration
+            # itself becomes the endpoint ("POST /orders").
+            for r in res.get("routes", []):
+                handler = r.get("handler")
+                if handler and handler in methods:
+                    methods[handler]["routes"] = _dedupe_routes(
+                        methods[handler]["routes"] + [{"method": r["method"], "path": r["path"]}])
+                    methods[handler]["kind"] = "endpoint"
+                    methods[handler]["layer"] = "controller"
+                elif not handler:
+                    nid = f'{r["method"]} {r["path"]}'
+                    data = dict(r, routes=[{"method": r["method"], "path": r["path"]}])
+                    node = _js_node(nid, nid, None, "controller", "endpoint", data, rel)
+                    node["signature"] = nid      # the route is the signature; `nid()` reads as nonsense
+                    methods[nid] = node
+                    raw_calls.append((nid, r.get("calls", [])))
 
     edges: set[tuple[str, str]] = set()
     for owner, calls in raw_calls:
@@ -502,8 +586,8 @@ def write_graph(methods: dict, edges, graph_path: str) -> None:
                 "ext": i.get("ext", 0)}  # call sites that leave the graph (libs/stdlib)
         if i.get("http"):
             node["http"] = i["http"]
-        if i.get("route"):
-            node["route"] = i["route"]
+        if i.get("routes"):
+            node["routes"] = i["routes"]
         nodes.append(node)
     graph = {"nodes": nodes,
              "edges": [{"source": s, "target": t, "type": ty} for s, t, ty in edges]}

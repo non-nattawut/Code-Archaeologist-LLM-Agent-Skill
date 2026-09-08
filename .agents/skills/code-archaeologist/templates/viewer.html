@@ -1105,8 +1105,10 @@ function renderFile(node) {
     </div>`);
   if (node.doc) parts.push(`<p class="doc">${renderDoc(node.doc)}</p>`);
   if (node.signature) parts.push(`<p class="doc mono" style="color:var(--muted)">${esc(node.signature)}</p>`);
-  if (node.route) parts.push(`<p class="doc"><span class="badge low">${esc(node.route.method)}</span>
-    <code>${esc(node.route.path)}</code></p>`);
+  // One handler can serve several routes (Flask methods=[...], stacked decorators),
+  // so this is a list -- showing only the first would hide half of what it answers.
+  if (node.routes) parts.push(`<p class="doc">` + node.routes.map((r) =>
+    `<span class="badge low">${esc(r.method)}</span> <code>${esc(r.path)}</code>`).join("<br>") + `</p>`);
 
   parts.push(`<details class="acc" open><summary>Blast radius
       <span class="grow badge ${sevCls}">${sevLabel}</span></summary>

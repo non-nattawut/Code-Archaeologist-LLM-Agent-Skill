@@ -3,7 +3,7 @@ entity: createOrder
 kind: function
 layer: client
 class: 
-source: sample_src/frontend/api_client.ts:3
+source: sample_src/frontend/api_client.ts:8
 lang: js
 desc_source: ai
 ---

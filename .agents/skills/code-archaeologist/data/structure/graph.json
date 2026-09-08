@@ -49,12 +49,36 @@
       "doc": "unittest style: detected the same way, by the file it lives in."
     },
     {
+      "id": "OrderRouterModule",
+      "layer": "controller",
+      "kind": "module",
+      "lang": "js",
+      "source": "sample_src/api_express/order_router.js",
+      "doc": "_No docstring provided._"
+    },
+    {
+      "id": "OrderRoutesModule",
+      "layer": "controller",
+      "kind": "module",
+      "lang": "py",
+      "source": "sample_src/api_flask/order_routes.py",
+      "doc": "Flask routes for the legacy orders API.\n\nTwo things in this file that no other sample exercises: Flask's normal shape is a\nroute decorator on a module-level `def` rather than a class method, and one handler\nserving several verbs through `methods=[...]`. Mounted under /legacy so it does not\ncompete with the FastAPI controller for the same paths."
+    },
+    {
       "id": "OrderService",
       "layer": "service",
       "kind": "class",
       "lang": "py",
       "source": "sample_src/backend/order_service.py",
       "doc": "Orchestrates order placement, payment, and persistence."
+    },
+    {
+      "id": "OrdersController",
+      "layer": "controller",
+      "kind": "class",
+      "lang": "js",
+      "source": "sample_src/api_nest/orders.controller.ts",
+      "doc": "_No docstring provided._"
     },
     {
       "id": "PaymentClient",
@@ -115,6 +139,11 @@
     {
       "source": "OrderRepositoryTest",
       "target": "PaymentClient",
+      "type": "references"
+    },
+    {
+      "source": "OrderRoutesModule",
+      "target": "OrderService",
       "type": "references"
     },
     {

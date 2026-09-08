@@ -1,24 +1,28 @@
 {
-  "generated": "2026-09-08T14:02:53Z",
+  "generated": "2026-09-08T14:11:30Z",
   "roots": [
     "sample_src"
   ],
   "totals": {
-    "files": 9,
-    "lines": 162,
-    "code": 112,
-    "comment": 13,
-    "blank": 37,
-    "comment_ratio": 0.08
+    "files": 12,
+    "lines": 250,
+    "code": 165,
+    "comment": 31,
+    "blank": 54,
+    "comment_ratio": 0.124
   },
   "languages": {
     "py": {
-      "files": 5,
-      "lines": 98
+      "files": 6,
+      "lines": 126
     },
     "ts": {
-      "files": 3,
-      "lines": 37
+      "files": 4,
+      "lines": 69
+    },
+    "js": {
+      "files": 1,
+      "lines": 28
     },
     "tsx": {
       "files": 1,
@@ -26,6 +30,27 @@
     }
   },
   "files": {
+    "sample_src/api_express/order_router.js": {
+      "lines": 28,
+      "code": 14,
+      "comment": 8,
+      "blank": 6,
+      "lang": "js"
+    },
+    "sample_src/api_flask/order_routes.py": {
+      "lines": 28,
+      "code": 21,
+      "comment": 0,
+      "blank": 7,
+      "lang": "py"
+    },
+    "sample_src/api_nest/orders.controller.ts": {
+      "lines": 20,
+      "code": 12,
+      "comment": 6,
+      "blank": 2,
+      "lang": "ts"
+    },
     "sample_src/backend/order_controller.py": {
       "lines": 23,
       "code": 16,
@@ -69,10 +94,10 @@
       "lang": "tsx"
     },
     "sample_src/frontend/api_client.ts": {
-      "lines": 11,
-      "code": 8,
-      "comment": 1,
-      "blank": 2,
+      "lines": 23,
+      "code": 14,
+      "comment": 5,
+      "blank": 4,
       "lang": "ts"
     },
     "sample_src/frontend/order_page.test.ts": {
@@ -241,6 +266,26 @@
       "lang": "py",
       "in_graph": false
     },
+    "order_detail": {
+      "loc": 4,
+      "complexity": 1,
+      "depth": 0,
+      "params": 1,
+      "file": "sample_src/api_flask/order_routes.py",
+      "line": 25,
+      "lang": "py",
+      "in_graph": false
+    },
+    "orders": {
+      "loc": 6,
+      "complexity": 2,
+      "depth": 1,
+      "params": 0,
+      "file": "sample_src/api_flask/order_routes.py",
+      "line": 16,
+      "lang": "py",
+      "in_graph": false
+    },
     "test_place_order_charges_and_saves": {
       "loc": 4,
       "complexity": 2,
@@ -328,6 +373,16 @@
   ],
   "top_files": [
     {
+      "file": "sample_src/api_express/order_router.js",
+      "lines": 28,
+      "code": 14
+    },
+    {
+      "file": "sample_src/api_flask/order_routes.py",
+      "lines": 28,
+      "code": 21
+    },
+    {
       "file": "sample_src/frontend/OrderCard.tsx",
       "lines": 27,
       "code": 20
@@ -343,6 +398,16 @@
       "code": 16
     },
     {
+      "file": "sample_src/frontend/api_client.ts",
+      "lines": 23,
+      "code": 14
+    },
+    {
+      "file": "sample_src/api_nest/orders.controller.ts",
+      "lines": 20,
+      "code": 12
+    },
+    {
       "file": "sample_src/backend/order_service.py",
       "lines": 20,
       "code": 15
@@ -356,27 +421,15 @@
       "file": "sample_src/backend/payment_client.py",
       "lines": 15,
       "code": 8
-    },
-    {
-      "file": "sample_src/frontend/order_page.test.ts",
-      "lines": 13,
-      "code": 9
-    },
-    {
-      "file": "sample_src/frontend/order_page.ts",
-      "lines": 13,
-      "code": 9
-    },
-    {
-      "file": "sample_src/frontend/api_client.ts",
-      "lines": 11,
-      "code": 8
     }
   ],
   "unmeasured_graph_ids": [
     "ApiClientModule",
     "OrderCard",
     "OrderPageModule",
+    "OrderRouterModule",
+    "OrderRoutesModule",
+    "OrdersController",
     "StatusBadge",
     "TestOrdersModule"
   ]

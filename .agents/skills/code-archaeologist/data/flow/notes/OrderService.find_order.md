@@ -20,3 +20,4 @@ Look up an order by id.
 
 ## Called by
 - [[OrderController.get_order]]
+- [[order_detail]]

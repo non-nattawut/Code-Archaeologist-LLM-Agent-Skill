@@ -91,6 +91,14 @@ prefix: `backend/…`, `frontend/…`). Python is parsed by the stdlib AST, JS/T
 calls are matched to backend route handlers by HTTP method + path, giving cross-stack `http`
 edges — so one trace can run frontend → API → service → repository.
 
+Route handlers are recognised in FastAPI, Flask (including `@app.route` on a module-level `def`
+and `methods=["GET", "POST"]`), Express (named handler or inline arrow) and Nest (`@Controller`
+prefix + `@Get`/`@Post` suffix). A node's `routes` is a **list** — say all of them when asked what
+a handler serves. When a call's path does not match a route exactly, the link falls back to a
+route whose path is a suffix of it, and only when exactly one route matches; an ambiguous path is
+left unlinked rather than guessed, so a missing `http` edge means "could not tell", not "no
+caller".
+
 ### 4. Find the nodes (instead of grepping)
 Filter the graph and get ids back for the commands below. Never grep source to find "where is X
 handled".
