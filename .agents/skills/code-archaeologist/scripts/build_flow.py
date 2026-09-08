@@ -548,10 +548,15 @@ def build(src, flow_dir: str, graph_path: str) -> int:
     endpoints = [m for m in methods.values() if m["kind"] == "endpoint"]
     from_doc = sum(1 for m in methods.values() if m["desc_source"] == "docstring")
     from_ai = sum(1 for m in methods.values() if m["desc_source"] == "ai")
-    print(f"Flow: {len(methods)} node(s), {len(edges)} call edge(s), {len(endpoints)} endpoint(s)")
+    scope = " (BACKEND ONLY - frontend skipped)" if frontend_degraded() else ""
+    print(f"Flow: {len(methods)} node(s), {len(edges)} call edge(s), {len(endpoints)} endpoint(s){scope}")
     print(f"  descriptions: {from_doc} docstring, {from_ai} cached-AI, {len(pending)} pending")
     print(f"  graph -> {graph_path}")
     print(f"  notes -> {flow_dir}")
+    if frontend_degraded():
+        print("  WARNING: this graph is incomplete -- JS/TS files were not parsed, so frontend")
+        print("           nodes and cross-stack edges are missing. Do not commit it as the")
+        print("           project's map; install the parser and rebuild (see the warning above).")
     if pending:
         print(f"  NOTE: {len(pending)} method(s) need an AI summary. Read {PENDING_PATH},")
         print("        write a one-line summary for each, then run apply_descriptions.py and rebuild.")
