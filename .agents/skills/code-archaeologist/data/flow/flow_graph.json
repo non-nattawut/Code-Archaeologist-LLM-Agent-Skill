@@ -1,6 +1,17 @@
 {
   "nodes": [
     {
+      "id": "OrderCard",
+      "layer": "ui",
+      "kind": "component",
+      "cls": null,
+      "signature": "OrderCard()",
+      "doc": "Loads one order by id and renders it as a card.",
+      "source": "sample_src/frontend/OrderCard.tsx:11",
+      "lang": "js",
+      "ext": 3
+    },
+    {
       "id": "OrderController.__init__",
       "layer": "controller",
       "kind": "endpoint",
@@ -119,6 +130,17 @@
       "ext": 1
     },
     {
+      "id": "StatusBadge",
+      "layer": "ui",
+      "kind": "component",
+      "cls": null,
+      "signature": "StatusBadge()",
+      "doc": "Renders one order's status as a coloured badge.",
+      "source": "sample_src/frontend/OrderCard.tsx:6",
+      "lang": "js",
+      "ext": 0
+    },
+    {
       "id": "createOrder",
       "layer": "client",
       "kind": "function",
@@ -187,6 +209,11 @@
     }
   ],
   "edges": [
+    {
+      "source": "OrderCard",
+      "target": "getOrder",
+      "type": "calls"
+    },
     {
       "source": "OrderController.create_order",
       "target": "OrderService.place_order",

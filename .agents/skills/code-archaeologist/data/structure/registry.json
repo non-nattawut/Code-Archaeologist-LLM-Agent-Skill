@@ -1,8 +1,12 @@
 {
+  "ApiClientModule": "structure/vault/ApiClientModule.md",
+  "OrderCard": "structure/vault/OrderCard.md",
   "OrderController": "structure/vault/OrderController.md",
+  "OrderPageModule": "structure/vault/OrderPageModule.md",
   "OrderRepository": "structure/vault/OrderRepository.md",
   "OrderRepositoryTest": "structure/vault/OrderRepositoryTest.md",
   "OrderService": "structure/vault/OrderService.md",
   "PaymentClient": "structure/vault/PaymentClient.md",
+  "StatusBadge": "structure/vault/StatusBadge.md",
   "TestOrdersModule": "structure/vault/TestOrdersModule.md"
 }

@@ -343,8 +343,12 @@ def _analyze_js(roots: list[str]):
             stem = os.path.splitext(os.path.basename(res["file"]))[0]
             for fn in res.get("functions", []):
                 nid = fn["name"]
-                methods[nid] = _js_node(nid, fn["name"], None, infer_layer(f'{fn["name"]} {stem}'),
-                                        "function", fn, rel)
+                # A function that returns JSX is a React component in both maps --
+                # one meaning, one kind, whichever map you are reading.
+                component = bool(fn.get("jsx"))
+                methods[nid] = _js_node(nid, fn["name"], None,
+                                        "ui" if component else infer_layer(f'{fn["name"]} {stem}'),
+                                        "component" if component else "function", fn, rel)
                 func_nodes.add(nid)
                 raw_calls.append((nid, fn.get("calls", [])))
             for cls in res.get("classes", []):

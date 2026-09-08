@@ -19,6 +19,7 @@ Frontend API client: GET /orders/:id and return the parsed order JSON.
 - [[OrderController.get_order]]
 
 ## Called by
+- [[OrderCard]]
 - [[loadOrder]]
 
 ## HTTP calls

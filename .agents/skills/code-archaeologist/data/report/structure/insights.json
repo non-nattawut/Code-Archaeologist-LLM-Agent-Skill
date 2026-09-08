@@ -137,6 +137,32 @@
     }
   },
   "nodes": {
+    "ApiClientModule": {
+      "file": "sample_src/frontend/api_client.ts",
+      "commits": 1,
+      "owner": "Nattawut Rodthong",
+      "authors": {
+        "Nattawut Rodthong": 1
+      },
+      "author_count": 1,
+      "last_commit": "2026-09-02T16:10:56+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "fan_in": 2,
+      "fan_out": 0,
+      "risk": 3
+    },
+    "OrderCard": {
+      "file": "sample_src/frontend/OrderCard.tsx",
+      "commits": 0,
+      "owner": null,
+      "authors": {},
+      "author_count": 0,
+      "last_commit": null,
+      "first_commit": null,
+      "fan_in": 0,
+      "fan_out": 2,
+      "risk": 0
+    },
     "OrderController": {
       "file": "sample_src/backend/order_controller.py",
       "commits": 2,
@@ -146,6 +172,21 @@
       },
       "author_count": 1,
       "last_commit": "2026-09-02T16:14:28+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "fan_in": 0,
+      "fan_out": 1,
+      "risk": 4
+    },
+    "OrderPageModule": {
+      "file": "sample_src/frontend/order_page.ts",
+      "commits": 2,
+      "owner": "Nattawut Rodthong",
+      "authors": {
+        "Nattawut Rodthong": 1,
+        "non-nattawut": 1
+      },
+      "author_count": 2,
+      "last_commit": "2026-09-06T13:31:45+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 0,
       "fan_out": 1,
@@ -208,6 +249,18 @@
       "fan_in": 3,
       "fan_out": 0,
       "risk": 12
+    },
+    "StatusBadge": {
+      "file": "sample_src/frontend/OrderCard.tsx",
+      "commits": 0,
+      "owner": null,
+      "authors": {},
+      "author_count": 0,
+      "last_commit": null,
+      "first_commit": null,
+      "fan_in": 1,
+      "fan_out": 0,
+      "risk": 0
     },
     "TestOrdersModule": {
       "file": "sample_src/backend/tests/test_orders.py",
@@ -288,6 +341,22 @@
       "risk": 4
     },
     {
+      "node": "OrderPageModule",
+      "file": "sample_src/frontend/order_page.ts",
+      "commits": 2,
+      "owner": "Nattawut Rodthong",
+      "authors": {
+        "Nattawut Rodthong": 1,
+        "non-nattawut": 1
+      },
+      "author_count": 2,
+      "last_commit": "2026-09-06T13:31:45+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "fan_in": 0,
+      "fan_out": 1,
+      "risk": 4
+    },
+    {
       "node": "OrderRepositoryTest",
       "file": "sample_src/backend/tests/test_orders.py",
       "commits": 1,
@@ -316,6 +385,21 @@
       "fan_in": 0,
       "fan_out": 3,
       "risk": 4
+    },
+    {
+      "node": "ApiClientModule",
+      "file": "sample_src/frontend/api_client.ts",
+      "commits": 1,
+      "owner": "Nattawut Rodthong",
+      "authors": {
+        "Nattawut Rodthong": 1
+      },
+      "author_count": 1,
+      "last_commit": "2026-09-02T16:10:56+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "fan_in": 2,
+      "fan_out": 0,
+      "risk": 3
     }
   ],
   "summary": {

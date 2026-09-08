@@ -11,7 +11,7 @@ reviews them, and renders one browsable page:
 
 | Map | Nodes | Built by | Output |
 | --- | --- | --- | --- |
-| **Structure** | classes/entities | `build_wiki.py` → `build_graph.py` | `data/structure/{graph.json, registry.json, vault/*.md}` |
+| **Structure** | classes / React components / module groups | `build_wiki.py` → `build_graph.py` | `data/structure/{graph.json, registry.json, vault/*.md}` |
 | **Flow** | methods/functions | `build_flow.py` | `data/flow/{flow_graph.json, notes/*.md}` |
 
 An agent answers architecture questions by **querying the graph, then reading only the notes on the
@@ -79,8 +79,9 @@ it needs the directory holding `js_extract.js`, not the skill root — and `cons
 - `scan_security.py` is line-regex over source; every finding is attributed to the node owning that
   line. `git_insights.py` is one `git log --numstat` pass → churn, owners, hotspot risk.
 - `metrics.py` is line counts per file plus LOC / cyclomatic complexity / nesting depth /
-  parameter count per node, keyed like the graph nodes (Python only: `js_extract.js` records no
-  end line yet). `report.py` derives `file_census` from it, so line counts have one definition.
+  parameter count per node, keyed like the graph nodes (per-node figures are Python only:
+  `js_extract.js` now records `endLine`, but `metrics.py` does not read it yet). `report.py`
+  derives `file_census` from it, so line counts have one definition.
 - `search.py` is the "which nodes are these" filter over one graph (name/doc/layer/kind/lang/file
   plus `--calls` / `--called-by` / `--orphans`). It exists so neither the agent nor a human greps
   source to find a starting node.
@@ -178,16 +179,22 @@ python .agents/skills/code-archaeologist/scripts/archaeologist.py report --src .
 ```
 
 Expected on the current sample (it carries three deliberate smells — a hardcoded key, interpolated
-SQL, an innerHTML sink — plus a pytest/unittest file and a `.test.ts`, so both the review path and
-the test path have something to find):
+SQL, an innerHTML sink — plus a pytest/unittest file, a `.test.ts` and a `.tsx` with two React
+components, so the review path, the test path and the component path all have something to find):
 
-- flow graph: 15 nodes / 11 edges, 3 endpoints, **0 pending** descriptions
+- structure graph: 10 nodes / 12 edges — 6 Python, 4 JS/TS, of which `OrderCard` and `StatusBadge`
+  are `kind: component` / `layer: ui`
+- flow graph: 17 nodes / 12 edges, 3 endpoints, **0 pending** descriptions
 - traces: `create_order → place_order → {save, charge}` and `get_order → find_order → get`;
-  cross-stack `submitOrder → createOrder → OrderController.create_order → …`
-- grades: structure **C (75)**, flow **D (68)**; 4 risk findings; 2 debt markers
-- tests: 2 test files, flow **4/11 nodes named by a test**, and the two test nodes carry
+  cross-stack `submitOrder → createOrder → OrderController.create_order → …`;
+  structure `OrderCard → {ApiClientModule, StatusBadge}`
+- grades: structure **C (70)**, flow **D (69)**; 4 risk findings each; 2 debt markers
+- tests: 2 test files, flow **4/13 nodes named by a test**, and the two test nodes carry
   `layer: test` with call edges into `OrderService.place_order` / `OrderRepository.get`
 - `archaeologist.py check --src ./sample_src` → `stale: false` right after a build
+
+With `node_modules` renamed away the same build must still succeed, print the one
+`frontend skipped` warning, and fall back to the Python-only 6 nodes / 9 edges.
 
 Other checks worth running when you touch the relevant part:
 

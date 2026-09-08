@@ -1,16 +1,42 @@
 {
   "nodes": [
     {
+      "id": "ApiClientModule",
+      "layer": "client",
+      "kind": "module",
+      "lang": "js",
+      "source": "sample_src/frontend/api_client.ts",
+      "doc": "_No docstring provided._"
+    },
+    {
+      "id": "OrderCard",
+      "layer": "ui",
+      "kind": "component",
+      "lang": "js",
+      "source": "sample_src/frontend/OrderCard.tsx",
+      "doc": "Loads one order by id and renders it as a card."
+    },
+    {
       "id": "OrderController",
       "layer": "controller",
       "kind": "class",
+      "lang": "py",
       "source": "sample_src/backend/order_controller.py",
       "doc": "Handles inbound order requests and delegates to the service layer."
+    },
+    {
+      "id": "OrderPageModule",
+      "layer": "ui",
+      "kind": "module",
+      "lang": "js",
+      "source": "sample_src/frontend/order_page.ts",
+      "doc": "_No docstring provided._"
     },
     {
       "id": "OrderRepository",
       "layer": "repository",
       "kind": "class",
+      "lang": "py",
       "source": "sample_src/backend/order_repository.py",
       "doc": "Reads and writes orders to the database."
     },
@@ -18,6 +44,7 @@
       "id": "OrderRepositoryTest",
       "layer": "test",
       "kind": "class",
+      "lang": "py",
       "source": "sample_src/backend/tests/test_orders.py",
       "doc": "unittest style: detected the same way, by the file it lives in."
     },
@@ -25,6 +52,7 @@
       "id": "OrderService",
       "layer": "service",
       "kind": "class",
+      "lang": "py",
       "source": "sample_src/backend/order_service.py",
       "doc": "Orchestrates order placement, payment, and persistence."
     },
@@ -32,21 +60,46 @@
       "id": "PaymentClient",
       "layer": "client",
       "kind": "class",
+      "lang": "py",
       "source": "sample_src/backend/payment_client.py",
       "doc": "Talks to the third-party payment gateway."
+    },
+    {
+      "id": "StatusBadge",
+      "layer": "ui",
+      "kind": "component",
+      "lang": "js",
+      "source": "sample_src/frontend/OrderCard.tsx",
+      "doc": "Renders one order's status as a coloured badge."
     },
     {
       "id": "TestOrdersModule",
       "layer": "test",
       "kind": "module",
+      "lang": "py",
       "source": "sample_src/backend/tests/test_orders.py",
       "doc": "Demo tests: both common Python styles, so the skill has real test code to classify.\n\nThese call the production classes directly, which is what gives the flow map its\ntest -> production edges \u2014 the ones `context.py` reports under \"Covered by\"."
     }
   ],
   "edges": [
     {
+      "source": "OrderCard",
+      "target": "ApiClientModule",
+      "type": "references"
+    },
+    {
+      "source": "OrderCard",
+      "target": "StatusBadge",
+      "type": "references"
+    },
+    {
       "source": "OrderController",
       "target": "OrderService",
+      "type": "references"
+    },
+    {
+      "source": "OrderPageModule",
+      "target": "ApiClientModule",
       "type": "references"
     },
     {

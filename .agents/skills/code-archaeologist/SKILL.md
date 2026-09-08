@@ -75,6 +75,9 @@ python .agents/skills/code-archaeologist/scripts/archaeologist.py brief --src ./
 ```bash
 python .agents/skills/code-archaeologist/scripts/archaeologist.py project --src ./src
 ```
+Nodes are classes, React components and one `<Name>Module` page per file of module-level
+functions, from Python and JS/TS alike. A JS/TS function that returns JSX gets `kind: component`
+and `layer: ui`, and an `import ... from "./x"` becomes an edge to whatever that file defines.
 
 ### 3. Build the Flow / Request-Flow map
 ```bash

@@ -7,7 +7,8 @@ nearly free (no parsing, no tokens, stdlib only):
   cycles            circular dependencies (strongly-connected components > 1
                     node, plus self-loops) — the hardest coupling to untangle.
   orphans           nodes with no incoming edges that aren't entry points
-                    (endpoints / controllers / route handlers) — likely dead code.
+                    (endpoints / controllers / route handlers / React components)
+                    — likely dead code.
   layer_violations  edges that call "upward" against the standard layering
                     (controller -> service -> repository/client -> model), e.g. a
                     repository calling a controller — a backwards dependency.
@@ -143,7 +144,10 @@ def find_orphans(nodes: dict, edges: list[tuple[str, str, str]]) -> list[str]:
     for nid, n in nodes.items():
         if nid in has_caller or _is_dunder(nid):
             continue
-        is_entry = (n.get("kind") == "endpoint" or bool(n.get("route"))
+        # A React component is mounted by the framework and a route handler is
+        # called by the server: in both cases the caller is outside the graph, so
+        # having no incoming edge says nothing about whether the code is used.
+        is_entry = (n.get("kind") in ("endpoint", "component") or bool(n.get("route"))
                     or n.get("layer") in ("controller", "test"))
         if not is_entry:
             orphans.append(nid)

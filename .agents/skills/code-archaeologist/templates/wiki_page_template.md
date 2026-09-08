@@ -3,6 +3,7 @@ entity: {{name}}
 layer: {{layer}}
 source: {{source}}
 kind: {{kind}}
+lang: {{lang}}
 ---
 # {{name}}
 

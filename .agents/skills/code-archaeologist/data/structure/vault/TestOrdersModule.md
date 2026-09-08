@@ -3,6 +3,7 @@ entity: TestOrdersModule
 layer: test
 source: sample_src/backend/tests/test_orders.py
 kind: module
+lang: py
 ---
 # TestOrdersModule
 

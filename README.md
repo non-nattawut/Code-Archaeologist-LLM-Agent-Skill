@@ -58,10 +58,14 @@ Both are built from the same scan and answer different questions.
 
 | | **Structure map** | **Flow map** |
 | --- | --- | --- |
-| **Node** | a class / entity | a method / function |
+| **Node** | a class, React component or module | a method / function |
 | **Edge** | references, imports | calls |
 | **Answers** | "how is this organized?", "who uses X?" | "how does a request travel?", "what calls what?" |
 | **Output** | `data/structure/` | `data/flow/` |
+
+Both cover backend and frontend: a `.tsx` React component is a structure node next to a Python
+service class, and a function that returns JSX is typed `component` rather than lumped into its
+file's module page.
 
 They cross the stack. Frontend `fetch`/`axios` calls are matched to backend route handlers by HTTP
 method + normalized path, so **one trace runs from a button click to the database**.
@@ -258,7 +262,8 @@ It has no npm dependencies of its own.
 
 ## Roadmap
 
-- Frontend entities in the *structure* map (today they appear in the flow map).
+- Frontend entities in the *structure* map. **Done** — classes, React components (`kind:
+  component`) and module function-groups from `.js/.jsx/.ts/.tsx`.
 - Wider route/framework coverage for API linking (Flask, Express, Nest).
 - Graph extractors for more languages; a fully offline viewer.
 - Duplicate-code clusters, via normalized token hashing of function bodies.

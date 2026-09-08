@@ -1,23 +1,23 @@
 # Architecture report — flow_graph.json
 
-Generated 2026-09-08 06:44 UTC · 15 nodes · 11 edges
+Generated 2026-09-08 13:50 UTC · 17 nodes · 12 edges
 
-## Health: **D** (68/100)
+## Health: **D** (69/100)
 
 | Deduction | Points |
 | --- | --- |
-| dead code | -7 |
+| dead code | -6 |
 | security | -25 |
 
-Dead-code ratio 13.3% · cycles 0 · layer violations 0 · security findings 4
+Dead-code ratio 11.8% · cycles 0 · layer violations 0 · security findings 4
 
 ## Census
 
-- Source: 8 file(s), 135 lines (py 72.6%, ts 27.4%)
-- Layers: `client` 3, `controller` 3, `repository` 2, `service` 3, `test` 2, `ui` 2
-- Kinds: `endpoint` 3, `function` 5, `method` 7
-- Languages: `js` 4, `py` 11
-- Edge types: `calls` 9, `http` 2
+- Source: 9 file(s), 162 lines (py 60.5%, ts 22.8%, tsx 16.7%)
+- Layers: `client` 3, `controller` 3, `repository` 2, `service` 3, `test` 2, `ui` 4
+- Kinds: `component` 2, `endpoint` 3, `function` 5, `method` 7
+- Languages: `js` 6, `py` 11
+- Edge types: `calls` 10, `http` 2
 
 ## Entry points (routes)
 
@@ -28,7 +28,7 @@ Dead-code ratio 13.3% · cycles 0 · layer violations 0 · security findings 4
 
 ## Size & complexity
 
-- 8 file(s), 135 lines — 92 code, 10 comment, 33 blank (comment ratio 7%)
+- 9 file(s), 162 lines — 112 code, 13 comment, 37 blank (comment ratio 8%)
 - Complexity is McCabe: 1 + every branch. Python nodes only.
 
 ### Longest nodes
@@ -65,6 +65,7 @@ Dead-code ratio 13.3% · cycles 0 · layer violations 0 · security findings 4
 
 | File | Lines | Code |
 | --- | --- | --- |
+| `sample_src/frontend/OrderCard.tsx` | 27 | 20 |
 | `sample_src/backend/tests/test_orders.py` | 25 | 18 |
 | `sample_src/backend/order_controller.py` | 23 | 16 |
 | `sample_src/backend/order_service.py` | 20 | 15 |
@@ -124,10 +125,10 @@ _None._
 | `OrderRepository.save` | 3 | 1 | 0 | 6 | non-nattawut |
 | `PaymentClient.charge` | 3 | 1 | 0 | 6 | non-nattawut |
 | `OrderService.place_order` | 1 | 2 | 2 | 5 | Nattawut Rodthong |
+| `getOrder` | 1 | 2 | 1 | 4 | Nattawut Rodthong |
 | `loadOrder` | 2 | 0 | 1 | 4 | Nattawut Rodthong |
 | `submitOrder` | 2 | 0 | 1 | 4 | Nattawut Rodthong |
 | `OrderService.find_order` | 1 | 1 | 1 | 3 | Nattawut Rodthong |
-| `createOrder` | 1 | 1 | 1 | 3 | Nattawut Rodthong |
 
 ## Debt — 2 marker(s) (FIXME 1, TODO 1), 2 dead node(s)
 
@@ -138,7 +139,7 @@ _None._
 
 Files where every node is dead: `sample_src/frontend/order_page.ts`
 
-## Tests — 4/11 node(s) named by a test (36.4%)
+## Tests — 4/13 node(s) named by a test (30.8%)
 
 _2 test file(s). Name-based, not execution coverage: a node counts as referenced when a test file names it._
 
@@ -146,11 +147,13 @@ _2 test file(s). Name-based, not execution coverage: a node counts as referenced
 
 | Node | Layer | Location |
 | --- | --- | --- |
+| `OrderCard` | ui | `sample_src/frontend/OrderCard.tsx:11` |
 | `OrderController.create_order` | controller | `sample_src/backend/order_controller.py:16` |
 | `OrderController.get_order` | controller | `sample_src/backend/order_controller.py:21` |
 | `OrderRepository.save` | repository | `sample_src/backend/order_repository.py:7` |
 | `OrderService.find_order` | service | `sample_src/backend/order_service.py:18` |
 | `PaymentClient.charge` | client | `sample_src/backend/payment_client.py:11` |
+| `StatusBadge` | ui | `sample_src/frontend/OrderCard.tsx:6` |
 | `createOrder` | client | `sample_src/frontend/api_client.ts:3` |
 | `getOrder` | client | `sample_src/frontend/api_client.ts:8` |
 

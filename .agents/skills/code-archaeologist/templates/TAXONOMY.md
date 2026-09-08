@@ -9,9 +9,10 @@ sets — change the taxonomy instead).
 
 | Field | Allowed values | Meaning |
 | --- | --- | --- |
-| `{{name}}` | any entity id | Class name, or `<Module>Module` for a file's module-level functions. |
-| `{{kind}}` | `class`, `module` | What the entity is. |
-| `{{layer}}` | `controller`, `service`, `repository`, `model`, `client`, `config`, `ui`, `test`, `function`, `module`, `unknown` | Architectural role (inferred from name/decorators; `test` wins for anything in a test file). |
+| `{{name}}` | any entity id | Class or component name, or `<Module>Module` for a file's module-level functions. |
+| `{{kind}}` | `class`, `component`, `module` | What the entity is. `component` is a JS/TS function that returns JSX. |
+| `{{layer}}` | `controller`, `service`, `repository`, `model`, `client`, `config`, `ui`, `test`, `function`, `module`, `unknown` | Architectural role (inferred from name/decorators; `test` wins for anything in a test file, and a `component` is always `ui`). |
+| `{{lang}}` | `py`, `js` | Source language. `js` covers `.js/.jsx/.ts/.tsx`. |
 | `{{source}}` | `<area>/<path>` | Source file, prefixed with its root area (e.g. `backend/order_service.py`). |
 | `{{summary}}` | free text | Docstring / description. |
 | `{{bases}}`, `{{decorators}}`, `{{methods}}`, `{{references}}` | lists | `[[wikilinks]]` where the target is a known entity, else inline code. |
@@ -21,7 +22,7 @@ sets — change the taxonomy instead).
 | Field | Allowed values | Meaning |
 | --- | --- | --- |
 | `entity` | `Class.method` or `function` | The method/function node id. |
-| `kind` | `method`, `function`, `endpoint`, `component`, `test` | `endpoint` = a route handler (flow root). |
+| `kind` | `method`, `function`, `endpoint`, `component`, `test` | `endpoint` = a route handler (flow root); `component` = a function that returns JSX. Both are entry points: something outside the graph calls them, so neither counts as dead code. |
 | `layer` | same set as above | Role of the owning class/file. |
 | `lang` | `py`, `js` | Source language (Python backend vs JS/TS frontend). |
 | `desc_source` | `docstring`, `ai`, `auto` | Where "What it does" came from (see hybrid descriptions). |

@@ -483,3 +483,70 @@ nowhere in CLAUDE.md. Fixed, along with the missing `brief` in the pipeline diag
 **Doc paths.** 20 references in USAGE.md, 27 in SKILL.md and one each in PRESENTATION.html and
 TAXONOMY.md rewritten to the categorized form, and README's structure tree redrawn around the four
 categories.
+
+## [25] 2026-09-08 — Phase 1: frontend entities in the structure map
+
+**Prompt**
+> continue phase 1
+
+**Response**
+
+Roadmap item 1. `build_flow.py` already read `.ts/.js` through `js_bridge`; `build_wiki.py` globbed
+`*.py` only and never imported the bridge, so `sample_src/frontend/*.ts` existed in the flow map and
+was invisible in the structure map. Fixed by making `build_wiki.py` stop being "the Python scanner":
+`extract_entities` is now an orchestrator over `extract_py_entities` + `extract_js_entities`, both
+returning the same entity dict, and the renderer below them never learns which producer ran. That is
+the seam Phase 3's Java/Go/C# extractor plugs into.
+
+**`js_extract.js`** gained `endLine` on every class, method and function (cheap here, and the piece
+Phase 5 and `metrics.py` both need) and a `collectJsx` pass emitting `jsx: true` plus the
+capitalized JSX tag names a function renders.
+
+**React components.** A function that returns JSX becomes its own entity with `kind: component` and
+`layer: ui` — `taxonomy.KINDS` has allowed `component` since the beginning and nothing had ever
+assigned it. Detection is by the `jsx` flag, not the file extension: a `.ts` file cannot contain JSX
+(the parser gets no jsx plugin), so there is nothing to gain from restricting it to `.jsx`/`.tsx`
+and a plain `.js` React file is common. The same flag now types the flow map's nodes too — one
+meaning, one kind, whichever map you are reading.
+
+**Import resolution.** Python can only match import *names* against entity names; a JS specifier
+names a *file*, which is better information, so `./api_client` is resolved back to a path (fixed
+extension order, so it is deterministic) and becomes an edge to whatever that file defines.
+
+**The correction worth recording.** The first version attributed the whole file's imports to every
+entity in it, mirroring what the Python side does. Rebuilding showed the cost immediately:
+`StatusBadge`, which renders a `<span>` and calls nothing, got an edge to `ApiClientModule` because
+its *sibling* component used `getOrder`. So each JS entity now carries the set of names it actually
+calls or renders, and an import attaches only to the entities that use it. `StatusBadge` came back
+with no references, `OrderCard` with exactly two. Python's file-level rule was left alone — changing
+it is not this phase's business and would have broken the byte-identical baseline.
+
+**Orphans.** The new frontend roots dropped the sample from C(75) to D(65), because nothing in the
+graph renders a top-level component. But nothing in the graph calls a route handler either, and
+`analyze.py` has always exempted `kind: endpoint` for exactly that reason: the caller is outside the
+graph, so a missing incoming edge says nothing. Added `component` to that same exemption — narrow on
+purpose. Widening it to `layer: ui` would also have exempted `OrderPageModule`, and an unused
+exported helper in a page module *is* dead code. Flow-map dead nodes came back to 2, the same count
+as before this phase, which is the check that the exemption was narrow enough.
+
+**Verification.** structure 6 nodes/9 edges -> **10/12**, grade C (70); flow 15/11 -> **17/12**,
+3 endpoints, 0 pending, grade D (69). `langs` in the structure census reports js 4 / py 6, where it
+previously reported everything as Python — `report.py` was already asking for `lang` and
+`build_graph.py` was dropping it. Built twice, `data/` differs only in `generated` timestamps.
+Cross-stack trace still runs `submitOrder → createOrder → OrderController.create_order →
+OrderService.place_order → OrderRepository.save`. With `node_modules` renamed away the build still
+succeeds and falls back to exactly the old 6/9 — and `build_wiki.py` now prints the same
+`(BACKEND ONLY - frontend skipped)` banner the flow map has always printed, because a structure map
+silently missing its frontend looks complete.
+
+Opened the built explorer in a browser: all seven views paint, the map switch works, and clicking
+`OrderCard` shows `component · ui · js` chips over `sample_src/frontend/OrderCard.tsx · 37 lines`.
+No viewer change was needed — colours key off `layer`, and `ui` orange already existed.
+
+**Not done, and worth stating:** the plan's verify list expected an `order_page.test.ts` entity with
+`layer: test`. There is none, because that file's top level is `describe(...)`/`it(...)` calls, not
+declarations, so the extractor finds nothing to make an entity from. The code path exists and is
+exercised on the Python side (`OrderRepositoryTest`, `TestOrdersModule`); the sample just does not
+reach it from JS. Also noticed but deliberately left alone: `firstDocLine` attributes a file's
+header comment to the first exported symbol, which is why `createOrder`'s summary reads "Thin HTTP
+client for the orders backend." Pre-existing, affects both maps, and out of this phase's scope.

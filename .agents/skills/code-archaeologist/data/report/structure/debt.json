@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-08T06:44:09Z",
+  "generated": "2026-09-08T13:50:07Z",
   "roots": [
     "sample_src"
   ],
@@ -10,8 +10,8 @@
       "FIXME": 1,
       "TODO": 1
     },
-    "dead_nodes": 0,
-    "dead_files": 0
+    "dead_nodes": 1,
+    "dead_files": 1
   },
   "markers": [
     {
@@ -29,6 +29,15 @@
       "node": "PaymentClient"
     }
   ],
-  "dead_nodes": [],
-  "dead_files": []
+  "dead_nodes": [
+    {
+      "id": "OrderPageModule",
+      "source": "sample_src/frontend/order_page.ts",
+      "layer": "ui",
+      "kind": "module"
+    }
+  ],
+  "dead_files": [
+    "sample_src/frontend/order_page.ts"
+  ]
 }

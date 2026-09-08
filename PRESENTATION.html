@@ -224,7 +224,7 @@
 </pre></div>
     <table>
       <tr><th></th><th>Structure map</th><th>Flow map</th></tr>
-      <tr><td class="k">Node</td><td>a class / entity</td><td>a method / function</td></tr>
+      <tr><td class="k">Node</td><td>a class, React component or module</td><td>a method / function</td></tr>
       <tr><td class="k">Edge</td><td>references, imports</td><td>calls</td></tr>
       <tr><td class="k">Answers</td><td>"how is this organised?", "who uses X?"</td><td>"how does a request travel?"</td></tr>
     </table>
@@ -314,9 +314,9 @@ const FEATURES = [
   /* ---------------- extract ---------------- */
   {
     id:"structure", cat:"extract", title:"Structure map",
-    d:"A class-level graph: which entity references or imports which.",
-    how:"Walks every Python file with the standard-library <code>ast</code> module and pulls out each class — its name, docstring, base classes, decorators, methods and imports. Each becomes one Markdown note carrying <code>[[wikilinks]]</code> to the other entities it mentions. A second pass reads those notes back and turns every wikilink into a graph edge.",
-    tech:["Python <code>ast</code>","Markdown front-matter","Wikilink regex → edges"],
+    d:"An entity-level graph: which class, component or module references or imports which.",
+    how:"Walks every Python file with the standard-library <code>ast</code> module and every JS/TS file with <code>@babel/parser</code>, pulling out each class — its name, docstring, base classes, decorators, methods and imports — plus each React component, and grouping a file's remaining top-level functions into one module page. Each becomes one Markdown note carrying <code>[[wikilinks]]</code> to the other entities it mentions. A second pass reads those notes back and turns every wikilink into a graph edge.",
+    tech:["Python <code>ast</code>","<code>@babel/parser</code>","Markdown front-matter","Wikilink regex → edges"],
     cmd:"archaeologist.py project --src ./src",
     qa:[
       ["Why go through Markdown instead of straight to a graph?","The notes are the product, not an intermediate. A human can read them in Obsidian, and an agent reads exactly the ones on a traced path. The graph falls out of them for free."],
@@ -612,7 +612,7 @@ const LIMITS = [
   ["Idiom detection reads names, not behaviour",
    "\"Singleton\" means the naming claims a singleton. It is a navigation aid, not a verified structural finding."],
   ["Per-node metrics are Python-only",
-   "The JS extractor does not record an end line yet, so frontend files appear in file totals but not in per-node complexity."],
+   "The JS extractor now records an end line, but the metrics pass does not read it yet, so frontend files appear in file totals but not in per-node complexity."],
   ["The graph is only as fresh as the last build",
    "This is why the staleness guard exists — but it must actually be run. An agent that skips the check can produce a confident answer from a stale map."]
 ];

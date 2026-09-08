@@ -3,6 +3,7 @@ entity: OrderService
 layer: service
 source: sample_src/backend/order_service.py
 kind: class
+lang: py
 ---
 # OrderService
 

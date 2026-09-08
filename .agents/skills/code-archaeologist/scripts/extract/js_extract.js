@@ -92,6 +92,35 @@ function collectCalls(root) {
   return { calls: [...calls], http };
 }
 
+// A JSX tag starting with a capital letter names another component; lowercase tags
+// are host elements (div, span) and say nothing about structure. `jsx` is what makes
+// a function a React component; `components` are the components it renders.
+function jsxName(n) {
+  if (!n) return "";
+  if (n.type === "JSXIdentifier") return n.name;
+  if (n.type === "JSXMemberExpression") return jsxName(n.property);
+  return "";
+}
+
+function collectJsx(root) {
+  let jsx = false;
+  const components = new Set();
+  (function walk(node) {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) return node.forEach(walk);
+    if (node.type === "JSXElement" || node.type === "JSXFragment") {
+      jsx = true;
+      const name = node.openingElement && jsxName(node.openingElement.name);
+      if (name && /^[A-Z]/.test(name)) components.add(name);
+    }
+    for (const k of Object.keys(node)) {
+      if (k === "leadingComments" || k === "trailingComments" || k === "loc" || k === "type") continue;
+      walk(node[k]);
+    }
+  })(root);
+  return { jsx, components: [...components].sort() };
+}
+
 function unwrapExport(node) {
   if (node.type === "ExportNamedDeclaration" || node.type === "ExportDefaultDeclaration") {
     return node.declaration || null;
@@ -122,21 +151,27 @@ function extractFile(file) {
     } else if (node.type === "ClassDeclaration" && node.id) {
       const methods = node.body.body
         .filter((m) => m.type === "ClassMethod" && m.key)
-        .map((m) => ({ name: m.key.name, doc: firstDocLine(m), line: m.loc.start.line, ...collectCalls(m.body) }));
+        .map((m) => ({ name: m.key.name, doc: firstDocLine(m), line: m.loc.start.line,
+                       endLine: m.loc.end.line, ...collectCalls(m.body) }));
       out.classes.push({
         name: node.id.name,
         bases: node.superClass && node.superClass.name ? [node.superClass.name] : [],
         doc: firstDocLine(raw),
         line: node.loc.start.line,
+        endLine: node.loc.end.line,
         methods,
       });
     } else if (node.type === "FunctionDeclaration" && node.id) {
-      out.functions.push({ name: node.id.name, doc: firstDocLine(raw), line: node.loc.start.line, ...collectCalls(node.body) });
+      out.functions.push({ name: node.id.name, doc: firstDocLine(raw),
+                           line: node.loc.start.line, endLine: node.loc.end.line,
+                           ...collectCalls(node.body), ...collectJsx(node.body) });
     } else if (node.type === "VariableDeclaration") {
       for (const d of node.declarations) {
         if (d.id && d.id.name && d.init &&
             (d.init.type === "ArrowFunctionExpression" || d.init.type === "FunctionExpression")) {
-          out.functions.push({ name: d.id.name, doc: firstDocLine(raw), line: d.loc.start.line, ...collectCalls(d.init.body) });
+          out.functions.push({ name: d.id.name, doc: firstDocLine(raw),
+                               line: d.loc.start.line, endLine: d.loc.end.line,
+                               ...collectCalls(d.init.body), ...collectJsx(d.init.body) });
         }
       }
     }

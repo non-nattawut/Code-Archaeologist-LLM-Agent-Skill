@@ -1,15 +1,15 @@
 {
-  "generated": "2026-09-08T06:44:09Z",
+  "generated": "2026-09-08T13:50:07Z",
   "roots": [
     "sample_src"
   ],
   "totals": {
-    "files": 8,
-    "lines": 135,
-    "code": 92,
-    "comment": 10,
-    "blank": 33,
-    "comment_ratio": 0.074
+    "files": 9,
+    "lines": 162,
+    "code": 112,
+    "comment": 13,
+    "blank": 37,
+    "comment_ratio": 0.08
   },
   "languages": {
     "py": {
@@ -19,6 +19,10 @@
     "ts": {
       "files": 3,
       "lines": 37
+    },
+    "tsx": {
+      "files": 1,
+      "lines": 27
     }
   },
   "files": {
@@ -56,6 +60,13 @@
       "comment": 0,
       "blank": 7,
       "lang": "py"
+    },
+    "sample_src/frontend/OrderCard.tsx": {
+      "lines": 27,
+      "code": 20,
+      "comment": 3,
+      "blank": 4,
+      "lang": "tsx"
     },
     "sample_src/frontend/api_client.ts": {
       "lines": 11,
@@ -317,6 +328,11 @@
   ],
   "top_files": [
     {
+      "file": "sample_src/frontend/OrderCard.tsx",
+      "lines": 27,
+      "code": 20
+    },
+    {
       "file": "sample_src/backend/tests/test_orders.py",
       "lines": 25,
       "code": 18
@@ -358,6 +374,10 @@
     }
   ],
   "unmeasured_graph_ids": [
+    "ApiClientModule",
+    "OrderCard",
+    "OrderPageModule",
+    "StatusBadge",
     "TestOrdersModule"
   ]
 }

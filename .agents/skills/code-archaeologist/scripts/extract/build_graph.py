@@ -88,6 +88,7 @@ def build(vault: str, out_dir: str) -> int:
             "id": entity,
             "layer": layer,
             "kind": meta.get("kind", "class"),
+            "lang": meta.get("lang", "py"),
             "source": meta.get("source", ""),
             "doc": summary or "_No description available._",
         }

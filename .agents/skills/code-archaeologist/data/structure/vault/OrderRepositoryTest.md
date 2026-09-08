@@ -3,6 +3,7 @@ entity: OrderRepositoryTest
 layer: test
 source: sample_src/backend/tests/test_orders.py
 kind: class
+lang: py
 ---
 # OrderRepositoryTest
 

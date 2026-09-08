@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
-"""build_wiki.py — Deterministic AST scanner -> Markdown vault.
+"""build_wiki.py — Deterministic extraction -> Markdown vault.
 
-Scans Python source under --src, extracts every top-level class (and module-level
-functions grouped into a per-module page) using the stdlib `ast` module, and emits
-one `<Entity>.md` per class into data/vault/. Every reference to another discovered
-entity is written using strict Obsidian wikilink syntax: [[EntityName]].
+Scans source under --src and emits one `<Entity>.md` per class, per React
+component and per module function-group into data/structure/vault/. Every
+reference to another discovered entity is written using strict Obsidian wikilink
+syntax: [[EntityName]].
 
-Zero external dependencies. Python 3.10+.
+Two producers feed the same entity shape: Python via the stdlib `ast` module, and
+JS/TS via the same Node extractor the flow map uses (`js_bridge` ->
+`js_extract.js`). Renderers below care only about that shape, so a third producer
+is a new `extract_*_entities` and nothing else.
+
+Zero external Python dependencies. Python 3.10+.
 """
 from __future__ import annotations
 
@@ -25,6 +30,8 @@ DEFAULT_VAULT = os.path.join(DATA_DIR, "structure", "vault")
 TEMPLATE_PATH = os.path.join(TEMPLATES_DIR, "wiki_page_template.md")
 
 from taxonomy import infer_layer, is_test_path  # noqa: E402
+import console  # noqa: E402  (stdout must survive a non-UTF-8 console)
+from js_bridge import find_js_files, extract_js_files, frontend_degraded  # noqa: E402  (frontend, degrades to a no-op)
 
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data"}
 
@@ -62,8 +69,17 @@ def _rel_source(path: str, root: str) -> str:
 
 
 def extract_entities(roots: list[str]) -> list[dict]:
-    """Return a list of entity dicts describing classes and module function-groups
-    across one or more source roots."""
+    """Every entity across one or more source roots, backend first.
+
+    Ordering is the collision rule: if a Python and a JS entity want the same name,
+    the Python one keeps it (see `build`). Backend-first is arbitrary but fixed,
+    which is what constraint 2 actually needs.
+    """
+    return extract_py_entities(roots) + extract_js_entities(roots)
+
+
+def extract_py_entities(roots: list[str]) -> list[dict]:
+    """Python classes and module function-groups."""
     entities: list[dict] = []
     for root in roots:
         for path in iter_py_files(root):
@@ -113,12 +129,15 @@ def _extract_from_tree(tree, source, rel, entities):
             "methods": [{"name": f["name"], "doc": (f["doc"][0] if f["doc"] else "")}
                         for f in module_funcs],
             "imports": sorted(imports),
+            "lang": "py",
         })
 
 
 def _module_entity_name(mod: str) -> str:
     # snake_case module -> CamelCase-ish entity id, kept stable and readable.
-    return "".join(part.capitalize() for part in mod.split("_")) + "Module"
+    # Only the first letter is forced, so an already-CamelCase stem (OrderCard.tsx)
+    # does not come back as "OrdercardModule".
+    return "".join(part[:1].upper() + part[1:] for part in mod.split("_")) + "Module"
 
 
 def _class_entity(node: ast.ClassDef, rel: str, imports: set[str], source: str) -> dict:
@@ -139,7 +158,124 @@ def _class_entity(node: ast.ClassDef, rel: str, imports: set[str], source: str) 
         "doc": (ast.get_docstring(node) or "").strip(),
         "methods": methods,
         "imports": sorted(imports),
+        "lang": "py",
     }
+
+
+# ---------------------------------------------------------------------------
+# Extraction: JS/TS (same extractor the flow map uses)
+# ---------------------------------------------------------------------------
+# Specifiers are written without an extension, so a resolved import has to be
+# guessed back into a file the way a bundler would. Order is fixed, so the guess
+# is deterministic.
+JS_RESOLVE_EXTS = (".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs")
+
+
+def _names_used(funcs: list[dict]) -> set[str]:
+    """Every name a set of functions calls or renders."""
+    used: set[str] = set()
+    for fn in funcs:
+        used.update(fn.get("calls", []))
+        used.update(fn.get("components", []))
+    return used
+
+
+def _js_file_entities(res: dict, rel: str) -> list[dict]:
+    """Entities defined by one JS/TS file, in the shape the renderer expects."""
+    stem = os.path.splitext(os.path.basename(res["file"]))[0]
+    ents: list[dict] = []
+
+    for cls in res.get("classes", []):
+        ents.append({
+            "name": cls["name"], "kind": "class", "source": rel, "lang": "js",
+            "bases": cls.get("bases", []), "decorators": [],
+            "doc": cls.get("doc", ""),
+            "methods": [{"name": m["name"], "doc": m.get("doc", "")}
+                        for m in cls.get("methods", [])],
+            "uses": _names_used(cls.get("methods", [])),
+            "renders": [],
+        })
+
+    module_funcs = []
+    for fn in res.get("functions", []):
+        if fn.get("jsx"):
+            # A function that returns JSX is a React component, and a component is
+            # a unit a reader navigates to -- so it gets its own page rather than
+            # one more bullet on the module page.
+            ents.append({
+                "name": fn["name"], "kind": "component", "source": rel, "lang": "js",
+                "bases": [], "decorators": [], "doc": fn.get("doc", ""), "methods": [],
+                "uses": _names_used([fn]),
+                "renders": fn.get("components", []),
+            })
+        else:
+            module_funcs.append(fn)
+
+    if module_funcs:
+        ents.append({
+            "name": _module_entity_name(stem), "kind": "module", "source": rel, "lang": "js",
+            "bases": [], "decorators": [], "doc": "",
+            "methods": [{"name": f["name"], "doc": f.get("doc", "")} for f in module_funcs],
+            "uses": _names_used(module_funcs),
+            "renders": [],
+        })
+    return ents
+
+
+def _resolve_specifier(spec: str, from_file: str, defs: dict[str, list[str]]) -> list[str]:
+    """Entity names defined by the file a relative import points at."""
+    if not spec.startswith("."):
+        return []                       # bare package: fall back to name matching
+    base = os.path.normpath(os.path.join(os.path.dirname(from_file), spec))
+    candidates = [base]
+    candidates += [base + ext for ext in JS_RESOLVE_EXTS]
+    candidates += [os.path.join(base, "index" + ext) for ext in JS_RESOLVE_EXTS]
+    for cand in candidates:
+        names = defs.get(os.path.normcase(cand))
+        if names is not None:
+            return names
+    return []
+
+
+def extract_js_entities(roots: list[str]) -> list[dict]:
+    """JS/TS classes, React components and module function-groups.
+
+    Two passes, because import resolution needs to know what every file defines
+    before it can resolve anything. That extra pass buys real precision: Python
+    can only match import *names* against entity names, but a JS specifier names a
+    *file*, so `import ... from "./api_client"` becomes an edge to that file's
+    entities even when no name matches.
+
+    With no Node or no @babel/parser this returns [] and `js_bridge` prints the
+    one warning -- the Python vault still builds (hard constraint 1).
+    """
+    files: list[tuple[str, list[dict], dict]] = []
+    defs: dict[str, list[str]] = {}
+    for root in roots:
+        for res in extract_js_files(find_js_files(root)):
+            ents = _js_file_entities(res, _rel_source(res["file"], root))
+            files.append((res["file"], ents, res))
+            defs[os.path.normcase(os.path.abspath(res["file"]))] = [e["name"] for e in ents]
+
+    entities: list[dict] = []
+    for path, ents, res in files:
+        # Imports are declared once per file but belong to whichever entity in it
+        # actually uses the imported name. Attributing the whole file's imports to
+        # every entity would give a component that renders one badge an edge to
+        # every API the file touches -- an edge the reader then has to disprove.
+        resolved = [(set(imp.get("names", [])),
+                     _resolve_specifier(imp.get("from", ""), path, defs) or imp.get("names", []))
+                    for imp in res.get("imports", [])]
+        for ent in ents:
+            used = ent.pop("uses")
+            refs = set(ent.pop("renders"))
+            for names, targets in resolved:
+                if names & used:
+                    refs.update(targets)
+            # Only names that turn out to be entities become edges (`render_entity`).
+            ent["imports"] = sorted(refs)
+            entities.append(ent)
+    return entities
 
 
 # ---------------------------------------------------------------------------
@@ -184,12 +320,16 @@ def render_entity(ent: dict, known: set[str], template: str) -> str:
 
     out = template
     out = out.replace("{{name}}", ent["name"])
-    # A class defined in a test file is test code whatever its name suggests.
+    # An entity defined in a test file is test code whatever its name suggests, and
+    # a React component is UI whatever it is called -- neither is a guess worth
+    # letting the name rules override.
     layer = ("test" if is_test_path(ent["source"])
+             else "ui" if ent["kind"] == "component"
              else infer_layer(ent["name"], ent["decorators"], ent["bases"]))
     out = out.replace("{{layer}}", layer)
     out = out.replace("{{source}}", ent["source"])
     out = out.replace("{{kind}}", ent["kind"])
+    out = out.replace("{{lang}}", ent.get("lang", "py"))
     out = out.replace("{{summary}}", summary)
     out = out.replace("{{bases}}", "\n".join(bases_md) if bases_md else "_None._")
     out = out.replace("{{decorators}}", "\n".join(decorators_md) if decorators_md else "_None._")
@@ -214,8 +354,24 @@ def build(src, vault: str) -> int:
     print(f"Scanning {', '.join(roots)} ...")
     entities = extract_entities(roots)
     if not entities:
-        print("No Python entities found. Nothing to write.")
+        print("No entities found. Nothing to write.")
         return 0
+
+    # One page per name, and one name per page: two languages now share the
+    # namespace, so a JS OrderService and a Python OrderService would otherwise
+    # silently overwrite each other's vault file. First wins, and extraction order
+    # is fixed, so which one wins never changes between runs.
+    seen: dict[str, str] = {}
+    unique: list[dict] = []
+    for ent in entities:
+        prior = seen.get(ent["name"])
+        if prior is not None:
+            print(f"  ! skipped duplicate entity {ent['name']} in {ent['source']} "
+                  f"(already defined in {prior})")
+            continue
+        seen[ent["name"]] = ent["source"]
+        unique.append(ent)
+    entities = unique
 
     # First pass: registry of all known entity names for wikilink resolution.
     known = {e["name"] for e in entities}
@@ -234,7 +390,12 @@ def build(src, vault: str) -> int:
             fh.write(page)
         written += 1
 
-    print(f"Wrote {written} vault page(s) to {vault}")
+    scope = " (BACKEND ONLY - frontend skipped)" if frontend_degraded() else ""
+    print(f"Wrote {written} vault page(s) to {vault}{scope}")
+    if frontend_degraded():
+        print("  WARNING: this vault is incomplete -- JS/TS files were not parsed, so frontend")
+        print("           entities are missing. Do not commit it as the project's map; install")
+        print("           the parser and rebuild (see the warning above).")
     return 0
 
 
@@ -244,6 +405,7 @@ def main(argv=None) -> int:
                         help="One or more source roots (e.g. --src ./backend ./frontend)")
     parser.add_argument("--vault", default=DEFAULT_VAULT, help="Output vault directory")
     args = parser.parse_args(argv)
+    console.safe_stdout()
     return build(args.src, args.vault)
 
 

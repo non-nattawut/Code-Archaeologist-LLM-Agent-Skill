@@ -1,25 +1,28 @@
 {
   "graph": "data/structure/graph.json",
-  "generated": "2026-09-08 06:44 UTC",
+  "generated": "2026-09-08 13:50 UTC",
   "census": {
-    "nodes": 6,
-    "edges": 9,
+    "nodes": 10,
+    "edges": 12,
     "layers": {
-      "client": 1,
+      "client": 2,
       "controller": 1,
       "repository": 1,
       "service": 1,
-      "test": 2
+      "test": 2,
+      "ui": 3
     },
     "langs": {
+      "js": 4,
       "py": 6
     },
     "kinds": {
       "class": 5,
-      "module": 1
+      "component": 2,
+      "module": 3
     },
     "edge_types": {
-      "references": 9
+      "references": 12
     },
     "routes": []
   },
@@ -45,6 +48,10 @@
         "lines": 25,
         "lang": "py"
       },
+      "sample_src/frontend/OrderCard.tsx": {
+        "lines": 27,
+        "lang": "tsx"
+      },
       "sample_src/frontend/api_client.ts": {
         "lines": 11,
         "lang": "ts"
@@ -58,30 +65,34 @@
         "lang": "ts"
       }
     },
-    "file_count": 8,
-    "loc": 135,
+    "file_count": 9,
+    "loc": 162,
     "languages": {
       "py": 98,
-      "ts": 37
+      "ts": 37,
+      "tsx": 27
     },
     "language_pct": {
-      "py": 72.6,
-      "ts": 27.4
+      "py": 60.5,
+      "ts": 22.8,
+      "tsx": 16.7
     }
   },
   "analysis": {
     "cycles": [],
-    "orphans": [],
+    "orphans": [
+      "OrderPageModule"
+    ],
     "layer_violations": [],
     "hubs": [],
     "god_objects": [],
     "patterns": {},
     "health": {
-      "score": 75,
+      "score": 70,
       "grade": "C",
-      "dead_code_pct": 0.0,
+      "dead_code_pct": 10.0,
       "deductions": {
-        "dead_code": 0,
+        "dead_code": 5,
         "cycles": 0,
         "layer_violations": 0,
         "high_coupling": 0,
@@ -90,10 +101,10 @@
       }
     },
     "summary": {
-      "nodes": 6,
-      "edges": 9,
+      "nodes": 10,
+      "edges": 12,
       "cycles": 0,
-      "orphans": 0,
+      "orphans": 1,
       "layer_violations": 0,
       "hubs": 0,
       "god_objects": 0
@@ -125,7 +136,7 @@
         "message": "Raw HTML injection sink",
         "file": "sample_src/frontend/order_page.ts",
         "line": 11,
-        "node": null,
+        "node": "OrderPageModule",
         "snippet": "document.getElementById(\"order\").innerHTML = JSON.stringify(order);"
       },
       {
@@ -151,7 +162,7 @@
         "dangerous_eval": 1,
         "debug_statement": 1
       },
-      "files_scanned": 6,
+      "files_scanned": 7,
       "files_skipped": 2
     }
   },
@@ -294,6 +305,32 @@
       }
     },
     "nodes": {
+      "ApiClientModule": {
+        "file": "sample_src/frontend/api_client.ts",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "authors": {
+          "Nattawut Rodthong": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 2,
+        "fan_out": 0,
+        "risk": 3
+      },
+      "OrderCard": {
+        "file": "sample_src/frontend/OrderCard.tsx",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 0,
+        "fan_out": 2,
+        "risk": 0
+      },
       "OrderController": {
         "file": "sample_src/backend/order_controller.py",
         "commits": 2,
@@ -303,6 +340,21 @@
         },
         "author_count": 1,
         "last_commit": "2026-09-02T16:14:28+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 4
+      },
+      "OrderPageModule": {
+        "file": "sample_src/frontend/order_page.ts",
+        "commits": 2,
+        "owner": "Nattawut Rodthong",
+        "authors": {
+          "Nattawut Rodthong": 1,
+          "non-nattawut": 1
+        },
+        "author_count": 2,
+        "last_commit": "2026-09-06T13:31:45+07:00",
         "first_commit": "2026-09-02T16:10:56+07:00",
         "fan_in": 0,
         "fan_out": 1,
@@ -365,6 +417,18 @@
         "fan_in": 3,
         "fan_out": 0,
         "risk": 12
+      },
+      "StatusBadge": {
+        "file": "sample_src/frontend/OrderCard.tsx",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 1,
+        "fan_out": 0,
+        "risk": 0
       },
       "TestOrdersModule": {
         "file": "sample_src/backend/tests/test_orders.py",
@@ -445,6 +509,22 @@
         "risk": 4
       },
       {
+        "node": "OrderPageModule",
+        "file": "sample_src/frontend/order_page.ts",
+        "commits": 2,
+        "owner": "Nattawut Rodthong",
+        "authors": {
+          "Nattawut Rodthong": 1,
+          "non-nattawut": 1
+        },
+        "author_count": 2,
+        "last_commit": "2026-09-06T13:31:45+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 4
+      },
+      {
         "node": "OrderRepositoryTest",
         "file": "sample_src/backend/tests/test_orders.py",
         "commits": 1,
@@ -473,6 +553,21 @@
         "fan_in": 0,
         "fan_out": 3,
         "risk": 4
+      },
+      {
+        "node": "ApiClientModule",
+        "file": "sample_src/frontend/api_client.ts",
+        "commits": 1,
+        "owner": "Nattawut Rodthong",
+        "authors": {
+          "Nattawut Rodthong": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-02T16:10:56+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 2,
+        "fan_out": 0,
+        "risk": 3
       }
     ],
     "summary": {
@@ -484,17 +579,17 @@
     }
   },
   "metrics": {
-    "generated": "2026-09-08T06:44:09Z",
+    "generated": "2026-09-08T13:50:07Z",
     "roots": [
       "sample_src"
     ],
     "totals": {
-      "files": 8,
-      "lines": 135,
-      "code": 92,
-      "comment": 10,
-      "blank": 33,
-      "comment_ratio": 0.074
+      "files": 9,
+      "lines": 162,
+      "code": 112,
+      "comment": 13,
+      "blank": 37,
+      "comment_ratio": 0.08
     },
     "languages": {
       "py": {
@@ -504,6 +599,10 @@
       "ts": {
         "files": 3,
         "lines": 37
+      },
+      "tsx": {
+        "files": 1,
+        "lines": 27
       }
     },
     "files": {
@@ -541,6 +640,13 @@
         "comment": 0,
         "blank": 7,
         "lang": "py"
+      },
+      "sample_src/frontend/OrderCard.tsx": {
+        "lines": 27,
+        "code": 20,
+        "comment": 3,
+        "blank": 4,
+        "lang": "tsx"
       },
       "sample_src/frontend/api_client.ts": {
         "lines": 11,
@@ -802,6 +908,11 @@
     ],
     "top_files": [
       {
+        "file": "sample_src/frontend/OrderCard.tsx",
+        "lines": 27,
+        "code": 20
+      },
+      {
         "file": "sample_src/backend/tests/test_orders.py",
         "lines": 25,
         "code": 18
@@ -843,11 +954,15 @@
       }
     ],
     "unmeasured_graph_ids": [
+      "ApiClientModule",
+      "OrderCard",
+      "OrderPageModule",
+      "StatusBadge",
       "TestOrdersModule"
     ]
   },
   "debt": {
-    "generated": "2026-09-08T06:44:09Z",
+    "generated": "2026-09-08T13:50:07Z",
     "roots": [
       "sample_src"
     ],
@@ -858,8 +973,8 @@
         "FIXME": 1,
         "TODO": 1
       },
-      "dead_nodes": 0,
-      "dead_files": 0
+      "dead_nodes": 1,
+      "dead_files": 1
     },
     "markers": [
       {
@@ -877,21 +992,30 @@
         "node": "PaymentClient"
       }
     ],
-    "dead_nodes": [],
-    "dead_files": []
+    "dead_nodes": [
+      {
+        "id": "OrderPageModule",
+        "source": "sample_src/frontend/order_page.ts",
+        "layer": "ui",
+        "kind": "module"
+      }
+    ],
+    "dead_files": [
+      "sample_src/frontend/order_page.ts"
+    ]
   },
   "tests": {
-    "generated": "2026-09-08T06:44:09Z",
+    "generated": "2026-09-08T13:50:07Z",
     "roots": [
       "sample_src"
     ],
     "graph": "data/structure/graph.json",
     "summary": {
       "test_files": 2,
-      "considered": 4,
+      "considered": 8,
       "referenced": 3,
-      "unreferenced": 1,
-      "referenced_pct": 75.0
+      "unreferenced": 5,
+      "referenced_pct": 37.5
     },
     "test_files": [
       "sample_src/backend/tests/test_orders.py",
@@ -910,10 +1034,34 @@
     },
     "unreferenced": [
       {
+        "id": "ApiClientModule",
+        "source": "sample_src/frontend/api_client.ts",
+        "layer": "client",
+        "kind": "module"
+      },
+      {
+        "id": "OrderCard",
+        "source": "sample_src/frontend/OrderCard.tsx",
+        "layer": "ui",
+        "kind": "component"
+      },
+      {
         "id": "OrderController",
         "source": "sample_src/backend/order_controller.py",
         "layer": "controller",
         "kind": "class"
+      },
+      {
+        "id": "OrderPageModule",
+        "source": "sample_src/frontend/order_page.ts",
+        "layer": "ui",
+        "kind": "module"
+      },
+      {
+        "id": "StatusBadge",
+        "source": "sample_src/frontend/OrderCard.tsx",
+        "layer": "ui",
+        "kind": "component"
       }
     ]
   }

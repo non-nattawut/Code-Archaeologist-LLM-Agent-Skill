@@ -1,22 +1,23 @@
 # Architecture report — graph.json
 
-Generated 2026-09-08 06:44 UTC · 6 nodes · 9 edges
+Generated 2026-09-08 13:50 UTC · 10 nodes · 12 edges
 
-## Health: **C** (75/100)
+## Health: **C** (70/100)
 
 | Deduction | Points |
 | --- | --- |
+| dead code | -5 |
 | security | -25 |
 
-Dead-code ratio 0.0% · cycles 0 · layer violations 0 · security findings 4
+Dead-code ratio 10.0% · cycles 0 · layer violations 0 · security findings 4
 
 ## Census
 
-- Source: 8 file(s), 135 lines (py 72.6%, ts 27.4%)
-- Layers: `client` 1, `controller` 1, `repository` 1, `service` 1, `test` 2
-- Kinds: `class` 5, `module` 1
-- Languages: `py` 6
-- Edge types: `references` 9
+- Source: 9 file(s), 162 lines (py 60.5%, ts 22.8%, tsx 16.7%)
+- Layers: `client` 2, `controller` 1, `repository` 1, `service` 1, `test` 2, `ui` 3
+- Kinds: `class` 5, `component` 2, `module` 3
+- Languages: `js` 4, `py` 6
+- Edge types: `references` 12
 
 ## Entry points (routes)
 
@@ -24,7 +25,7 @@ _None._
 
 ## Size & complexity
 
-- 8 file(s), 135 lines — 92 code, 10 comment, 33 blank (comment ratio 7%)
+- 9 file(s), 162 lines — 112 code, 13 comment, 37 blank (comment ratio 8%)
 - Complexity is McCabe: 1 + every branch. Python nodes only.
 
 ### Longest nodes
@@ -51,6 +52,7 @@ _None._
 
 | File | Lines | Code |
 | --- | --- | --- |
+| `sample_src/frontend/OrderCard.tsx` | 27 | 20 |
 | `sample_src/backend/tests/test_orders.py` | 25 | 18 |
 | `sample_src/backend/order_controller.py` | 23 | 16 |
 | `sample_src/backend/order_service.py` | 20 | 15 |
@@ -70,9 +72,11 @@ _None._
 
 _None._
 
-### Orphans (no callers, not an entry point) — 0
+### Orphans (no callers, not an entry point) — 1
 
-_None._
+| Node |
+| --- |
+| `OrderPageModule` |
 
 ## Anti-patterns & idioms
 
@@ -94,7 +98,7 @@ _None._
 | --- | --- | --- | --- | --- |
 | high | sql_injection | `sample_src/backend/order_repository.py:15` | `OrderRepository` | `return self.cursor.execute(f"SELECT * FROM orders WHERE id = {order_id}")` |
 | high | hardcoded_secret | `sample_src/backend/payment_client.py:5` | `PaymentClient` | `GATEWAY_API_KEY = "sk_...redacted"` |
-| medium | dangerous_eval | `sample_src/frontend/order_page.ts:11` | — | `document.getElementById("order").innerHTML = JSON.stringify(order);` |
+| medium | dangerous_eval | `sample_src/frontend/order_page.ts:11` | `OrderPageModule` | `document.getElementById("order").innerHTML = JSON.stringify(order);` |
 | low | debug_statement | `sample_src/backend/payment_client.py:14` | `PaymentClient` | `print("charging", payload)  # demo smell: debug statement left behind` |
 
 ## Hotspots (churn × connectivity)
@@ -105,17 +109,21 @@ _None._
 | `PaymentClient` | 3 | 3 | 0 | 12 | non-nattawut |
 | `OrderService` | 1 | 3 | 2 | 6 | Nattawut Rodthong |
 | `OrderController` | 2 | 0 | 1 | 4 | Nattawut Rodthong |
+| `OrderPageModule` | 2 | 0 | 1 | 4 | Nattawut Rodthong |
 | `OrderRepositoryTest` | 1 | 0 | 3 | 4 | non-nattawut |
 | `TestOrdersModule` | 1 | 0 | 3 | 4 | non-nattawut |
+| `ApiClientModule` | 1 | 2 | 0 | 3 | Nattawut Rodthong |
 
-## Debt — 2 marker(s) (FIXME 1, TODO 1), 0 dead node(s)
+## Debt — 2 marker(s) (FIXME 1, TODO 1), 1 dead node(s)
 
 | Tag | Location | Owner | Note |
 | --- | --- | --- | --- |
 | FIXME | `sample_src/backend/order_repository.py:14` | `OrderRepository` | parameterize this query (see the demo smell below) |
 | TODO | `sample_src/backend/payment_client.py:13` | `PaymentClient` | retry once on a gateway timeout before giving up |
 
-## Tests — 3/4 node(s) named by a test (75.0%)
+Files where every node is dead: `sample_src/frontend/order_page.ts`
+
+## Tests — 3/8 node(s) named by a test (37.5%)
 
 _2 test file(s). Name-based, not execution coverage: a node counts as referenced when a test file names it._
 
@@ -123,7 +131,11 @@ _2 test file(s). Name-based, not execution coverage: a node counts as referenced
 
 | Node | Layer | Location |
 | --- | --- | --- |
+| `ApiClientModule` | client | `sample_src/frontend/api_client.ts` |
+| `OrderCard` | ui | `sample_src/frontend/OrderCard.tsx` |
 | `OrderController` | controller | `sample_src/backend/order_controller.py` |
+| `OrderPageModule` | ui | `sample_src/frontend/order_page.ts` |
+| `StatusBadge` | ui | `sample_src/frontend/OrderCard.tsx` |
 
 ## Dig deeper
 

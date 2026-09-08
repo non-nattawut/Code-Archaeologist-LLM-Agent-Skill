@@ -1,15 +1,15 @@
 {
-  "generated": "2026-09-08T06:44:09Z",
+  "generated": "2026-09-08T13:50:07Z",
   "roots": [
     "sample_src"
   ],
   "graph": "data/structure/graph.json",
   "summary": {
     "test_files": 2,
-    "considered": 4,
+    "considered": 8,
     "referenced": 3,
-    "unreferenced": 1,
-    "referenced_pct": 75.0
+    "unreferenced": 5,
+    "referenced_pct": 37.5
   },
   "test_files": [
     "sample_src/backend/tests/test_orders.py",
@@ -28,10 +28,34 @@
   },
   "unreferenced": [
     {
+      "id": "ApiClientModule",
+      "source": "sample_src/frontend/api_client.ts",
+      "layer": "client",
+      "kind": "module"
+    },
+    {
+      "id": "OrderCard",
+      "source": "sample_src/frontend/OrderCard.tsx",
+      "layer": "ui",
+      "kind": "component"
+    },
+    {
       "id": "OrderController",
       "source": "sample_src/backend/order_controller.py",
       "layer": "controller",
       "kind": "class"
+    },
+    {
+      "id": "OrderPageModule",
+      "source": "sample_src/frontend/order_page.ts",
+      "layer": "ui",
+      "kind": "module"
+    },
+    {
+      "id": "StatusBadge",
+      "source": "sample_src/frontend/OrderCard.tsx",
+      "layer": "ui",
+      "kind": "component"
     }
   ]
 }

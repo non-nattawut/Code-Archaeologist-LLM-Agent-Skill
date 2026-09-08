@@ -24,7 +24,7 @@
       "message": "Raw HTML injection sink",
       "file": "sample_src/frontend/order_page.ts",
       "line": 11,
-      "node": null,
+      "node": "OrderPageModule",
       "snippet": "document.getElementById(\"order\").innerHTML = JSON.stringify(order);"
     },
     {
@@ -50,7 +50,7 @@
       "dangerous_eval": 1,
       "debug_statement": 1
     },
-    "files_scanned": 6,
+    "files_scanned": 7,
     "files_skipped": 2
   }
 }

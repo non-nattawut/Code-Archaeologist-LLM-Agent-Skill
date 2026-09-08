@@ -1,15 +1,15 @@
 {
-  "generated": "2026-09-08T06:44:09Z",
+  "generated": "2026-09-08T13:50:07Z",
   "roots": [
     "sample_src"
   ],
   "graph": "data/flow/flow_graph.json",
   "summary": {
     "test_files": 2,
-    "considered": 11,
+    "considered": 13,
     "referenced": 4,
-    "unreferenced": 7,
-    "referenced_pct": 36.4
+    "unreferenced": 9,
+    "referenced_pct": 30.8
   },
   "test_files": [
     "sample_src/backend/tests/test_orders.py",
@@ -30,6 +30,12 @@
     ]
   },
   "unreferenced": [
+    {
+      "id": "OrderCard",
+      "source": "sample_src/frontend/OrderCard.tsx:11",
+      "layer": "ui",
+      "kind": "component"
+    },
     {
       "id": "OrderController.create_order",
       "source": "sample_src/backend/order_controller.py:16",
@@ -59,6 +65,12 @@
       "source": "sample_src/backend/payment_client.py:11",
       "layer": "client",
       "kind": "method"
+    },
+    {
+      "id": "StatusBadge",
+      "source": "sample_src/frontend/OrderCard.tsx:6",
+      "layer": "ui",
+      "kind": "component"
     },
     {
       "id": "createOrder",

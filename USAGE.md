@@ -136,12 +136,21 @@ Every stage is runnable on its own (`build_wiki.py`, `build_graph.py`, `build_fl
 
 ## Worked example
 
-Running against the bundled `sample_src/` (a controller → service → repository/client trio):
+Running against the bundled `sample_src/` (a controller → service → repository/client trio on the
+backend, an API client, a page module and two React components on the frontend):
 
 ```console
 # Structure: how two classes connect
 $ trace_path.py --from OrderController --to OrderRepository
 { "path": ["OrderController", "OrderService", "OrderRepository"], "found": true }
+
+# Structure: the frontend is in this map too — a component, what it renders and what it calls
+$ search.py --kind component
+OrderCard    component/ui  sample_src/frontend/OrderCard.tsx  Loads one order by id and renders it as a card.
+StatusBadge  component/ui  sample_src/frontend/OrderCard.tsx  Renders one order's status as a coloured badge.
+
+$ trace_path.py --from OrderCard --to StatusBadge
+{ "path": ["OrderCard", "StatusBadge"], "found": true }
 
 # Flow: the actual request path, method by method
 $ trace_path.py --graph .../flow_graph.json --from OrderController.create_order --to OrderRepository.save
@@ -162,7 +171,7 @@ The review pass over the same sample (the demo sources carry three deliberate sm
 
 ```console
 $ archaeologist.py report --src ./sample_src
-  grade D (68/100), 4 risk finding(s), 13 ranked hotspot(s)
+  grade D (69/100), 4 risk finding(s), 15 ranked hotspot(s)
 ```
 
 | Severity | Rule | Location | Owner node |
@@ -181,13 +190,17 @@ Debt: 2 marker(s) (FIXME 1, TODO 1), 2 dead node(s), 1 dead file(s)
   TODO   sample_src/backend/payment_client.py:13 [PaymentClient.charge]   retry once on a gateway timeout
 ```
 
+The two React components are *not* in that dead list. Nothing in the graph renders `OrderCard`,
+but a framework mounts it — the same reason a route handler has no caller — so `kind: component`
+counts as an entry point, exactly like `kind: endpoint`.
+
 It also ships a small suite — `backend/tests/test_orders.py` (one pytest function, one
 `unittest.TestCase`) and `frontend/order_page.test.ts` — so the test path has something to show:
 
 ```console
 $ tests_map.py --src ./sample_src
-Tests: 2 test file(s), 4/11 node(s) named by a test (36.4%)
-  untested  OrderController.create_order  sample_src/backend/order_controller.py:16
+Tests: 2 test file(s), 4/13 node(s) named by a test (30.8%)
+  untested  OrderCard                    sample_src/frontend/OrderCard.tsx:11
   ...
 
 $ context.py --node OrderService.place_order
@@ -196,7 +209,7 @@ $ context.py --node OrderService.place_order
 ```
 
 Those two test nodes carry `layer: test`: they are never counted as dead code, their calls never
-count as coupling, and the explorer's **Tests** checkbox hides them (15 nodes -> 13).
+count as coupling, and the explorer's **Tests** checkbox hides them (17 nodes -> 15).
 
 The generated `data/report/`, `data/structure/` and `data/flow/` folders in this repo are that
 demo output, committed so you can read a real example before running anything.
