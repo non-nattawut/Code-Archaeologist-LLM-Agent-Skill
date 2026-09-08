@@ -42,6 +42,25 @@ def _rel_key(path: str, root: str) -> str:
     return f"{os.path.basename(os.path.normpath(root))}/{rel}"
 
 
+def rel_roots(roots) -> list[str]:
+    """Source roots in a portable, deterministic form for report artifacts.
+
+    Absolute paths bake the build machine's layout into committed reports, so the
+    same source produces different bytes on another checkout. Store them relative
+    to the CWD with forward slashes instead; they stay resolvable for the
+    freshness check when run from the project root (the documented workflow).
+    Falls back to the basename when no relative path exists (e.g. another drive).
+    """
+    out = []
+    for r in ([roots] if isinstance(roots, str) else roots):
+        try:
+            rel = os.path.relpath(r)
+        except ValueError:
+            rel = os.path.basename(os.path.normpath(r))
+        out.append(rel.replace("\\", "/"))
+    return out
+
+
 def snapshot(roots) -> dict[str, str]:
     """Map `<root-basename>/<relpath>` -> sha1 of contents for every source file."""
     roots = [roots] if isinstance(roots, str) else roots

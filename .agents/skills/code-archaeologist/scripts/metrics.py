@@ -38,6 +38,7 @@ DEFAULT_GRAPH = os.path.join(DATA_DIR, "flow", "flow_graph.json")
 DEFAULT_OUT = os.path.join(DATA_DIR, "report", "metrics.json")
 
 sys.path.insert(0, SCRIPT_DIR)
+import manifest  # noqa: E402
 import console          # noqa: E402  (stdout must survive a non-UTF-8 console)
 import scan_security    # noqa: E402  (iter_source_files: one definition of "a source file")
 
@@ -195,7 +196,7 @@ def build(roots, graph_path: str | None = None, out_path: str | None = None, top
 
     payload = {
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "roots": [os.path.abspath(r) for r in roots],
+        "roots": manifest.rel_roots(roots),
         "totals": totals,
         "languages": dict(sorted(langs.items(), key=lambda kv: (-kv[1]["lines"], kv[0]))),
         "files": dict(sorted(files.items())),

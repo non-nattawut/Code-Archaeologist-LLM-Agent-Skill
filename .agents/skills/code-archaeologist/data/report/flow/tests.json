@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-06T13:49:02Z",
+  "generated": "2026-09-08T06:44:09Z",
   "roots": [
-    "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
+    "sample_src"
   ],
   "graph": "data/flow/flow_graph.json",
   "summary": {

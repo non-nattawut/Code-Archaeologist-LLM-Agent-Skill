@@ -1,6 +1,6 @@
 {
   "graph": "data/flow/flow_graph.json",
-  "generated": "2026-09-06 13:49 UTC",
+  "generated": "2026-09-08 06:44 UTC",
   "census": {
     "nodes": 15,
     "edges": 11,
@@ -769,9 +769,9 @@
     }
   },
   "metrics": {
-    "generated": "2026-09-06T13:49:02Z",
+    "generated": "2026-09-08T06:44:09Z",
     "roots": [
-      "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
+      "sample_src"
     ],
     "totals": {
       "files": 8,
@@ -1205,9 +1205,9 @@
     ]
   },
   "debt": {
-    "generated": "2026-09-06T13:49:02Z",
+    "generated": "2026-09-08T06:44:09Z",
     "roots": [
-      "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
+      "sample_src"
     ],
     "graph": "data/flow/flow_graph.json",
     "summary": {
@@ -1254,9 +1254,9 @@
     ]
   },
   "tests": {
-    "generated": "2026-09-06T13:49:02Z",
+    "generated": "2026-09-08T06:44:09Z",
     "roots": [
-      "F:\\Work\\Programming\\Code-Archaeologist-LLM-Agent-Skill\\sample_src"
+      "sample_src"
     ],
     "graph": "data/flow/flow_graph.json",
     "summary": {

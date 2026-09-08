@@ -37,6 +37,7 @@ sys.path.insert(0, SCRIPT_DIR)
 import console          # noqa: E402  (stdout must survive a non-UTF-8 console)
 import scan_security    # noqa: E402  (one definition of "a source file")
 import taxonomy         # noqa: E402  (one definition of "a test file")
+import manifest  # noqa: E402
 
 IDENT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
@@ -83,7 +84,7 @@ def build(roots, graph_path: str = DEFAULT_GRAPH, out_path: str | None = None) -
     considered = len(referenced) + len(unreferenced)
     payload = {
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "roots": [os.path.abspath(r) for r in roots],
+        "roots": manifest.rel_roots(roots),
         "graph": os.path.relpath(graph_path, SKILL_ROOT).replace("\\", "/"),
         "summary": {
             "test_files": len(tests),

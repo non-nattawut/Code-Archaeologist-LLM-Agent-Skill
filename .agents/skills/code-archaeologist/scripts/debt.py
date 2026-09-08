@@ -34,6 +34,7 @@ DEFAULT_GRAPH = os.path.join(DATA_DIR, "flow", "flow_graph.json")
 DEFAULT_OUT = os.path.join(DATA_DIR, "report", "debt.json")
 
 sys.path.insert(0, SCRIPT_DIR)
+import manifest  # noqa: E402
 import analyze          # noqa: E402  (one definition of "which nodes are orphans")
 import console          # noqa: E402  (stdout must survive a non-UTF-8 console)
 import scan_security    # noqa: E402  (source iteration + node attribution)
@@ -121,7 +122,7 @@ def build(roots, graph_path: str = DEFAULT_GRAPH, out_path: str | None = None) -
 
     payload = {
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "roots": [os.path.abspath(r) for r in roots],
+        "roots": manifest.rel_roots(roots),
         "graph": os.path.relpath(graph_path, SKILL_ROOT).replace("\\", "/"),
         "summary": {
             "markers": len(markers),
