@@ -55,6 +55,13 @@ map and the cross-stack `http` edges.
 7. For review questions ("is this healthy?", "where is the risk?", "what to refactor first?"), run
    the report (Command 14), read the **brief** (Command 1), and open
    `data/report/<map>/architecture_report.md` only for the detail the brief points at.
+8. **Say when a node is approximate.** Java, Go and C# nodes carry `approx: true`: they were read
+   textually rather than parsed, and calls that could not be resolved from a declared type
+   (interface dispatch, overloads, lambda handlers) were dropped rather than guessed. So their
+   edges are a **lower bound** — "nothing calls X" is only "nothing the extractor could resolve
+   calls X". Tell the user that when you answer from one, and say it plainly if a whole answer
+   (dead code, blast radius, "who calls this") rests on approximate nodes. `context.py` and the
+   report both flag it for you; do not quietly drop the caveat.
 
 ## Available Tool Commands
 

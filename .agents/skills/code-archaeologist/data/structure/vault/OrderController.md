@@ -4,6 +4,7 @@ layer: controller
 source: sample_src/backend/order_controller.py
 kind: class
 lang: py
+approx: false
 ---
 # OrderController
 

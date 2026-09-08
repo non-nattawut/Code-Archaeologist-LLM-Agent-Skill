@@ -21,3 +21,11 @@ export async function getOrderStatus(orderId: string) {
   const res = await api.get(`/api/orders/${orderId}/status`);
   return res.data;
 }
+
+// Reads an order's event history from the Go service. The Go router registers
+// this path exactly, so it links to the approximate tier by exact match rather
+// than through the suffix fallback.
+export async function getOrderEvents(orderId: string) {
+  const res = await api.get(`/go/orders/${orderId}/events`);
+  return res.data;
+}

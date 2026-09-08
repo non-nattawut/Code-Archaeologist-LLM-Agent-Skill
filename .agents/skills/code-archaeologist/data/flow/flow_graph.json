@@ -1,6 +1,84 @@
 {
   "nodes": [
     {
+      "id": "EventService.Events",
+      "layer": "service",
+      "kind": "method",
+      "cls": "EventService",
+      "signature": "Events(orderID)",
+      "doc": "Events returns every recorded event for one order.",
+      "source": "sample_src/services/orders_go/event_service.go:9",
+      "lang": "go",
+      "ext": 0,
+      "approx": true
+    },
+    {
+      "id": "EventService.Record",
+      "layer": "service",
+      "kind": "method",
+      "cls": "EventService",
+      "signature": "Record(kind, orderID)",
+      "doc": "Record appends one event for an order.",
+      "source": "sample_src/services/orders_go/event_service.go:14",
+      "lang": "go",
+      "ext": 0,
+      "approx": true
+    },
+    {
+      "id": "EventStore.Append",
+      "layer": "repository",
+      "kind": "method",
+      "cls": "EventStore",
+      "signature": "Append(kind, orderID)",
+      "doc": "Append records one event against an order.",
+      "source": "sample_src/services/orders_go/event_store.go:14",
+      "lang": "go",
+      "ext": 0,
+      "approx": true
+    },
+    {
+      "id": "EventStore.List",
+      "layer": "repository",
+      "kind": "method",
+      "cls": "EventStore",
+      "signature": "List(orderID)",
+      "doc": "List returns the events recorded against one order.",
+      "source": "sample_src/services/orders_go/event_store.go:9",
+      "lang": "go",
+      "ext": 0,
+      "approx": true
+    },
+    {
+      "id": "FlatRate.price",
+      "layer": "unknown",
+      "kind": "method",
+      "cls": "FlatRate",
+      "signature": "price(request)",
+      "doc": "One price, whatever the order says.",
+      "source": "sample_src/services/orders_java/PricingRule.java:13",
+      "lang": "java",
+      "ext": 0,
+      "approx": true
+    },
+    {
+      "id": "GET /go/healthz",
+      "layer": "controller",
+      "kind": "endpoint",
+      "cls": null,
+      "signature": "GET /go/healthz",
+      "doc": "Liveness probe. No handler function to attach to, so the registration",
+      "source": "sample_src/services/orders_go/router.go:16",
+      "lang": "go",
+      "ext": 0,
+      "routes": [
+        {
+          "method": "GET",
+          "path": "/go/healthz"
+        }
+      ],
+      "approx": true
+    },
+    {
       "id": "GET /orders/:id/status",
       "layer": "controller",
       "kind": "endpoint",
@@ -16,6 +94,174 @@
           "path": "/orders/:id/status"
         }
       ]
+    },
+    {
+      "id": "InvoiceController.Create",
+      "layer": "controller",
+      "kind": "endpoint",
+      "cls": "InvoiceController",
+      "signature": "Create(request)",
+      "doc": "Issue an invoice for one order.",
+      "source": "sample_src/services/orders_cs/InvoiceController.cs:17",
+      "lang": "csharp",
+      "ext": 0,
+      "routes": [
+        {
+          "method": "POST",
+          "path": "/cs/Invoice"
+        }
+      ],
+      "approx": true
+    },
+    {
+      "id": "InvoiceController.Find",
+      "layer": "controller",
+      "kind": "endpoint",
+      "cls": "InvoiceController",
+      "signature": "Find(id)",
+      "doc": "Fetch one invoice by id.",
+      "source": "sample_src/services/orders_cs/InvoiceController.cs:24",
+      "lang": "csharp",
+      "ext": 0,
+      "routes": [
+        {
+          "method": "GET",
+          "path": "/cs/Invoice/{id}"
+        }
+      ],
+      "approx": true
+    },
+    {
+      "id": "InvoiceService.Find",
+      "layer": "service",
+      "kind": "method",
+      "cls": "InvoiceService",
+      "signature": "Find(id)",
+      "doc": "Read one invoice back.",
+      "source": "sample_src/services/orders_cs/InvoiceService.cs:21",
+      "lang": "csharp",
+      "ext": 0,
+      "approx": true
+    },
+    {
+      "id": "InvoiceService.Issue",
+      "layer": "service",
+      "kind": "method",
+      "cls": "InvoiceService",
+      "signature": "Issue(request)",
+      "doc": "Issue an invoice and store it.",
+      "source": "sample_src/services/orders_cs/InvoiceService.cs:14",
+      "lang": "csharp",
+      "ext": 0,
+      "approx": true
+    },
+    {
+      "id": "InvoiceService.Total",
+      "layer": "service",
+      "kind": "method",
+      "cls": "InvoiceService",
+      "signature": "Total(unitPrice, units)",
+      "doc": "Total for a quantity at a price. This is an overload: both",
+      "source": "sample_src/services/orders_cs/InvoiceService.cs:35",
+      "lang": "csharp",
+      "ext": 0,
+      "approx": true
+    },
+    {
+      "id": "InvoiceStore.Get",
+      "layer": "repository",
+      "kind": "method",
+      "cls": "InvoiceStore",
+      "signature": "Get(id)",
+      "doc": "Read one invoice by id.",
+      "source": "sample_src/services/orders_cs/InvoiceStore.cs:19",
+      "lang": "csharp",
+      "ext": 1,
+      "approx": true
+    },
+    {
+      "id": "InvoiceStore.Put",
+      "layer": "repository",
+      "kind": "method",
+      "cls": "InvoiceStore",
+      "signature": "Put(id, total)",
+      "doc": "Store one invoice against an order id.",
+      "source": "sample_src/services/orders_cs/InvoiceStore.cs:11",
+      "lang": "csharp",
+      "ext": 0,
+      "approx": true
+    },
+    {
+      "id": "NewRouter",
+      "layer": "controller",
+      "kind": "function",
+      "cls": null,
+      "signature": "NewRouter()",
+      "doc": "NewRouter wires the Go order-event endpoints.",
+      "source": "sample_src/services/orders_go/router.go:10",
+      "lang": "go",
+      "ext": 3,
+      "approx": true
+    },
+    {
+      "id": "OrderApiController.create",
+      "layer": "controller",
+      "kind": "endpoint",
+      "cls": "OrderApiController",
+      "signature": "create(request)",
+      "doc": "Place a new order.",
+      "source": "sample_src/services/orders_java/OrderApiController.java:16",
+      "lang": "java",
+      "ext": 0,
+      "routes": [
+        {
+          "method": "POST",
+          "path": "/java/orders"
+        }
+      ],
+      "approx": true
+    },
+    {
+      "id": "OrderApiController.findOne",
+      "layer": "controller",
+      "kind": "endpoint",
+      "cls": "OrderApiController",
+      "signature": "findOne(id)",
+      "doc": "Fetch one order by id.",
+      "source": "sample_src/services/orders_java/OrderApiController.java:22",
+      "lang": "java",
+      "ext": 0,
+      "routes": [
+        {
+          "method": "GET",
+          "path": "/java/orders/{id}"
+        }
+      ],
+      "approx": true
+    },
+    {
+      "id": "OrderArchive.get",
+      "layer": "repository",
+      "kind": "method",
+      "cls": "OrderArchive",
+      "signature": "get(id)",
+      "doc": "Look up one order by id.",
+      "source": "sample_src/services/orders_java/OrderArchive.java:20",
+      "lang": "java",
+      "ext": 1,
+      "approx": true
+    },
+    {
+      "id": "OrderArchive.save",
+      "layer": "repository",
+      "kind": "method",
+      "cls": "OrderArchive",
+      "signature": "save(request, total)",
+      "doc": "Store one order and return it.",
+      "source": "sample_src/services/orders_java/OrderArchive.java:13",
+      "lang": "java",
+      "ext": 3,
+      "approx": true
     },
     {
       "id": "OrderCard",
@@ -140,6 +386,30 @@
       "ext": 0
     },
     {
+      "id": "OrderWorkflow.find",
+      "layer": "service",
+      "kind": "method",
+      "cls": "OrderWorkflow",
+      "signature": "find(id)",
+      "doc": "Read one order back out of the archive.",
+      "source": "sample_src/services/orders_java/OrderWorkflow.java:25",
+      "lang": "java",
+      "ext": 0,
+      "approx": true
+    },
+    {
+      "id": "OrderWorkflow.place",
+      "layer": "service",
+      "kind": "method",
+      "cls": "OrderWorkflow",
+      "signature": "place(request)",
+      "doc": "Price the order and store the result.",
+      "source": "sample_src/services/orders_java/OrderWorkflow.java:16",
+      "lang": "java",
+      "ext": 1,
+      "approx": true
+    },
+    {
       "id": "OrdersController.create",
       "layer": "controller",
       "kind": "endpoint",
@@ -196,6 +466,18 @@
       "ext": 0
     },
     {
+      "id": "TieredRate.price",
+      "layer": "unknown",
+      "kind": "method",
+      "cls": "TieredRate",
+      "signature": "price(request)",
+      "doc": "Cheaper per unit above ten units.",
+      "source": "sample_src/services/orders_java/PricingRule.java:22",
+      "lang": "java",
+      "ext": 1,
+      "approx": true
+    },
+    {
       "id": "createOrder",
       "layer": "client",
       "kind": "function",
@@ -247,6 +529,23 @@
       ]
     },
     {
+      "id": "getOrderEvents",
+      "layer": "client",
+      "kind": "function",
+      "cls": null,
+      "signature": "getOrderEvents()",
+      "doc": "than through the suffix fallback.",
+      "source": "sample_src/frontend/api_client.ts:28",
+      "lang": "js",
+      "ext": 1,
+      "http": [
+        {
+          "method": "GET",
+          "url": "/go/orders/:orderId/events"
+        }
+      ]
+    },
+    {
       "id": "getOrderStatus",
       "layer": "client",
       "kind": "function",
@@ -264,6 +563,24 @@
       ]
     },
     {
+      "id": "handleOrderEvents",
+      "layer": "controller",
+      "kind": "endpoint",
+      "cls": null,
+      "signature": "handleOrderEvents(r, w)",
+      "doc": "handleOrderEvents writes one order's event history.",
+      "source": "sample_src/services/orders_go/router.go:23",
+      "lang": "go",
+      "ext": 2,
+      "routes": [
+        {
+          "method": "GET",
+          "path": "/go/orders/{id}/events"
+        }
+      ],
+      "approx": true
+    },
+    {
       "id": "loadOrder",
       "layer": "ui",
       "kind": "function",
@@ -273,6 +590,17 @@
       "source": "sample_src/frontend/order_page.ts:8",
       "lang": "js",
       "ext": 2
+    },
+    {
+      "id": "loadOrderHistory",
+      "layer": "ui",
+      "kind": "function",
+      "cls": null,
+      "signature": "loadOrderHistory()",
+      "doc": "Loads one order's event history from the Go service.",
+      "source": "sample_src/frontend/order_page.ts:16",
+      "lang": "js",
+      "ext": 0
     },
     {
       "id": "order_detail",
@@ -313,6 +641,24 @@
       ]
     },
     {
+      "id": "recordOrderEvent",
+      "layer": "controller",
+      "kind": "endpoint",
+      "cls": null,
+      "signature": "recordOrderEvent(r, w)",
+      "doc": "recordOrderEvent appends one event to an order's history.",
+      "source": "sample_src/services/orders_go/router.go:31",
+      "lang": "go",
+      "ext": 2,
+      "routes": [
+        {
+          "method": "POST",
+          "path": "/go/orders/{id}/events"
+        }
+      ],
+      "approx": true
+    },
+    {
       "id": "saveOrder",
       "layer": "controller",
       "kind": "function",
@@ -347,6 +693,51 @@
     }
   ],
   "edges": [
+    {
+      "source": "EventService.Events",
+      "target": "EventStore.List",
+      "type": "calls"
+    },
+    {
+      "source": "EventService.Record",
+      "target": "EventStore.Append",
+      "type": "calls"
+    },
+    {
+      "source": "InvoiceController.Create",
+      "target": "InvoiceService.Issue",
+      "type": "calls"
+    },
+    {
+      "source": "InvoiceController.Find",
+      "target": "InvoiceService.Find",
+      "type": "calls"
+    },
+    {
+      "source": "InvoiceService.Find",
+      "target": "InvoiceStore.Get",
+      "type": "calls"
+    },
+    {
+      "source": "InvoiceService.Issue",
+      "target": "InvoiceService.Total",
+      "type": "calls"
+    },
+    {
+      "source": "InvoiceService.Issue",
+      "target": "InvoiceStore.Put",
+      "type": "calls"
+    },
+    {
+      "source": "OrderApiController.create",
+      "target": "OrderWorkflow.place",
+      "type": "calls"
+    },
+    {
+      "source": "OrderApiController.findOne",
+      "target": "OrderWorkflow.find",
+      "type": "calls"
+    },
     {
       "source": "OrderCard",
       "target": "getOrder",
@@ -383,6 +774,16 @@
       "type": "calls"
     },
     {
+      "source": "OrderWorkflow.find",
+      "target": "OrderArchive.get",
+      "type": "calls"
+    },
+    {
+      "source": "OrderWorkflow.place",
+      "target": "OrderArchive.save",
+      "type": "calls"
+    },
+    {
       "source": "createOrder",
       "target": "OrderController.create_order",
       "type": "http"
@@ -398,13 +799,28 @@
       "type": "http"
     },
     {
+      "source": "getOrderEvents",
+      "target": "handleOrderEvents",
+      "type": "http"
+    },
+    {
       "source": "getOrderStatus",
       "target": "GET /orders/:id/status",
       "type": "http"
     },
     {
+      "source": "handleOrderEvents",
+      "target": "EventService.Events",
+      "type": "calls"
+    },
+    {
       "source": "loadOrder",
       "target": "getOrder",
+      "type": "calls"
+    },
+    {
+      "source": "loadOrderHistory",
+      "target": "getOrderEvents",
       "type": "calls"
     },
     {
@@ -415,6 +831,11 @@
     {
       "source": "orders",
       "target": "OrderService.place_order",
+      "type": "calls"
+    },
+    {
+      "source": "recordOrderEvent",
+      "target": "EventService.Record",
       "type": "calls"
     },
     {

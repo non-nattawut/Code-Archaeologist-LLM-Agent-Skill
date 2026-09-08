@@ -181,7 +181,8 @@
       <div class="stat"><div class="v">1</div><div class="l">HTML file out</div></div>
     </div>
     <p class="hint">Python 3.10+ standard library only. Node + <code>@babel/parser</code> is the single
-       optional dependency, and only for parsing JavaScript/TypeScript.</p>
+       optional dependency, and only for parsing JavaScript/TypeScript — Java, Go and C# need
+       nothing installed at all.</p>
   </div>
 </section>
 
@@ -359,7 +360,7 @@ const FEATURES = [
   },
   {
     id:"frontend", cat:"extract", title:"Frontend extraction",
-    d:"JavaScript and TypeScript parsed properly, and degrading loudly when it cannot.",
+    d:"JavaScript and TypeScript parsed properly, Java/Go/C# read textually and labelled as such, and degrading loudly when it cannot.",
     how:"Python shells out to a small Node script that parses with <code>@babel/parser</code> and returns JSON. If Node or the parser is missing, the run prints one clear warning, skips frontend files and still builds the Python graph — and the summary is labelled <code>(BACKEND ONLY)</code> so a partial map is never mistaken for a complete one.",
     tech:["@babel/parser","Subprocess JSON bridge","Explicit degraded state"],
     cmd:"cd .agents/skills/code-archaeologist && npm install",
@@ -604,8 +605,8 @@ const FEATURES = [
 const LIMITS = [
   ["Call resolution is heuristic, not type inference",
    "Dynamic dispatch, duck typing, dependency injection by string key and monkey-patching are invisible to it. It chooses precision over recall: every edge shown is real, but some real edges are missing. Say this before someone finds it."],
-  ["Graph extraction covers Python and JS/TS only",
-   "Sixteen languages are scanned for lines, complexity, risk, debt and tests — but nodes and edges exist only for Python and JavaScript/TypeScript. A Java shop gets the review passes, not the call graph."],
+  ["Java, Go and C# graphs are approximate",
+   "Python and JS/TS are parsed, so their graphs are exact. Java, Go and C# are read textually — comments and strings blanked, bodies brace-matched, receivers resolved only through declared types — so every node they produce is marked <code>approx: true</code> in the graph, the report, the context pack and the explorer. Interface dispatch, overloads and lambda handlers cannot be resolved without a type checker, so those edges are dropped rather than invented: the coupling shown is a lower bound. The remaining ten languages get the review passes, not a graph."],
   ["Test coverage is name-based, not instrumented",
    "It reports which nodes the test suite <em>mentions</em>. A test that names a method but asserts nothing counts as covered. It complements a real coverage tool; it does not replace one."],
   ["The risk scan is regex, not dataflow",

@@ -58,6 +58,7 @@ def _map_summary(name: str) -> dict:
     return {
         "nodes": len(graph.get("nodes", [])),
         "edges": len(graph.get("edges", [])),
+        "approx": sum(1 for n in graph.get("nodes", []) if n.get("approx")),
         "grade": health.get("grade"),
         "score": health.get("score"),
         "reported": rep.get("generated"),
@@ -92,7 +93,7 @@ def collect(src=None, focus: str = "flow", top: int = 5) -> dict:
 
     roots = src or size.get("roots")
     digest = {
-        "maps": {k: {x: v[x] for x in ("nodes", "edges", "grade", "score", "reported")} for k, v in maps.items()},
+        "maps": {k: {x: v[x] for x in ("nodes", "edges", "approx", "grade", "score", "reported")} for k, v in maps.items()},
         "focus": focus,
         "freshness": _freshness(roots),
         "size": size.get("totals") or {},
@@ -116,7 +117,8 @@ def to_text(d: dict) -> str:
     out.append("MAPS")
     for name, m in d["maps"].items():
         grade = f"grade {m['grade']} ({m['score']}/100)" if m.get("grade") else "no report yet"
-        out.append(f"  {name:<10} {m['nodes']:>4} node(s) {m['edges']:>4} edge(s)  {grade}")
+        approx = f"  ({m['approx']} approximate)" if m.get("approx") else ""
+        out.append(f"  {name:<10} {m['nodes']:>4} node(s) {m['edges']:>4} edge(s)  {grade}{approx}")
     fresh = d["freshness"]
     if fresh:
         state = "STALE" if fresh.get("stale") else "up to date"
@@ -124,6 +126,10 @@ def to_text(d: dict) -> str:
                    f"{len(fresh.get('added', []))} added, {len(fresh.get('deleted', []))} deleted)")
     if not any(m.get("grade") for m in d["maps"].values()):
         out.append("  (run `archaeologist.py report --src <roots>` for grades, risks and hotspots)")
+    if any(m.get("approx") for m in d["maps"].values()):
+        out.append("  approximate = Java/Go/C#, read textually rather than parsed. Unresolvable")
+        out.append("               calls were dropped, so their coupling is a lower bound. Say so")
+        out.append("               when you answer a question about those files.")
 
     t = d["size"]
     if t:

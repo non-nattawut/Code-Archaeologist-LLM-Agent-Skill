@@ -50,7 +50,7 @@
       "dangerous_eval": 1,
       "debug_statement": 1
     },
-    "files_scanned": 10,
+    "files_scanned": 20,
     "files_skipped": 2
   }
 }

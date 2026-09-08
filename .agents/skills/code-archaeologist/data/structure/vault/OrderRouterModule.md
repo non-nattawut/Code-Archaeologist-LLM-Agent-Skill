@@ -4,6 +4,7 @@ layer: controller
 source: sample_src/api_express/order_router.js
 kind: module
 lang: js
+approx: false
 ---
 # OrderRouterModule
 

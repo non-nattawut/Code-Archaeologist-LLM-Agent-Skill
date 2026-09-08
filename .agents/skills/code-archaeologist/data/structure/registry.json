@@ -1,5 +1,13 @@
 {
   "ApiClientModule": "structure/vault/ApiClientModule.md",
+  "EventService": "structure/vault/EventService.md",
+  "EventStore": "structure/vault/EventStore.md",
+  "FlatRate": "structure/vault/FlatRate.md",
+  "InvoiceController": "structure/vault/InvoiceController.md",
+  "InvoiceService": "structure/vault/InvoiceService.md",
+  "InvoiceStore": "structure/vault/InvoiceStore.md",
+  "OrderApiController": "structure/vault/OrderApiController.md",
+  "OrderArchive": "structure/vault/OrderArchive.md",
   "OrderCard": "structure/vault/OrderCard.md",
   "OrderController": "structure/vault/OrderController.md",
   "OrderPageModule": "structure/vault/OrderPageModule.md",
@@ -8,8 +16,12 @@
   "OrderRouterModule": "structure/vault/OrderRouterModule.md",
   "OrderRoutesModule": "structure/vault/OrderRoutesModule.md",
   "OrderService": "structure/vault/OrderService.md",
+  "OrderWorkflow": "structure/vault/OrderWorkflow.md",
   "OrdersController": "structure/vault/OrdersController.md",
   "PaymentClient": "structure/vault/PaymentClient.md",
+  "PricingRule": "structure/vault/PricingRule.md",
+  "RouterModule": "structure/vault/RouterModule.md",
   "StatusBadge": "structure/vault/StatusBadge.md",
-  "TestOrdersModule": "structure/vault/TestOrdersModule.md"
+  "TestOrdersModule": "structure/vault/TestOrdersModule.md",
+  "TieredRate": "structure/vault/TieredRate.md"
 }

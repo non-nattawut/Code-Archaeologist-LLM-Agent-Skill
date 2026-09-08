@@ -4,6 +4,7 @@ layer: controller
 source: sample_src/api_nest/orders.controller.ts
 kind: class
 lang: js
+approx: false
 ---
 # OrdersController
 

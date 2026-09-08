@@ -14,6 +14,12 @@ reviews them, and renders one browsable page:
 | **Structure** | classes / React components / module groups | `build_wiki.py` → `build_graph.py` | `data/structure/{graph.json, registry.json, vault/*.md}` |
 | **Flow** | methods/functions | `build_flow.py` | `data/flow/{flow_graph.json, notes/*.md}` |
 
+Three producers feed both maps: Python (stdlib `ast`), JS/TS (`@babel/parser`) and -- approximate
+-- Java/Go/C# (`lang_extract.py`, declarations read textually). Nodes from the third tier carry
+`approx: true` everywhere they surface: graph, vault front-matter, `context.py`, the report's
+health section, `brief.py`, and an `approx` chip in the explorer. Adding a tier means adding an
+`extract_*_entities` in `build_wiki.py` and an `_analyze_*` in `build_flow.py`, nothing else.
+
 An agent answers architecture questions by **querying the graph, then reading only the notes on the
 returned path** — never by scanning source.
 
@@ -22,7 +28,9 @@ returned path** — never by scanning source.
 ```
 archaeologist.py  project | flow | both | check | report | brief   <- the only entrypoint
   project  -> build_wiki -> build_graph ------------------\
-  flow     -> build_flow (+ js_bridge -> js_extract.js) ---+--> render_explorer()
+  flow     -> build_flow ---------------------------------+--> render_explorer()
+      both extract through: js_bridge -> js_extract.js  (JS/TS, exact)
+                            lang_extract.py             (Java/Go/C#, approximate)
   report   -> report.py (scan_security + git_insights + analyze + metrics + debt + tests_map)
                                                                     -> data/report/<map>/
   brief    -> brief.py (reads the artifacts above, computes nothing)
@@ -41,7 +49,7 @@ scripts/
   paths.py           SKILL_ROOT / DATA_DIR / TEMPLATES_DIR, and the sys.path bootstrap
   core/     taxonomy.py  manifest.py  console.py
   extract/  build_wiki.py  build_graph.py  build_flow.py  js_bridge.py  js_extract.js
-            apply_descriptions.py
+            lang_extract.py  apply_descriptions.py
   review/   analyze.py  scan_security.py  git_insights.py  metrics.py  debt.py
             tests_map.py  report.py  brief.py
   query/    trace_path.py  context.py  search.py  build_html.py
@@ -65,8 +73,9 @@ it needs the directory holding `js_extract.js`, not the skill root — and `cons
 `taxonomy.py` need no preamble at all because they touch neither `data/` nor a sibling.
 
 - `taxonomy.py` owns every `kind`/`layer` value (mirrored in `templates/TAXONOMY.md`). Add values
-  there, never inline. It also owns **what counts as a test file** (`is_test_path` /
-  `is_test_file`): path and filename conventions for a dozen languages plus framework markers
+  there, never inline. It also owns `LANG_BY_EXT` / `lang_of()` -- one answer to "what language is
+  this file", read by `metrics.py` and `lang_extract.py`. And it owns **what counts as a test
+  file** (`is_test_path` / `is_test_file`): path and filename conventions plus framework markers
   (`@Test`, `@SpringBootTest`, `[Fact]`, `#[test]`, `func TestX(t *testing.T)`). Nodes in test
   files get `layer: test`, which is why `analyze.py` never calls them dead code and
   `scan_security.py` skips them. Every pass must ask taxonomy, never re-implement the check.
@@ -80,8 +89,8 @@ it needs the directory holding `js_extract.js`, not the skill root — and `cons
   line. `git_insights.py` is one `git log --numstat` pass → churn, owners, hotspot risk.
 - `metrics.py` is line counts per file plus LOC / cyclomatic complexity / nesting depth /
   parameter count per node, keyed like the graph nodes (per-node figures are Python only:
-  `js_extract.js` now records `endLine`, but `metrics.py` does not read it yet). `report.py`
-  derives `file_census` from it, so line counts have one definition.
+  `js_extract.js` and `lang_extract.py` both record `endLine`, but `metrics.py` does not read it
+  yet). `report.py` derives `file_census` from it, so line counts have one definition.
 - `search.py` is the "which nodes are these" filter over one graph (name/doc/layer/kind/lang/file
   plus `--calls` / `--called-by` / `--orphans`). It exists so neither the agent nor a human greps
   source to find a starting node.
@@ -178,28 +187,45 @@ python .agents/skills/code-archaeologist/scripts/archaeologist.py both --src ./s
 python .agents/skills/code-archaeologist/scripts/archaeologist.py report --src ./sample_src
 ```
 
-Expected on the current sample (it carries three deliberate smells — a hardcoded key, interpolated
-SQL, an innerHTML sink — plus a pytest/unittest file, a `.test.ts`, a `.tsx` with two React
-components, and four API frameworks, so the review path, the test path, the component path and
-every route shape all have something to find):
+Expected on the current sample (it carries three deliberate smells -- a hardcoded key, interpolated
+SQL, an innerHTML sink -- plus a pytest/unittest file, a `.test.ts`, a `.tsx` with two React
+components, four API frameworks, and three languages from the approximate tier with two deliberate
+hard cases, so the review path, the test path, the component path, every route shape and the
+"drop rather than guess" rule all have something to find):
 
-- structure graph: 13 nodes / 13 edges — 7 Python, 6 JS/TS, of which `OrderCard` and `StatusBadge`
-  are `kind: component` / `layer: ui`
-- flow graph: 25 nodes / 16 edges, 9 endpoints, **0 pending** descriptions
+- structure graph: **25 nodes / 22 edges** -- 7 Python, 6 JS/TS, 12 approximate (6 Java, 3 Go,
+  3 C#), of which `OrderCard` and `StatusBadge` are `kind: component` / `layer: ui`
+- flow graph: **50 nodes / 31 edges, 16 endpoints, 0 pending** descriptions; 23 nodes `approx`
 - routes, one per framework shape: FastAPI `OrderController.create_order`; Flask `orders` with
   **two** entries (`GET` + `POST /legacy/orders`) and `order_detail` (`<int:order_id>`); Express
   `createOrderHandler` (named handler) and the endpoint node `GET /orders/:id/status` (inline
-  arrow); Nest `OrdersController.{create,findOne}` under the `@Controller("nest/orders")` prefix
-- traces: `create_order → place_order → {save, charge}`, `get_order → find_order → get`, and the
-  Flask handler `orders → place_order → save`; cross-stack `submitOrder → createOrder →
-  OrderController.create_order → …`; structure `OrderCard → {ApiClientModule, StatusBadge}`
-- `getOrderStatus → GET /orders/:id/status` is the **suffix fallback**: the call is
+  arrow); Nest `OrdersController.{create,findOne}` under the `@Controller("nest/orders")` prefix;
+  Spring `OrderApiController.{create,findOne}` under `@RequestMapping("/java/orders")`; ASP.NET
+  `InvoiceController.{Create,Find}` under `[Route("cs/[controller]")]` -> `/cs/Invoice`; Go
+  `handleOrderEvents` / `recordOrderEvent` (named) and `GET /go/healthz` (inline literal)
+- traces: `create_order -> place_order -> {save, charge}`, `get_order -> find_order -> get`, the
+  Flask handler `orders -> place_order -> save`, and one per approximate language --
+  `OrderApiController.create -> OrderWorkflow.place -> OrderArchive.save`,
+  `InvoiceController.Create -> InvoiceService.Issue -> InvoiceStore.Put`,
+  `handleOrderEvents -> EventService.Events -> EventStore.List`
+- cross-stack: `submitOrder -> createOrder -> OrderController.create_order -> ...`, and
+  `loadOrderHistory -> getOrderEvents -> handleOrderEvents -> ...` all the way into Go; structure
+  `OrderCard -> {ApiClientModule, StatusBadge}`
+- `getOrderStatus -> GET /orders/:id/status` is the **suffix fallback**: the call is
   `/api/orders/:id/status`, the router registers `/orders/:id/status`, and it links because
   exactly one route matches
-- grades: structure **C (71)**, flow **D (69)**; 4 risk findings each; 2 debt markers
-- tests: 2 test files, flow **4/21 nodes named by a test**, and the two test nodes carry
+- the two deliberate approximate-tier hard cases, both of which must keep producing **no edge**:
+  `OrderWorkflow.place` calls `pricing.price()` through the `PricingRule` interface (two impls, so
+  `FlatRate.price` / `TieredRate.price` stay orphans), and `InvoiceService.Total` is an overload
+  pair collapsing to one node. The structure map *does* show `OrderWorkflow -> PricingRule` --
+  a declared field is a real reference even when the dispatch is not resolvable.
+- grades: structure **D (69)**, flow **D (69)**; 4 risk findings each; 2 debt markers. Structure
+  fell from C(71) when the interface impls were added -- that is the hard case being honest, not a
+  regression.
+- tests: 2 test files, flow **4/46 nodes named by a test**, and the two test nodes carry
   `layer: test` with call edges into `OrderService.place_order` / `OrderRepository.get`
-- `archaeologist.py check --src ./sample_src` → `stale: false` right after a build
+- 520 lines across 22 files (py 126, java 101, csharp 90, ts 82, go 66, js 28, tsx 27)
+- `archaeologist.py check --src ./sample_src` -> `stale: false` right after a build
 
 With `node_modules` renamed away the same build must still succeed, print the one
 `frontend skipped` warning, and fall back to a Python-only graph.

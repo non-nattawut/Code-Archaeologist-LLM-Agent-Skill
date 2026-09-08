@@ -1,15 +1,15 @@
 {
-  "generated": "2026-09-08T14:11:30Z",
+  "generated": "2026-09-08T15:12:37Z",
   "roots": [
     "sample_src"
   ],
   "graph": "data/structure/graph.json",
   "summary": {
     "test_files": 2,
-    "considered": 11,
+    "considered": 23,
     "referenced": 3,
-    "unreferenced": 8,
-    "referenced_pct": 27.3
+    "unreferenced": 20,
+    "referenced_pct": 13.0
   },
   "test_files": [
     "sample_src/backend/tests/test_orders.py",
@@ -32,6 +32,54 @@
       "source": "sample_src/frontend/api_client.ts",
       "layer": "client",
       "kind": "module"
+    },
+    {
+      "id": "EventService",
+      "source": "sample_src/services/orders_go/event_service.go",
+      "layer": "service",
+      "kind": "class"
+    },
+    {
+      "id": "EventStore",
+      "source": "sample_src/services/orders_go/event_store.go",
+      "layer": "repository",
+      "kind": "class"
+    },
+    {
+      "id": "FlatRate",
+      "source": "sample_src/services/orders_java/PricingRule.java",
+      "layer": "unknown",
+      "kind": "class"
+    },
+    {
+      "id": "InvoiceController",
+      "source": "sample_src/services/orders_cs/InvoiceController.cs",
+      "layer": "controller",
+      "kind": "class"
+    },
+    {
+      "id": "InvoiceService",
+      "source": "sample_src/services/orders_cs/InvoiceService.cs",
+      "layer": "service",
+      "kind": "class"
+    },
+    {
+      "id": "InvoiceStore",
+      "source": "sample_src/services/orders_cs/InvoiceStore.cs",
+      "layer": "repository",
+      "kind": "class"
+    },
+    {
+      "id": "OrderApiController",
+      "source": "sample_src/services/orders_java/OrderApiController.java",
+      "layer": "controller",
+      "kind": "class"
+    },
+    {
+      "id": "OrderArchive",
+      "source": "sample_src/services/orders_java/OrderArchive.java",
+      "layer": "repository",
+      "kind": "class"
     },
     {
       "id": "OrderCard",
@@ -64,16 +112,40 @@
       "kind": "module"
     },
     {
+      "id": "OrderWorkflow",
+      "source": "sample_src/services/orders_java/OrderWorkflow.java",
+      "layer": "service",
+      "kind": "class"
+    },
+    {
       "id": "OrdersController",
       "source": "sample_src/api_nest/orders.controller.ts",
       "layer": "controller",
       "kind": "class"
     },
     {
+      "id": "PricingRule",
+      "source": "sample_src/services/orders_java/PricingRule.java",
+      "layer": "unknown",
+      "kind": "class"
+    },
+    {
+      "id": "RouterModule",
+      "source": "sample_src/services/orders_go/router.go",
+      "layer": "controller",
+      "kind": "module"
+    },
+    {
       "id": "StatusBadge",
       "source": "sample_src/frontend/OrderCard.tsx",
       "layer": "ui",
       "kind": "component"
+    },
+    {
+      "id": "TieredRate",
+      "source": "sample_src/services/orders_java/PricingRule.java",
+      "layer": "unknown",
+      "kind": "class"
     }
   ]
 }

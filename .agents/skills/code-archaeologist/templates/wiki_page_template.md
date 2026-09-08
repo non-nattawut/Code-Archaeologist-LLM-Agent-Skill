@@ -4,6 +4,7 @@ layer: {{layer}}
 source: {{source}}
 kind: {{kind}}
 lang: {{lang}}
+approx: {{approx}}
 ---
 # {{name}}
 

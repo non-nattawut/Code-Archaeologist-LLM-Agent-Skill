@@ -84,6 +84,9 @@ def census(graph: dict) -> dict:
         "layers": dict(sorted(layers.items())), "langs": dict(sorted(langs.items())),
         "kinds": dict(sorted(kinds.items())), "edge_types": dict(sorted(edge_types.items())),
         "routes": sorted(routes, key=lambda r: (r["path"], r["method"])),
+        # Java/Go/C# are read textually, so a grade computed over them rests on
+        # edges that were approximated. Counted here so every reader is told.
+        "approx_nodes": sum(1 for n in nodes if n.get("approx")),
     }
 
 
@@ -125,6 +128,16 @@ def to_markdown(data: dict) -> str:
         f"layer violations {smells['summary']['layer_violations']} · "
         f"security findings {security['summary']['total']}",
         "",
+    ]
+    if stats.get("approx_nodes"):
+        lines += [
+            f"> **{stats['approx_nodes']} of {stats['nodes']} nodes are approximate.** Java, Go and "
+            f"C# are read textually rather than parsed, so this grade rests in part on edges that "
+            f"were inferred from declared types. Unresolvable calls (interface dispatch, overloads, "
+            f"lambdas) were dropped, not guessed — so the real coupling is at least this much.",
+            "",
+        ]
+    lines += [
         "## Census",
         "",
         f"- Source: {files['file_count']} file(s), {files['loc']:,} lines "

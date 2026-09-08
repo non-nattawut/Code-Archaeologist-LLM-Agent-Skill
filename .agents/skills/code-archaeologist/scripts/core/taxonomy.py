@@ -11,6 +11,7 @@ across the Python and JS/TS extractors and the Markdown templates. Every
 """
 from __future__ import annotations
 
+import os
 import re
 
 # Allowed `layer` values, with the name/decorator patterns used to infer them.
@@ -33,6 +34,25 @@ LAYERS = [
 
 # Allowed `kind` values (what the node physically is).
 KINDS = ["class", "method", "function", "module", "endpoint", "component", "test"]
+
+# --- languages -------------------------------------------------------------------
+# One answer to "what language is this file", for the file census (metrics.py) and
+# for the `lang` on every graph node. The exact-tier extractors label their nodes
+# themselves -- Python nodes are `py` and JS/TS nodes are all `js`, coarser than the
+# census -- but everything reading a file off disk asks here.
+LANG_BY_EXT = {
+    ".py": "py", ".js": "js", ".jsx": "jsx", ".ts": "ts", ".tsx": "tsx",
+    ".mjs": "js", ".cjs": "js", ".java": "java", ".kt": "kotlin", ".kts": "kotlin",
+    ".go": "go", ".rs": "rust", ".cs": "csharp", ".rb": "ruby", ".php": "php",
+    ".swift": "swift", ".scala": "scala", ".groovy": "groovy", ".dart": "dart",
+    ".ex": "elixir", ".exs": "elixir", ".c": "c", ".cc": "cpp", ".cpp": "cpp",
+    ".h": "c", ".hpp": "cpp",
+}
+
+
+def lang_of(path: str) -> str:
+    """Language name for a path, or "other" when the extension is unknown."""
+    return LANG_BY_EXT.get(os.path.splitext(path)[1].lower(), "other")
 
 # --- test code -----------------------------------------------------------------
 # Test code is *not* dead code: a runner calls it, so nothing in the graph does.

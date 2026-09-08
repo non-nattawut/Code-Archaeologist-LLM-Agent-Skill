@@ -32,6 +32,7 @@ TEMPLATE_PATH = os.path.join(TEMPLATES_DIR, "wiki_page_template.md")
 from taxonomy import infer_layer, is_test_path  # noqa: E402
 import console  # noqa: E402  (stdout must survive a non-UTF-8 console)
 from js_bridge import find_js_files, extract_js_files, frontend_degraded  # noqa: E402  (frontend, degrades to a no-op)
+from lang_extract import find_lang_files, extract_lang_files  # noqa: E402  (Java/Go/C#, approximate)
 
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data"}
 
@@ -69,13 +70,14 @@ def _rel_source(path: str, root: str) -> str:
 
 
 def extract_entities(roots: list[str]) -> list[dict]:
-    """Every entity across one or more source roots, backend first.
+    """Every entity across one or more source roots, exact tiers first.
 
-    Ordering is the collision rule: if a Python and a JS entity want the same name,
-    the Python one keeps it (see `build`). Backend-first is arbitrary but fixed,
-    which is what constraint 2 actually needs.
+    Ordering is the collision rule: if two producers want the same name, the
+    earlier one keeps it (see `build`). Python and JS/TS come from real parsers,
+    so they win over the approximate Java/Go/C# tier. Within that, the order is
+    arbitrary but fixed, which is what constraint 2 actually needs.
     """
-    return extract_py_entities(roots) + extract_js_entities(roots)
+    return extract_py_entities(roots) + extract_js_entities(roots) + extract_lang_entities(roots)
 
 
 def extract_py_entities(roots: list[str]) -> list[dict]:
@@ -279,6 +281,54 @@ def extract_js_entities(roots: list[str]) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# Extraction: Java / Go / C# (approximate tier)
+# ---------------------------------------------------------------------------
+def extract_lang_entities(roots: list[str]) -> list[dict]:
+    """Java/C# classes, Go structs, and Go module function-groups.
+
+    References come from *declared types* -- bases, field types, parameter types
+    and resolved call receivers -- not from the import list. That is a better
+    source than Python's name matching and it is the only one available for Go,
+    where files in the same package import each other not at all.
+    """
+    entities: list[dict] = []
+    for root in roots:
+        for res in extract_lang_files(find_lang_files(root)):
+            rel = _rel_source(res["file"], root)
+            stem = os.path.splitext(os.path.basename(res["file"]))[0]
+
+            for cls in res.get("classes", []):
+                refs = set(cls.get("bases", [])) | set(cls.get("fields", {}).values())
+                for m in cls.get("methods", []):
+                    refs.update(m.get("params", {}).values())
+                    refs.update(c["type"] for c in m.get("calls", []) if c["type"] not in ("", "?"))
+                entities.append({
+                    "name": cls["name"], "kind": "class", "source": rel,
+                    "lang": res["lang"], "approx": True,
+                    "bases": cls.get("bases", []), "decorators": cls.get("decorators", []),
+                    "doc": cls.get("doc", ""),
+                    "methods": [{"name": m["name"], "doc": m.get("doc", "")}
+                                for m in cls.get("methods", [])],
+                    "imports": sorted(refs),
+                })
+
+            funcs = res.get("functions", [])
+            if funcs:
+                refs = set()
+                for fn in funcs:
+                    refs.update(fn.get("params", {}).values())
+                    refs.update(c["type"] for c in fn.get("calls", []) if c["type"] not in ("", "?"))
+                entities.append({
+                    "name": _module_entity_name(stem), "kind": "module", "source": rel,
+                    "lang": res["lang"], "approx": True,
+                    "bases": [], "decorators": [], "doc": "",
+                    "methods": [{"name": f["name"], "doc": f.get("doc", "")} for f in funcs],
+                    "imports": sorted(refs),
+                })
+    return entities
+
+
+# ---------------------------------------------------------------------------
 # Rendering
 # ---------------------------------------------------------------------------
 def load_template() -> str:
@@ -330,6 +380,7 @@ def render_entity(ent: dict, known: set[str], template: str) -> str:
     out = out.replace("{{source}}", ent["source"])
     out = out.replace("{{kind}}", ent["kind"])
     out = out.replace("{{lang}}", ent.get("lang", "py"))
+    out = out.replace("{{approx}}", "true" if ent.get("approx") else "false")
     out = out.replace("{{summary}}", summary)
     out = out.replace("{{bases}}", "\n".join(bases_md) if bases_md else "_None._")
     out = out.replace("{{decorators}}", "\n".join(decorators_md) if decorators_md else "_None._")

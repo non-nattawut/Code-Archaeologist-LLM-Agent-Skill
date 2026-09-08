@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-08T14:11:30Z",
+  "generated": "2026-09-08T15:12:37Z",
   "roots": [
     "sample_src"
   ],
@@ -10,8 +10,8 @@
       "FIXME": 1,
       "TODO": 1
     },
-    "dead_nodes": 3,
-    "dead_files": 1
+    "dead_nodes": 6,
+    "dead_files": 2
   },
   "markers": [
     {
@@ -31,6 +31,18 @@
   ],
   "dead_nodes": [
     {
+      "id": "FlatRate.price",
+      "source": "sample_src/services/orders_java/PricingRule.java:13",
+      "layer": "unknown",
+      "kind": "method"
+    },
+    {
+      "id": "TieredRate.price",
+      "source": "sample_src/services/orders_java/PricingRule.java:22",
+      "layer": "unknown",
+      "kind": "method"
+    },
+    {
       "id": "getOrderStatus",
       "source": "sample_src/frontend/api_client.ts:20",
       "layer": "client",
@@ -43,6 +55,12 @@
       "kind": "function"
     },
     {
+      "id": "loadOrderHistory",
+      "source": "sample_src/frontend/order_page.ts:16",
+      "layer": "ui",
+      "kind": "function"
+    },
+    {
       "id": "submitOrder",
       "source": "sample_src/frontend/order_page.ts:4",
       "layer": "ui",
@@ -50,6 +68,7 @@
     }
   ],
   "dead_files": [
-    "sample_src/frontend/order_page.ts"
+    "sample_src/frontend/order_page.ts",
+    "sample_src/services/orders_java/PricingRule.java"
   ]
 }

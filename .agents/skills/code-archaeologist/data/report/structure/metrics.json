@@ -1,24 +1,36 @@
 {
-  "generated": "2026-09-08T14:11:30Z",
+  "generated": "2026-09-08T15:12:37Z",
   "roots": [
     "sample_src"
   ],
   "totals": {
-    "files": 12,
-    "lines": 250,
-    "code": 165,
-    "comment": 31,
-    "blank": 54,
-    "comment_ratio": 0.124
+    "files": 22,
+    "lines": 520,
+    "code": 339,
+    "comment": 80,
+    "blank": 101,
+    "comment_ratio": 0.154
   },
   "languages": {
     "py": {
       "files": 6,
       "lines": 126
     },
+    "java": {
+      "files": 4,
+      "lines": 101
+    },
+    "csharp": {
+      "files": 3,
+      "lines": 90
+    },
     "ts": {
       "files": 4,
-      "lines": 69
+      "lines": 82
+    },
+    "go": {
+      "files": 3,
+      "lines": 66
     },
     "js": {
       "files": 1,
@@ -94,10 +106,10 @@
       "lang": "tsx"
     },
     "sample_src/frontend/api_client.ts": {
-      "lines": 23,
-      "code": 14,
-      "comment": 5,
-      "blank": 4,
+      "lines": 31,
+      "code": 18,
+      "comment": 8,
+      "blank": 5,
       "lang": "ts"
     },
     "sample_src/frontend/order_page.test.ts": {
@@ -108,11 +120,81 @@
       "lang": "ts"
     },
     "sample_src/frontend/order_page.ts": {
-      "lines": 13,
-      "code": 9,
-      "comment": 2,
-      "blank": 2,
+      "lines": 18,
+      "code": 12,
+      "comment": 3,
+      "blank": 3,
       "lang": "ts"
+    },
+    "sample_src/services/orders_cs/InvoiceController.cs": {
+      "lines": 28,
+      "code": 21,
+      "comment": 3,
+      "blank": 4,
+      "lang": "csharp"
+    },
+    "sample_src/services/orders_cs/InvoiceService.cs": {
+      "lines": 39,
+      "code": 26,
+      "comment": 7,
+      "blank": 6,
+      "lang": "csharp"
+    },
+    "sample_src/services/orders_cs/InvoiceStore.cs": {
+      "lines": 23,
+      "code": 16,
+      "comment": 3,
+      "blank": 4,
+      "lang": "csharp"
+    },
+    "sample_src/services/orders_go/event_service.go": {
+      "lines": 16,
+      "code": 10,
+      "comment": 3,
+      "blank": 3,
+      "lang": "go"
+    },
+    "sample_src/services/orders_go/event_store.go": {
+      "lines": 16,
+      "code": 10,
+      "comment": 3,
+      "blank": 3,
+      "lang": "go"
+    },
+    "sample_src/services/orders_go/router.go": {
+      "lines": 34,
+      "code": 21,
+      "comment": 9,
+      "blank": 4,
+      "lang": "go"
+    },
+    "sample_src/services/orders_java/OrderApiController.java": {
+      "lines": 25,
+      "code": 17,
+      "comment": 3,
+      "blank": 5,
+      "lang": "java"
+    },
+    "sample_src/services/orders_java/OrderArchive.java": {
+      "lines": 23,
+      "code": 15,
+      "comment": 3,
+      "blank": 5,
+      "lang": "java"
+    },
+    "sample_src/services/orders_java/OrderWorkflow.java": {
+      "lines": 28,
+      "code": 17,
+      "comment": 6,
+      "blank": 5,
+      "lang": "java"
+    },
+    "sample_src/services/orders_java/PricingRule.java": {
+      "lines": 25,
+      "code": 14,
+      "comment": 5,
+      "blank": 6,
+      "lang": "java"
     }
   },
   "nodes": {
@@ -373,6 +455,21 @@
   ],
   "top_files": [
     {
+      "file": "sample_src/services/orders_cs/InvoiceService.cs",
+      "lines": 39,
+      "code": 26
+    },
+    {
+      "file": "sample_src/services/orders_go/router.go",
+      "lines": 34,
+      "code": 21
+    },
+    {
+      "file": "sample_src/frontend/api_client.ts",
+      "lines": 31,
+      "code": 18
+    },
+    {
       "file": "sample_src/api_express/order_router.js",
       "lines": 28,
       "code": 14
@@ -381,6 +478,16 @@
       "file": "sample_src/api_flask/order_routes.py",
       "lines": 28,
       "code": 21
+    },
+    {
+      "file": "sample_src/services/orders_cs/InvoiceController.cs",
+      "lines": 28,
+      "code": 21
+    },
+    {
+      "file": "sample_src/services/orders_java/OrderWorkflow.java",
+      "lines": 28,
+      "code": 17
     },
     {
       "file": "sample_src/frontend/OrderCard.tsx",
@@ -393,44 +500,31 @@
       "code": 18
     },
     {
-      "file": "sample_src/backend/order_controller.py",
-      "lines": 23,
-      "code": 16
-    },
-    {
-      "file": "sample_src/frontend/api_client.ts",
-      "lines": 23,
-      "code": 14
-    },
-    {
-      "file": "sample_src/api_nest/orders.controller.ts",
-      "lines": 20,
-      "code": 12
-    },
-    {
-      "file": "sample_src/backend/order_service.py",
-      "lines": 20,
-      "code": 15
-    },
-    {
-      "file": "sample_src/backend/order_repository.py",
-      "lines": 15,
-      "code": 9
-    },
-    {
-      "file": "sample_src/backend/payment_client.py",
-      "lines": 15,
-      "code": 8
+      "file": "sample_src/services/orders_java/OrderApiController.java",
+      "lines": 25,
+      "code": 17
     }
   ],
   "unmeasured_graph_ids": [
     "ApiClientModule",
+    "EventService",
+    "EventStore",
+    "FlatRate",
+    "InvoiceController",
+    "InvoiceService",
+    "InvoiceStore",
+    "OrderApiController",
+    "OrderArchive",
     "OrderCard",
     "OrderPageModule",
     "OrderRouterModule",
     "OrderRoutesModule",
+    "OrderWorkflow",
     "OrdersController",
+    "PricingRule",
+    "RouterModule",
     "StatusBadge",
-    "TestOrdersModule"
+    "TestOrdersModule",
+    "TieredRate"
   ]
 }

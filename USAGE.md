@@ -49,6 +49,18 @@ python .agents/skills/code-archaeologist/scripts/query/search.py --doc "refund" 
 python .agents/skills/code-archaeologist/scripts/query/search.py --layer repository --kind method
 python .agents/skills/code-archaeologist/scripts/query/search.py --calls OrderRepository.save
 python .agents/skills/code-archaeologist/scripts/query/search.py --orphans --format json
+
+# one language at a time: py, js, java, go, csharp
+python .agents/skills/code-archaeologist/scripts/query/search.py --lang java
+```
+
+Java, Go and C# nodes carry `approx: true`. They were read textually rather than parsed, so calls
+that could not be resolved from a declared type were dropped, not guessed — their edges are a
+lower bound. `context.py` prints the caveat on the node itself, and the report opens with how many
+nodes it covers. To see what the extractor made of those files directly:
+
+```bash
+python .agents/skills/code-archaeologist/scripts/extract/lang_extract.py --src ./src
 ```
 
 ## Query the graphs

@@ -63,6 +63,7 @@ def _save_json(path: str, obj) -> None:
 
 from taxonomy import infer_layer, is_test_path, ROUTE_DECORATOR_RE  # noqa: E402
 from js_bridge import find_js_files, extract_js_files, frontend_degraded   # noqa: E402
+from lang_extract import find_lang_files, extract_lang_files  # noqa: E402  (Java/Go/C#, approximate)
 
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data"}
 
@@ -239,12 +240,21 @@ def _api_edges(methods: dict) -> set[tuple[str, str]]:
     for nid, info in methods.items():
         for h in info.get("http") or []:
             method, url = h["method"].upper(), _norm_path(h["url"])
-            owners = routes.get((method, url))
-            if not owners:
-                owners = _suffix_match(routes, method, url)
+            owners = _owners(routes, method, url) or _suffix_match(routes, method, url)
             if owners and len(owners) == 1 and owners[0] != nid:
                 edges.add((nid, owners[0]))
     return edges
+
+
+def _owners(routes: dict, method: str, path: str) -> list[str]:
+    """Handlers registered for `path`, counting the ones registered for every verb.
+
+    A framework can register a path without naming a verb -- Go's
+    `mux.HandleFunc("/orders", h)` serves all of them -- which `_route_of` records
+    as the verb `ANY`. Such a route really does answer this call, so it is a match,
+    not a near miss.
+    """
+    return (routes.get((method, path)) or []) + (routes.get(("ANY", path)) or [])
 
 
 def _suffix_match(routes: dict, method: str, url: str) -> list[str] | None:
@@ -257,7 +267,7 @@ def _suffix_match(routes: dict, method: str, url: str) -> list[str] | None:
     candidates = {"/" + "/".join(parts[i:]) for i in range(1, len(parts))}
     hits: list[str] = []
     for suffix in candidates:
-        hits.extend(routes.get((method, suffix), []))
+        hits.extend(_owners(routes, method, suffix))
     return sorted(set(hits)) or None
 
 
@@ -354,6 +364,13 @@ def analyze(roots: list[str]):
         if s in methods and t in methods and s != t:
             edges.add((s, t, "calls"))
 
+    # --- Java / Go / C#: the approximate tier, same graph, marked as approximate ---
+    lang_methods, lang_edges = _analyze_lang(roots)
+    methods.update(lang_methods)
+    for s, t in lang_edges:
+        if s in methods and t in methods and s != t:
+            edges.add((s, t, "calls"))
+
     # Test code gets its own layer, in one pass so both extractors agree. It is not
     # application code, and analyze.py must not count it as dead: a runner calls it.
     for info in methods.values():
@@ -391,6 +408,29 @@ def _js_node(nid: str, name: str, cls, layer: str, kind: str, data: dict, rel: s
     }
 
 
+def _attach_routes(routes: list[dict], methods: dict, raw_calls: list, make_node) -> None:
+    """Router registrations -> the handler's node, or an endpoint node of their own.
+
+    Express (`router.post("/x", h)`) and Go (`mux.HandleFunc("POST /x", h)`) register
+    routes the same way and so are read the same way: a named handler attaches its
+    route to that function's own node; an inline literal has no node to attach to,
+    so the registration itself becomes the endpoint ("POST /orders").
+    """
+    for r in routes:
+        handler = r.get("handler")
+        route = {"method": r["method"], "path": r["path"]}
+        if handler and handler in methods:
+            methods[handler]["routes"] = _dedupe_routes(methods[handler]["routes"] + [route])
+            methods[handler]["kind"] = "endpoint"
+            methods[handler]["layer"] = "controller"
+        elif not handler:
+            nid = f'{r["method"]} {r["path"]}'
+            node = make_node(nid, dict(r, routes=[route]))
+            node["signature"] = nid    # the route is the signature; `nid()` reads as nonsense
+            methods[nid] = node
+            raw_calls.append((nid, r.get("calls", [])))
+
+
 def _analyze_js(roots: list[str]):
     """Extract JS/TS functions/methods as flow nodes and resolve their calls."""
     methods: dict[str, dict] = {}
@@ -424,23 +464,9 @@ def _analyze_js(roots: list[str]):
                                             "endpoint" if routed else "method", m, rel)
                     raw_calls.append((nid, m.get("calls", [])))
 
-            # Express registrations. A named handler attaches to that function's own
-            # node; an inline arrow has no node to attach to, so the registration
-            # itself becomes the endpoint ("POST /orders").
-            for r in res.get("routes", []):
-                handler = r.get("handler")
-                if handler and handler in methods:
-                    methods[handler]["routes"] = _dedupe_routes(
-                        methods[handler]["routes"] + [{"method": r["method"], "path": r["path"]}])
-                    methods[handler]["kind"] = "endpoint"
-                    methods[handler]["layer"] = "controller"
-                elif not handler:
-                    nid = f'{r["method"]} {r["path"]}'
-                    data = dict(r, routes=[{"method": r["method"], "path": r["path"]}])
-                    node = _js_node(nid, nid, None, "controller", "endpoint", data, rel)
-                    node["signature"] = nid      # the route is the signature; `nid()` reads as nonsense
-                    methods[nid] = node
-                    raw_calls.append((nid, r.get("calls", [])))
+            _attach_routes(res.get("routes", []), methods, raw_calls,
+                           lambda nid, data: _js_node(nid, nid, None, "controller",
+                                                      "endpoint", data, rel))
 
     edges: set[tuple[str, str]] = set()
     for owner, calls in raw_calls:
@@ -448,6 +474,93 @@ def _analyze_js(roots: list[str]):
         for name in calls:
             if name in func_nodes and name != owner:
                 edges.add((owner, name))
+    return methods, edges
+
+
+def _lang_node(nid: str, name: str, cls, layer: str, kind: str, data: dict,
+               rel: str, lang: str) -> dict:
+    """A flow node from the approximate tier. Same shape as `_js_node`, plus `approx`."""
+    doc = (data.get("doc") or "").strip()
+    calls = data.get("calls") or []
+    content = json.dumps({"n": name, "c": sorted(f'{c["type"]}.{c["name"]}' for c in calls),
+                          "d": doc}, sort_keys=True)
+    params = data.get("params") or {}
+    return {
+        "id": nid, "name": name, "cls": cls, "layer": layer, "kind": kind,
+        "signature": f'{name}({", ".join(sorted(params))})',
+        "doc": doc.splitlines()[0] if doc else "",
+        "source": f'{rel}:{data.get("line", 0)}', "calls": [], "callers": [],
+        "hash": _hash(content), "code": f"// {rel}\n{name}(...)", "lang": lang,
+        "routes": _dedupe_routes(data.get("routes") or []), "approx": True,
+    }
+
+
+def _analyze_lang(roots: list[str]):
+    """Java/Go/C# nodes and call edges — the approximate tier.
+
+    Two passes for the same reason the Python analyzer needs two: a call can only
+    be resolved once every class and its method names are known. `lang_extract`
+    has already turned each receiver into a declared type; this decides whether
+    that type is actually in the graph, and drops the call when it is not.
+    """
+    methods: dict[str, dict] = {}
+    class_methods: dict[str, set[str]] = {}
+    func_nodes: dict[str, str] = {}
+    raw_calls: list[tuple[str, list[dict]]] = []
+
+    for root in roots:
+        for res in extract_lang_files(find_lang_files(root)):
+            rel = _rel_source(res["file"], root)
+            stem = os.path.splitext(os.path.basename(res["file"]))[0]
+            lang = res["lang"]
+
+            for cls in res.get("classes", []):
+                layer = infer_layer(f'{cls["name"]} {stem}', cls.get("decorators", []),
+                                    cls.get("bases", []))
+                class_methods.setdefault(cls["name"], set())
+                for m in cls.get("methods", []):
+                    nid = f'{cls["name"]}.{m["name"]}'
+                    class_methods[cls["name"]].add(m["name"])
+                    routed = bool(m.get("routes"))
+                    methods[nid] = _lang_node(nid, m["name"], cls["name"],
+                                              "controller" if routed else layer,
+                                              "endpoint" if routed else "method",
+                                              m, rel, lang)
+                    raw_calls.append((nid, m.get("calls", [])))
+
+            for fn in res.get("functions", []):
+                nid = fn["name"]
+                func_nodes[fn["name"]] = nid
+                methods[nid] = _lang_node(nid, fn["name"], None,
+                                          infer_layer(f'{fn["name"]} {stem}'),
+                                          "function", fn, rel, lang)
+                raw_calls.append((nid, fn.get("calls", [])))
+
+            _attach_routes(res.get("routes", []), methods, raw_calls,
+                           lambda nid, data, rel=rel, lang=lang:
+                               _lang_node(nid, nid, None, "controller", "endpoint",
+                                          data, rel, lang))
+
+    edges: set[tuple[str, str]] = set()
+    for owner, calls in raw_calls:
+        external = 0
+        cls_ctx = methods[owner]["cls"]
+        for call in calls:
+            name, declared = call["name"], call["type"]
+            if declared == "?":                  # receiver could not be typed
+                target = None
+            elif declared:
+                target = f"{declared}.{name}" if name in class_methods.get(declared, ()) else None
+            elif cls_ctx and name in class_methods.get(cls_ctx, ()):
+                target = f"{cls_ctx}.{name}"     # bare call: same class first,
+            else:
+                target = func_nodes.get(name)    # then a module function
+            if target and target in methods:
+                if target != owner:
+                    edges.add((owner, target))
+            else:
+                external += 1
+        methods[owner]["ext"] = external
     return methods, edges
 
 
@@ -556,6 +669,7 @@ def write_vault(methods: dict, flow_dir: str) -> None:
         http = info.get("http") or []
         http_md = "".join(f"\n## HTTP calls\n" + "\n".join(f"- `{h['method']} {h['url']}`" for h in http) + "\n"
                           if http else "")
+        approx_md = "approx: true\n" if info.get("approx") else ""
         page = (
             f"---\n"
             f"entity: {info['id']}\n"
@@ -564,6 +678,7 @@ def write_vault(methods: dict, flow_dir: str) -> None:
             f"class: {info['cls'] or ''}\n"
             f"source: {info['source']}\n"
             f"lang: {info.get('lang', 'py')}\n"
+            f"{approx_md}"
             f"desc_source: {info.get('desc_source', 'auto')}\n"
             f"---\n"
             f"# {info['id']}\n\n"
@@ -588,6 +703,8 @@ def write_graph(methods: dict, edges, graph_path: str) -> None:
             node["http"] = i["http"]
         if i.get("routes"):
             node["routes"] = i["routes"]
+        if i.get("approx"):
+            node["approx"] = True     # read textually, not parsed -- see lang_extract.py
         nodes.append(node)
     graph = {"nodes": nodes,
              "edges": [{"source": s, "target": t, "type": ty} for s, t, ty in edges]}

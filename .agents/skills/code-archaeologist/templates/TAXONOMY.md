@@ -12,7 +12,8 @@ sets — change the taxonomy instead).
 | `{{name}}` | any entity id | Class or component name, or `<Module>Module` for a file's module-level functions. |
 | `{{kind}}` | `class`, `component`, `module` | What the entity is. `component` is a JS/TS function that returns JSX. |
 | `{{layer}}` | `controller`, `service`, `repository`, `model`, `client`, `config`, `ui`, `test`, `function`, `module`, `unknown` | Architectural role (inferred from name/decorators; `test` wins for anything in a test file, and a `component` is always `ui`). |
-| `{{lang}}` | `py`, `js` | Source language. `js` covers `.js/.jsx/.ts/.tsx`. |
+| `{{lang}}` | `py`, `js`, `java`, `go`, `csharp` | Source language. `js` covers `.js/.jsx/.ts/.tsx`. |
+| `{{approx}}` | `true`, `false` | `true` when the entity was read textually rather than parsed (`java`, `go`, `csharp`). Only `true` reaches the graph, as `approx: true`. |
 | `{{source}}` | `<area>/<path>` | Source file, prefixed with its root area (e.g. `backend/order_service.py`). |
 | `{{summary}}` | free text | Docstring / description. |
 | `{{bases}}`, `{{decorators}}`, `{{methods}}`, `{{references}}` | lists | `[[wikilinks]]` where the target is a known entity, else inline code. |
@@ -24,7 +25,8 @@ sets — change the taxonomy instead).
 | `entity` | `Class.method` or `function` | The method/function node id. |
 | `kind` | `method`, `function`, `endpoint`, `component`, `test` | `endpoint` = a route handler (flow root); `component` = a function that returns JSX. Both are entry points: something outside the graph calls them, so neither counts as dead code. |
 | `layer` | same set as above | Role of the owning class/file. |
-| `lang` | `py`, `js` | Source language (Python backend vs JS/TS frontend). |
+| `lang` | `py`, `js`, `java`, `go`, `csharp` | Source language. |
+| `approx` | `true` (present only when true) | The node came from `lang_extract.py`, which reads declarations textually. Unresolvable calls were dropped rather than guessed, so its edges are a lower bound. |
 | `desc_source` | `docstring`, `ai`, `auto` | Where "What it does" came from (see hybrid descriptions). |
 | `class` | class name | Owning class (absent for module-level functions). |
 | `source` | `<area>/<path>:<line>` | Location. |
@@ -34,7 +36,7 @@ Graph-only node fields (in `flow_graph.json`, not written into the pages):
 | Field | Allowed values | Meaning |
 | --- | --- | --- |
 | `ext` | integer | Call sites that leave the graph (library/stdlib); the explorer shows `N ext`. |
-| `routes` | list of `{method, path}` | Routes handled by this node (endpoints only). A **list**: one handler often serves several verbs (Flask `methods=["GET", "POST"]`) or carries stacked route decorators. |
+| `routes` | list of `{method, path}` | Routes handled by this node (endpoints only). A **list**: one handler often serves several verbs (Flask `methods=["GET", "POST"]`) or carries stacked route decorators. `method` is an HTTP verb, or `ANY` when the framework registers every verb at once (Go's `mux.HandleFunc` without a method in the pattern) — `ANY` matches a frontend call of any verb. |
 | `http` | list of `{method, url}` | Frontend HTTP calls, used for cross-stack `http` edges. |
 
 ## Edge `type` (in graph.json / flow_graph.json)

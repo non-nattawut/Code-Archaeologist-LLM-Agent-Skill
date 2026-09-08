@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-08T14:11:30Z",
+  "generated": "2026-09-08T15:12:37Z",
   "roots": [
     "sample_src"
   ],
@@ -10,7 +10,7 @@
       "FIXME": 1,
       "TODO": 1
     },
-    "dead_nodes": 1,
+    "dead_nodes": 3,
     "dead_files": 1
   },
   "markers": [
@@ -31,10 +31,22 @@
   ],
   "dead_nodes": [
     {
+      "id": "FlatRate",
+      "source": "sample_src/services/orders_java/PricingRule.java",
+      "layer": "unknown",
+      "kind": "class"
+    },
+    {
       "id": "OrderPageModule",
       "source": "sample_src/frontend/order_page.ts",
       "layer": "ui",
       "kind": "module"
+    },
+    {
+      "id": "TieredRate",
+      "source": "sample_src/services/orders_java/PricingRule.java",
+      "layer": "unknown",
+      "kind": "class"
     }
   ],
   "dead_files": [

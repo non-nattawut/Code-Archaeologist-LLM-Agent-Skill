@@ -4,6 +4,7 @@ layer: ui
 source: sample_src/frontend/order_page.ts
 kind: module
 lang: js
+approx: false
 ---
 # OrderPageModule
 
@@ -19,6 +20,7 @@ _None._
 ## Methods
 - `submitOrder()`
 - `loadOrder()`
+- `loadOrderHistory()` — Loads one order's event history from the Go service.
 
 ## References
 - [[ApiClientModule]]

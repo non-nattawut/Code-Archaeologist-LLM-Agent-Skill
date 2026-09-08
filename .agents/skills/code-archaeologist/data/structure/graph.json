@@ -9,6 +9,78 @@
       "doc": "_No docstring provided._"
     },
     {
+      "id": "EventService",
+      "layer": "service",
+      "kind": "class",
+      "lang": "go",
+      "source": "sample_src/services/orders_go/event_service.go",
+      "doc": "EventService reports what has happened to an order.",
+      "approx": true
+    },
+    {
+      "id": "EventStore",
+      "layer": "repository",
+      "kind": "class",
+      "lang": "go",
+      "source": "sample_src/services/orders_go/event_store.go",
+      "doc": "EventStore is the in-memory event log. Stands in for a real database.",
+      "approx": true
+    },
+    {
+      "id": "FlatRate",
+      "layer": "unknown",
+      "kind": "class",
+      "lang": "java",
+      "source": "sample_src/services/orders_java/PricingRule.java",
+      "doc": "Everything costs the same.",
+      "approx": true
+    },
+    {
+      "id": "InvoiceController",
+      "layer": "controller",
+      "kind": "class",
+      "lang": "csharp",
+      "source": "sample_src/services/orders_cs/InvoiceController.cs",
+      "doc": "HTTP entry point for invoices.",
+      "approx": true
+    },
+    {
+      "id": "InvoiceService",
+      "layer": "service",
+      "kind": "class",
+      "lang": "csharp",
+      "source": "sample_src/services/orders_cs/InvoiceService.cs",
+      "doc": "Invoice rules: work out the total, then store it.",
+      "approx": true
+    },
+    {
+      "id": "InvoiceStore",
+      "layer": "repository",
+      "kind": "class",
+      "lang": "csharp",
+      "source": "sample_src/services/orders_cs/InvoiceStore.cs",
+      "doc": "Where invoices are kept. Stands in for a database.",
+      "approx": true
+    },
+    {
+      "id": "OrderApiController",
+      "layer": "controller",
+      "kind": "class",
+      "lang": "java",
+      "source": "sample_src/services/orders_java/OrderApiController.java",
+      "doc": "HTTP entry point for the Java side of the order domain.",
+      "approx": true
+    },
+    {
+      "id": "OrderArchive",
+      "layer": "repository",
+      "kind": "class",
+      "lang": "java",
+      "source": "sample_src/services/orders_java/OrderArchive.java",
+      "doc": "Where Java orders are kept. Stands in for a JPA repository.",
+      "approx": true
+    },
+    {
       "id": "OrderCard",
       "layer": "ui",
       "kind": "component",
@@ -73,6 +145,15 @@
       "doc": "Orchestrates order placement, payment, and persistence."
     },
     {
+      "id": "OrderWorkflow",
+      "layer": "service",
+      "kind": "class",
+      "lang": "java",
+      "source": "sample_src/services/orders_java/OrderWorkflow.java",
+      "doc": "Application service: price an order, then archive it.",
+      "approx": true
+    },
+    {
       "id": "OrdersController",
       "layer": "controller",
       "kind": "class",
@@ -89,6 +170,24 @@
       "doc": "Talks to the third-party payment gateway."
     },
     {
+      "id": "PricingRule",
+      "layer": "unknown",
+      "kind": "class",
+      "lang": "java",
+      "source": "sample_src/services/orders_java/PricingRule.java",
+      "doc": "How an order's total is calculated.",
+      "approx": true
+    },
+    {
+      "id": "RouterModule",
+      "layer": "controller",
+      "kind": "module",
+      "lang": "go",
+      "source": "sample_src/services/orders_go/router.go",
+      "doc": "_No docstring provided._",
+      "approx": true
+    },
+    {
       "id": "StatusBadge",
       "layer": "ui",
       "kind": "component",
@@ -103,9 +202,43 @@
       "lang": "py",
       "source": "sample_src/backend/tests/test_orders.py",
       "doc": "Demo tests: both common Python styles, so the skill has real test code to classify.\n\nThese call the production classes directly, which is what gives the flow map its\ntest -> production edges \u2014 the ones `context.py` reports under \"Covered by\"."
+    },
+    {
+      "id": "TieredRate",
+      "layer": "unknown",
+      "kind": "class",
+      "lang": "java",
+      "source": "sample_src/services/orders_java/PricingRule.java",
+      "doc": "Bulk orders get a discount.",
+      "approx": true
     }
   ],
   "edges": [
+    {
+      "source": "EventService",
+      "target": "EventStore",
+      "type": "references"
+    },
+    {
+      "source": "FlatRate",
+      "target": "PricingRule",
+      "type": "references"
+    },
+    {
+      "source": "InvoiceController",
+      "target": "InvoiceService",
+      "type": "references"
+    },
+    {
+      "source": "InvoiceService",
+      "target": "InvoiceStore",
+      "type": "references"
+    },
+    {
+      "source": "OrderApiController",
+      "target": "OrderWorkflow",
+      "type": "references"
+    },
     {
       "source": "OrderCard",
       "target": "ApiClientModule",
@@ -157,6 +290,21 @@
       "type": "references"
     },
     {
+      "source": "OrderWorkflow",
+      "target": "OrderArchive",
+      "type": "references"
+    },
+    {
+      "source": "OrderWorkflow",
+      "target": "PricingRule",
+      "type": "references"
+    },
+    {
+      "source": "RouterModule",
+      "target": "EventService",
+      "type": "references"
+    },
+    {
       "source": "TestOrdersModule",
       "target": "OrderRepository",
       "type": "references"
@@ -169,6 +317,11 @@
     {
       "source": "TestOrdersModule",
       "target": "PaymentClient",
+      "type": "references"
+    },
+    {
+      "source": "TieredRate",
+      "target": "PricingRule",
       "type": "references"
     }
   ]

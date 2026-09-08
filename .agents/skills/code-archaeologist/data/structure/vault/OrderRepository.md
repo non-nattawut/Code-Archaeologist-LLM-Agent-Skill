@@ -4,6 +4,7 @@ layer: repository
 source: sample_src/backend/order_repository.py
 kind: class
 lang: py
+approx: false
 ---
 # OrderRepository
 

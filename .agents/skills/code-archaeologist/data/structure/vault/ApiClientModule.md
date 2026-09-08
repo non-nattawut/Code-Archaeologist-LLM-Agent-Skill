@@ -4,6 +4,7 @@ layer: client
 source: sample_src/frontend/api_client.ts
 kind: module
 lang: js
+approx: false
 ---
 # ApiClientModule
 
@@ -20,6 +21,7 @@ _None._
 - `createOrder()`
 - `getOrder()`
 - `getOrderStatus()` — to its mount point - so this only links via the unique-suffix fallback.
+- `getOrderEvents()` — than through the suffix fallback.
 
 ## References
 _None._

@@ -39,13 +39,8 @@ DEFAULT_OUT = os.path.join(DATA_DIR, "report", "metrics.json")
 import manifest  # noqa: E402
 import console          # noqa: E402  (stdout must survive a non-UTF-8 console)
 import scan_security    # noqa: E402  (iter_source_files: one definition of "a source file")
+from taxonomy import lang_of  # noqa: E402  (one definition of "what language is this file")
 
-EXT_LANG = {".py": "py", ".js": "js", ".jsx": "jsx", ".ts": "ts", ".tsx": "tsx",
-            ".mjs": "js", ".cjs": "js", ".java": "java", ".kt": "kotlin", ".kts": "kotlin",
-            ".go": "go", ".rs": "rust", ".cs": "csharp", ".rb": "ruby", ".php": "php",
-            ".swift": "swift", ".scala": "scala", ".groovy": "groovy", ".dart": "dart",
-            ".ex": "elixir", ".exs": "elixir", ".c": "c", ".cc": "cpp", ".cpp": "cpp",
-            ".h": "c", ".hpp": "cpp"}
 # Languages whose line comment is # rather than //.
 HASH_COMMENT = {"py", "ruby", "elixir"}
 HASH_PREFIXES = ("#",)
@@ -161,7 +156,7 @@ def build(roots, graph_path: str | None = None, out_path: str | None = None, top
     files: dict[str, dict] = {}
     nodes: dict[str, dict] = {}
     for full, key in scan_security.iter_source_files(roots):
-        lang = EXT_LANG.get(os.path.splitext(key)[1].lower(), "other")
+        lang = lang_of(key)
         info = line_metrics(full, lang)
         if not info:
             continue

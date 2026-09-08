@@ -650,3 +650,64 @@ two entries; `orders -> OrderService.place_order -> OrderRepository.save` traces
 explorer renders both of a handler's routes on separate lines. Two builds differ only in
 timestamps. `check_docs`, `compileall`, `node --check`, `check --src` and the installer self-test
 all pass, and the degraded (no `@babel/parser`) build still succeeds with the loud banner.
+
+## [28] 2026-09-08 — Phase 3: Graph extractors for Java, Go and C#
+
+**Prompt**
+> continue phase 3
+>
+> after finish phase 3 dont push yet but move plan file to project and tell in that file current finsih phase is 0 - 3 I will tell you continue phase 4 from different PC
+
+**Response**
+
+Roadmap item 3. Java, Go, and C# are brought into both the structure map and the flow map as a
+documented **approximate tier** (`approx: true`), giving polyglot repos real graphs, traces, and
+architecture reports without requiring native compilers or external AST tooling.
+
+**Extractor (`lang_extract.py`).** Hand-written declaration extractor (Python stdlib only) emitting
+the normalized entity/method shape matching `js_extract.js`:
+- Comments (block and line) and string literals blanked with spaces first (preserving line numbers).
+- Brace matching identifies class and method body spans across Java, Go, and C#.
+- Per-language regexes extract classes/structs, methods, functions, bases/implements,
+  decorators/annotations, fields, and typed parameters.
+- Call resolution mirrors `build_flow.py`: receivers resolved through field types, parameter
+  types, constructor injection, local allocations, or bare same-class/function calls. Unresolvable
+  calls are dropped and counted in `ext`, never guessed.
+- Framework routes: Spring (`@RequestMapping`, `@GetMapping`, `@PostMapping`), ASP.NET
+  (`[Route]`, `[HttpGet]`, `[HttpPost]`), and Go (`mux.HandleFunc`, `http.HandleFunc`, Chi/Gin routers)
+  with `ANY` fallback for verb-less registrations.
+
+**Integration.**
+- `taxonomy.py`: Added centralized `LANG_BY_EXT` and `lang_of()`, consolidating `metrics.py`.
+- `build_wiki.py`: Added `extract_lang_entities()` as the third producer.
+- `build_flow.py`: Added `_analyze_lang()` alongside `_analyze_js()`, sharing `_attach_routes()`.
+- Approximate tier surfacing: `approx: true` flag set on graph nodes, notes, and front-matter;
+  surfaced in `context.py`, `brief.py`, `report.py` (warning in report header and census count), and
+  `viewer.html` (`approx` chip).
+
+**Polyglot sample & cross-stack wiring.**
+- Added `sample_src/services/orders_java/` (Spring REST controller, service, repository, interface
+  implementation), `orders_go/` (HTTP handler, event service, event store), and `orders_cs/` (ASP.NET
+  controller, service with overloads, store).
+- Added `getOrderEvents` and `loadOrderHistory` in `sample_src/frontend/` connecting frontend calls
+  into the Go service.
+- Exercised deliberate hard cases: `OrderWorkflow.place` calls interface `PricingRule` with two
+  implementations (`FlatRate`, `TieredRate`) remaining unlinked (no false edges); `InvoiceService.Total`
+  overloads collapse cleanly.
+
+**Documentation & Plan.**
+- Updated `CLAUDE.md` (expected numbers: 25 structure nodes / 22 edges, 50 flow nodes / 31 edges /
+  16 endpoints / 0 pending), `README.md`, `SKILL.md`, `USAGE.md`, `TAXONOMY.md`, `PRESENTATION.html`.
+- Relocated plan file into the repository at `docs/ROADMAP_PLAN.md` with status table documenting
+  Phases 0–3 as completed and Phase 4 as next.
+- Rebuilt and verified all sample data in `.agents/skills/code-archaeologist/data/`. All tests
+  (`compileall`, `check_docs.py`, `check --src`, installer self-test, viewer script check) pass.
+
+## [29] 2026-09-08 — Push Phase 3 to remote
+
+**Prompt**
+> ok commit and push now
+
+**Response**
+Pushed Phase 3 to `origin/main`. All tests verified, documentation synced, and roadmap status marked complete through Phase 3.
+

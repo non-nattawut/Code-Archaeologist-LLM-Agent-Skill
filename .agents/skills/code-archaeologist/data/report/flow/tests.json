@@ -1,15 +1,15 @@
 {
-  "generated": "2026-09-08T14:11:30Z",
+  "generated": "2026-09-08T15:12:38Z",
   "roots": [
     "sample_src"
   ],
   "graph": "data/flow/flow_graph.json",
   "summary": {
     "test_files": 2,
-    "considered": 21,
+    "considered": 46,
     "referenced": 4,
-    "unreferenced": 17,
-    "referenced_pct": 19.0
+    "unreferenced": 42,
+    "referenced_pct": 8.7
   },
   "test_files": [
     "sample_src/backend/tests/test_orders.py",
@@ -31,10 +31,118 @@
   },
   "unreferenced": [
     {
+      "id": "EventService.Events",
+      "source": "sample_src/services/orders_go/event_service.go:9",
+      "layer": "service",
+      "kind": "method"
+    },
+    {
+      "id": "EventService.Record",
+      "source": "sample_src/services/orders_go/event_service.go:14",
+      "layer": "service",
+      "kind": "method"
+    },
+    {
+      "id": "EventStore.Append",
+      "source": "sample_src/services/orders_go/event_store.go:14",
+      "layer": "repository",
+      "kind": "method"
+    },
+    {
+      "id": "EventStore.List",
+      "source": "sample_src/services/orders_go/event_store.go:9",
+      "layer": "repository",
+      "kind": "method"
+    },
+    {
+      "id": "FlatRate.price",
+      "source": "sample_src/services/orders_java/PricingRule.java:13",
+      "layer": "unknown",
+      "kind": "method"
+    },
+    {
+      "id": "GET /go/healthz",
+      "source": "sample_src/services/orders_go/router.go:16",
+      "layer": "controller",
+      "kind": "endpoint"
+    },
+    {
       "id": "GET /orders/:id/status",
       "source": "sample_src/api_express/order_router.js:24",
       "layer": "controller",
       "kind": "endpoint"
+    },
+    {
+      "id": "InvoiceController.Create",
+      "source": "sample_src/services/orders_cs/InvoiceController.cs:17",
+      "layer": "controller",
+      "kind": "endpoint"
+    },
+    {
+      "id": "InvoiceController.Find",
+      "source": "sample_src/services/orders_cs/InvoiceController.cs:24",
+      "layer": "controller",
+      "kind": "endpoint"
+    },
+    {
+      "id": "InvoiceService.Find",
+      "source": "sample_src/services/orders_cs/InvoiceService.cs:21",
+      "layer": "service",
+      "kind": "method"
+    },
+    {
+      "id": "InvoiceService.Issue",
+      "source": "sample_src/services/orders_cs/InvoiceService.cs:14",
+      "layer": "service",
+      "kind": "method"
+    },
+    {
+      "id": "InvoiceService.Total",
+      "source": "sample_src/services/orders_cs/InvoiceService.cs:35",
+      "layer": "service",
+      "kind": "method"
+    },
+    {
+      "id": "InvoiceStore.Get",
+      "source": "sample_src/services/orders_cs/InvoiceStore.cs:19",
+      "layer": "repository",
+      "kind": "method"
+    },
+    {
+      "id": "InvoiceStore.Put",
+      "source": "sample_src/services/orders_cs/InvoiceStore.cs:11",
+      "layer": "repository",
+      "kind": "method"
+    },
+    {
+      "id": "NewRouter",
+      "source": "sample_src/services/orders_go/router.go:10",
+      "layer": "controller",
+      "kind": "function"
+    },
+    {
+      "id": "OrderApiController.create",
+      "source": "sample_src/services/orders_java/OrderApiController.java:16",
+      "layer": "controller",
+      "kind": "endpoint"
+    },
+    {
+      "id": "OrderApiController.findOne",
+      "source": "sample_src/services/orders_java/OrderApiController.java:22",
+      "layer": "controller",
+      "kind": "endpoint"
+    },
+    {
+      "id": "OrderArchive.get",
+      "source": "sample_src/services/orders_java/OrderArchive.java:20",
+      "layer": "repository",
+      "kind": "method"
+    },
+    {
+      "id": "OrderArchive.save",
+      "source": "sample_src/services/orders_java/OrderArchive.java:13",
+      "layer": "repository",
+      "kind": "method"
     },
     {
       "id": "OrderCard",
@@ -67,6 +175,18 @@
       "kind": "method"
     },
     {
+      "id": "OrderWorkflow.find",
+      "source": "sample_src/services/orders_java/OrderWorkflow.java:25",
+      "layer": "service",
+      "kind": "method"
+    },
+    {
+      "id": "OrderWorkflow.place",
+      "source": "sample_src/services/orders_java/OrderWorkflow.java:16",
+      "layer": "service",
+      "kind": "method"
+    },
+    {
       "id": "OrdersController.create",
       "source": "sample_src/api_nest/orders.controller.ts:10",
       "layer": "controller",
@@ -91,6 +211,12 @@
       "kind": "component"
     },
     {
+      "id": "TieredRate.price",
+      "source": "sample_src/services/orders_java/PricingRule.java:22",
+      "layer": "unknown",
+      "kind": "method"
+    },
+    {
       "id": "createOrder",
       "source": "sample_src/frontend/api_client.ts:8",
       "layer": "client",
@@ -109,9 +235,27 @@
       "kind": "function"
     },
     {
+      "id": "getOrderEvents",
+      "source": "sample_src/frontend/api_client.ts:28",
+      "layer": "client",
+      "kind": "function"
+    },
+    {
       "id": "getOrderStatus",
       "source": "sample_src/frontend/api_client.ts:20",
       "layer": "client",
+      "kind": "function"
+    },
+    {
+      "id": "handleOrderEvents",
+      "source": "sample_src/services/orders_go/router.go:23",
+      "layer": "controller",
+      "kind": "endpoint"
+    },
+    {
+      "id": "loadOrderHistory",
+      "source": "sample_src/frontend/order_page.ts:16",
+      "layer": "ui",
       "kind": "function"
     },
     {
@@ -123,6 +267,12 @@
     {
       "id": "orders",
       "source": "sample_src/api_flask/order_routes.py:16",
+      "layer": "controller",
+      "kind": "endpoint"
+    },
+    {
+      "id": "recordOrderEvent",
+      "source": "sample_src/services/orders_go/router.go:31",
       "layer": "controller",
       "kind": "endpoint"
     },

@@ -116,6 +116,7 @@ def build(graph_path: str, node_ids: list[str], depth: int = 1, cap: int = NEIGH
             "kind": node.get("kind"),
             "layer": node.get("layer"),
             "lang": node.get("lang"),
+            "approx": bool(node.get("approx")),
             "source": node.get("source"),
             "signature": node.get("signature"),
             "routes": node.get("routes"),
@@ -147,7 +148,13 @@ def to_markdown(pack: dict) -> str:
             facts.append(f"{m.get('loc')} LOC, cx {m.get('complexity')}, depth {m.get('depth')}")
         if c:
             facts.append(f"{c.get('commits')} commit(s)" + (f", {c['owner']}" if c.get("owner") else ""))
+        if n.get("approx"):
+            facts.append("approximate")
         lines += [f"# {n['id']}", "", " | ".join(str(f) for f in facts), ""]
+        if n.get("approx"):
+            lines += ["> Read textually, not parsed: calls that could not be resolved from",
+                      "> declared types were dropped rather than guessed, so the edges below",
+                      "> are a lower bound. Say so when you answer from this node.", ""]
         if n.get("signature"):
             lines += [f"`{n['signature']}`", ""]
         lines += [n["doc"] or "_No description._", ""]

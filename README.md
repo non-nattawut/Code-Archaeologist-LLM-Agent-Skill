@@ -117,19 +117,22 @@ moved, so an agent rebuilds *before* answering rather than confidently citing a 
 
 ```
    your source                         two graphs                    one page
-  ┌───────────┐    ast / @babel     ┌──────────────┐   analysis   ┌──────────────┐
-  │ .py .ts   │ ─────────────────▶  │ structure    │ ───────────▶ │ explorer.html│
-  │ .jsx .tsx │    extract          │ flow         │   + report   │ (both maps)  │
-  └───────────┘                     └──────────────┘              └──────────────┘
-                                          │
-                                          ▼  one Markdown note per node
+  ┌───────────┐                     ┌──────────────┐   analysis   ┌──────────────┐
+  │ .py .ts   │  ast / @babel /     │ structure    │ ───────────▶ │ explorer.html│
+  │ .jsx .tsx │  declaration scan   │ flow         │   + report   │ (both maps)  │
+  │ .java .go │ ─────────────────▶  └──────────────┘              └──────────────┘
+  │ .cs       │      extract              │
+  └───────────┘                           ▼  one Markdown note per node
                                     [[wikilinked]] vault
 ```
 
 The pieces that make it cheap and repeatable:
 
-- **Deterministic extraction.** Python via the stdlib `ast` module; JS/TS via `@babel/parser`.
-  No heuristic text parsing of source, so the same input always yields the same graph.
+- **Deterministic extraction.** Python via the stdlib `ast` module; JS/TS via `@babel/parser`;
+  Java, Go and C# by reading declarations textually. The first two tiers are parsed and exact; the
+  third is approximate and says so on every node it produces (see [Language
+  support](#language-support)). All three are deterministic — the same input always yields the same
+  graph.
 - **Call resolution without a type checker.** `self.<dep>.method()` is resolved through `__init__`
   type hints and assignments, typed params/locals, and same-class `self.method()` calls.
   Unresolvable external calls are dropped rather than guessed.
@@ -161,8 +164,21 @@ commit it or email it.
 
 | Capability | Languages |
 | --- | --- |
-| **Graphs** (nodes + edges) | Python, JavaScript/TypeScript |
-| **Lines, complexity, risk scan, debt markers, test detection** | + Java, Kotlin, Go, Rust, C#, Ruby, PHP, Swift, Scala, Dart, Elixir, C/C++ |
+| **Graphs, exact** (parsed) | Python, JavaScript/TypeScript |
+| **Graphs, approximate** (read textually) | Java, Go, C# |
+| **Lines, complexity, risk scan, debt markers, test detection** | + Kotlin, Rust, Ruby, PHP, Swift, Scala, Dart, Elixir, C/C++ |
+
+The two graph tiers differ in how the source is read, and the difference is visible in the output
+rather than buried in a caveat: every node and edge from the approximate tier carries
+`approx: true`, the report opens with how many nodes it applies to, `context.py` repeats it on the
+node an agent is reading, and the explorer marks it with an `approx` chip.
+
+Approximate does not mean guessed. Comments and string bodies are blanked before anything is
+matched, bodies are found by brace matching rather than regex, and a call is resolved only through
+a *declared* type — a field, a parameter, a `new Foo()`. Interface dispatch, overloads and lambda
+handlers cannot be resolved without a type checker, so those edges are **dropped, not invented**:
+the coupling shown is a lower bound. Constructor injection (Spring, ASP.NET DI, a Go struct
+literal) resolves reliably, because these languages must declare their parameter types.
 
 Test files are recognized across all of them (pytest, Jest/Vitest, JUnit/Spring, `*_test.go`,
 `#[test]`, `[Fact]`, RSpec, PHPUnit) and tagged `layer: test` — so **test code is never reported as
@@ -237,6 +253,7 @@ It has no npm dependencies of its own.
 │   │   ├── build_flow.py
 │   │   ├── js_extract.js   (Node/@babel)
 │   │   ├── js_bridge.py
+│   │   ├── lang_extract.py Java/Go/C#, read textually and marked approx
 │   │   └── apply_descriptions.py
 │   │
 │   ├── review/           graphs -> findings
@@ -268,7 +285,9 @@ It has no npm dependencies of its own.
   component`) and module function-groups from `.js/.jsx/.ts/.tsx`.
 - Wider route/framework coverage for API linking. **Done** — FastAPI, Flask (module-level
   `@app.route`, `methods=[...]`), Express (named + inline handlers) and Nest.
-- Graph extractors for more languages; a fully offline viewer.
+- Graph extractors for more languages. **Done for Java, Go and C#** — an approximate tier, in both
+  maps, marked `approx: true` everywhere it surfaces.
+- A fully offline viewer.
 - Duplicate-code clusters, via normalized token hashing of function bodies.
 
 ## License

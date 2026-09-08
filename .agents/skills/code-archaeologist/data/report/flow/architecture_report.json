@@ -1,36 +1,75 @@
 {
   "graph": "data/flow/flow_graph.json",
-  "generated": "2026-09-08 14:11 UTC",
+  "generated": "2026-09-08 15:12 UTC",
   "census": {
-    "nodes": 25,
-    "edges": 16,
+    "nodes": 50,
+    "edges": 31,
     "layers": {
-      "client": 4,
-      "controller": 10,
-      "repository": 2,
-      "service": 3,
+      "client": 5,
+      "controller": 18,
+      "repository": 8,
+      "service": 10,
       "test": 2,
-      "ui": 4
+      "ui": 5,
+      "unknown": 2
     },
     "langs": {
-      "js": 12,
+      "csharp": 7,
+      "go": 8,
+      "java": 8,
+      "js": 14,
       "py": 13
     },
     "kinds": {
       "component": 2,
-      "endpoint": 9,
-      "function": 7,
-      "method": 7
+      "endpoint": 16,
+      "function": 10,
+      "method": 22
     },
     "edge_types": {
-      "calls": 13,
-      "http": 3
+      "calls": 27,
+      "http": 4
     },
     "routes": [
       {
         "method": "POST",
         "path": "/api/orders",
         "node": "createOrderHandler"
+      },
+      {
+        "method": "POST",
+        "path": "/cs/Invoice",
+        "node": "InvoiceController.Create"
+      },
+      {
+        "method": "GET",
+        "path": "/cs/Invoice/{id}",
+        "node": "InvoiceController.Find"
+      },
+      {
+        "method": "GET",
+        "path": "/go/healthz",
+        "node": "GET /go/healthz"
+      },
+      {
+        "method": "GET",
+        "path": "/go/orders/{id}/events",
+        "node": "handleOrderEvents"
+      },
+      {
+        "method": "POST",
+        "path": "/go/orders/{id}/events",
+        "node": "recordOrderEvent"
+      },
+      {
+        "method": "POST",
+        "path": "/java/orders",
+        "node": "OrderApiController.create"
+      },
+      {
+        "method": "GET",
+        "path": "/java/orders/{id}",
+        "node": "OrderApiController.findOne"
       },
       {
         "method": "GET",
@@ -72,7 +111,8 @@
         "path": "/orders/{order_id}",
         "node": "OrderController.get_order"
       }
-    ]
+    ],
+    "approx_nodes": 23
   },
   "files": {
     "files": {
@@ -113,7 +153,7 @@
         "lang": "tsx"
       },
       "sample_src/frontend/api_client.ts": {
-        "lines": 23,
+        "lines": 31,
         "lang": "ts"
       },
       "sample_src/frontend/order_page.test.ts": {
@@ -121,30 +161,79 @@
         "lang": "ts"
       },
       "sample_src/frontend/order_page.ts": {
-        "lines": 13,
+        "lines": 18,
         "lang": "ts"
+      },
+      "sample_src/services/orders_cs/InvoiceController.cs": {
+        "lines": 28,
+        "lang": "csharp"
+      },
+      "sample_src/services/orders_cs/InvoiceService.cs": {
+        "lines": 39,
+        "lang": "csharp"
+      },
+      "sample_src/services/orders_cs/InvoiceStore.cs": {
+        "lines": 23,
+        "lang": "csharp"
+      },
+      "sample_src/services/orders_go/event_service.go": {
+        "lines": 16,
+        "lang": "go"
+      },
+      "sample_src/services/orders_go/event_store.go": {
+        "lines": 16,
+        "lang": "go"
+      },
+      "sample_src/services/orders_go/router.go": {
+        "lines": 34,
+        "lang": "go"
+      },
+      "sample_src/services/orders_java/OrderApiController.java": {
+        "lines": 25,
+        "lang": "java"
+      },
+      "sample_src/services/orders_java/OrderArchive.java": {
+        "lines": 23,
+        "lang": "java"
+      },
+      "sample_src/services/orders_java/OrderWorkflow.java": {
+        "lines": 28,
+        "lang": "java"
+      },
+      "sample_src/services/orders_java/PricingRule.java": {
+        "lines": 25,
+        "lang": "java"
       }
     },
-    "file_count": 12,
-    "loc": 250,
+    "file_count": 22,
+    "loc": 520,
     "languages": {
       "py": 126,
-      "ts": 69,
+      "java": 101,
+      "csharp": 90,
+      "ts": 82,
+      "go": 66,
       "js": 28,
       "tsx": 27
     },
     "language_pct": {
-      "py": 50.4,
-      "ts": 27.6,
-      "js": 11.2,
-      "tsx": 10.8
+      "py": 24.2,
+      "java": 19.4,
+      "csharp": 17.3,
+      "ts": 15.8,
+      "go": 12.7,
+      "js": 5.4,
+      "tsx": 5.2
     }
   },
   "analysis": {
     "cycles": [],
     "orphans": [
+      "FlatRate.price",
+      "TieredRate.price",
       "getOrderStatus",
       "loadOrder",
+      "loadOrderHistory",
       "submitOrder"
     ],
     "layer_violations": [],
@@ -165,10 +254,10 @@
       }
     },
     "summary": {
-      "nodes": 25,
-      "edges": 16,
+      "nodes": 50,
+      "edges": 31,
       "cycles": 0,
-      "orphans": 3,
+      "orphans": 6,
       "layer_violations": 0,
       "hubs": 0,
       "god_objects": 0
@@ -226,12 +315,45 @@
         "dangerous_eval": 1,
         "debug_statement": 1
       },
-      "files_scanned": 10,
+      "files_scanned": 20,
       "files_skipped": 2
     }
   },
   "insights": {
     "files": {
+      "sample_src/api_express/order_router.js": {
+        "commits": 1,
+        "insertions": 28,
+        "deletions": 0,
+        "authors": {
+          "non-nattawut": 1
+        },
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-08T21:12:23+07:00",
+        "owner": "non-nattawut"
+      },
+      "sample_src/api_flask/order_routes.py": {
+        "commits": 1,
+        "insertions": 28,
+        "deletions": 0,
+        "authors": {
+          "non-nattawut": 1
+        },
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-08T21:12:23+07:00",
+        "owner": "non-nattawut"
+      },
+      "sample_src/api_nest/orders.controller.ts": {
+        "commits": 1,
+        "insertions": 20,
+        "deletions": 0,
+        "authors": {
+          "non-nattawut": 1
+        },
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-08T21:12:23+07:00",
+        "owner": "non-nattawut"
+      },
       "sample_src/backend/order_controller.py": {
         "commits": 2,
         "insertions": 23,
@@ -301,13 +423,14 @@
         "owner": "non-nattawut"
       },
       "sample_src/frontend/api_client.ts": {
-        "commits": 1,
-        "insertions": 11,
+        "commits": 2,
+        "insertions": 23,
         "deletions": 0,
         "authors": {
-          "Nattawut Rodthong": 1
+          "Nattawut Rodthong": 1,
+          "non-nattawut": 1
         },
-        "last_commit": "2026-09-02T16:10:56+07:00",
+        "last_commit": "2026-09-08T21:12:23+07:00",
         "first_commit": "2026-09-02T16:10:56+07:00",
         "owner": "Nattawut Rodthong"
       },
@@ -380,8 +503,226 @@
       }
     },
     "nodes": {
+      "EventService.Events": {
+        "file": "sample_src/services/orders_go/event_service.go",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 1,
+        "fan_out": 1,
+        "risk": 0
+      },
+      "EventService.Record": {
+        "file": "sample_src/services/orders_go/event_service.go",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 1,
+        "fan_out": 1,
+        "risk": 0
+      },
+      "EventStore.Append": {
+        "file": "sample_src/services/orders_go/event_store.go",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 1,
+        "fan_out": 0,
+        "risk": 0
+      },
+      "EventStore.List": {
+        "file": "sample_src/services/orders_go/event_store.go",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 1,
+        "fan_out": 0,
+        "risk": 0
+      },
+      "FlatRate.price": {
+        "file": "sample_src/services/orders_java/PricingRule.java",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 0,
+        "fan_out": 0,
+        "risk": 0
+      },
+      "GET /go/healthz": {
+        "file": "sample_src/services/orders_go/router.go",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 0,
+        "fan_out": 0,
+        "risk": 0
+      },
       "GET /orders/:id/status": {
         "file": "sample_src/api_express/order_router.js",
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-08T21:12:23+07:00",
+        "fan_in": 1,
+        "fan_out": 0,
+        "risk": 2
+      },
+      "InvoiceController.Create": {
+        "file": "sample_src/services/orders_cs/InvoiceController.cs",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 0
+      },
+      "InvoiceController.Find": {
+        "file": "sample_src/services/orders_cs/InvoiceController.cs",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 0
+      },
+      "InvoiceService.Find": {
+        "file": "sample_src/services/orders_cs/InvoiceService.cs",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 1,
+        "fan_out": 1,
+        "risk": 0
+      },
+      "InvoiceService.Issue": {
+        "file": "sample_src/services/orders_cs/InvoiceService.cs",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 1,
+        "fan_out": 2,
+        "risk": 0
+      },
+      "InvoiceService.Total": {
+        "file": "sample_src/services/orders_cs/InvoiceService.cs",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 1,
+        "fan_out": 0,
+        "risk": 0
+      },
+      "InvoiceStore.Get": {
+        "file": "sample_src/services/orders_cs/InvoiceStore.cs",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 1,
+        "fan_out": 0,
+        "risk": 0
+      },
+      "InvoiceStore.Put": {
+        "file": "sample_src/services/orders_cs/InvoiceStore.cs",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 1,
+        "fan_out": 0,
+        "risk": 0
+      },
+      "NewRouter": {
+        "file": "sample_src/services/orders_go/router.go",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 0,
+        "fan_out": 0,
+        "risk": 0
+      },
+      "OrderApiController.create": {
+        "file": "sample_src/services/orders_java/OrderApiController.java",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 0
+      },
+      "OrderApiController.findOne": {
+        "file": "sample_src/services/orders_java/OrderApiController.java",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 0
+      },
+      "OrderArchive.get": {
+        "file": "sample_src/services/orders_java/OrderArchive.java",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 1,
+        "fan_out": 0,
+        "risk": 0
+      },
+      "OrderArchive.save": {
+        "file": "sample_src/services/orders_java/OrderArchive.java",
         "commits": 0,
         "owner": null,
         "authors": {},
@@ -534,29 +875,57 @@
         "fan_out": 2,
         "risk": 6
       },
-      "OrdersController.create": {
-        "file": "sample_src/api_nest/orders.controller.ts",
+      "OrderWorkflow.find": {
+        "file": "sample_src/services/orders_java/OrderWorkflow.java",
         "commits": 0,
         "owner": null,
         "authors": {},
         "author_count": 0,
         "last_commit": null,
         "first_commit": null,
+        "fan_in": 1,
+        "fan_out": 1,
+        "risk": 0
+      },
+      "OrderWorkflow.place": {
+        "file": "sample_src/services/orders_java/OrderWorkflow.java",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 1,
+        "fan_out": 1,
+        "risk": 0
+      },
+      "OrdersController.create": {
+        "file": "sample_src/api_nest/orders.controller.ts",
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-08T21:12:23+07:00",
         "fan_in": 0,
         "fan_out": 0,
-        "risk": 0
+        "risk": 1
       },
       "OrdersController.findOne": {
         "file": "sample_src/api_nest/orders.controller.ts",
-        "commits": 0,
-        "owner": null,
-        "authors": {},
-        "author_count": 0,
-        "last_commit": null,
-        "first_commit": null,
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-08T21:12:23+07:00",
         "fan_in": 0,
         "fan_out": 0,
-        "risk": 0
+        "risk": 1
       },
       "PaymentClient.charge": {
         "file": "sample_src/backend/payment_client.py",
@@ -587,22 +956,8 @@
         "fan_out": 0,
         "risk": 1
       },
-      "createOrder": {
-        "file": "sample_src/frontend/api_client.ts",
-        "commits": 1,
-        "owner": "Nattawut Rodthong",
-        "authors": {
-          "Nattawut Rodthong": 1
-        },
-        "author_count": 1,
-        "last_commit": "2026-09-02T16:10:56+07:00",
-        "first_commit": "2026-09-02T16:10:56+07:00",
-        "fan_in": 1,
-        "fan_out": 1,
-        "risk": 3
-      },
-      "createOrderHandler": {
-        "file": "sample_src/api_express/order_router.js",
+      "TieredRate.price": {
+        "file": "sample_src/services/orders_java/PricingRule.java",
         "commits": 0,
         "owner": null,
         "authors": {},
@@ -610,36 +965,94 @@
         "last_commit": null,
         "first_commit": null,
         "fan_in": 0,
-        "fan_out": 1,
+        "fan_out": 0,
         "risk": 0
       },
-      "getOrder": {
+      "createOrder": {
         "file": "sample_src/frontend/api_client.ts",
-        "commits": 1,
+        "commits": 2,
         "owner": "Nattawut Rodthong",
         "authors": {
-          "Nattawut Rodthong": 1
+          "Nattawut Rodthong": 1,
+          "non-nattawut": 1
         },
-        "author_count": 1,
-        "last_commit": "2026-09-02T16:10:56+07:00",
+        "author_count": 2,
+        "last_commit": "2026-09-08T21:12:23+07:00",
         "first_commit": "2026-09-02T16:10:56+07:00",
-        "fan_in": 2,
+        "fan_in": 1,
         "fan_out": 1,
-        "risk": 4
+        "risk": 6
       },
-      "getOrderStatus": {
-        "file": "sample_src/frontend/api_client.ts",
+      "createOrderHandler": {
+        "file": "sample_src/api_express/order_router.js",
         "commits": 1,
-        "owner": "Nattawut Rodthong",
+        "owner": "non-nattawut",
         "authors": {
-          "Nattawut Rodthong": 1
+          "non-nattawut": 1
         },
         "author_count": 1,
-        "last_commit": "2026-09-02T16:10:56+07:00",
-        "first_commit": "2026-09-02T16:10:56+07:00",
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-08T21:12:23+07:00",
         "fan_in": 0,
         "fan_out": 1,
         "risk": 2
+      },
+      "getOrder": {
+        "file": "sample_src/frontend/api_client.ts",
+        "commits": 2,
+        "owner": "Nattawut Rodthong",
+        "authors": {
+          "Nattawut Rodthong": 1,
+          "non-nattawut": 1
+        },
+        "author_count": 2,
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 2,
+        "fan_out": 1,
+        "risk": 8
+      },
+      "getOrderEvents": {
+        "file": "sample_src/frontend/api_client.ts",
+        "commits": 2,
+        "owner": "Nattawut Rodthong",
+        "authors": {
+          "Nattawut Rodthong": 1,
+          "non-nattawut": 1
+        },
+        "author_count": 2,
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 1,
+        "fan_out": 1,
+        "risk": 6
+      },
+      "getOrderStatus": {
+        "file": "sample_src/frontend/api_client.ts",
+        "commits": 2,
+        "owner": "Nattawut Rodthong",
+        "authors": {
+          "Nattawut Rodthong": 1,
+          "non-nattawut": 1
+        },
+        "author_count": 2,
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 4
+      },
+      "handleOrderEvents": {
+        "file": "sample_src/services/orders_go/router.go",
+        "commits": 0,
+        "owner": null,
+        "authors": {},
+        "author_count": 0,
+        "last_commit": null,
+        "first_commit": null,
+        "fan_in": 1,
+        "fan_out": 1,
+        "risk": 0
       },
       "loadOrder": {
         "file": "sample_src/frontend/order_page.ts",
@@ -656,20 +1069,51 @@
         "fan_out": 1,
         "risk": 4
       },
-      "order_detail": {
-        "file": "sample_src/api_flask/order_routes.py",
-        "commits": 0,
-        "owner": null,
-        "authors": {},
-        "author_count": 0,
-        "last_commit": null,
-        "first_commit": null,
+      "loadOrderHistory": {
+        "file": "sample_src/frontend/order_page.ts",
+        "commits": 2,
+        "owner": "Nattawut Rodthong",
+        "authors": {
+          "Nattawut Rodthong": 1,
+          "non-nattawut": 1
+        },
+        "author_count": 2,
+        "last_commit": "2026-09-06T13:31:45+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
         "fan_in": 0,
         "fan_out": 1,
-        "risk": 0
+        "risk": 4
+      },
+      "order_detail": {
+        "file": "sample_src/api_flask/order_routes.py",
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-08T21:12:23+07:00",
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 2
       },
       "orders": {
         "file": "sample_src/api_flask/order_routes.py",
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-08T21:12:23+07:00",
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 2
+      },
+      "recordOrderEvent": {
+        "file": "sample_src/services/orders_go/router.go",
         "commits": 0,
         "owner": null,
         "authors": {},
@@ -682,15 +1126,17 @@
       },
       "saveOrder": {
         "file": "sample_src/api_express/order_router.js",
-        "commits": 0,
-        "owner": null,
-        "authors": {},
-        "author_count": 0,
-        "last_commit": null,
-        "first_commit": null,
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-08T21:12:23+07:00",
         "fan_in": 1,
         "fan_out": 0,
-        "risk": 0
+        "risk": 2
       },
       "submitOrder": {
         "file": "sample_src/frontend/order_page.ts",
@@ -738,6 +1184,22 @@
         "fan_in": 2,
         "fan_out": 0,
         "risk": 9
+      },
+      {
+        "node": "getOrder",
+        "file": "sample_src/frontend/api_client.ts",
+        "commits": 2,
+        "owner": "Nattawut Rodthong",
+        "authors": {
+          "Nattawut Rodthong": 1,
+          "non-nattawut": 1
+        },
+        "author_count": 2,
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 2,
+        "fan_out": 1,
+        "risk": 8
       },
       {
         "node": "OrderController.create_order",
@@ -817,6 +1279,38 @@
         "risk": 6
       },
       {
+        "node": "createOrder",
+        "file": "sample_src/frontend/api_client.ts",
+        "commits": 2,
+        "owner": "Nattawut Rodthong",
+        "authors": {
+          "Nattawut Rodthong": 1,
+          "non-nattawut": 1
+        },
+        "author_count": 2,
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 1,
+        "fan_out": 1,
+        "risk": 6
+      },
+      {
+        "node": "getOrderEvents",
+        "file": "sample_src/frontend/api_client.ts",
+        "commits": 2,
+        "owner": "Nattawut Rodthong",
+        "authors": {
+          "Nattawut Rodthong": 1,
+          "non-nattawut": 1
+        },
+        "author_count": 2,
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 1,
+        "fan_out": 1,
+        "risk": 6
+      },
+      {
         "node": "OrderService.find_order",
         "file": "sample_src/backend/order_service.py",
         "commits": 1,
@@ -832,22 +1326,39 @@
         "risk": 4
       },
       {
-        "node": "getOrder",
+        "node": "getOrderStatus",
         "file": "sample_src/frontend/api_client.ts",
-        "commits": 1,
+        "commits": 2,
         "owner": "Nattawut Rodthong",
         "authors": {
-          "Nattawut Rodthong": 1
+          "Nattawut Rodthong": 1,
+          "non-nattawut": 1
         },
-        "author_count": 1,
-        "last_commit": "2026-09-02T16:10:56+07:00",
+        "author_count": 2,
+        "last_commit": "2026-09-08T21:12:23+07:00",
         "first_commit": "2026-09-02T16:10:56+07:00",
-        "fan_in": 2,
+        "fan_in": 0,
         "fan_out": 1,
         "risk": 4
       },
       {
         "node": "loadOrder",
+        "file": "sample_src/frontend/order_page.ts",
+        "commits": 2,
+        "owner": "Nattawut Rodthong",
+        "authors": {
+          "Nattawut Rodthong": 1,
+          "non-nattawut": 1
+        },
+        "author_count": 2,
+        "last_commit": "2026-09-06T13:31:45+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 4
+      },
+      {
+        "node": "loadOrderHistory",
         "file": "sample_src/frontend/order_page.ts",
         "commits": 2,
         "owner": "Nattawut Rodthong",
@@ -879,19 +1390,19 @@
         "risk": 4
       },
       {
-        "node": "createOrder",
-        "file": "sample_src/frontend/api_client.ts",
+        "node": "GET /orders/:id/status",
+        "file": "sample_src/api_express/order_router.js",
         "commits": 1,
-        "owner": "Nattawut Rodthong",
+        "owner": "non-nattawut",
         "authors": {
-          "Nattawut Rodthong": 1
+          "non-nattawut": 1
         },
         "author_count": 1,
-        "last_commit": "2026-09-02T16:10:56+07:00",
-        "first_commit": "2026-09-02T16:10:56+07:00",
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-08T21:12:23+07:00",
         "fan_in": 1,
-        "fan_out": 1,
-        "risk": 3
+        "fan_out": 0,
+        "risk": 2
       },
       {
         "node": "OrderCard",
@@ -939,18 +1450,63 @@
         "risk": 2
       },
       {
-        "node": "getOrderStatus",
-        "file": "sample_src/frontend/api_client.ts",
+        "node": "createOrderHandler",
+        "file": "sample_src/api_express/order_router.js",
         "commits": 1,
-        "owner": "Nattawut Rodthong",
+        "owner": "non-nattawut",
         "authors": {
-          "Nattawut Rodthong": 1
+          "non-nattawut": 1
         },
         "author_count": 1,
-        "last_commit": "2026-09-02T16:10:56+07:00",
-        "first_commit": "2026-09-02T16:10:56+07:00",
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-08T21:12:23+07:00",
         "fan_in": 0,
         "fan_out": 1,
+        "risk": 2
+      },
+      {
+        "node": "order_detail",
+        "file": "sample_src/api_flask/order_routes.py",
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-08T21:12:23+07:00",
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 2
+      },
+      {
+        "node": "orders",
+        "file": "sample_src/api_flask/order_routes.py",
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-08T21:12:23+07:00",
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 2
+      },
+      {
+        "node": "saveOrder",
+        "file": "sample_src/api_express/order_router.js",
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-08T21:12:23+07:00",
+        "fan_in": 1,
+        "fan_out": 0,
         "risk": 2
       },
       {
@@ -984,6 +1540,36 @@
         "risk": 1
       },
       {
+        "node": "OrdersController.create",
+        "file": "sample_src/api_nest/orders.controller.ts",
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-08T21:12:23+07:00",
+        "fan_in": 0,
+        "fan_out": 0,
+        "risk": 1
+      },
+      {
+        "node": "OrdersController.findOne",
+        "file": "sample_src/api_nest/orders.controller.ts",
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-08T21:12:23+07:00",
+        "first_commit": "2026-09-08T21:12:23+07:00",
+        "fan_in": 0,
+        "fan_out": 0,
+        "risk": 1
+      },
+      {
         "node": "StatusBadge",
         "file": "sample_src/frontend/OrderCard.tsx",
         "commits": 1,
@@ -1000,34 +1586,46 @@
       }
     ],
     "summary": {
-      "files_with_history": 13,
-      "commits_counted": 23,
+      "files_with_history": 16,
+      "commits_counted": 27,
       "authors": 2,
       "graph": "flow_graph.json",
       "note": null
     }
   },
   "metrics": {
-    "generated": "2026-09-08T14:11:30Z",
+    "generated": "2026-09-08T15:12:37Z",
     "roots": [
       "sample_src"
     ],
     "totals": {
-      "files": 12,
-      "lines": 250,
-      "code": 165,
-      "comment": 31,
-      "blank": 54,
-      "comment_ratio": 0.124
+      "files": 22,
+      "lines": 520,
+      "code": 339,
+      "comment": 80,
+      "blank": 101,
+      "comment_ratio": 0.154
     },
     "languages": {
       "py": {
         "files": 6,
         "lines": 126
       },
+      "java": {
+        "files": 4,
+        "lines": 101
+      },
+      "csharp": {
+        "files": 3,
+        "lines": 90
+      },
       "ts": {
         "files": 4,
-        "lines": 69
+        "lines": 82
+      },
+      "go": {
+        "files": 3,
+        "lines": 66
       },
       "js": {
         "files": 1,
@@ -1103,10 +1701,10 @@
         "lang": "tsx"
       },
       "sample_src/frontend/api_client.ts": {
-        "lines": 23,
-        "code": 14,
-        "comment": 5,
-        "blank": 4,
+        "lines": 31,
+        "code": 18,
+        "comment": 8,
+        "blank": 5,
         "lang": "ts"
       },
       "sample_src/frontend/order_page.test.ts": {
@@ -1117,11 +1715,81 @@
         "lang": "ts"
       },
       "sample_src/frontend/order_page.ts": {
-        "lines": 13,
-        "code": 9,
-        "comment": 2,
-        "blank": 2,
+        "lines": 18,
+        "code": 12,
+        "comment": 3,
+        "blank": 3,
         "lang": "ts"
+      },
+      "sample_src/services/orders_cs/InvoiceController.cs": {
+        "lines": 28,
+        "code": 21,
+        "comment": 3,
+        "blank": 4,
+        "lang": "csharp"
+      },
+      "sample_src/services/orders_cs/InvoiceService.cs": {
+        "lines": 39,
+        "code": 26,
+        "comment": 7,
+        "blank": 6,
+        "lang": "csharp"
+      },
+      "sample_src/services/orders_cs/InvoiceStore.cs": {
+        "lines": 23,
+        "code": 16,
+        "comment": 3,
+        "blank": 4,
+        "lang": "csharp"
+      },
+      "sample_src/services/orders_go/event_service.go": {
+        "lines": 16,
+        "code": 10,
+        "comment": 3,
+        "blank": 3,
+        "lang": "go"
+      },
+      "sample_src/services/orders_go/event_store.go": {
+        "lines": 16,
+        "code": 10,
+        "comment": 3,
+        "blank": 3,
+        "lang": "go"
+      },
+      "sample_src/services/orders_go/router.go": {
+        "lines": 34,
+        "code": 21,
+        "comment": 9,
+        "blank": 4,
+        "lang": "go"
+      },
+      "sample_src/services/orders_java/OrderApiController.java": {
+        "lines": 25,
+        "code": 17,
+        "comment": 3,
+        "blank": 5,
+        "lang": "java"
+      },
+      "sample_src/services/orders_java/OrderArchive.java": {
+        "lines": 23,
+        "code": 15,
+        "comment": 3,
+        "blank": 5,
+        "lang": "java"
+      },
+      "sample_src/services/orders_java/OrderWorkflow.java": {
+        "lines": 28,
+        "code": 17,
+        "comment": 6,
+        "blank": 5,
+        "lang": "java"
+      },
+      "sample_src/services/orders_java/PricingRule.java": {
+        "lines": 25,
+        "code": 14,
+        "comment": 5,
+        "blank": 6,
+        "lang": "java"
       }
     },
     "nodes": {
@@ -1452,6 +2120,21 @@
     ],
     "top_files": [
       {
+        "file": "sample_src/services/orders_cs/InvoiceService.cs",
+        "lines": 39,
+        "code": 26
+      },
+      {
+        "file": "sample_src/services/orders_go/router.go",
+        "lines": 34,
+        "code": 21
+      },
+      {
+        "file": "sample_src/frontend/api_client.ts",
+        "lines": 31,
+        "code": 18
+      },
+      {
         "file": "sample_src/api_express/order_router.js",
         "lines": 28,
         "code": 14
@@ -1460,6 +2143,16 @@
         "file": "sample_src/api_flask/order_routes.py",
         "lines": 28,
         "code": 21
+      },
+      {
+        "file": "sample_src/services/orders_cs/InvoiceController.cs",
+        "lines": 28,
+        "code": 21
+      },
+      {
+        "file": "sample_src/services/orders_java/OrderWorkflow.java",
+        "lines": 28,
+        "code": 17
       },
       {
         "file": "sample_src/frontend/OrderCard.tsx",
@@ -1472,53 +2165,53 @@
         "code": 18
       },
       {
-        "file": "sample_src/backend/order_controller.py",
-        "lines": 23,
-        "code": 16
-      },
-      {
-        "file": "sample_src/frontend/api_client.ts",
-        "lines": 23,
-        "code": 14
-      },
-      {
-        "file": "sample_src/api_nest/orders.controller.ts",
-        "lines": 20,
-        "code": 12
-      },
-      {
-        "file": "sample_src/backend/order_service.py",
-        "lines": 20,
-        "code": 15
-      },
-      {
-        "file": "sample_src/backend/order_repository.py",
-        "lines": 15,
-        "code": 9
-      },
-      {
-        "file": "sample_src/backend/payment_client.py",
-        "lines": 15,
-        "code": 8
+        "file": "sample_src/services/orders_java/OrderApiController.java",
+        "lines": 25,
+        "code": 17
       }
     ],
     "unmeasured_graph_ids": [
+      "EventService.Events",
+      "EventService.Record",
+      "EventStore.Append",
+      "EventStore.List",
+      "FlatRate.price",
+      "GET /go/healthz",
       "GET /orders/:id/status",
+      "InvoiceController.Create",
+      "InvoiceController.Find",
+      "InvoiceService.Find",
+      "InvoiceService.Issue",
+      "InvoiceService.Total",
+      "InvoiceStore.Get",
+      "InvoiceStore.Put",
+      "NewRouter",
+      "OrderApiController.create",
+      "OrderApiController.findOne",
+      "OrderArchive.get",
+      "OrderArchive.save",
       "OrderCard",
+      "OrderWorkflow.find",
+      "OrderWorkflow.place",
       "OrdersController.create",
       "OrdersController.findOne",
       "StatusBadge",
+      "TieredRate.price",
       "createOrder",
       "createOrderHandler",
       "getOrder",
+      "getOrderEvents",
       "getOrderStatus",
+      "handleOrderEvents",
       "loadOrder",
+      "loadOrderHistory",
+      "recordOrderEvent",
       "saveOrder",
       "submitOrder"
     ]
   },
   "debt": {
-    "generated": "2026-09-08T14:11:30Z",
+    "generated": "2026-09-08T15:12:37Z",
     "roots": [
       "sample_src"
     ],
@@ -1529,8 +2222,8 @@
         "FIXME": 1,
         "TODO": 1
       },
-      "dead_nodes": 3,
-      "dead_files": 1
+      "dead_nodes": 6,
+      "dead_files": 2
     },
     "markers": [
       {
@@ -1550,6 +2243,18 @@
     ],
     "dead_nodes": [
       {
+        "id": "FlatRate.price",
+        "source": "sample_src/services/orders_java/PricingRule.java:13",
+        "layer": "unknown",
+        "kind": "method"
+      },
+      {
+        "id": "TieredRate.price",
+        "source": "sample_src/services/orders_java/PricingRule.java:22",
+        "layer": "unknown",
+        "kind": "method"
+      },
+      {
         "id": "getOrderStatus",
         "source": "sample_src/frontend/api_client.ts:20",
         "layer": "client",
@@ -1562,6 +2267,12 @@
         "kind": "function"
       },
       {
+        "id": "loadOrderHistory",
+        "source": "sample_src/frontend/order_page.ts:16",
+        "layer": "ui",
+        "kind": "function"
+      },
+      {
         "id": "submitOrder",
         "source": "sample_src/frontend/order_page.ts:4",
         "layer": "ui",
@@ -1569,21 +2280,22 @@
       }
     ],
     "dead_files": [
-      "sample_src/frontend/order_page.ts"
+      "sample_src/frontend/order_page.ts",
+      "sample_src/services/orders_java/PricingRule.java"
     ]
   },
   "tests": {
-    "generated": "2026-09-08T14:11:30Z",
+    "generated": "2026-09-08T15:12:38Z",
     "roots": [
       "sample_src"
     ],
     "graph": "data/flow/flow_graph.json",
     "summary": {
       "test_files": 2,
-      "considered": 21,
+      "considered": 46,
       "referenced": 4,
-      "unreferenced": 17,
-      "referenced_pct": 19.0
+      "unreferenced": 42,
+      "referenced_pct": 8.7
     },
     "test_files": [
       "sample_src/backend/tests/test_orders.py",
@@ -1605,10 +2317,118 @@
     },
     "unreferenced": [
       {
+        "id": "EventService.Events",
+        "source": "sample_src/services/orders_go/event_service.go:9",
+        "layer": "service",
+        "kind": "method"
+      },
+      {
+        "id": "EventService.Record",
+        "source": "sample_src/services/orders_go/event_service.go:14",
+        "layer": "service",
+        "kind": "method"
+      },
+      {
+        "id": "EventStore.Append",
+        "source": "sample_src/services/orders_go/event_store.go:14",
+        "layer": "repository",
+        "kind": "method"
+      },
+      {
+        "id": "EventStore.List",
+        "source": "sample_src/services/orders_go/event_store.go:9",
+        "layer": "repository",
+        "kind": "method"
+      },
+      {
+        "id": "FlatRate.price",
+        "source": "sample_src/services/orders_java/PricingRule.java:13",
+        "layer": "unknown",
+        "kind": "method"
+      },
+      {
+        "id": "GET /go/healthz",
+        "source": "sample_src/services/orders_go/router.go:16",
+        "layer": "controller",
+        "kind": "endpoint"
+      },
+      {
         "id": "GET /orders/:id/status",
         "source": "sample_src/api_express/order_router.js:24",
         "layer": "controller",
         "kind": "endpoint"
+      },
+      {
+        "id": "InvoiceController.Create",
+        "source": "sample_src/services/orders_cs/InvoiceController.cs:17",
+        "layer": "controller",
+        "kind": "endpoint"
+      },
+      {
+        "id": "InvoiceController.Find",
+        "source": "sample_src/services/orders_cs/InvoiceController.cs:24",
+        "layer": "controller",
+        "kind": "endpoint"
+      },
+      {
+        "id": "InvoiceService.Find",
+        "source": "sample_src/services/orders_cs/InvoiceService.cs:21",
+        "layer": "service",
+        "kind": "method"
+      },
+      {
+        "id": "InvoiceService.Issue",
+        "source": "sample_src/services/orders_cs/InvoiceService.cs:14",
+        "layer": "service",
+        "kind": "method"
+      },
+      {
+        "id": "InvoiceService.Total",
+        "source": "sample_src/services/orders_cs/InvoiceService.cs:35",
+        "layer": "service",
+        "kind": "method"
+      },
+      {
+        "id": "InvoiceStore.Get",
+        "source": "sample_src/services/orders_cs/InvoiceStore.cs:19",
+        "layer": "repository",
+        "kind": "method"
+      },
+      {
+        "id": "InvoiceStore.Put",
+        "source": "sample_src/services/orders_cs/InvoiceStore.cs:11",
+        "layer": "repository",
+        "kind": "method"
+      },
+      {
+        "id": "NewRouter",
+        "source": "sample_src/services/orders_go/router.go:10",
+        "layer": "controller",
+        "kind": "function"
+      },
+      {
+        "id": "OrderApiController.create",
+        "source": "sample_src/services/orders_java/OrderApiController.java:16",
+        "layer": "controller",
+        "kind": "endpoint"
+      },
+      {
+        "id": "OrderApiController.findOne",
+        "source": "sample_src/services/orders_java/OrderApiController.java:22",
+        "layer": "controller",
+        "kind": "endpoint"
+      },
+      {
+        "id": "OrderArchive.get",
+        "source": "sample_src/services/orders_java/OrderArchive.java:20",
+        "layer": "repository",
+        "kind": "method"
+      },
+      {
+        "id": "OrderArchive.save",
+        "source": "sample_src/services/orders_java/OrderArchive.java:13",
+        "layer": "repository",
+        "kind": "method"
       },
       {
         "id": "OrderCard",
@@ -1641,6 +2461,18 @@
         "kind": "method"
       },
       {
+        "id": "OrderWorkflow.find",
+        "source": "sample_src/services/orders_java/OrderWorkflow.java:25",
+        "layer": "service",
+        "kind": "method"
+      },
+      {
+        "id": "OrderWorkflow.place",
+        "source": "sample_src/services/orders_java/OrderWorkflow.java:16",
+        "layer": "service",
+        "kind": "method"
+      },
+      {
         "id": "OrdersController.create",
         "source": "sample_src/api_nest/orders.controller.ts:10",
         "layer": "controller",
@@ -1665,6 +2497,12 @@
         "kind": "component"
       },
       {
+        "id": "TieredRate.price",
+        "source": "sample_src/services/orders_java/PricingRule.java:22",
+        "layer": "unknown",
+        "kind": "method"
+      },
+      {
         "id": "createOrder",
         "source": "sample_src/frontend/api_client.ts:8",
         "layer": "client",
@@ -1683,9 +2521,27 @@
         "kind": "function"
       },
       {
+        "id": "getOrderEvents",
+        "source": "sample_src/frontend/api_client.ts:28",
+        "layer": "client",
+        "kind": "function"
+      },
+      {
         "id": "getOrderStatus",
         "source": "sample_src/frontend/api_client.ts:20",
         "layer": "client",
+        "kind": "function"
+      },
+      {
+        "id": "handleOrderEvents",
+        "source": "sample_src/services/orders_go/router.go:23",
+        "layer": "controller",
+        "kind": "endpoint"
+      },
+      {
+        "id": "loadOrderHistory",
+        "source": "sample_src/frontend/order_page.ts:16",
+        "layer": "ui",
         "kind": "function"
       },
       {
@@ -1697,6 +2553,12 @@
       {
         "id": "orders",
         "source": "sample_src/api_flask/order_routes.py:16",
+        "layer": "controller",
+        "kind": "endpoint"
+      },
+      {
+        "id": "recordOrderEvent",
+        "source": "sample_src/services/orders_go/router.go:31",
         "layer": "controller",
         "kind": "endpoint"
       },

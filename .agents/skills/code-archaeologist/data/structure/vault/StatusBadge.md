@@ -4,6 +4,7 @@ layer: ui
 source: sample_src/frontend/OrderCard.tsx
 kind: component
 lang: js
+approx: false
 ---
 # StatusBadge
 
