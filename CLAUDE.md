@@ -259,3 +259,30 @@ Three files describe this skill to different readers — when behavior changes, 
 A new script also needs: a docstring saying what it is and why, a line in the README structure
 tree, a numbered command in `SKILL.md` if the agent should call it, and its command form in
 `USAGE.md`.
+
+### 7. Log every exchange to `prompt.md`
+This repo keeps a running transcript of its own construction. **At the end of every turn, append
+that turn to `prompt.md`** — the user's prompt verbatim, then what you did and said.
+
+```markdown
+## [N] YYYY-MM-DD — <short title>
+
+**Prompt**
+> <the user's message, verbatim>
+
+**Response**
+<what you did: decisions made, files touched, commands run, what you found, what you told them>
+```
+
+Rules that keep the log worth having:
+
+- **Append, never rewrite.** Earlier entries are the record of what was actually thought at the
+  time; correcting them retroactively destroys the only reason to keep it.
+- **Write it contemporaneously**, at the end of the turn, while the reasoning is still exact. A
+  transcript reconstructed later is a summary, and should say so.
+- **Record the reasoning and the misses**, not just the diff — why an approach was chosen, what a
+  verification actually returned, and anything that turned out wrong. Git already stores the diff;
+  the log's value is everything git cannot show.
+- **Number entries sequentially** and keep them in chronological order.
+- It is a plain log, not a doc for a reader: no need to keep it in sync with behavior the way
+  principle 6 requires of `SKILL.md` / `README.md` / `USAGE.md`.
