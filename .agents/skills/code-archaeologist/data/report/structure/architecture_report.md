@@ -1,6 +1,6 @@
 # Architecture report — graph.json
 
-Generated 2026-09-09 07:07 UTC · 25 nodes · 22 edges
+Generated 2026-09-09 07:41 UTC · 25 nodes · 22 edges
 
 ## Health: **D** (69/100)
 
@@ -110,9 +110,9 @@ _None._
 
 | Node | Commits | Fan-in | Fan-out | Risk | Owner |
 | --- | --- | --- | --- | --- | --- |
+| `ApiClientModule` | 4 | 2 | 0 | 12 | Nattawut Rodthong |
 | `OrderRepository` | 3 | 3 | 0 | 12 | non-nattawut |
 | `PaymentClient` | 3 | 3 | 0 | 12 | non-nattawut |
-| `ApiClientModule` | 3 | 2 | 0 | 9 | non-nattawut |
 | `OrderService` | 1 | 4 | 2 | 7 | Nattawut Rodthong |
 | `OrderPageModule` | 3 | 0 | 1 | 6 | non-nattawut |
 | `OrderController` | 2 | 0 | 1 | 4 | Nattawut Rodthong |

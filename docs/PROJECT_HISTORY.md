@@ -2,11 +2,14 @@
 
 How this project went from an empty repo to its current state.
 
-> **Provenance.** This document is reconstructed from the **git history** (44 commits,
-> 2026-09-02 → 2026-09-06), not from chat transcripts. Claude does not retain memory between
-> sessions, so the commit log — subjects, bodies, and the verification notes recorded in them — is
-> the authoritative record of what happened and why. Where a commit body stated the reasoning, that
-> reasoning is quoted or paraphrased here rather than guessed at.
+> **Provenance.** Phases 1–3 were **reconstructed** from the git history at the end of
+> 2026-09-08, not from chat transcripts — Claude retains no memory between sessions, so the commit
+> log (subjects, bodies, and the verification notes recorded in them) is the authoritative record
+> of what happened and why. Where a commit body stated the reasoning, it is quoted or paraphrased
+> rather than guessed at. Phase 4 onward is written **contemporaneously**, as each phase lands.
+>
+> Phase sections are never revised. The present-tense sections at the end — *At a glance*, *Where
+> it stands now* — track the current state by design, and are updated as it changes.
 
 ---
 
@@ -15,10 +18,10 @@ How this project went from an empty repo to its current state.
 | | |
 | --- | --- |
 | Repo | `Code-Archaeologist-LLM-Agent-Skill` |
-| Commits | 44 |
-| Span | 2026-09-02 → 2026-09-06 (5 days) |
-| Cadence | 13 commits day 1 · 1 commit day 3 · 30 commits day 5 |
-| Current HEAD | `3bc603b` — *revisual* |
+| Commits | 59 |
+| Span | 2026-09-02 → 2026-09-09 (8 days) |
+| Cadence | 44 commits exploring · 8 commits working a written plan |
+| Current HEAD | `e229280` — *Find copy-pasted functions, even when the names were changed* |
 | Skill location | `.agents/skills/code-archaeologist/` |
 | Hard constraint held throughout | Zero external Python deps (stdlib only, 3.10+) |
 
@@ -185,21 +188,81 @@ path.
 
 ---
 
+## Phase 4 — Working a written roadmap (2026-09-06 → 09-09, 8 commits)
+
+The first three phases were exploratory: a feature was proposed, built and verified in one sitting.
+This arc was different. The README's roadmap was turned into `docs/ROADMAP_PLAN.md` — six numbered
+phases, each with its own file references, wiring checklist and verification steps — and then
+worked through one commit at a time, on more than one machine.
+
+The plan file carries its own discipline, stated at the top: **the phase bodies are the original
+plan and are never revised as phases land.** Where an implementation departed from what was
+written, the departure is recorded in the status header, and the commit and `docs/prompt.md` are
+the record of what actually happened. Three departures accumulated, each for a different reason —
+which is the honest argument for writing plans down and then *not* editing them to look correct.
+
+| Phase | Commit | What shipped |
+| --- | --- | --- |
+| 0 | `d18de81` | `scripts/` grouped into `core/extract/review/query`; `paths.py` bootstrap; `tools/check_docs.py` puts the docs-sync rule under a check |
+| 1 | `dfb84c0` | Frontend entities in the *structure* map — React components typed `kind: component` |
+| — | `29ff85f` | Follow-up: a file header no longer describes the first symbol under it |
+| 2 | `bd983c8` | Routes read from four frameworks, not one — FastAPI, Flask, Express, Nest |
+| 3 | `10e0309` | Java, Go and C# as an **approximate tier**, in both maps, marked `approx: true` |
+| 4 | `7ce1ff2` | `force-graph` vendored and inlined — the explorer needs no network at all |
+| 5 | `e229280` | Duplicate-code clusters by normalized token hash |
+
+Two things this arc established that outlast it.
+
+**Approximation is a feature when it is labelled.** Java, Go and C# are read textually rather than
+parsed, so their nodes and edges are guesses in a way Python's are not. Rather than hide that, every
+such node carries `approx: true` everywhere it surfaces — graph, vault front-matter, `context.py`,
+the report, `brief.py`, and a chip in the explorer. The sample gained two deliberate hard cases that
+must keep producing *no* edge: an interface with two implementations, and a C# overload pair. The
+grade fell when they were added, and that was recorded as the hard case being honest rather than a
+regression.
+
+**A check beats a rule.** Phase 0's `tools/check_docs.py` verifies that every script is listed in
+the README and named in `CLAUDE.md`, that every `scripts/...` path quoted in any doc exists, and
+that every taxonomy value is documented. It deliberately checks facts and never prose — keeping the
+words honest is still the writer's job — but the mechanical half of the docs rule can no longer rot
+quietly.
+
+The arc also produced two smaller course corrections worth naming. Phase 4's plan specified a
+verification (`grep -c 'https\?://' → 0`) that was **impossible and wrong**: SVG and XML namespace
+URIs are identifiers a browser never fetches, so the check was replaced with one for
+resource-*loading* references. Phase 5's plan had the clone detector derive its own source ranges;
+instead `build_flow.py` was taught to record the `end` line it already had and was discarding, so
+the new pass reads ranges from the graph like every other review pass — avoiding both a new
+cross-category import and a re-run of the Node extractor.
+
+---
+
 ## Where it stands now
 
 ```
 .agents/skills/code-archaeologist/
 ├── SKILL.md
-├── scripts/          22 files — archaeologist, build_*, analyze, report, brief,
-│                     context, search, metrics, debt, tests_map, scan_security,
-│                     git_insights, manifest, taxonomy, console, js_*
-├── templates/        viewer.html · TAXONOMY.md · wiki_page_template.md
+├── scripts/          25 files, grouped by role
+│   ├── archaeologist.py · paths.py        the entrypoint and the path bootstrap
+│   ├── core/      taxonomy · manifest · console
+│   ├── extract/   build_wiki · build_graph · build_flow · js_bridge · js_extract.js
+│   │              lang_extract · apply_descriptions
+│   ├── review/    analyze · scan_security · git_insights · metrics · debt
+│   │              tests_map · duplicates · report · brief
+│   └── query/     trace_path · context · search · build_html
+├── templates/        viewer.html · vendor/force-graph.min.js · TAXONOMY.md · wiki_page_template.md
 └── data/             structure/ · flow/ · report/ · cache/
-CLAUDE.md · README.md · USAGE.md · PROJECT_HISTORY.md · prompt.md · package.json · bin/cli.js
+CLAUDE.md · README.md · package.json · bin/cli.js · tools/check_docs.py
+docs/  USAGE.md · ROADMAP_PLAN.md · PROJECT_HISTORY.md · PRESENTATION.html · prompt.md
 ```
 
-Four docs, four readers: **SKILL.md** (the agent), **README.md** (someone evaluating it),
-**USAGE.md** (someone running it by hand), **TAXONOMY.md** (someone adding a field value).
+Dependencies point one way: `core/` imports nothing of the skill's, everything else imports
+`core/`, and no two categories form a cycle.
+
+Six docs, six readers: **SKILL.md** (the agent), **README.md** (someone evaluating it),
+**docs/USAGE.md** (someone running it by hand), **TAXONOMY.md** (someone adding a field value),
+**docs/PRESENTATION.html** (someone being shown the project), and this file plus **docs/prompt.md**
+(the append-only record of how it was built).
 
 ### Loose ends worth knowing
 
@@ -211,7 +274,10 @@ Four docs, four readers: **SKILL.md** (the agent), **README.md** (someone evalua
 - `ROADMAP.md` was **removed** (2026-09-08). Every near-term item and three of four backlog
   items had shipped, so it had become a record of finished work that this document now covers.
   Its one surviving idea — duplicate-code clusters via normalized token hashing — moved to the
-  README roadmap.
+  README roadmap, and shipped in `e229280`.
+- The long-form docs moved into `docs/` (2026-09-08), leaving only `README.md` and `CLAUDE.md` at
+  the root. `package.json` and `tools/check_docs.py` both referenced them by path and were updated
+  in the same commit; `docs/prompt.md`'s earlier entries still name the old root paths, deliberately.
 - Distribution went the GitHub route rather than the npm registry — publishing hit an npm 2FA wall,
   so install is `npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill`. The package is
   publish-ready if that is ever revisited.

@@ -102,16 +102,16 @@
       "owner": "non-nattawut"
     },
     "sample_src/frontend/api_client.ts": {
-      "commits": 3,
-      "insertions": 31,
+      "commits": 4,
+      "insertions": 39,
       "deletions": 0,
       "authors": {
-        "non-nattawut": 2,
-        "Nattawut Rodthong": 1
+        "Nattawut Rodthong": 2,
+        "non-nattawut": 2
       },
-      "last_commit": "2026-09-08T22:13:49+07:00",
+      "last_commit": "2026-09-09T14:08:24+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
-      "owner": "non-nattawut"
+      "owner": "Nattawut Rodthong"
     },
     "sample_src/frontend/order_page.test.ts": {
       "commits": 1,
@@ -294,18 +294,18 @@
   "nodes": {
     "ApiClientModule": {
       "file": "sample_src/frontend/api_client.ts",
-      "commits": 3,
-      "owner": "non-nattawut",
+      "commits": 4,
+      "owner": "Nattawut Rodthong",
       "authors": {
-        "non-nattawut": 2,
-        "Nattawut Rodthong": 1
+        "Nattawut Rodthong": 2,
+        "non-nattawut": 2
       },
       "author_count": 2,
-      "last_commit": "2026-09-08T22:13:49+07:00",
+      "last_commit": "2026-09-09T14:08:24+07:00",
       "first_commit": "2026-09-02T16:10:56+07:00",
       "fan_in": 2,
       "fan_out": 0,
-      "risk": 9
+      "risk": 12
     },
     "EventService": {
       "file": "sample_src/services/orders_go/event_service.go",
@@ -649,6 +649,22 @@
   },
   "hotspots": [
     {
+      "node": "ApiClientModule",
+      "file": "sample_src/frontend/api_client.ts",
+      "commits": 4,
+      "owner": "Nattawut Rodthong",
+      "authors": {
+        "Nattawut Rodthong": 2,
+        "non-nattawut": 2
+      },
+      "author_count": 2,
+      "last_commit": "2026-09-09T14:08:24+07:00",
+      "first_commit": "2026-09-02T16:10:56+07:00",
+      "fan_in": 2,
+      "fan_out": 0,
+      "risk": 12
+    },
+    {
       "node": "OrderRepository",
       "file": "sample_src/backend/order_repository.py",
       "commits": 3,
@@ -679,22 +695,6 @@
       "fan_in": 3,
       "fan_out": 0,
       "risk": 12
-    },
-    {
-      "node": "ApiClientModule",
-      "file": "sample_src/frontend/api_client.ts",
-      "commits": 3,
-      "owner": "non-nattawut",
-      "authors": {
-        "non-nattawut": 2,
-        "Nattawut Rodthong": 1
-      },
-      "author_count": 2,
-      "last_commit": "2026-09-08T22:13:49+07:00",
-      "first_commit": "2026-09-02T16:10:56+07:00",
-      "fan_in": 2,
-      "fan_out": 0,
-      "risk": 9
     },
     {
       "node": "OrderService",
@@ -1030,7 +1030,7 @@
   ],
   "summary": {
     "files_with_history": 26,
-    "commits_counted": 39,
+    "commits_counted": 40,
     "authors": 2,
     "graph": "graph.json",
     "note": null

@@ -1,6 +1,6 @@
 # Architecture report — flow_graph.json
 
-Generated 2026-09-09 07:07 UTC · 51 nodes · 31 edges
+Generated 2026-09-09 07:41 UTC · 51 nodes · 31 edges
 
 ## Health: **D** (68/100)
 
@@ -141,16 +141,16 @@ _None._
 
 | Node | Commits | Fan-in | Fan-out | Risk | Owner |
 | --- | --- | --- | --- | --- | --- |
-| `getOrder` | 3 | 2 | 1 | 12 | non-nattawut |
+| `getOrder` | 4 | 2 | 1 | 16 | Nattawut Rodthong |
+| `createOrder` | 4 | 1 | 1 | 12 | Nattawut Rodthong |
+| `getOrderEvents` | 4 | 1 | 1 | 12 | Nattawut Rodthong |
 | `OrderRepository.get` | 3 | 2 | 0 | 9 | non-nattawut |
-| `createOrder` | 3 | 1 | 1 | 9 | non-nattawut |
-| `getOrderEvents` | 3 | 1 | 1 | 9 | non-nattawut |
+| `getOrderStatus` | 4 | 0 | 1 | 8 | Nattawut Rodthong |
 | `OrderController.create_order` | 2 | 1 | 1 | 6 | Nattawut Rodthong |
 | `OrderController.get_order` | 2 | 1 | 1 | 6 | Nattawut Rodthong |
 | `OrderRepository.save` | 3 | 1 | 0 | 6 | non-nattawut |
 | `OrderService.place_order` | 1 | 3 | 2 | 6 | Nattawut Rodthong |
 | `PaymentClient.charge` | 3 | 1 | 0 | 6 | non-nattawut |
-| `getOrderStatus` | 3 | 0 | 1 | 6 | non-nattawut |
 
 ## Debt — 2 marker(s) (FIXME 1, TODO 1), 7 dead node(s)
 

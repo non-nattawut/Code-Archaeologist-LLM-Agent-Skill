@@ -854,3 +854,51 @@ Numbers now: structure 25/22 D(69) unchanged; flow **51/31**, 16 endpoints, 0 pe
 tests **4/47**, 528 lines, **1 duplicate cluster / 4 duplicated lines**, `stale: false`, all traces
 intact. Installer self-test passes; on a fresh install duplicates reads 0 because there is no
 `node_modules`, so the TS clone is skipped — phase 4's degradation behaviour, working.
+
+---
+
+## [33] 2026-09-09 — Phase 6: roadmap rewrite and final doc pass
+
+**Prompt**
+> ok continue next phase it is 5 or 6?
+
+**Response**
+Phase 6 — phase 5 shipped last turn as `e229280`, and the roadmap already marked 6 next. Answered
+that first, then did it. Phase 6 is a documentation pass, no behaviour change.
+
+**README** — replaced the roadmap (which had become a list of "Done" annotations) with a
+*What's next* section: one sentence that everything listed has shipped, then the three things
+genuinely still open — Django URL-table routes, graphs for dynamic languages (Ruby/PHP/Elixir are
+scanned but have no nodes), and duplicate detection below function granularity.
+
+**PRESENTATION.html** — audited rather than assumed. Phase 3 had already added the approximate-tier
+limitation, so what was actually stale was: the pipeline diagram still showed two producers
+(`.py/.ts`, "ast / @babel") with no Java/Go/C# tier; the stat tile said 22 scripts; the explorer
+feature described inline *data* but not the vendored library from phase 4; and there was no
+duplicates feature at all. Fixed all four, added a duplicates feature (3 Q&A) and a duplicates
+limitation, and added the command to the cheat sheet. Now 26 features, 8 limitations, 57
+anticipated questions, still self-contained. Re-aligned the ASCII diagram's connectors afterwards —
+they had drifted to three different columns; verified by printing the character positions rather
+than eyeballing, since the console cannot render box-drawing characters.
+
+**PROJECT_HISTORY.md** — appended *Phase 4 — Working a written roadmap*, covering the eight
+commits from `d18de81` to `e229280` with the two durable lessons (approximation is a feature when
+it is labelled; a check beats a rule) and the two course corrections. Confirmed the append-only
+rule held: `git diff` shows **zero deletions** inside the Phase 1–3 prose. The present-tense
+sections (*Provenance*, *At a glance*, *Where it stands now*, *Loose ends*) were updated, which is
+what those sections are for — and the provenance block now states explicitly that phases 1–3 were
+reconstructed while phase 4 onward is contemporaneous.
+
+**Found a broken reference.** The roadmap's status table recorded phase 3 as `a3fdc69`, which does
+not exist in this repository — `git cat-file -t` fails on it. The actual commit is `10e0309`,
+presumably renamed by an amend or rebase on the other machine. Corrected it and checked that all
+seven hashes now resolve. A table of commit hashes that does not resolve is worse than no table.
+
+Closed the plan out: status header now says all six phases complete and that the phase bodies are
+kept as the record of what was *intended*, with the commits and this log the record of what was
+*done*.
+
+Verified: compileall, full pipeline (structure 25/22 D(69), flow 51/31 D(68), 16 endpoints,
+0 pending, 1 duplicate cluster, `stale: false`), `check_docs: OK`, installer self-test including
+the offline assertion, and determinism — built twice and diffed `data/`, identical apart from the
+report timestamps.

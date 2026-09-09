@@ -174,7 +174,7 @@
     <div class="eyebrow">At a glance</div>
     <div class="stats">
       <div class="stat"><div class="v">2</div><div class="l">Graphs</div></div>
-      <div class="stat"><div class="v">22</div><div class="l">Scripts</div></div>
+      <div class="stat"><div class="v">23</div><div class="l">Scripts</div></div>
       <div class="stat"><div class="v">7</div><div class="l">Explorer views</div></div>
       <div class="stat"><div class="v">16</div><div class="l">Languages scanned</div></div>
       <div class="stat"><div class="v">0</div><div class="l">Python deps</div></div>
@@ -212,13 +212,13 @@
     <h2>How it fits together</h2>
     <div class="pipe"><pre>
    your source                        two graphs                      one page
-  ┌────────────┐   ast / @babel    ┌───────────────┐   analysis    ┌───────────────┐
-  │ .py  .ts   │ ────────────────▶ │ <b>structure</b>  ────────────────▶ │ explorer.html │
-  │ .jsx .tsx  │     extract       │ <b>flow</b>       │   + report    │  (both maps)  │
-  └────────────┘                   └───────────────┘               └───────────────┘
-                                          │
-                                          ▼   one Markdown note per node
-                                   [[wikilinked]] vault
+  ┌────────────┐  ast / @babel /   ┌───────────────┐   analysis    ┌───────────────┐
+  │ .py  .ts   │  declaration scan │ <b>structure</b>  ────────────────▶ │ explorer.html │
+  │ .jsx .tsx  │ ────────────────▶ │ <b>flow</b>       │   + report    │  (both maps)  │
+  │ .java .go  │     extract       └───────────────┘               └───────────────┘
+  │ .cs        │                          │
+  └────────────┘                          ▼   one Markdown note per node
+                                [[wikilinked]] vault
                                           │
                                           ▼
                           trace · impact · search · context · brief
@@ -274,6 +274,7 @@
       <tr><td class="k">What breaks if X changes</td><td><code>trace_path.py --impact-of X</code></td></tr>
       <tr><td class="k">What does this PR affect</td><td><code>trace_path.py --impact-of-diff</code></td></tr>
       <tr><td class="k">Everything about a node</td><td><code>context.py --node X</code></td></tr>
+      <tr><td class="k">What's been copy-pasted</td><td><code>duplicates.py --src ./src</code></td></tr>
     </table>
   </div>
 </section>
@@ -530,6 +531,18 @@ const FEATURES = [
       ["Why one pass?","Per-file git calls are slow on a large history. One pass keeps the whole report fast enough to run routinely."]
     ]
   },
+  {
+    id:"duplicates", cat:"review", title:"Duplicate-code clusters",
+    d:"Copy-pasted functions, found even when every name was changed.",
+    how:"Each body is reduced to its <em>token shape</em>: identifiers become <code>ID</code>, literals become <code>LIT</code>, comments and whitespace are dropped, keywords and operators stay. Bodies whose shapes hash the same are the same code. Ranges come from the graph, so nothing is re-parsed, and bodies under 30 tokens are ignored.",
+    tech:["Token-shape normalization","SHA-1 clustering","30-token floor"],
+    cmd:"duplicates.py --src ./src",
+    qa:[
+      ["Why not just diff the text?","Because a rename defeats it. Normalizing identifiers away is what lets it catch the copy someone pasted and then renamed — which is the copy people actually make."],
+      ["Won't similar-looking code cluster falsely?","Two short functions of the same shape can, which is why there is a 30-token floor and why the report calls a cluster a prompt to look, not a verdict."],
+      ["What does it miss?","A copy someone has since edited — changing one operator changes the shape. It also matches whole bodies, so a copied block inside two otherwise different functions is invisible. And a docstring counts as a token, so documenting one copy and not the other hides the pair. It errs toward missing a copy rather than inventing one."]
+    ]
+  },
 
   /* ---------------- trust ---------------- */
   {
@@ -569,8 +582,8 @@ const FEATURES = [
   {
     id:"explorer", cat:"output", title:"The explorer",
     d:"Both maps in one self-contained HTML file — no server, works offline.",
-    how:"Graph data is embedded inline into a template, producing a single file you can open from <code>file://</code>, commit, or email. Three panes: a left rail with the health ring, colour-by selector, stat tiles and a file tree; a centre canvas with seven views of the same graph; a right panel with FILE, PATTERNS and SECURITY tabs that click through into each other.",
-    tech:["Inline data embedding","Seven graph layouts","Cross-linked panels"],
+    how:"Graph data <em>and the graph library itself</em> are embedded inline, producing a single file that opens from <code>file://</code> with the network disabled — nothing is fetched at run time. Three panes: a left rail with the health ring, colour-by selector, stat tiles and a file tree; a centre canvas with seven views of the same graph; a right panel with FILE, PATTERNS and SECURITY tabs that click through into each other.",
+    tech:["Inline data + vendored library","Seven graph layouts","Cross-linked panels"],
     cmd:"open data/explorer.html",
     qa:[
       ["Why one file?","Distribution. It is the difference between \"here is the architecture\" as an attachment and \"deploy this service to look at the architecture\"."],
@@ -615,6 +628,8 @@ const LIMITS = [
    "\"Singleton\" means the naming claims a singleton. It is a navigation aid, not a verified structural finding."],
   ["Per-node metrics are Python-only",
    "The JS extractor now records an end line, but the metrics pass does not read it yet, so frontend files appear in file totals but not in per-node complexity."],
+  ["Clone detection matches whole bodies",
+   "A copied block inside two otherwise different functions is invisible, and editing one copy — even by one operator — splits the pair. A docstring counts as a token too, so documenting one copy and not the other hides it. It is tuned to avoid false positives, so it misses rather than invents."],
   ["The graph is only as fresh as the last build",
    "This is why the staleness guard exists — but it must actually be run. An agent that skips the check can produce a confident answer from a stale map."]
 ];

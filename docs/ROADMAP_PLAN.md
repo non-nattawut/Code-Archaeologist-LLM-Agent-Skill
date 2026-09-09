@@ -1,6 +1,7 @@
 # Implement the README roadmap, phase by phase
 
-> ## Status: phases 0-5 are complete. **Phase 6 is next.**
+> ## Status: **all six phases are complete.** The plan below is kept as the record of what was
+> intended; the commits and `docs/prompt.md` are the record of what was done.
 >
 > | Phase | State | Commit |
 > | --- | --- | --- |
@@ -8,16 +9,16 @@
 > | 1 — Frontend entities in the structure map | **done** | `dfb84c0` |
 > | — `firstDocLine` adjacency fix (follow-up) | **done** | `29ff85f` |
 > | 2 — Route/framework coverage (Flask, Express, Nest) | **done** | `bd983c8` |
-> | 3 — Graph extractors for Java, Go and C# | **done** | `a3fdc69` |
+> | 3 — Graph extractors for Java, Go and C# | **done** | `10e0309` |
 > | 4 — Fully offline viewer (vendor force-graph) | **done** | `7ce1ff2` |
-> | 5 — Duplicate-code clusters | **done** | |
-> | 6 — Roadmap rewrite and final doc pass | **next** | |
+> | 5 — Duplicate-code clusters | **done** | `e229280` |
+> | 6 — Roadmap rewrite and final doc pass | **done** | |
 >
 > This file was moved into the repo at the end of phase 3 so the remaining phases can be
 > picked up on another machine. The phase sections below are the **original plan as written**
 > — they are not revised as phases land, so where the implementation departed from the plan,
 > the commit and `prompt.md` are the record of what was actually done. Departures worth
-> knowing before starting phase 6:
+> knowing when reading the phase bodies below:
 >
 > - Phase 0c put the doc checker at `tools/check_docs.py`, not `scripts/check_docs.py`: it
 >   reads repo files (`README.md`, `CLAUDE.md`) that no installed skill has.
