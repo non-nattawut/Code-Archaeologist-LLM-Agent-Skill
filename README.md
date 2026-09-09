@@ -147,8 +147,9 @@ The pieces that make it cheap and repeatable:
 
 ## The explorer
 
-One self-contained HTML file with both maps embedded. No server, no repo access, works offline —
-commit it or email it.
+One self-contained HTML file with both maps embedded. No server, no repo access, and **no network
+— the graph library is vendored and inlined**, so it opens from `file://` with the wifi off. Commit
+it or email it.
 
 - **Left** — health ring (A–F), color-by (layer / folder / churn / risk), stat tiles, language
   mix, and a file tree that filters the canvas.
@@ -193,7 +194,7 @@ dead code** and its calls never count as coupling.
 | **Python 3.10+** | required — stdlib only, no `pip install` |
 | **Node + `@babel/parser`** | only for JS/TS parsing (`npm install` in the skill folder) |
 | **git** | optional — only for churn / ownership / hotspots |
-| **A browser** | to open the explorer |
+| **A browser** | to open the explorer — no network needed |
 
 ---
 
@@ -287,7 +288,8 @@ It has no npm dependencies of its own.
   `@app.route`, `methods=[...]`), Express (named + inline handlers) and Nest.
 - Graph extractors for more languages. **Done for Java, Go and C#** — an approximate tier, in both
   maps, marked `approx: true` everywhere it surfaces.
-- A fully offline viewer.
+- A fully offline viewer. **Done** — `force-graph` is vendored and inlined, so `explorer.html`
+  loads no remote resource at all.
 - Duplicate-code clusters, via normalized token hashing of function bodies.
 
 ## License

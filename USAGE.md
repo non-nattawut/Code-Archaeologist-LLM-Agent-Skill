@@ -26,6 +26,10 @@ python .agents/skills/code-archaeologist/scripts/archaeologist.py flow --src ./b
 python .agents/skills/code-archaeologist/scripts/archaeologist.py both --src ./src
 ```
 
+`data/explorer.html` is written by every one of these. It is a single file with the data *and* the
+graph library embedded, so it opens straight from `file://` with the network off — commit it, or
+email it to someone who has no access to the repo.
+
 ## Orient yourself
 
 One fixed-size digest of everything already built — counts, grade, staleness, entry points, the

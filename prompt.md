@@ -711,3 +711,59 @@ the normalized entity/method shape matching `js_extract.js`:
 **Response**
 Pushed Phase 3 to `origin/main`. All tests verified, documentation synced, and roadmap status marked complete through Phase 3.
 
+
+---
+
+## [30] 2026-09-09 — Phase 4: fully offline viewer
+
+**Prompt**
+> git pull and continue phase 4 in /doc/roadmap
+
+*(and, after the first `git pull` was declined and re-issued)*
+> git pull
+
+**Response**
+Pulled 5 commits from another machine — `scripts/` regrouped into `core/extract/review/query`, new
+`paths.py`, `lang_extract.py`, `docs/ROADMAP_PLAN.md`, `tools/check_docs.py`, and a much larger
+polyglot sample. HEAD `a11c414` -> `10e0309`.
+
+Phase 4 = vendor `force-graph` so `data/explorer.html` needs no network, removing the last
+carve-out in hard constraint 4.
+
+Done as planned:
+- Vendored `force-graph@1.43.5` to `templates/vendor/force-graph.min.js` via `npm pack` (not a CDN
+  grab — pins the version and brings the LICENSE), MIT text preserved in the file header, plus
+  `templates/vendor/README.md` recording source URL, version, licence and the update procedure.
+- `viewer.html:230` `<script src=…>` -> `<script>__VENDOR_JS__</script>`.
+- `build_html.py`: `VENDOR_JS_PATH`, `load_vendor_js()`, third substitution, docstring corrected.
+- `bin/cli.js --self-test`: asserts the built page loads nothing remote.
+- Docs: CLAUDE.md constraint 4, SKILL.md notes, README (explorer + requirements + roadmap),
+  USAGE.md. `tools/check_docs.py` -> OK.
+
+**The plan's verification was wrong, and I did not follow it.** It specified
+`grep -c 'https\?://' data/explorer.html` -> `0`. That is unachievable: SVG/XML namespace URIs
+(`http://www.w3.org/2000/svg`) are *identifiers a browser never fetches*, and the vendored licence
+header carries an attribution URL — 4 such strings remain. Hitting zero would mean mangling the
+library. The real goal is that nothing *loads*, so the assertion checks resource-loading references
+(`<script src>`, `<link href>`, `<img src>`, `@import`, `url(http…)`) instead. That returns **none**.
+Recorded the departure in the roadmap's header.
+
+Verification worth keeping:
+- Vendored bytes are **byte-identical** to what the CDN served (sha256 match after stripping my
+  header) — so runtime behaviour is unchanged by construction. This mattered because executing the
+  UMD bundle in a Node sandbox kept failing on missing DOM globals; stubbing a fake DOM would have
+  proven nothing, whereas byte-equality proves everything.
+- Both inline scripts parse as classic scripts (159 KB vendor + 94 KB app); `document.scripts[1]`
+  is still the app script, so CLAUDE.md's preview note stays accurate.
+- **Negative test**: injected a remote `<link>` into a built page and confirmed the self-test
+  detects it. A passing assertion that cannot fail is worthless.
+- Installer self-test on a fresh install passes and prints "Explorer is fully offline";
+  `templates/vendor/` rides along through `copyDir` with no packaging change, as the plan predicted.
+- Sample numbers match CLAUDE.md exactly: structure 25/22, flow 50/31, 16 endpoints, 0 pending,
+  both grades **D (69)**, 4 risk findings, 2 test files, 4/46 named, `stale: false`, and all four
+  traces (cross-stack, Java, C#, Go) intact.
+
+Size delta: explorer.html **109 KB -> 272 KB (+163 KB)**, entirely the vendored library.
+
+Two things I hit worth remembering: Python here is native Windows, so it cannot read Git Bash `/tmp`
+paths — `pwd -W` first. And a `git pull` was declined the first time; re-run when re-issued.

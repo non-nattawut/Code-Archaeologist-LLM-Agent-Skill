@@ -1,6 +1,6 @@
 # Architecture report — graph.json
 
-Generated 2026-09-08 15:12 UTC · 25 nodes · 22 edges
+Generated 2026-09-09 01:51 UTC · 25 nodes · 22 edges
 
 ## Health: **D** (69/100)
 
@@ -112,14 +112,14 @@ _None._
 | --- | --- | --- | --- | --- | --- |
 | `OrderRepository` | 3 | 3 | 0 | 12 | non-nattawut |
 | `PaymentClient` | 3 | 3 | 0 | 12 | non-nattawut |
+| `ApiClientModule` | 3 | 2 | 0 | 9 | non-nattawut |
 | `OrderService` | 1 | 4 | 2 | 7 | Nattawut Rodthong |
-| `ApiClientModule` | 2 | 2 | 0 | 6 | Nattawut Rodthong |
+| `OrderPageModule` | 3 | 0 | 1 | 6 | non-nattawut |
 | `OrderController` | 2 | 0 | 1 | 4 | Nattawut Rodthong |
-| `OrderPageModule` | 2 | 0 | 1 | 4 | Nattawut Rodthong |
 | `OrderRepositoryTest` | 1 | 0 | 3 | 4 | non-nattawut |
+| `OrderWorkflow` | 1 | 1 | 2 | 4 | non-nattawut |
+| `PricingRule` | 1 | 3 | 0 | 4 | non-nattawut |
 | `TestOrdersModule` | 1 | 0 | 3 | 4 | non-nattawut |
-| `OrderCard` | 1 | 0 | 2 | 3 | non-nattawut |
-| `OrderRoutesModule` | 1 | 0 | 1 | 2 | non-nattawut |
 
 ## Debt — 2 marker(s) (FIXME 1, TODO 1), 3 dead node(s)
 

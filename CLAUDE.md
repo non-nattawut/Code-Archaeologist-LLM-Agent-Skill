@@ -171,8 +171,13 @@ scrolls.
    `apply_descriptions.py` (cached by source hash, docstring wins first, deterministic fallback
    last).
 3. **Paths resolve from the skill root**, so every script runs from any working directory.
-4. **The explorer is one self-contained file.** Data embedded inline, only `force-graph` from a CDN,
-   opens from `file://` with no server.
+4. **The explorer is one self-contained file, with no network at all.** Data *and* the graph
+   library are embedded inline; it opens from `file://` with the network disabled. `force-graph`
+   is vendored at `templates/vendor/` (see its README) and inlined by `build_html.py` through the
+   `__VENDOR_JS__` placeholder. Nothing may reintroduce a `<script src>`, `<link href>` or
+   `@import` — `bin/cli.js --self-test` fails the build if one appears. URL-shaped *strings* are
+   fine and unavoidable (SVG/XML namespaces are identifiers the browser never fetches), so assert
+   on resource loads, never on the substring `http`.
 5. **Windows-first testing.** Console is cp874 here: keep `print()` output ASCII (files can be
    UTF-8). Anything that echoes repo text (node ids, descriptions, paths, git author names) calls
    `console.safe_stdout()` first, so one accented author name cannot end a run. Bash heredocs mangle backslash-continuations — use the Edit/Write tools for content with

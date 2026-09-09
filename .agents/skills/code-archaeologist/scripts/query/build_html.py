@@ -24,8 +24,9 @@ The page is a three-pane explorer:
     python build_html.py                                  # both maps -> data/explorer.html
     python build_html.py --structure-graph "" --out flow_only.html    # one map only
 
-`force-graph` is loaded from a CDN; everything else is inline. The page shell is
-`templates/viewer.html`, so the front-end can be edited without touching Python.
+`force-graph` is vendored (`templates/vendor/`) and inlined with everything else, so
+the page needs no network at all. The shell is `templates/viewer.html`, so the
+front-end can be edited without touching Python.
 
 Zero external Python dependencies. Python 3.10+.
 """
@@ -39,6 +40,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from paths import DATA_DIR, TEMPLATES_DIR  # noqa: E402  (also puts sibling script dirs on sys.path)
 TEMPLATE_PATH = os.path.join(TEMPLATES_DIR, "viewer.html")
+VENDOR_JS_PATH = os.path.join(TEMPLATES_DIR, "vendor", "force-graph.min.js")
 DEFAULT_OUT = os.path.join(DATA_DIR, "explorer.html")
 
 # map name -> (switch label, subtitle, default graph, default report)
@@ -54,10 +56,25 @@ DEFAULT_SOURCES = {name: (graph, report) for name, (_, _, graph, report) in MAPS
 
 
 def load_template() -> str:
-    """The page shell lives in `templates/viewer.html` (plain HTML/CSS/JS with two
+    """The page shell lives in `templates/viewer.html` (plain HTML/CSS/JS with three
     placeholders) so it can be read and edited like a normal front-end file."""
     with open(TEMPLATE_PATH, "r", encoding="utf-8") as fh:
         return fh.read()
+
+
+def load_vendor_js() -> str:
+    """The graph library, vendored so the page needs no network (constraint 4).
+
+    Inlined rather than linked because the explorer is one shareable file: a
+    <script src> to a sibling would break the moment someone emails just the HTML.
+    """
+    try:
+        with open(VENDOR_JS_PATH, "r", encoding="utf-8") as fh:
+            return fh.read()
+    except FileNotFoundError:
+        print(f"error: vendored graph library missing at {VENDOR_JS_PATH};"
+              " the explorer would render an empty canvas.")
+        raise
 
 
 def _load(path: str | None) -> dict:
@@ -121,6 +138,7 @@ def build(sources: dict[str, tuple[str, str]] | None = None, out_path: str = DEF
 
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     html = (load_template()
+            .replace("__VENDOR_JS__", load_vendor_js())
             .replace("__TITLE__", title)
             .replace("__MAPS_DATA__", json.dumps(maps, separators=(",", ":"))))
     with open(out_path, "w", encoding="utf-8") as fh:

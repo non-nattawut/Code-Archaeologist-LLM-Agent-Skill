@@ -1,6 +1,6 @@
 # Implement the README roadmap, phase by phase
 
-> ## Status: phases 0-3 are complete. **Phase 4 is next.**
+> ## Status: phases 0-4 are complete. **Phase 5 is next.**
 >
 > | Phase | State | Commit |
 > | --- | --- | --- |
@@ -9,15 +9,15 @@
 > | — `firstDocLine` adjacency fix (follow-up) | **done** | `29ff85f` |
 > | 2 — Route/framework coverage (Flask, Express, Nest) | **done** | `bd983c8` |
 > | 3 — Graph extractors for Java, Go and C# | **done** | `a3fdc69` |
-> | 4 — Fully offline viewer (vendor force-graph) | **next** | |
-> | 5 — Duplicate-code clusters | pending | |
+> | 4 — Fully offline viewer (vendor force-graph) | **done** | |
+> | 5 — Duplicate-code clusters | **next** | |
 > | 6 — Roadmap rewrite and final doc pass | pending | |
 >
 > This file was moved into the repo at the end of phase 3 so the remaining phases can be
 > picked up on another machine. The phase sections below are the **original plan as written**
 > — they are not revised as phases land, so where the implementation departed from the plan,
-> the commit and `prompt.md` are the record of what was actually done. Two departures worth
-> knowing before starting phase 4:
+> the commit and `prompt.md` are the record of what was actually done. Departures worth
+> knowing before starting phase 5:
 >
 > - Phase 0c put the doc checker at `tools/check_docs.py`, not `scripts/check_docs.py`: it
 >   reads repo files (`README.md`, `CLAUDE.md`) that no installed skill has.
@@ -25,6 +25,12 @@
 >   name across languages still collide (last wins); the sample avoids it by naming the
 >   polyglot services for different slices of the domain. C# overloads collapsing to one node
 >   is a documented approximation, exercised by `InvoiceService.Total`.
+> - Phase 4's literal check (`grep -c 'https\?://' data/explorer.html` -> `0`) is **not
+>   achievable and was not the right test**. SVG/XML namespace URIs (`http://www.w3.org/2000/svg`)
+>   are identifiers a browser never fetches, and the vendored licence header carries an
+>   attribution URL. The goal — nothing *loads* over the network — is met and is now asserted in
+>   `bin/cli.js --self-test` against resource-loading references (`<script src>`, `<link href>`,
+>   `<img src>`, `@import`, `url(http…)`), which is what actually causes a request.
 >
 > Everything each phase promises to verify has been verified; `CLAUDE.md`'s expected-numbers
 > block is the current truth for the sample.

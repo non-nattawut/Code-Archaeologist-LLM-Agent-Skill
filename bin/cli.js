@@ -252,6 +252,20 @@ async function main() {
         return r.status || 1;
       }
     }
+    // The explorer must render with the network disabled, so nothing in it may
+    // *load* over the network. URL-shaped strings are fine and unavoidable — SVG
+    // and XML namespaces are identifiers the browser never fetches — so assert on
+    // resource-loading references instead of on the substring "http".
+    const page = path.join(dest, "data", "explorer.html");
+    const remote = fs.readFileSync(page, "utf8")
+      .match(/<script[^>]+\bsrc=|<link[^>]+\bhref=|<img[^>]+\bsrc=|@import|url\(\s*['"]?https?:/gi);
+    if (remote) {
+      console.error(`ERROR: explorer.html loads ${remote.length} remote resource(s): ${[...new Set(remote)].join(", ")}`);
+      console.error("       It must open from file:// with the network off.");
+      return 1;
+    }
+    console.log("OK   Explorer is fully offline (no remote resources).");
+
     console.log(`\nOK   Self-test complete. Open ${path.join(dest, "data", "explorer.html")}`);
     return 0;
   }

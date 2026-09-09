@@ -275,8 +275,9 @@ keeps the cache intact — those nodes are missing, not gone). **0 pending** mea
   lines/complexity, risk scan, debt markers, test detection — also read Java, Kotlin, Go, Rust,
   C#, Ruby, PHP, Swift, Scala, Dart, Elixir and C/C++, so a polyglot repo still gets size, risk
   and debt answers even where there is no call graph.
-- Python pipeline: stdlib only. Frontend parsing is the one exception (Node + `@babel/parser`);
-  the generated HTML loads `force-graph` from a CDN.
+- Python pipeline: stdlib only. Frontend parsing is the one exception (Node + `@babel/parser`).
+  The generated HTML needs no network: the graph library is vendored and inlined, so the explorer
+  opens from `file://` offline.
 - Field values (`kind`, `layer`, `lang`, `desc_source`, and the review `severity`/`rule`/`grade`
   sets) live in `scripts/core/taxonomy.py` and `scripts/review/scan_security.py` — see `templates/TAXONOMY.md`
   for the allowed values, and edit those rather than individual pages.
