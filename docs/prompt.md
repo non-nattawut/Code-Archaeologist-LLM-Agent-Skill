@@ -1505,3 +1505,47 @@ the exact/sparse split plainly, and extend `tools/check_docs.py` so the list can
 `taxonomy.LANG_BY_EXT`.
 
 Nothing implemented. `check_docs: OK`.
+
+## [46] 2026-09-09 — One shared query: mostly yes, and a packaging error corrected
+
+**Prompt**
+> we'd support the ones we've written queries for -> cant we create a 1 shared query that have
+> parameter as a lanugage name that AI can pass parameter when use script to extract
+> node/egraph/etc. from that lang
+
+**Response**
+The instinct is right and there is a standard mechanism for it, but the answer is "mostly", and
+chasing it also caught a mistake I had made last turn.
+
+**A literal single query string cannot work** — queries are written over grammar node type names,
+and those differ (`class_declaration` in Java, `class_definition` in Python, `struct_item` in Rust);
+a query naming one is a syntax error against the other. **But every `tree-sitter-<lang>` wheel
+ships a `TAGS_QUERY`** — the standard definitions/references query GitHub uses for code navigation
+— and its *capture names* are shared. Measured across Java, Python and Go: `definition.class`,
+`definition.interface`, `definition.method`, `definition.function`, `reference.call`,
+`reference.implementation`, `reference.type`, `name`, `doc`. So one consumer reading standard
+capture names does read every language, and declarations cost nothing per language.
+
+Three gaps, all measured rather than assumed, now in 2b:
+
+1. **Receiver resolution is absent.** `reference.call` says a call named `save` occurs, not that it
+   is `OrderArchive.save`. That is the whole edge problem and it stays per-language.
+2. **Coverage is uneven.** TypeScript's `TAGS_QUERY` matches only `function_signature`,
+   `method_signature` and `abstract_method_signature` — ambient declarations, not implementations —
+   so `orders.controller.ts` produced **zero** captures. Checked the query text before reporting it,
+   having twice this week mistaken a thin test file for a grammar gap.
+3. **Routes are not in tags at all.**
+
+Also recorded: `name` is ambiguous on its own — Go's captures include `ResponseWriter`, `"net/http"`
+and `byte`, because definitions and references share the capture. Pair each `@name` with the
+capture it belongs to.
+
+**And the correction.** Last turn I recommended `tree-sitter-language-pack` on the strength of
+"371 languages, 5.9 MB". That was wrong in a way I should have caught: `language_count()` returned
+**6** — the pack *downloads grammars on demand* into a user cache, so the 5.9 MB was runtime only
+and first use needs the network. Nothing vendored, which is worse than the Node route it beat.
+Switched 2a to the individual `tree-sitter-<lang>` wheels, which bundle the grammar: measured
+**9.4 MB for runtime + 5 languages**, parsing with the cache untouched. Side benefit that suits 2d
+— a supported language becomes a line in the dependency list rather than a claim in prose.
+
+`check_docs: OK`. Nothing implemented.

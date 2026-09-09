@@ -11,9 +11,9 @@
 > **Decided (2026-09-09): one production engine, tree-sitter, via the Python binding — no Node at
 > runtime.** `@babel/parser`, `js_extract.js`, `js_bridge.py`, `lang_extract.py` and the skill's own
 > `package.json` are all deleted; `ast` leaves the build path and stays only as a test oracle. Node
-> survives solely as the `npx` installer (`bin/cli.js`). The accepted cost is one
-> `pip install tree-sitter tree-sitter-language-pack` — 5.9 MB, wheels, no compiler — where the
-> skill previously needed nothing. See 2a and 2e.
+> survives solely as the `npx` installer (`bin/cli.js`). The accepted cost is
+> `pip install tree-sitter tree-sitter-<lang>` — wheels, no compiler, grammar bundled per language,
+> ~9.4 MB for five — where the skill previously needed nothing. See 2a and 2e.
 >
 > **Nothing is deleted before the port that replaces it is verified against it** — the old engine
 > is what proves the new one correct, so the deletion order in 2e is structural, not cautious.
@@ -54,7 +54,8 @@ below is something the spike printed, not something believed:
 | Java annotations / C# attributes for Spring + ASP.NET routes | **yes** — `marker_annotation` (`@RestController`), `annotation` (`@RequestMapping("/java/orders")`), `attribute` (`Route("cs/[controller]")`) |
 | Parse errors on any sample file | **none** — tsx, ts, py, java, cs all clean |
 
-**Re-run through the Python binding (`tree-sitter-language-pack`), same results:** JSX x4/x1,
+**Re-run through the Python binding, same results** (spiked via `tree-sitter-language-pack`, which
+2a then rejects for a packaging reason, not a capability one)**:** JSX x4/x1,
 all three Nest decorators, C# attributes x4, Java `interface_declaration` and the `body=NO`
 declaration-only method, Go `function_declaration` x3 in `router.go`, no parse errors anywhere.
 And the `ast` oracle run entirely in-process: **6 files, 0 disagreements.** So the Python route is
@@ -182,10 +183,18 @@ from tree_sitter_language_pack import get_parser
 tree = get_parser("java").parse(source_bytes)
 ```
 
-| | **Python: `tree-sitter` + `tree-sitter-language-pack`** | Node: `web-tree-sitter` + `.wasm` |
+**Use the per-language wheels, not `tree-sitter-language-pack`.** The pack looked ideal — 371
+languages, 5.9 MB — until `language_count()` returned **6**: it *downloads grammars on demand* into
+a user cache at first use. That means a network call at first run and nothing vendored, which is
+worse than the Node route it was beating. The individual `tree-sitter-<lang>` wheels bundle their
+grammar in the wheel: measured at **9.4 MB for runtime + 5 languages**, parsing correctly with the
+cache untouched. A supported language is then a line in the dependency list, which is exactly the
+honesty property 2d wants.
+
+| | **Python: `tree-sitter` + `tree-sitter-<lang>` wheels** | Node: `web-tree-sitter` + `.wasm` |
 | --- | --- | --- |
-| Install size | **5.9 MB** | 56 MB (4.7 runtime + 51.7 grammars) |
-| Languages available | **371** | 36 |
+| Install size | **9.4 MB** for 5 languages, grammar bundled per wheel | 56 MB (4.7 runtime + 51.7 grammars) |
+| Network at first run | **none** — grammars ship in the wheel | none |
 | Of our 18 | **18 — Groovy included** | 17 — no Groovy |
 | Integration | an `import` | subprocess + JSON bridge |
 | Version pinning | one package | runtime/grammar ABI pair; the prebuilt set is built with `tree-sitter-cli 0.20.8` and **fails to load** under `web-tree-sitter 0.27` |
@@ -208,11 +217,36 @@ exist and they have nothing to do with each other:
 So `npx github:...` still installs the skill; the skill itself never shells out to Node again.
 `bin/cli.js --self-test` stays and gets simpler: no `npm install` step, no degraded-backend path.
 
-### 2b. Per-language queries
+### 2b. One shared consumer, and where a language still costs work
 
-tree-sitter's query language means a new language is a query plus resolution rules rather than an
-extractor. With the Python binding these can be `.scm` files loaded from disk or query strings in
-Python; prefer `.scm` files so a language is data, not code. One query set per language answering: what is a class, a method, a function, a
+Every `tree-sitter-<lang>` wheel ships a **`TAGS_QUERY`** — the standard definitions/references
+query, the one GitHub uses for code navigation — and the capture names are shared across grammars.
+Measured across Java, Python and Go: `definition.class`, `definition.interface`,
+`definition.method`, `definition.function`, `reference.call`, `reference.implementation`,
+`reference.type`, `name`, `doc`.
+
+So **one consumer reading standard capture names can read every language**, and declarations cost
+nothing per language. That is the right architecture and it should be the default path.
+
+**But it does not cover everything, and three gaps are measured, not guessed:**
+
+1. **Receiver resolution is absent.** `reference.call` says "a call named `save` occurs", not
+   "it is `OrderArchive.save`". That is the entire edge-building problem and it stays per-language
+   semantics — the same conclusion as "tree-sitter equalizes parsing, not resolution".
+2. **Coverage is uneven.** TypeScript's shipped `TAGS_QUERY` matches only `function_signature`,
+   `method_signature` and `abstract_method_signature` — ambient *declarations*, not
+   implementations — so `orders.controller.ts` yields **zero** captures. Any language whose tags
+   query is thin needs our own query as a supplement.
+3. **Framework routes are not in tags at all.** `@Controller("nest/orders")`,
+   `@RequestMapping`, `[Route(...)]` have to be read from the tree directly.
+
+Also note `name` alone is ambiguous: Go's captures include `ResponseWriter`, `"net/http"` and
+`byte` because references and definitions share it. Pair every `@name` with the definition or
+reference capture it belongs to rather than reading the list flat.
+
+**So the per-language cost is: nothing for declarations where tags is good, plus resolution rules,
+plus routes, plus a supplementary query where tags is thin.** Far below the ~250 lines an extractor
+costs today, and far above zero. 2d's README rules exist because of exactly this gap. One query set per language answering: what is a class, a method, a function, a
 call, a field, an annotation/attribute.
 
 Start with the languages that already have a graph, so the port can be checked against a known
@@ -370,8 +404,8 @@ oversight — the oracle runs in tests, not at build time.
 **The cost changed when 2a chose the Python binding, and it changed for the better.** The old
 worry — "Python but no Node builds nothing" — simply stops existing, because nothing at runtime
 needs Node any more. What replaces it is smaller and more ordinary: the skill needs
-`pip install tree-sitter tree-sitter-language-pack` (5.9 MB, wheels, no compiler) where today it
-needs nothing.
+`pip install tree-sitter` plus one `tree-sitter-<lang>` wheel per supported language (no compiler,
+grammar bundled, ~9.4 MB for five) where today it needs nothing.
 
 So the promise being broken is **"zero Python dependencies"**, not "works without Node". For a
 Python tool that is the right one to give up, and the tool ends up *more* portable than before: one
@@ -525,9 +559,11 @@ a regression found and left is a failure of it.
 
 ## Cross-cutting rules (from CLAUDE.md, applied every phase)
 
-- **Two pinned Python dependencies, and no Node at runtime** (was: stdlib only with Node as the
-  single exception). `tree-sitter` and `tree-sitter-language-pack`, both installed as wheels so no
-  compiler is ever required. Nothing else may be added without the same scrutiny these two got.
+- **Pinned Python dependencies, and no Node at runtime** (was: stdlib only with Node as the single
+  exception). `tree-sitter` plus one `tree-sitter-<lang>` wheel per supported language — grammars
+  bundled, no compiler, no download at first run. Nothing else may be added without the same
+  scrutiny these got, and `tree-sitter-language-pack` is rejected on record because it fetches
+  grammars over the network at first use.
 - **Deterministic.** Same source in, same bytes out. Verified by building twice and diffing `data/`.
 - **ASCII `print()` output** (cp874 console); `console.safe_stdout()` before echoing repo text.
 - **Docs in the same commit.** Mirror-truth files (`CLAUDE.md`, `SKILL.md`, `README.md`,
