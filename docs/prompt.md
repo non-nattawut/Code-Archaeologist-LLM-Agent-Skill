@@ -1215,3 +1215,60 @@ its flags parse, including `check` and `brief` correctly shown without `--src`. 
 features, 0 remote references.
 
 Nothing to rebuild: `PRESENTATION.html` is hand-written, not generated from a template.
+
+## [40] 2026-09-09 — A new roadmap: graph as many languages as possible
+
+**Prompt**
+> [quoting my own sequencing recommendation back]
+>
+> ok wipe old plan in ROADMAP_PLAN
+>
+> then plan this into that file
+>
+> in the plan add this
+>
+> after finish do option B and port to tree-sitter engine
+> test and make sure all of old feature still work correctly with no break, if break fix it
+
+**Response**
+Checked before wiping: `ROADMAP_PLAN.md` is **not** in CLAUDE.md's append-only set. Only
+`PROJECT_HISTORY.md` and `prompt.md` are, and both carry the record of phases 0-5, so replacing the
+plan loses nothing. Said so in the new file's header rather than leaving a reader to wonder where
+six phases went.
+
+Rewrote it around the stated goal — turn a project into a graph for as many languages as possible —
+as three phases:
+
+1. **Resolve the edges the textual extractor drops.** Independent of tree-sitter and worth doing
+   either way. The anchor is exact: `MEMBER_RE` (`lang_extract.py:512`, terminator at 518) ends in
+   `\)[^;{=]*\{`, so it requires a body brace, and a Java interface method ends in `;`. That single
+   fact is why `PricingRule.price` has no node and why the edge is dropped — the receiver type is
+   already resolved and the structure map already knows the hierarchy. Also covers overloads, where
+   the plan recommends recording signatures over changing node ids, because ids are the join key
+   for seven artifacts.
+2. **Port extraction onto tree-sitter.** Vendored `.wasm` following the `force-graph` precedent
+   rather than the 51.7 MB third-party bundle; the official `tree-sitter-<lang>` npm packages are
+   ruled out in writing because they compile native code and `@babel/parser` is pure JS today.
+   Python stays on stdlib `ast` — recorded as non-negotiable, since otherwise "no Node" would mean
+   no graph at all instead of no JS/TS. `lang_extract.py` stays as the no-Node fallback, and the
+   plan makes that an explicit accepted cost rather than an accident: it *adds* a code path.
+3. **Full regression gate**, the user's explicit ask, written as a gate rather than a feature —
+   phases 1 and 2 are not done until it passes, and anything broken is fixed there, not deferred.
+   Enumerated the whole surface: six pipeline commands from two working directories, three query
+   tools with every flag, seven review passes, eleven explorer interactions, three degradation
+   modes, and every mirror-truth doc.
+
+The honest point the plan is built around, stated up front because the sequencing depends on it:
+**tree-sitter equalizes parsing, not resolution.** It cannot decide that `pricing.price()` means
+`PricingRule.price`. So the semantics get fixed first on the engine that already works, and graph
+quality after the port will split by type system rather than by grammar — statically typed
+languages get real edges, Ruby/PHP/Elixir/Lua get nodes and sparse ones. That drives a schema
+change in phase 2d: the boolean `approx` becomes a three-valued field (exact / sparse / textual)
+owned by `taxonomy.py`, surfacing in the six places I verified last turn.
+
+Checked my own citations rather than trusting them: `js_bridge.py:74` was right, `lang_extract.py`
+was off by one (511 -> 512, blank line above `MEMBER_RE`), now corrected and both re-verified by
+printing the lines the plan names. `check_docs: OK`, and the new file also fixes the old plan's
+stale `scripts/check_docs.py` path in the verification block — it is `tools/check_docs.py`.
+
+Nothing was implemented; this turn is the plan only.
