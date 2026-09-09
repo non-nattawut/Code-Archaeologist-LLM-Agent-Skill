@@ -1092,3 +1092,48 @@ Also ran: the classic-script parse of the inline block, `check_docs: OK`, the in
 including the offline assertion (no new network resources), and the deck's own script parse.
 Docs moved in the same commit — CLAUDE.md's layout rules gained the grid-column, toolbar-clamp and
 shrink-only rules; README's explorer section and the deck's explorer feature describe the controls.
+
+## [37] 2026-09-09 — Take two of the four back out
+
+**Prompt**
+> 1. remove collaspe/expandable side bar I think its un necessary just resizeable is enough
+> 2. remove explorer resize make it flex expand down til end of screen like before
+
+**Response**
+Removed both, keeping the checkbox restyle, the rail drag-resize and the folder twisty from
+entry 36.
+
+Gone with the collapse: the two header toggle buttons and their `.tbtn.rail` styling, the `lc`/`rc`
+classes and everything keyed off them, the double-click-to-hide on each grip, and `toggleRail`.
+The `RAIL` config lost its `cls` and `btn` keys and the drag handler lost its "collapsed, do
+nothing" guard.
+
+Gone with the explorer resize: the `.vrsz` grip and its markup, `sized` / `maxExplorer` /
+`sizeExplorer`, the double-click reset, and the `ResizeObserver` on the rail. `#left > .sect.grow`
+is back to plain `flex: 1` and fills to the bottom of the rail as before.
+
+**Also removed the `grid-area` pinning**, which is the part worth recording. It was not a
+free-standing improvement — it existed only because collapsing a rail hid it with `display: none`,
+which drops it out of the grid and lets auto-placement slide the survivors left. With no collapse
+there is no hidden pane and no hazard, so keeping it would have left CLAUDE.md documenting a
+failure mode the code can no longer reach. The three panes are back to auto-placement.
+
+Kept the toolbar clamp in `setRail`, because dragging can still squeeze the centre. Worth being
+plain about what it costs: the toolbar needs about 930px, so on a 1600px screen a rail can be
+narrowed to its 200px floor but barely widened at all (the drag clamped 296 -> 295 in testing).
+That is honest rather than broken — there is no room — and it only bites below roughly 1900px.
+Written into CLAUDE.md's layout rules rather than left as a surprise.
+
+Verified by diffing `viewer.html` against `9d11e2f`, the commit before entry 36: what remains is
+exactly the three intended features, and the explorer's layout rule and the `max-height: 620px`
+fallback are byte-identical to the baseline. In the browser: zero toggle buttons, no `vrsz`, no
+`sized` class, no inline height; the explorer flush to the rail bottom both before and after a rail
+drag; defaults back at 296/376; double-click on a grip now does nothing; both grips still drag; the
+twisty still collapses without touching the filter (30 rows -> 1 -> 30, filter false throughout);
+a dragged width still survives a map switch; all seven views, all three tabs and the three toolbar
+checkboxes exercised with no console errors.
+
+Also ran the classic-script parse, `check_docs: OK`, the deck's own parse (26 features, 0 remote
+refs), the full pipeline (25/22, 51/31, both grade D) and the installer self-test including the
+offline assertion. Docs rolled back with the code: CLAUDE.md's layout rules, README's explorer
+section and the deck's explorer feature and Q&A.
