@@ -69,8 +69,10 @@ file's module page.
 
 They cross the stack. Frontend `fetch`/`axios` calls are matched to backend route handlers by HTTP
 method + normalized path, so **one trace runs from a button click to the database**. Routes are
-read from FastAPI, Flask, Express and Nest; where the path does not match exactly, a unique
-suffix still links (so an `/api` mount prefix works) and an ambiguous one is left alone.
+read from seven framework shapes — FastAPI, Flask, Express, Nest, Spring, ASP.NET and the Go
+routers (gin/chi/mux) — so a React click can be traced into Java or Go, not just Python. Where the
+path does not match exactly, a unique suffix still links (so an `/api` mount prefix works) and an
+ambiguous one is left alone.
 
 ---
 
@@ -110,7 +112,8 @@ guessing. Full syntax lives in **[USAGE.md](docs/USAGE.md)**.
 | Are the maps still current? | `archaeologist.py check` |
 
 The maps drift the moment code changes. `check` hashes every source file and reports exactly what
-moved, so an agent rebuilds *before* answering rather than confidently citing a stale graph.
+moved, so an agent rebuilds *before* answering rather than confidently citing a stale graph. It
+needs no arguments — a build records the roots it scanned, and `check` and `brief` re-use them.
 
 ---
 
@@ -168,7 +171,7 @@ it or email it.
 | --- | --- |
 | **Graphs, exact** (parsed) | Python, JavaScript/TypeScript |
 | **Graphs, approximate** (read textually) | Java, Go, C# |
-| **Lines, complexity, risk scan, debt markers, test detection** | + Kotlin, Rust, Ruby, PHP, Swift, Scala, Dart, Elixir, C/C++ |
+| **Lines, complexity, risk scan, debt markers, test detection** | + Kotlin, Rust, Ruby, PHP, Swift, Scala, Groovy, Dart, Elixir, C/C++ |
 
 The two graph tiers differ in how the source is read, and the difference is visible in the output
 rather than buried in a caveat: every node and edge from the approximate tier carries
@@ -275,6 +278,7 @@ It has no npm dependencies of its own.
 │       ├── search.py
 │       └── build_html.py  -> data/explorer.html
 ├── templates/            viewer.html · wiki_page_template.md · TAXONOMY.md
+│   └── vendor/           force-graph.min.js, inlined so the explorer needs no network
 └── data/
     ├── explorer.html     both maps, one page
     ├── structure/  flow/  report/  cache/

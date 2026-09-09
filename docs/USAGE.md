@@ -39,6 +39,7 @@ biggest/most complex/most churned/riskiest nodes — instead of reading the full
 python .agents/skills/code-archaeologist/scripts/archaeologist.py brief --src ./src
 
 # same digest, other map / more rows / machine-readable
+# (--src is optional here too: the freshness line falls back to the recorded roots)
 python .agents/skills/code-archaeologist/scripts/review/brief.py --map structure --top 3
 python .agents/skills/code-archaeologist/scripts/review/brief.py --json
 ```
@@ -102,7 +103,9 @@ Freshness, changeset impact, and the deterministic smell checks:
 
 ```bash
 # freshness: are the maps stale vs the current source? (rebuild if so)
+# --src is optional -- without it, the roots the last build recorded are re-used
 python .agents/skills/code-archaeologist/scripts/archaeologist.py check --src ./src
+python .agents/skills/code-archaeologist/scripts/archaeologist.py check
 
 # changeset blast-radius: what does my current git diff affect?
 python .agents/skills/code-archaeologist/scripts/query/trace_path.py \

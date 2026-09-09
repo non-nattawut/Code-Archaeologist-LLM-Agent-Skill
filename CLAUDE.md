@@ -35,7 +35,7 @@ archaeologist.py  project | flow | both | check | report | brief   <- the only e
                          + duplicates)
                                                                     -> data/report/<map>/
   brief    -> brief.py (reads the artifacts above, computes nothing)
-  check    -> manifest.py (source hashes vs last build)
+  check    -> manifest.py (source hashes vs last build; --src optional, roots recorded)
                                                             \-> build_html.py -> data/explorer.html
 ```
 

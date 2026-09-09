@@ -174,9 +174,9 @@
     <div class="eyebrow">At a glance</div>
     <div class="stats">
       <div class="stat"><div class="v">2</div><div class="l">Graphs</div></div>
-      <div class="stat"><div class="v">23</div><div class="l">Scripts</div></div>
+      <div class="stat"><div class="v">25</div><div class="l">Scripts</div></div>
       <div class="stat"><div class="v">7</div><div class="l">Explorer views</div></div>
-      <div class="stat"><div class="v">16</div><div class="l">Languages scanned</div></div>
+      <div class="stat"><div class="v">17</div><div class="l">Languages scanned</div></div>
       <div class="stat"><div class="v">0</div><div class="l">Python deps</div></div>
       <div class="stat"><div class="v">1</div><div class="l">HTML file out</div></div>
     </div>
@@ -267,7 +267,7 @@
       <tr><th>Goal</th><th>Command</th></tr>
       <tr><td class="k">Build both maps</td><td><code>archaeologist.py both --src ./src</code></td></tr>
       <tr><td class="k">Full review report</td><td><code>archaeologist.py report --src ./src</code></td></tr>
-      <tr><td class="k">Are the maps stale?</td><td><code>archaeologist.py check --src ./src</code></td></tr>
+      <tr><td class="k">Are the maps stale?</td><td><code>archaeologist.py check</code></td></tr>
       <tr><td class="k">Orient on a repo</td><td><code>archaeologist.py brief</code></td></tr>
       <tr><td class="k">Find a node</td><td><code>search.py --name X</code></td></tr>
       <tr><td class="k">Connect two nodes</td><td><code>trace_path.py --from A --to B</code></td></tr>
@@ -355,7 +355,7 @@ const FEATURES = [
     cmd:"archaeologist.py flow --src ./backend ./frontend",
     qa:[
       ["Why does this matter?","It is the join most tools miss. Without it you have two disconnected graphs; with it a single trace runs from a button click all the way to the database row."],
-      ["Which frameworks are covered?","FastAPI, Flask, Express and Nest. Flask’s <code>methods=[...]</code> and stacked decorators mean one handler can serve several routes, so a node carries a <em>list</em> of them. The matching itself is framework-neutral once a route is recognised."],
+      ["Which frameworks are covered?","Seven route shapes across all three language tiers: FastAPI, Flask, Express, Nest, Spring (<code>@RequestMapping</code> + <code>@GetMapping</code>), ASP.NET (<code>[Route(\"[controller]\")]</code>) and the Go routers (gin/chi/mux). Flask’s <code>methods=[...]</code> and stacked decorators mean one handler can serve several routes, so a node carries a <em>list</em> of them. The matching itself is framework-neutral once a route is recognised, which is why a React click can be traced into Java or Go and not only into Python."],
       ["What if the path does not match exactly?","It falls back to a route whose path is a suffix of the call’s — which is how a mount prefix like <code>/api</code> still links — but only when exactly one route matches. An ambiguous path is left unlinked rather than guessed."]
     ]
   },
@@ -548,12 +548,13 @@ const FEATURES = [
   {
     id:"stale", cat:"trust", title:"Staleness guard",
     d:"Detects when the maps no longer match the source — before you trust them.",
-    how:"Every build records a SHA-1 of every source file it scanned, keyed by a portable relative path. <code>check</code> re-scans and reports exactly what was added, changed or deleted. Content hashing is used rather than timestamps, so a fresh clone or a touched file does not produce a false alarm.",
-    tech:["SHA-1 content hashing","Portable relative keys","Added/changed/deleted diff"],
-    cmd:"archaeologist.py check --src ./src",
+    how:"Every build records the roots it scanned and a SHA-1 of every source file under them, keyed by a portable relative path. <code>check</code> re-scans and reports exactly what was added, changed or deleted. Content hashing is used rather than timestamps, so a fresh clone or a touched file does not produce a false alarm.",
+    tech:["SHA-1 content hashing","Portable relative keys","Added/changed/deleted diff","Recorded roots"],
+    cmd:"archaeologist.py check",
     qa:[
       ["Why is this the most important feature?","Because every other answer depends on it. A confident trace over a stale graph is worse than no answer at all — it is wrong and it looks right."],
-      ["Why hashes and not modification times?","Timestamps change on checkout, on branch switches, on any file copy. Content hashing only fires when the content genuinely differs."]
+      ["Why hashes and not modification times?","Timestamps change on checkout, on branch switches, on any file copy. Content hashing only fires when the content genuinely differs."],
+      ["Do you have to repeat --src every time?","No. The build records its roots in the manifest, so <code>check</code> and <code>brief</code> re-use them. This was a real bug: the flag used to default to <code>./src</code>, so running <code>brief</code> without it scanned a directory that did not exist, found nothing, and reported every file as deleted — a confident <em>false</em> STALE in the one command an agent is told to trust. A root that has genuinely moved now reports <em>source root(s) not found from here</em> instead of inventing a deletion list."]
     ]
   },
   {

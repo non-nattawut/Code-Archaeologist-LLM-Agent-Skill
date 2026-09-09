@@ -76,7 +76,8 @@ as on a 5-file one, so use it instead of reading `architecture_report.json`.
 ```bash
 python .agents/skills/code-archaeologist/scripts/archaeologist.py brief --src ./src
 ```
-`--map structure` switches the detail sections, `--top N` sizes them, `--json` for tooling.
+`--map structure` switches the detail sections, `--top N` sizes them, `--json` for tooling. `--src`
+is optional here too — without it the freshness line uses the roots the last build recorded.
 
 ### 2. Build the Project Structure map
 ```bash
@@ -169,7 +170,10 @@ architecture without the suite hanging off it.
 Returns `{stale, changed, added, deleted}`. Rebuild if `stale`.
 ```bash
 python .agents/skills/code-archaeologist/scripts/archaeologist.py check --src ./src
+python .agents/skills/code-archaeologist/scripts/archaeologist.py check              # same roots as the last build
 ```
+`--src` is optional: the build records its roots, so the check re-uses them. If a root has moved
+you get `source root(s) not found from here` rather than a false "everything was deleted".
 
 ### 10. Architectural smells & health grade
 Cycles, orphans/dead nodes, backwards layer violations, high-coupling hubs, god objects,
