@@ -902,3 +902,129 @@ Verified: compileall, full pipeline (structure 25/22 D(69), flow 51/31 D(68), 16
 0 pending, 1 duplicate cluster, `stale: false`), `check_docs: OK`, installer self-test including
 the offline assertion, and determinism — built twice and diffed `data/`, identical apart from the
 report timestamps.
+
+## [34] 2026-09-09 — Integrity pass: a false STALE, and three stale doc claims
+
+**Prompt**
+> so now all phase and ROADMAP are finieshed right?
+>
+> check integraty/bug of project if finish update PRESENTATION.html and README.md to latest then commit and push
+
+**Response**
+Confirmed: all six roadmap phases are done, `f2a0f23` is the head, local and remote in sync.
+
+Ran the integrity sweep: `compileall`, `check_docs`, the full pipeline against `sample_src`,
+`check`, the installer self-test, the offline assertion, a `viewer.html` classic-script parse,
+`npm pack --dry-run`, a scan of `data/` for leaked absolute paths, and a script-import layering
+check (`core` imports nothing; `extract`/`review`/`query` each import only `core`; no cycles).
+Every expected number in CLAUDE.md matched: 25/22 and 51/31, 16 endpoints, 0 pending, D(69)/D(68),
+528 lines across 22 files, 1 duplicate cluster / 4 duplicated lines, 12 and 23 `approx` nodes.
+
+**One real bug, in the command the agent is told to trust most.** `brief` reported
+`STALE (0 changed, 0 added, 22 deleted)` while `check --src ./sample_src` reported up to date.
+Cause: `archaeologist.py` gave `--src` a default of `["./src"]` and always forwarded it, so
+`brief` with no arguments scanned a directory that does not exist, found zero files, and concluded
+every recorded file had been deleted. `brief.py` itself handled the no-roots case correctly — the
+entrypoint defeated it by never passing None. README documents both `archaeologist.py brief` and
+`archaeologist.py check` without `--src`, so the documented path produced a confident false STALE,
+which under SKILL.md rule 1 means rebuilding every session.
+
+Fix, in three files:
+- `manifest.write` now records `roots` (via `rel_roots`, so they stay portable) alongside `files`.
+- `manifest.compare` takes no roots and falls back to the recorded ones, and — separately — returns
+  `source root(s) not found from here` when a root does not resolve, instead of reporting every
+  file as deleted. That second guard is the actual defect class: the tool asserted a fact it had no
+  evidence for.
+- `archaeologist.py` defaults `--src` to None and only forwards it when given; `brief.py`'s
+  `_freshness` no longer short-circuits on empty roots.
+
+Verified with four negative tests, because a guard that swallows real staleness would be worse than
+the bug: a missing root reports the new message with `deleted: 0`; an edited file is still reported
+as changed; a new file as added; and a genuinely deleted file is still reported as deleted (the
+guard fires on a missing *root*, not a missing file). Then back to `up to date` after reverting.
+
+**Three stale doc claims**, all found by checking rather than assuming:
+- README said routes are read from "FastAPI, Flask, Express and Nest". Since phase 3 it is seven
+  shapes — Spring, ASP.NET and the Go routers too. Enumerating the built graph confirmed routes on
+  Java, C# and Go nodes. The same sentence was wrong in PRESENTATION.html's Q&A.
+- The deck's "Scripts" tile said 23. The real count is 25 (2 root + 3 core + 7 extract + 9 review
+  + 4 query). Worth recording that I updated this tile from 22 to 23 in phase 6 and it was still
+  wrong — I corrected a number without counting, which is the same error the tile represents.
+- The deck's "Languages scanned" tile said 16, matching README's table, but `taxonomy.LANG_BY_EXT`
+  also covers Groovy. Added Groovy to README's table and set the tile to 17.
+
+Also added `templates/vendor/` to README's structure tree — missing since phase 4 — and documented
+the optional `--src` in SKILL.md (§1 and §9), `docs/USAGE.md`, CLAUDE.md's pipeline line, and the
+deck's staleness feature, where the bug itself is now written up as an audience question.
+
+Determinism held: after all edits, `data/explorer.html` and both graphs are byte-identical to what
+was committed, and every report diff is a timestamp. Installer self-test passes, including the
+degraded backend-only path (19/19, 36/22) with its `frontend skipped` warning.
+
+Committed as two jobs: the fix, then the doc-accuracy pass.
+
+## [35] 2026-09-09 — A second false-confidence bug, and the unused-file sweep
+
+**Prompt**
+> continue this
+>
+> so now all phase and ROADMAP are finieshed right?
+>
+> check integraty/bug of project if finish update PRESENTATION.html and README.md to latest then commit and push
+>
+> also remove unused file
+
+**Response**
+Resumed with entry 34's work still uncommitted — the previous session hit its limit after writing
+the log but before committing. Entry 34 ends "Committed as two jobs"; it ended up being three, and
+this entry supersedes that line rather than editing it.
+
+**Confirmed the roadmap is finished**: all six phases, `f2a0f23` at head, local and remote in sync.
+
+**A second bug of the same class as entry 34's.** Testing the no-manifest path — what a fresh
+install has — `check` correctly said `no manifest — maps have never been built`, but `brief`
+rendered it as `STALE (0 changed, 0 added, 0 deleted)`: three zeros contradicting the verdict, with
+the actual reason discarded. Same defect as the false STALE, one layer up — the digest asserting a
+shape of fact it had no evidence for. `brief` now prints the reason when no per-file count explains
+the verdict, and prints no parenthetical at all when the maps are up to date (it was emitting
+`up to date (up to date)`).
+
+Worth recording: entry 34 wrote into `PRESENTATION.html` that a moved root "now reports *source
+root(s) not found from here*". That was true of `check` but **not** of `brief`, which swallowed the
+reason. The deck was ahead of the code by one turn; today's fix makes the claim true of both.
+
+**A constraint-5 violation found by the same test.** The reason strings in `manifest.py` used an em
+dash, so `brief` printed `no manifest � maps have never been built` on this cp874 console. Both
+reasons are ASCII now. `check` never showed it because JSON escapes the character — the bug was
+only visible through the command that prints to a terminal.
+
+Verified all four freshness paths: no manifest, missing root, genuinely changed file (1 changed),
+and clean (up to date), with a real edit and restore of `sample_src/backend/order_service.py` to
+prove the guard does not mask true staleness.
+
+**Unused files.** Checked rather than guessed — `wiki_page_template.md` looked like a candidate but
+`build_wiki.py:335` actually opens it. What was genuinely dead:
+
+- `data/structure/vault/.gitkeep` — the only one in the repo, in a directory holding 25 committed
+  files, and `build_wiki.py:402` creates the directory itself with `makedirs(exist_ok=True)`. The
+  flow `notes/` directory has no `.gitkeep` and works, which is the asymmetry that gave it away.
+  Confirmed by rebuilding: the vault comes back with 25 files without it.
+- `design/Blueprint.dc.html`, `design/FieldNotes.dc.html` — rejected design directions. `canvas.json`
+  lists only `Current` and `Main`, so the design skill never renders these two, and no doc mentions
+  `design/` at all. The decision they informed is already recorded in `canvas.json`'s annotation
+  ("Decided: direction A, Instrument") and in this log. Removed, and recoverable from git history —
+  flagged to the user rather than buried, since it is design work and a judgment call.
+- 20 orphaned `.pyc` in `scripts/__pycache__/`, left over from the category reorganisation — every
+  one without a source file. Gitignored, so untracked clutter rather than a repo change. Harmless
+  (a `.pyc` inside `__pycache__` is not importable without its source) but dead.
+- `.idea/claudeCodeTabState.xml` was dangling untracked; added to `.idea/.gitignore` as per-machine
+  editor state.
+
+Not removed, deliberately: `docs/ROADMAP_PLAN.md` (a record of what was planned, like
+`PROJECT_HISTORY.md`), and the tracked JetBrains project files, which the IDE uses.
+
+Verified after all of it: `compileall`, `check_docs: OK`, the full pipeline matching every CLAUDE.md
+number (25/22 D(69), 51/31 D(68), 16 endpoints, 0 pending, 528 lines across 22 files, 1 duplicate
+cluster / 4 duplicated lines, tests 4/47), the installer self-test including the degraded
+backend-only path (19/19, 36/22) and the offline assertion, and determinism — every diff under
+`data/` was a timestamp, so that churn was reverted rather than committed.
