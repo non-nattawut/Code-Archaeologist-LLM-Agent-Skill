@@ -18,6 +18,10 @@
 > **Nothing is deleted before the port that replaces it is verified against it** — the old engine
 > is what proves the new one correct, so the deletion order in 2e is structural, not cautious.
 >
+> **Read "Open concerns" before writing code.** Eight items, none blocking, all of them cheaper to
+> decide now than to discover mid-port — node id collisions across twenty languages and the
+> unproven resolution parity being the two that would hurt most.
+>
 > The six phases of the previous roadmap are finished and this file has been rewritten for the
 > next goal. Their record is **not** lost: `docs/PROJECT_HISTORY.md` carries the narrative and
 > `docs/prompt.md` carries the turn-by-turn log, and both are append-only. Only this file — a
@@ -216,6 +220,26 @@ exist and they have nothing to do with each other:
 
 So `npx github:...` still installs the skill; the skill itself never shells out to Node again.
 `bin/cli.js --self-test` stays and gets simpler: no `npm install` step, no degraded-backend path.
+
+#### Grammars are installed on demand, not all up front
+
+A base install carries `tree-sitter` plus a small core set. When the agent meets a language it has
+no grammar for, **`SKILL.md` tells it to install that one wheel** rather than the skill shipping
+twenty. The language list becomes a per-repo cost instead of a fixed one, and a repo that is pure
+Go never pays for Scala.
+
+Requirements on that instruction, because an agent running `pip install` is a real action on the
+user's machine:
+
+- **Name the exact package** (`pip install tree-sitter-ruby`) and say it is one wheel, no compiler.
+- **Ask before installing**, or tell the user the command — do not have the agent install silently.
+- **Degrade clearly**: a file whose grammar is absent is *skipped with a named warning*, never
+  silently dropped. The build still succeeds, exactly as JS/TS skipping does today.
+- **Record what was available in the manifest.** This is the determinism problem returning in a new
+  costume: the same repo on two machines with different grammars installed yields different graphs.
+  `manifest.py` must record the grammar set alongside the source hashes, `check` must report a
+  change in it as staleness, and `brief` must say which languages were skipped. A graph that is
+  smaller because a wheel was missing must never look like a graph of a smaller codebase.
 
 ### 2b. One shared consumer, and where a language still costs work
 
@@ -556,6 +580,61 @@ anything that broke and how it was fixed. A regression found and fixed is the po
 a regression found and left is a failure of it.
 
 ---
+
+## Open concerns — review these before implementing
+
+Collected while planning, none of them blocking, all of them things that will bite if nobody
+decides them deliberately. Ordered by how much damage they do if ignored.
+
+**1. Resolution parity is unproven.** The spikes proved *declaration* parity for Python (oracle:
+6 files, 0 disagreements) and the presence of every node type the routes need. They did **not**
+prove *resolution*: `build_flow.py` uses `ast` at 41 call sites for `__init__` type hints,
+assignments, typed params and locals. That is the bulk of what `ast` actually does here. Standard
+CST work, but nobody has demonstrated it, and step 5 of the deletion order is where it has to hold.
+Spike it before starting 2c, not after.
+
+**2. Node id collisions get worse with every language.** `CLAUDE.md` already records that two
+classes sharing a name across languages collide in `build_flow.py` — last wins — and that the
+sample dodges it by naming the polyglot services for different slices of the domain. At six
+languages that is a documented wart. At twenty it is a bug: `Client`, `Config`, `Handler`, `User`
+and `Server` will collide constantly in any real polyglot repo. Decide the id scheme (language
+prefix? file-relative?) **before** porting, because node ids are the join key for metrics, security
+findings, churn, notes, the vault and the explorer, and changing them later means regenerating
+every artifact.
+
+**3. `metrics.py` needs a per-language branch table.** Cyclomatic complexity counts branch nodes.
+On `ast` that is a fixed set of typed nodes; on a CST it is a per-grammar list of node type names
+(`if_statement`, `while_statement`, `case_clause`, `catch_clause`, …), and they differ per language.
+So "port `metrics.py` to the CST" is not one job — it is one small table per language, and a
+language with no table silently reports complexity 1 for everything. Guard it in 2g's fixtures.
+
+**4. Byte offsets, not character offsets.** tree-sitter operates on bytes and returns byte ranges;
+the current extractors read text with `errors="replace"` and count characters. Any file with
+non-ASCII content will shift line/column numbers unless the conversion is deliberate. Every
+artifact keyed by `source: file:line` — the vault, security findings, churn, duplicates — depends
+on that number being right. Add a non-ASCII file to 2g's fixtures.
+
+**5. Grammar versions drift independently.** Each `tree-sitter-<lang>` wheel is versioned on its
+own, and a grammar release can rename node types. A query written against the old names then
+matches nothing, silently, and the language quietly reports zero nodes. Pin every grammar version
+exactly, and let 2g's fixture runner be the thing that catches a bad upgrade — that is its main
+long-term job, more than proving the initial port.
+
+**6. The explorer needs colours and taxonomy entries for eleven new languages.** `LANG_COLORS` in
+`viewer.html` and the language table in `README.md` both enumerate languages. The colour rules in
+`CLAUDE.md` require a distinguishable colour per value, added in the same commit as the value —
+and eleven more is enough that "pick something distinguishable on a dark background" stops being
+easy. Consider whether the legend should group rather than list.
+
+**7. Performance is unmeasured.** Twenty grammars over a large repo, all in-process now. Probably
+fine — tree-sitter is fast and the subprocess overhead disappears — but nobody has timed it, and
+the skill's value proposition is that it is cheaper than reading the source. Measure once on a real
+repo before claiming anything.
+
+**8. JSX/`component` detection is bespoke logic that must survive the port.** The `kind: component`
+/ `layer: ui` classification is "a function that returns JSX", currently done on Babel's AST. The
+spike proved the CST exposes `jsx_element`, but the *classification rule* is ours and has to be
+re-implemented, not just re-queried. It is exercised by `OrderCard` and `StatusBadge`.
 
 ## Cross-cutting rules (from CLAUDE.md, applied every phase)
 

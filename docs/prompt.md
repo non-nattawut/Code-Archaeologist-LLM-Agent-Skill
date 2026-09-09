@@ -1549,3 +1549,49 @@ Switched 2a to the individual `tree-sitter-<lang>` wheels, which bundle the gram
 — a supported language becomes a line in the dependency list rather than a claim in prose.
 
 `check_docs: OK`. Nothing implemented.
+
+## [47] 2026-09-09 — Grammars on demand, and eight concerns for review
+
+**Prompt**
+> and if you concern about lanuageu so just tell in skill.md to let AI install more language bundle
+> / update te plan / and if you have any more concern save into the plan too and I will review it
+> during implementable / dont implement yet
+
+**Response**
+Added both. No code.
+
+**On-demand grammars.** A base install carries `tree-sitter` plus a core set; when the agent meets
+a language it has no wheel for, `SKILL.md` tells it to install that one. The language list becomes
+a per-repo cost rather than a fixed one — a pure-Go repo never pays for Scala. Wrote four
+requirements around it, because an agent running `pip install` is a real action on someone's
+machine: name the exact package, ask rather than install silently, skip an unsupported file with a
+*named* warning instead of dropping it, and — the one that matters most — **record the available
+grammar set in the manifest**.
+
+That last one is the determinism problem returning in a new costume, and it took a moment to spot:
+the same repo on two machines with different grammars installed produces different graphs. So
+`manifest.py` records the grammar set beside the source hashes, `check` treats a change in it as
+staleness, and `brief` says which languages were skipped. A graph that is smaller because a wheel
+was missing must never look like a graph of a smaller codebase.
+
+**Eight open concerns**, ordered by damage if ignored, in a new section flagged from the header:
+
+1. Resolution parity unproven — the spikes proved *declarations*, not the 41 `ast` call sites doing
+   `__init__` type hints and typed locals. Spike before 2c.
+2. **Node id collisions get worse with every language.** Already a documented wart at six languages
+   (last wins); at twenty, `Client`, `Config`, `Handler`, `User` collide constantly in any real
+   polyglot repo. Ids are the join key for seven artifacts, so the scheme must be decided *before*
+   porting.
+3. `metrics.py` needs a per-language branch-node table for cyclomatic complexity — a missing table
+   silently reports complexity 1 for everything.
+4. Byte offsets vs character offsets: tree-sitter is byte-based, the current readers count
+   characters, and every `file:line` key depends on getting that right. Wants a non-ASCII fixture.
+5. Grammar versions drift independently and can rename node types, so a query silently matches
+   nothing. Pin exactly; 2g's runner is the long-term guard, more than the initial port.
+6. Eleven new languages need `LANG_COLORS` entries and README table rows, under a colour rule that
+   demands distinguishable values on a dark background.
+7. Performance unmeasured.
+8. JSX/`component` classification is our rule, not a query — the CST exposes `jsx_element`, but
+   "a function that returns JSX" has to be re-implemented rather than re-queried.
+
+`check_docs: OK`.
