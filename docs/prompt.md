@@ -1177,3 +1177,41 @@ Also ran the classic-script parse, `check_docs: OK`, the deck parse (26 features
 the full pipeline (25/22, 51/31, both grade D) and the installer self-test with its offline
 assertion. Docs in the same commit: CLAUDE.md's layout rules record why the reset deletes
 coordinates and why it shares the existing button, and README and the deck describe the control.
+
+## [39] 2026-09-09 — Auditing the honest-limitations section
+
+**Prompt**
+> [the eight "Honest limitations" entries, quoted in full]
+>
+> I think our PRESENTATION.html is not up to date right? if yes please make it up to date
+
+**Response**
+Checked every claim against the code rather than reading for plausibility. Six of the eight were
+accurate. Two had drifted, and both understated the limitation — which is the failure mode that
+matters for a section whose whole purpose is not overselling.
+
+**"The remaining ten languages get the review passes, not a graph."** Counted from
+`taxonomy.LANG_BY_EXT`: 19 distinct values, 17 languages once `jsx`/`tsx` are folded into `js`/`ts`
+(the same count as the deck's own "Languages scanned" tile, so the two now agree by construction).
+Three are exact and three approximate, leaving **eleven**, not ten. Stale since Groovy was added.
+Now reads "the remaining eleven of the seventeen languages", which ties it to the tile.
+
+**"The JS extractor now records an end line."** So does `lang_extract.py` — CLAUDE.md already said
+both do. The consequence was understated too: the entry blamed only "frontend files", but
+`node_metrics` is an `ast.parse`, so Java, Go and C# have no per-node metrics either. Rewritten to
+name all four and to say what is actually lost — no complexity figure, and no place in the "most
+complex" ranking.
+
+Also corrected in the same entry: the approximate tier's `approx: true` was described as surfacing
+in "the graph, the report, the context pack and the explorer". It is six places, not four —
+`build_wiki.py` writes it into the vault note's front-matter and `brief.py` reports it per map.
+Verified by grepping the five scripts plus `viewer.html` and confirming it in a built vault note.
+
+Checked the rest of the deck while there, since the question was about the file and not just that
+section. Every stat tile still holds: 2 graphs, **25** scripts (counted), 7 explorer views (from
+`VIEWS` in `viewer.html` — a `data-view` grep returns 0 because the buttons are generated at
+runtime), 17 languages, 0 Python deps, 1 HTML file out. Every command in the cheat sheet exists and
+its flags parse, including `check` and `brief` correctly shown without `--src`. 8 limitations, 26
+features, 0 remote references.
+
+Nothing to rebuild: `PRESENTATION.html` is hand-written, not generated from a template.
