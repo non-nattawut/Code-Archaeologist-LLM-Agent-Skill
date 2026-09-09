@@ -1412,3 +1412,47 @@ stake now: "the only thing genuinely at stake is whether a machine without Node 
 Python graph; everything else favours one engine."
 
 `check_docs: OK`. Nothing implemented.
+
+## [44] 2026-09-09 — One engine, decided; and the deletion order is structural
+
+**Prompt**
+> [after I explained what "a machine with Python but no Node can no longer build anything" means]
+>
+> bro but we will eventually port it to tree sitter
+>
+> then remove babell and ast after port is sound reasonably for you?
+
+**Response**
+Yes, and the framing is better than the one I had. I had been treating "keep or remove `ast`" as a
+decision to settle *before* 2b. It is really a **sequencing** question, and the sequencing answers
+itself for a reason I had not articulated:
+
+**The old engine is what verifies the new one.** `ast` *is* the differential oracle that proves the
+Python port correct — the one that caught the `decorated_definition` bug last turn. `js_extract.js`
+is the reference the JS/TS port gets diffed against. `lang_extract.py` is the reference for
+Java/Go/C#. None of them can be deleted before the port it validates, so they go last **by
+construction**, not out of caution. Wrote that into 2e as a six-step deletion table where each row
+names what must be verified before the corresponding removal.
+
+Marked 2e **decided**: one production engine, tree-sitter; `@babel/parser`, `js_extract.js` and
+`lang_extract.py` deleted; `ast` out of the build path and retained only as the oracle. Recorded
+the accepted cost plainly rather than burying it — a machine with Python but no Node builds nothing
+at all, where today it still gets a Python graph — and listed the five things that must land in the
+same commit as that removal, because it reverses a stated promise: hard constraint 1, `SKILL.md:39`,
+the README headline and Requirements table, `metrics.py`'s port to the CST, and the deck.
+
+Also recorded the two arguments I made *against* this decision as **withdrawn**, in the plan text
+itself, so a future session does not re-litigate them from my own words: determinism was backwards
+(one engine always is strictly more deterministic than two possible ones), and the metrics argument
+is a wash because CST complexity is needed for the other languages regardless.
+
+Two consequences fell out and are now in the plan: 2f becomes "`lang_extract.py` is deleted, not
+kept as a fallback" (step 2 of the order), and 2d's tier field drops from three values to two —
+`textual` dies with `lang_extract.py`, leaving `exact` / `sparse`.
+
+Still unproven and flagged as such: the spike proved **declaration** parity for Python, not
+**resolution** parity. `build_flow.py` uses `ast` at 41 call sites for `__init__` type hints,
+assignments and typed locals. Standard CST work, but nobody has demonstrated it, and step 5 of the
+deletion order is where that has to hold.
+
+`check_docs: OK`. Nothing implemented.

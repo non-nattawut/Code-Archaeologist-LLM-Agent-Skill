@@ -5,14 +5,16 @@
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
 > | 1 — Resolve the edges the textual extractor drops | semantics, no new dependency | not started | |
-> | 2 — Port extraction onto a tree-sitter engine, remove `@babel/parser`, fixture every language | the structural change | not started | |
+> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | not started | |
 > | 3 — Full regression gate: nothing old may break | verification | not started | |
 >
-> **One decision is open and blocks 2b: does Python keep stdlib `ast` as a build-time parser, or
-> does everything move to a single engine with `ast` retained as a test oracle?** Capability is
-> proven either way — see the spike results. The only thing genuinely at stake is whether a machine
-> without Node can still build a Python graph; everything else favours one engine. Recorded in 2e.
-> Settle it before writing code, not during.
+> **Decided (2026-09-09): one production engine, tree-sitter.** `@babel/parser`, `js_extract.js`
+> and `lang_extract.py` are deleted; `ast` leaves the build path and stays only as a test oracle.
+> The accepted cost is that a machine with Python but no Node builds nothing at all, where today it
+> still gets a Python graph. See 2e.
+>
+> **Nothing is deleted before the port that replaces it is verified against it** — the old engine
+> is what proves the new one correct, so the deletion order in 2e is structural, not cautious.
 >
 > The six phases of the previous roadmap are finished and this file has been rewritten for the
 > next goal. Their record is **not** lost: `docs/PROJECT_HISTORY.md` carries the narrative and
@@ -218,19 +220,39 @@ Two tiers no longer describe reality. After the port there are three kinds of no
 | --- | --- | --- |
 | exact | parsed, receivers resolvable through declared types | Python, Java, C#, Go, Kotlin, Rust, TS |
 | sparse | parsed exactly, but the source carries no types to resolve against | Ruby, PHP, Elixir, Lua |
-| textual | the `lang_extract.py` fallback, when Node is absent | Java, Go, C# on a degraded build |
 
-Replace the boolean `approx` with one three-valued field owned by `taxonomy.py`. It surfaces in
+Two values, not three: the `textual` tier dies with `lang_extract.py` (2f). Replace the boolean
+`approx` with this field, owned by `taxonomy.py`. It surfaces in
 **six** places, all of which must move together: the graph, the vault note's front-matter
 (`build_wiki.py`), `context.py`, `report.py`, `brief.py`, and the chip in `templates/viewer.html`.
 `TAXONOMY.md` documents the values; `tools/check_docs.py` already enforces that.
 
-### 2e. Python and `ast` — an open decision, not a foregone one
+### 2e. One engine — decided
 
-The stated goal is **one engine**. Capability is not the obstacle: the spike parsed
-`order_service.py` cleanly (`function_definition`, `class_definition`, `call`, `attribute`, no
-errors). So this is a trade, not a blocker, and it needs deciding before 2b starts rather than
-during it.
+**The end state is a single production parser: tree-sitter.** `@babel/parser` and `js_extract.js`
+are deleted. `ast` is deleted from the build path and retained *only* as the differential oracle
+below. Decided 2026-09-09; the trade accepted is spelled out under "What this costs".
+
+Capability was never the obstacle — the spike parsed `order_service.py` cleanly
+(`function_definition`, `class_definition`, `call`, `attribute`, no errors).
+
+#### Nothing is deleted before its replacement is proven — and that ordering is structural
+
+This is not caution, it is the only order that works: **the old engine is what verifies the new
+one.** `ast` *is* the oracle that proves the Python port correct, and `js_extract.js` is the
+reference the JS/TS port gets diffed against. Neither can be removed before the port it validates.
+So the sequence is forced:
+
+| Step | Delete | Only after |
+| --- | --- | --- |
+| 1 | nothing | Java / Go / C# ported and matching phase-1 numbers |
+| 2 | `lang_extract.py` | step 1 verified |
+| 3 | nothing | JS/TS ported; output diffed against `js_extract.js` — 6 nodes, `OrderCard` + `StatusBadge` as `kind: component`, Nest and Express routes, the suffix-fallback match |
+| 4 | `@babel/parser`, `js_extract.js` | step 3 verified |
+| 5 | nothing | Python ported; the `ast` oracle reports **0 disagreements** across `sample_src` |
+| 6 | `ast` **from the build path only** | step 5 verified — the oracle itself stays forever |
+
+A port that cannot be verified against the thing it replaces does not get to delete it.
 
 **A correction to an argument made earlier in this plan's own history:** determinism was cited
 against removing `ast`. That was wrong-headed. The determinism hazard is having *two possible*
@@ -293,29 +315,48 @@ So Python ends up with the **strongest** test of any language, at zero runtime c
 languages, which have no oracle available, are exactly the ones that need 2g's hand-written
 fixtures. The two mechanisms are complementary rather than alternatives.
 
-**What this option does not do:** it does not rescue the zero-install property. With tree-sitter as
-the only production engine, no Node still means no graph — the oracle runs in tests, not at build
-time. That trade is unchanged and is still the decision below.
+**The oracle does not rescue the zero-install property**, and that is the accepted cost, not an
+oversight — the oracle runs in tests, not at build time.
 
-**If the decision is one engine (with the oracle)** — a legitimate call, and the user's to make —
-then this phase additionally: rewrites hard constraint 1 in `CLAUDE.md`, deletes the degradation instruction
-in `SKILL.md`, corrects the README headline and the Requirements table, ports `metrics.py` to the
-CST, and drops 2f entirely (no fallback engine to keep in sync). Record the decision here before
-starting 2b; do not let it be settled by whichever code gets written first.
+#### What this costs, accepted knowingly
 
-### 2f. `lang_extract.py` as the no-Node fallback — only if 2e keeps `ast`
+One thing is lost: **a machine with Python but no Node can no longer build anything.** Today it
+still gets a Python graph with JS/TS skipped; afterwards it gets an empty result. The documented
+install path is already `npx`, which *is* Node, so anyone installing the normal way is unaffected;
+it bites only someone who obtained the files another way — a copied folder, a vendored checkout —
+onto a Python-only machine.
 
-Moot if 2e chooses one engine: with no Python fallback there is no point keeping a Java one.
+Because that reverses a stated promise rather than an incidental detail, step 6 above must land in
+the same commit as all of:
 
-If `ast` stays, then keeping `lang_extract.py` means this phase **adds** a code path rather than
-replacing one. The question is sharper than "do the two engines agree?" — it is a **determinism**
-question. Two engines for the same Java file means the same source produces different graphs
-depending on whether Node is installed. That is worse than today's situation, where no Node means
-JS/TS are simply *absent*: a subset, not a different answer.
+- **`CLAUDE.md` hard constraint 1** rewritten — Node stops being "the single exception" and becomes
+  a requirement.
+- **`SKILL.md:39`** deleted: "If Node itself is missing, do not stop — build anyway" becomes false.
+- **README** — the "the Python side has **zero dependencies**" headline and the Requirements table
+  both corrected.
+- **`metrics.py`** ported to the CST (its 15 `ast.` call sites). This is not extra work created by
+  the decision: CST complexity is needed for the other languages regardless.
+- **`docs/PRESENTATION.html`** — the requirements/architecture claims.
 
-The mitigation is the tier field from 2d: every node records which engine produced it, so the
-difference is visible in the artifact rather than silent. Plus a test that runs both engines over
-`sample_src` and diffs the node sets.
+Two arguments made earlier against this decision are recorded as **withdrawn**, so nobody
+re-litigates them from the plan's own text:
+
+- *Determinism* — backwards. The hazard is having two *possible* engines for one language; one
+  engine always is strictly more deterministic. Determinism argues **for** consolidation.
+- *Metrics* — a wash, per the `metrics.py` bullet above.
+
+### 2f. `lang_extract.py` is deleted, not kept as a fallback
+
+Settled by 2e: with no Python fallback there is no reason to keep a Java one, and keeping it would
+mean the same Java file yields different graphs depending on whether Node is installed — a
+determinism problem, not merely a duplication one.
+
+It goes at **step 2** of the deletion order, after the tree-sitter Java/Go/C# port matches the
+phase-1 numbers. Until then it is the reference the port is checked against, exactly like `ast` and
+`js_extract.js` are for their languages.
+
+Note what this simplifies: the `textual` tier in 2d disappears with it, leaving two values
+(`exact` / `sparse`) rather than three.
 
 The alternative — delete `lang_extract.py` and let Java/Go/C# vanish without Node, exactly as
 JS/TS do today — is simpler, honest, and consistent with how the skill already behaves. Prefer it
