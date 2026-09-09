@@ -1456,3 +1456,52 @@ assignments and typed locals. Standard CST work, but nobody has demonstrated it,
 deletion order is where that has to hold.
 
 `check_docs: OK`. Nothing implemented.
+
+## [45] 2026-09-09 — The Python binding wins; Node leaves the runtime
+
+**Prompt**
+> I mean import treesitter lib into python right? / ok check it and if its work update to use
+> python lib in the plan / and if we purely use python we can remove all node from our project?
+> like package.json etc. (I dont mean npx to install our skill) / and update the plan to update
+> README tell that this skill support any language as long as tree-sitter support (am I correct?)
+
+**Response**
+The question exposed that I had answered a different one. I had spiked `web-tree-sitter` and
+designed a Node bridge without ever checking whether a Python binding existed. It does, and it is
+better on every axis but one.
+
+Measured, not assumed: `pip install --only-binary :all: tree-sitter tree-sitter-language-pack`
+succeeds — **wheels, no compiler** — at **5.9 MB**, carrying **371** grammars covering **18 of our
+18 including Groovy**, which the npm bundle was missing. Re-ran the whole Node spike through it:
+JSX x4/x1, all three Nest decorators, C# attributes x4, Java `interface_declaration` and the
+`body=NO` declaration-only method, Go `function_declaration` x3, no parse errors. And the `ast`
+oracle in-process: **6 files, 0 disagreements**.
+
+Against the Node route's 56 MB, 36 grammars, a subprocess + JSON bridge, two languages in the
+codebase, and an ABI coupling that had the prebuilt grammars failing to load until I downgraded the
+runtime five major versions. 2a now records the comparison and chooses Python.
+
+**The cost inverted, and improved.** For three turns the accepted cost was "Python but no Node
+builds nothing". That worry simply evaporates — nothing at runtime needs Node any more. What
+replaces it is one `pip install`. The promise being broken is "zero Python dependencies" rather
+than "works without Node", which for a Python tool is the right one to give up; the tool ends up
+*more* portable, since one `pip install` replaces "install Node, then `npm install` in the skill
+directory".
+
+On removing Node: yes, but the two `package.json` files have nothing to do with each other and the
+plan now says so. The root one is the `npx` installer and **stays**. The skill's own exists solely
+to declare `@babel/parser` — its own description reads "the Python pipeline needs none of this" —
+and is **deleted** along with `js_bridge.py`, `js_extract.js`, `node_modules/` and the skill's
+`.gitignore` entry, at step 4 of the deletion order. Node becomes a distribution mechanism, never a
+runtime one.
+
+**On the README claim, I pushed back rather than writing what was asked.** "Supports any language
+tree-sitter supports" is the natural sentence and it is an overclaim: a grammar gives a parse tree,
+but a graph also needs a query naming classes/methods/calls plus receiver-resolution rules. 371
+grammars ship; we will support the ones queries exist for. Added a "What the README may and may not
+claim" section to 2d — list the languages and let 2g's fixture runner keep the list true, say that
+adding one is a query file rather than an extractor (the real win, and checkable from a diff), say
+the exact/sparse split plainly, and extend `tools/check_docs.py` so the list cannot drift from
+`taxonomy.LANG_BY_EXT`.
+
+Nothing implemented. `check_docs: OK`.

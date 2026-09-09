@@ -8,10 +8,12 @@
 > | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | not started | |
 > | 3 — Full regression gate: nothing old may break | verification | not started | |
 >
-> **Decided (2026-09-09): one production engine, tree-sitter.** `@babel/parser`, `js_extract.js`
-> and `lang_extract.py` are deleted; `ast` leaves the build path and stays only as a test oracle.
-> The accepted cost is that a machine with Python but no Node builds nothing at all, where today it
-> still gets a Python graph. See 2e.
+> **Decided (2026-09-09): one production engine, tree-sitter, via the Python binding — no Node at
+> runtime.** `@babel/parser`, `js_extract.js`, `js_bridge.py`, `lang_extract.py` and the skill's own
+> `package.json` are all deleted; `ast` leaves the build path and stays only as a test oracle. Node
+> survives solely as the `npx` installer (`bin/cli.js`). The accepted cost is one
+> `pip install tree-sitter tree-sitter-language-pack` — 5.9 MB, wheels, no compiler — where the
+> skill previously needed nothing. See 2a and 2e.
 >
 > **Nothing is deleted before the port that replaces it is verified against it** — the old engine
 > is what proves the new one correct, so the deletion order in 2e is structural, not cautious.
@@ -52,17 +54,24 @@ below is something the spike printed, not something believed:
 | Java annotations / C# attributes for Spring + ASP.NET routes | **yes** — `marker_annotation` (`@RestController`), `annotation` (`@RequestMapping("/java/orders")`), `attribute` (`Route("cs/[controller]")`) |
 | Parse errors on any sample file | **none** — tsx, ts, py, java, cs all clean |
 
+**Re-run through the Python binding (`tree-sitter-language-pack`), same results:** JSX x4/x1,
+all three Nest decorators, C# attributes x4, Java `interface_declaration` and the `body=NO`
+declaration-only method, Go `function_declaration` x3 in `router.go`, no parse errors anywhere.
+And the `ast` oracle run entirely in-process: **6 files, 0 disagreements.** So the Python route is
+proven to the same depth as the Node one, which is why 2a chooses it.
+
 **Two findings that change the plan:**
 
 1. **tree-sitter delivers phase 1a for free.** A Java interface method is simply a
    `method_declaration` whose `body` field is absent — the spike printed `body=NO  int
    price(OrderRequest request);` alongside the two implementations. No regex, no `throws` clause
    edge cases, no false-positive risk. See the sequencing note in phase 1.
-2. **Runtime and grammars are ABI-coupled, and the convenient prebuilt source is stale.**
-   `tree-sitter-wasms@0.1.13` is built with `tree-sitter-cli ^0.20.8` and **fails to load** under
-   `web-tree-sitter@0.27` (`getDylinkMetadata` throws). The spike only ran after pinning the
-   runtime back to `0.20.8`. Vendoring must therefore pin a *matched pair*, and the version we
-   vendor is the version we are stuck on until someone rebuilds the grammars. See 2a.
+2. **The Node route is ABI-coupled and its prebuilt grammars are stale — which is part of why it
+   lost.** `tree-sitter-wasms@0.1.13` is built with `tree-sitter-cli ^0.20.8` and **fails to load**
+   under `web-tree-sitter@0.27` (`getDylinkMetadata` throws); the Node spike only ran after pinning
+   the runtime back to `0.20.8`. Vendoring would mean pinning a matched pair and being stuck on it
+   until someone rebuilt every grammar. The Python packages have no such coupling — one version,
+   one install. See the comparison in 2a.
 
 Two consequences shape the phases:
 
@@ -163,31 +172,47 @@ load-bearing across seven artifacts.
 
 The structural change. Nothing here is worth starting until phase 1 is committed and verified.
 
-### 2a. The bridge
+### 2a. The Python binding — no bridge, no Node
 
-Follow the `js_bridge.py` precedent exactly (`extract/js_bridge.py:74` — `shutil.which("node")`,
-one clear warning, return `[]`, `frontend_degraded()` so callers do not prune state on a degraded
-build).
+**Decided: the Python library, not the Node one.** Both were spiked; the Python route wins on every
+axis except that it is a `pip install`.
 
-- New `extract/ts_bridge.py` + `extract/ts_extract.js`, same shape.
-- **Vendor the `.wasm` grammars** under `templates/vendor/` or a sibling, the way `force-graph` is
-  vendored, rather than depending on `tree-sitter-wasms` — that bundle is 51.7 MB for 36 grammars
-  and is a third-party convenience package, not the tree-sitter org's. Ship only the grammars we
-  extract from, with a README recording version and provenance like the existing vendor README.
-- **Pin the runtime and the grammars as a matched pair, and record both versions.** The spike hit
-  this immediately: `tree-sitter-wasms@0.1.13` is built with `tree-sitter-cli ^0.20.8` and throws
-  `getDylinkMetadata` under `web-tree-sitter@0.27`. Whichever pair is vendored is the pair the
-  skill is pinned to; upgrading the runtime means rebuilding every grammar. Decide before
-  vendoring whether to (a) pin to the stale prebuilt set, or (b) build current `.wasm` from the
-  grammar repos with `tree-sitter build --wasm`, which needs Docker or emscripten **once**, at
-  vendoring time, not on the user's machine.
-- The official `tree-sitter-<lang>` npm packages compile native code (`node-gyp-build`). They are
-  **not** an option: `@babel/parser` is pure JS today and install must stay compiler-free.
+```python
+from tree_sitter_language_pack import get_parser
+tree = get_parser("java").parse(source_bytes)
+```
+
+| | **Python: `tree-sitter` + `tree-sitter-language-pack`** | Node: `web-tree-sitter` + `.wasm` |
+| --- | --- | --- |
+| Install size | **5.9 MB** | 56 MB (4.7 runtime + 51.7 grammars) |
+| Languages available | **371** | 36 |
+| Of our 18 | **18 — Groovy included** | 17 — no Groovy |
+| Integration | an `import` | subprocess + JSON bridge |
+| Version pinning | one package | runtime/grammar ABI pair; the prebuilt set is built with `tree-sitter-cli 0.20.8` and **fails to load** under `web-tree-sitter 0.27` |
+| Languages in this codebase | **Python only** | Python **and** JavaScript |
+| Compiler needed to install | **no** — `pip install --only-binary :all:` succeeds | no |
+
+This is the better promise to break. The skill is a Python tool: asking a Python user for one
+`pip install` is ordinary, while asking them to install Node to analyse their Python is not. It
+also deletes a whole layer — `js_bridge.py`, `js_extract.js`, the subprocess, the JSON marshalling
+and the "did Node run?" error paths all go, rather than being replaced by equivalents.
+
+**Node leaves the runtime entirely and stays only as the installer.** Two `package.json` files
+exist and they have nothing to do with each other:
+
+| File | Job | Fate |
+| --- | --- | --- |
+| root `package.json` + `bin/cli.js` | the `npx` installer | **stays** |
+| `.agents/skills/code-archaeologist/package.json` + lock | declares `@babel/parser`, nothing else — its own description says "the Python pipeline needs none of this" | **deleted**, with `node_modules/` and the skill's `.gitignore` entry |
+
+So `npx github:...` still installs the skill; the skill itself never shells out to Node again.
+`bin/cli.js --self-test` stays and gets simpler: no `npm install` step, no degraded-backend path.
 
 ### 2b. Per-language queries
 
-tree-sitter's query language means a new language is a `.scm` file plus resolution rules rather
-than an extractor. One query set per language answering: what is a class, a method, a function, a
+tree-sitter's query language means a new language is a query plus resolution rules rather than an
+extractor. With the Python binding these can be `.scm` files loaded from disk or query strings in
+Python; prefer `.scm` files so a language is data, not code. One query set per language answering: what is a class, a method, a function, a
 call, a field, an annotation/attribute.
 
 Start with the languages that already have a graph, so the port can be checked against a known
@@ -222,7 +247,29 @@ Two tiers no longer describe reality. After the port there are three kinds of no
 | sparse | parsed exactly, but the source carries no types to resolve against | Ruby, PHP, Elixir, Lua |
 
 Two values, not three: the `textual` tier dies with `lang_extract.py` (2f). Replace the boolean
-`approx` with this field, owned by `taxonomy.py`. It surfaces in
+`approx` with this field, owned by `taxonomy.py`.
+
+#### What the README may and may not claim
+
+**Do not write "supports any language tree-sitter supports."** It is the natural sentence to reach
+for and it is an overclaim. A grammar yields a parse tree; a *graph* additionally needs a query
+naming which node types are classes, methods and calls, plus receiver-resolution rules. The pack
+ships 371 grammars — the skill will support the ones queries were written for.
+
+The honest claim is stronger anyway, because it is specific and checkable:
+
+- **Say** which languages are supported, as a list, and let 2g's fixture runner be what keeps that
+  list true. A language with no fixture does not go on it.
+- **Say** that adding a language is a query file rather than a hand-written extractor — that is the
+  real architectural win, and it is verifiable by anyone who looks at the diff for the last one
+  added.
+- **Say** the tier split plainly: statically typed languages get real call edges; dynamically typed
+  ones get nodes, files, structure and metrics with sparse edges. Burying that would put the README
+  at odds with the honest-limitations section, which is the one thing this project has consistently
+  refused to do.
+- **Never** let the supported-language list and `taxonomy.LANG_BY_EXT` drift. `tools/check_docs.py`
+  already enforces that kind of agreement for `kind`/`layer` values; extend it to this list rather
+  than trusting prose. It surfaces in
 **six** places, all of which must move together: the graph, the vault note's front-matter
 (`build_wiki.py`), `context.py`, `report.py`, `brief.py`, and the chip in `templates/viewer.html`.
 `TAXONOMY.md` documents the values; `tools/check_docs.py` already enforces that.
@@ -248,7 +295,7 @@ So the sequence is forced:
 | 1 | nothing | Java / Go / C# ported and matching phase-1 numbers |
 | 2 | `lang_extract.py` | step 1 verified |
 | 3 | nothing | JS/TS ported; output diffed against `js_extract.js` — 6 nodes, `OrderCard` + `StatusBadge` as `kind: component`, Nest and Express routes, the suffix-fallback match |
-| 4 | `@babel/parser`, `js_extract.js` | step 3 verified |
+| 4 | `@babel/parser`, `js_extract.js`, `js_bridge.py`, the skill's `package.json` + lock + `node_modules/` | step 3 verified — Node leaves the runtime here |
 | 5 | nothing | Python ported; the `ast` oracle reports **0 disagreements** across `sample_src` |
 | 6 | `ast` **from the build path only** | step 5 verified — the oracle itself stays forever |
 
@@ -320,20 +367,24 @@ oversight — the oracle runs in tests, not at build time.
 
 #### What this costs, accepted knowingly
 
-One thing is lost: **a machine with Python but no Node can no longer build anything.** Today it
-still gets a Python graph with JS/TS skipped; afterwards it gets an empty result. The documented
-install path is already `npx`, which *is* Node, so anyone installing the normal way is unaffected;
-it bites only someone who obtained the files another way — a copied folder, a vendored checkout —
-onto a Python-only machine.
+**The cost changed when 2a chose the Python binding, and it changed for the better.** The old
+worry — "Python but no Node builds nothing" — simply stops existing, because nothing at runtime
+needs Node any more. What replaces it is smaller and more ordinary: the skill needs
+`pip install tree-sitter tree-sitter-language-pack` (5.9 MB, wheels, no compiler) where today it
+needs nothing.
 
-Because that reverses a stated promise rather than an incidental detail, step 6 above must land in
-the same commit as all of:
+So the promise being broken is **"zero Python dependencies"**, not "works without Node". For a
+Python tool that is the right one to give up, and the tool ends up *more* portable than before: one
+`pip install` replaces "install Node, then `npm install` in the skill directory".
 
-- **`CLAUDE.md` hard constraint 1** rewritten — Node stops being "the single exception" and becomes
-  a requirement.
-- **`SKILL.md:39`** deleted: "If Node itself is missing, do not stop — build anyway" becomes false.
-- **README** — the "the Python side has **zero dependencies**" headline and the Requirements table
-  both corrected.
+Because it still reverses a stated promise, step 6 above must land in the same commit as all of:
+
+- **`CLAUDE.md` hard constraint 1** rewritten: from "stdlib only, with Node as the single
+  exception" to "two pinned Python packages, and no Node at runtime at all".
+- **`SKILL.md:39`** deleted: "If Node itself is missing, do not stop — build anyway" describes a
+  situation that no longer exists.
+- **README** — the "the Python side has **zero dependencies**" headline, the Requirements table,
+  and the "Scanning JS/TS? Run `npm install` first" note, which is simply gone.
 - **`metrics.py`** ported to the CST (its 15 `ast.` call sites). This is not extra work created by
   the decision: CST complexity is needed for the other languages regardless.
 - **`docs/PRESENTATION.html`** — the requirements/architecture claims.
@@ -421,9 +472,11 @@ will rot within two languages.
   on the strength of "the grammar loaded".
 - Java/Go/C# graphs built by tree-sitter match or beat the phase-1 numbers, with every difference
   explained in the commit message rather than absorbed silently.
-- With `node_modules` renamed away: the build still succeeds, warns once, and falls back to
-  `lang_extract.py` for Java/Go/C# and to Python-only for the rest.
-- `bin/cli.js --self-test` still passes, including the offline assertion.
+- With the two packages uninstalled: the build fails with **one clear, actionable message** naming
+  the `pip install`, rather than a traceback or a silently empty graph. This replaces the old
+  "no Node, degrade gracefully" path, which no longer exists.
+- `bin/cli.js --self-test` still passes, including the offline assertion, and no longer references
+  `npm install` or a degraded backend-only build.
 - Determinism: build twice, diff `data/`, only timestamps differ.
 
 ---
@@ -472,9 +525,9 @@ a regression found and left is a failure of it.
 
 ## Cross-cutting rules (from CLAUDE.md, applied every phase)
 
-- **Zero Python dependencies, stdlib only.** Node remains the single exception and must keep
-  degrading gracefully. Phase 2 widens what Node buys; it must not widen what its absence costs
-  beyond what 2e and 2f allow.
+- **Two pinned Python dependencies, and no Node at runtime** (was: stdlib only with Node as the
+  single exception). `tree-sitter` and `tree-sitter-language-pack`, both installed as wheels so no
+  compiler is ever required. Nothing else may be added without the same scrutiny these two got.
 - **Deterministic.** Same source in, same bytes out. Verified by building twice and diffing `data/`.
 - **ASCII `print()` output** (cp874 console); `console.safe_stdout()` before echoing repo text.
 - **Docs in the same commit.** Mirror-truth files (`CLAUDE.md`, `SKILL.md`, `README.md`,
