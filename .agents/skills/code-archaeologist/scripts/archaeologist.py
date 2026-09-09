@@ -106,9 +106,13 @@ def main(argv=None) -> int:
     parser.add_argument("command", choices=["project", "flow", "both", "check", "report", "brief"],
                         help="Build a map, 'check' whether the maps are stale vs the source, "
                              "'report' the review pass (grade, risks, hotspots), or 'brief' the digest")
-    parser.add_argument("--src", nargs="+", default=["./src"],
-                        help="One or more source roots (e.g. --src ./backend ./frontend)")
+    parser.add_argument("--src", nargs="+", default=None,
+                        help="One or more source roots (e.g. --src ./backend ./frontend); "
+                             "'check' and 'brief' default to the roots the last build recorded")
     args = parser.parse_args(argv)
+    # The passes that scan the tree need a root; the two that only read artifacts
+    # fall back to the recorded roots, so `check` / `brief` work with no arguments.
+    src = args.src or ["./src"]
 
     if args.command == "check":
         import json
@@ -116,20 +120,20 @@ def main(argv=None) -> int:
         return 0
 
     if args.command == "report":
-        return run_report(args.src)
+        return run_report(src)
 
     if args.command == "brief":
-        return brief.main(["--src", *args.src])
+        return brief.main(["--src", *args.src] if args.src else [])
 
     if args.command == "project":
-        rc = run_project(args.src)
+        rc = run_project(src)
     elif args.command == "flow":
-        rc = run_flow(args.src)
+        rc = run_flow(src)
     else:
-        rc = run_project(args.src) or run_flow(args.src)
+        rc = run_project(src) or run_flow(src)
 
     if not rc:
-        manifest.write(args.src)  # record source hashes so `check` can detect drift
+        manifest.write(src)  # record the roots + source hashes so `check` can detect drift
     return rc
 
 

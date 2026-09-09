@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """manifest.py — source-freshness snapshot so the agent knows when the maps are stale.
 
-Every build records a content-hash of every source file it scanned into
-`data/cache/manifest.json`. Before answering a flow/impact question, the agent
-re-scans the same roots and compares: if any file was added, changed, or deleted
-since the last build, the maps are stale and must be rebuilt first.
+Every build records the roots it scanned and a content-hash of every source file
+under them into `data/cache/manifest.json`. Before answering a flow/impact
+question, the agent re-scans the same roots and compares: if any file was added,
+changed, or deleted since the last build, the maps are stale and must be rebuilt
+first. The roots are recorded so the check can be run without repeating them.
 
 The check is deterministic and cheap (sha1 of file contents, stdlib only) and the
 report is tiny (~a few node ids), so it fits the zero-RAG budget. Keys are
@@ -84,17 +85,44 @@ def snapshot(roots) -> dict[str, str]:
 def write(roots, path: str = DEFAULT_MANIFEST) -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
-        json.dump({"files": snapshot(roots)}, fh, indent=2, sort_keys=True)
+        json.dump({"roots": rel_roots(roots), "files": snapshot(roots)},
+                  fh, indent=2, sort_keys=True)
         fh.write("\n")
 
 
-def compare(roots, path: str = DEFAULT_MANIFEST) -> dict:
-    """Diff the current source tree against the recorded manifest."""
+def recorded_roots(path: str = DEFAULT_MANIFEST) -> list[str]:
+    """The roots the last build scanned, so `check` and `brief` need no --src."""
     try:
         with open(path, "r", encoding="utf-8") as fh:
-            recorded = json.load(fh).get("files", {})
+            return list(json.load(fh).get("roots") or [])
+    except (OSError, ValueError):
+        return []
+
+
+def compare(roots=None, path: str = DEFAULT_MANIFEST) -> dict:
+    """Diff the current source tree against the recorded manifest.
+
+    With no roots, re-use the ones the last build recorded — asking "are the maps
+    stale" should not require repeating where they came from.
+    """
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+            recorded = data.get("files", {})
     except (FileNotFoundError, ValueError):
-        return {"stale": True, "reason": "no manifest — maps have never been built",
+        return {"stale": True, "reason": "no manifest - maps have never been built",
+                "changed": [], "added": [], "deleted": []}
+
+    roots = roots or list(data.get("roots") or [])
+    if not roots:
+        return {"stale": True, "reason": "manifest records no roots - rebuild, or pass --src",
+                "changed": [], "added": [], "deleted": []}
+
+    # A root that is not there cannot be compared. Saying so beats reporting every
+    # recorded file as deleted, which is what an empty scan would otherwise look like.
+    gone = [r for r in ([roots] if isinstance(roots, str) else roots) if not os.path.isdir(r)]
+    if gone:
+        return {"stale": True, "reason": f"source root(s) not found from here: {', '.join(gone)}",
                 "changed": [], "added": [], "deleted": []}
 
     current = snapshot(roots)
@@ -111,8 +139,8 @@ def compare(roots, path: str = DEFAULT_MANIFEST) -> dict:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Report whether the maps are stale vs the source tree.")
-    parser.add_argument("--src", nargs="+", default=["./src"],
-                        help="Source roots the maps were built from")
+    parser.add_argument("--src", nargs="+", default=None,
+                        help="Source roots the maps were built from (default: the ones recorded by the last build)")
     parser.add_argument("--manifest", default=DEFAULT_MANIFEST, help="Path to manifest.json")
     args = parser.parse_args(argv)
     report = compare(args.src, args.manifest)

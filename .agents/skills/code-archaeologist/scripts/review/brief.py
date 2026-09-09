@@ -67,9 +67,11 @@ def _map_summary(name: str) -> dict:
 
 
 def _freshness(src) -> dict:
-    """manifest.compare, but tolerant: no roots or no manifest just means 'unknown'."""
-    if not src:
-        return {}
+    """manifest.compare, but tolerant: anything it cannot answer means 'unknown'.
+
+    With no roots, `compare` uses the ones the last build recorded — which is why
+    `brief` with no --src reports freshness instead of guessing at `./src`.
+    """
     try:
         return manifest.compare(src)
     except Exception:                       # a missing manifest must not break the digest
@@ -122,8 +124,13 @@ def to_text(d: dict) -> str:
     fresh = d["freshness"]
     if fresh:
         state = "STALE" if fresh.get("stale") else "up to date"
-        out.append(f"  freshness  {state} ({len(fresh.get('changed', []))} changed, "
-                   f"{len(fresh.get('added', []))} added, {len(fresh.get('deleted', []))} deleted)")
+        counts = [len(fresh.get(k, [])) for k in ("changed", "added", "deleted")]
+        # Zero counts under a STALE verdict mean the reason is not per-file (no manifest,
+        # roots not found). Printing "0 changed, 0 added, 0 deleted" there would contradict
+        # the verdict, so say why instead.
+        detail = (f"{counts[0]} changed, {counts[1]} added, {counts[2]} deleted"
+                  if any(counts) else fresh.get("reason", ""))
+        out.append(f"  freshness  {state}" + (f" ({detail})" if detail and fresh.get("stale") else ""))
     if not any(m.get("grade") for m in d["maps"].values()):
         out.append("  (run `archaeologist.py report --src <roots>` for grades, risks and hotspots)")
     if any(m.get("approx") for m in d["maps"].values()):
