@@ -163,6 +163,11 @@ it or email it.
   **PATTERNS** (cycles, layer violations, hubs, god objects, dead code), **SECURITY** (findings by
   severity). All click through into each other.
 
+Both side panels drag to resize and collapse out of the way (the two buttons at the top right, or
+double-click a divider). In the tree, `+`/`–` expands a folder and clicking its name filters the
+canvas — two separate controls. Drag the divider above **Explorer** to trade tree height for the
+panels above it, or fold a panel from its heading to give the tree the whole rail.
+
 ---
 
 ## Language support

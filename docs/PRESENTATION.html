@@ -583,13 +583,14 @@ const FEATURES = [
   {
     id:"explorer", cat:"output", title:"The explorer",
     d:"Both maps in one self-contained HTML file — no server, works offline.",
-    how:"Graph data <em>and the graph library itself</em> are embedded inline, producing a single file that opens from <code>file://</code> with the network disabled — nothing is fetched at run time. Three panes: a left rail with the health ring, colour-by selector, stat tiles and a file tree; a centre canvas with seven views of the same graph; a right panel with FILE, PATTERNS and SECURITY tabs that click through into each other.",
-    tech:["Inline data + vendored library","Seven graph layouts","Cross-linked panels"],
+    how:"Graph data <em>and the graph library itself</em> are embedded inline, producing a single file that opens from <code>file://</code> with the network disabled — nothing is fetched at run time. Three panes: a left rail with the health ring, colour-by selector, stat tiles and a file tree; a centre canvas with seven views of the same graph; a right panel with FILE, PATTERNS and SECURITY tabs that click through into each other. Both rails drag to resize and collapse away, and the explorer tree trades height with the panels above it.",
+    tech:["Inline data + vendored library","Seven graph layouts","Resizable panes"],
     cmd:"open data/explorer.html",
     qa:[
       ["Why one file?","Distribution. It is the difference between \"here is the architecture\" as an attachment and \"deploy this service to look at the architecture\"."],
       ["Why seven views?","Different questions have different shapes. Force layout shows clusters, treemap shows where the bulk is, matrix shows density, tree and flow show hierarchy and direction."],
-      ["Does it need my source?","No. Everything needed is embedded, so it can be shared with people who have no repository access."]
+      ["Does it need my source?","No. Everything needed is embedded, so it can be shared with people who have no repository access."],
+      ["Can a drag break the layout?","It is bounded rather than trusted. A rail cannot be dragged past what the toolbar still needs — measured from the toolbar's own children, because <code>clientWidth</code> reports whatever it currently has and would let a drag walk controls off the edge one pixel at a time. The explorer can only be dragged smaller, since it already fills the rail; folding a panel is what makes it bigger."]
     ]
   },
   {

@@ -1028,3 +1028,67 @@ number (25/22 D(69), 51/31 D(68), 16 endpoints, 0 pending, 528 lines across 22 f
 cluster / 4 duplicated lines, tests 4/47), the installer self-test including the degraded
 backend-only path (19/19, 36/22) and the offline assertion, and determinism — every diff under
 `data/` was a timestamp, so that churn was reverted rather than committed.
+
+## [36] 2026-09-09 — Four explorer UI changes: checkboxes, resizable panes, folder twisty
+
+**Prompt**
+> [two screenshots: the toolbar's native white checkboxes, and the Explorer rail]
+> 1. make check box match whole style
+> 2. make both sidebar can resize/expand/collaspse
+> 3. make explorer section can vertically resize
+> 4. make folder can click -, + to expand/collapse
+>
+> after finish do we need to rerun to re create explorer.html?
+
+**Response**
+Yes to the closing question: `build_html.py` reads `templates/viewer.html` and writes
+`data/explorer.html`, so the template is the source and a rebuild is always required. Ran it.
+
+**1. Checkboxes.** They were native controls with `accent-color`, which still paints a white box
+the palette has no room for. Now `appearance: none`, 12px, `--panel2` ground with a `--dim`
+hairline, amber only when checked, and the tick is drawn with a rotated border rather than a glyph
+so it cannot pick up a font the machine lacks.
+
+**2. Rails.** Widths became `--lw` / `--rw` on `#app`; the drag handles are absolutely positioned
+strips straddling each border, and two header buttons (inline SVG, 16px grid) collapse each rail.
+Double-clicking a handle does the same. `.brand` follows `--lw` so the header column stays aligned
+with the rail, and falls back to its natural width when the rail is hidden, so collapsing does not
+swallow the app name.
+
+**3. Explorer height.** A `row-resize` grip on the section's top edge sets an inline height plus a
+`sized` class. Deliberately shrink-only: the section already takes every pixel the fixed blocks
+leave, so growing it is what folding a panel is for — which keeps the rail's one-scroll-region rule
+true by construction rather than by care. Double-click resets it.
+
+**4. Folder twisty.** The `+`/`–` was decoration; the whole row both filtered *and* expanded, so a
+folder could only be collapsed while it was also the active filter. The twisty is now its own click
+target with `stopPropagation`, and the row body only filters.
+
+**Two bugs found by testing rather than by reading**, both mine:
+
+- Collapsing a rail with `display: none` removes it from the grid, and auto-placement then slid the
+  survivors left: measuring showed `#right` at 1224px and the stage at 0. Fixed by pinning all
+  three panes to explicit `grid-area` columns. Verified by the numbers that mattered — hiding a
+  rail now gives the space to the *stage* (928 → 1224 → 1600 at a 1600px viewport).
+- My first clamp let a wide rail squeeze the toolbar until PNG was unreachable. The second attempt
+  used a hardcoded 560px floor and still clipped, because the toolbar actually needs ~935px. The
+  fix measures it by summing the toolbar's children — `clientWidth` reports "exactly what it
+  already has", which would let a drag ratchet controls off the right edge a pixel at a time. Now
+  both rails at maximum still leave the toolbar whole.
+
+Worth recording: the toolbar was already marginally clipped at the default 1600px layout (stage 928
+vs 935 needed) and properly clipped at the 1180px breakpoint. The new clamp only bounds what a
+*drag* can do; it does not fix the narrow-viewport case, which is pre-existing and untouched.
+
+Verified in a real browser, not by eye: computed styles for the checkbox (appearance none, amber
+when checked, `--panel2` when not), twisty collapse/expand with the filter provably unchanged
+(32 rows → 1 → 32, filter false throughout), row-click filtering with the folder staying open, both
+rail drags with their clamps, the explorer drag hitting its 140px floor and its available-space
+ceiling, double-click reset, all seven views, all three tabs, the three toolbar checkboxes, and
+zero console errors. Rail width, explorer height and fold state all survive a map switch, which is
+the property CLAUDE.md asks for.
+
+Also ran: the classic-script parse of the inline block, `check_docs: OK`, the installer self-test
+including the offline assertion (no new network resources), and the deck's own script parse.
+Docs moved in the same commit — CLAUDE.md's layout rules gained the grid-column, toolbar-clamp and
+shrink-only rules; README's explorer section and the deck's explorer feature describe the controls.

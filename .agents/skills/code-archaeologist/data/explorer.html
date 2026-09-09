@@ -21,12 +21,32 @@
   ::-webkit-scrollbar { width: 9px; height: 9px; }
   ::-webkit-scrollbar-thumb { background: #1d222a; }
 
-  #app { display: grid; grid-template-columns: 296px 1fr 376px; grid-template-rows: auto 1fr;
-    height: 100%; }
+  /* Rail widths are variables so the drag handles can move them; collapsing is the same
+     variable pinned to 0. Both survive a map switch because nothing re-renders #app. */
+  #app { display: grid; grid-template-columns: var(--lw) 1fr var(--rw); grid-template-rows: auto 1fr;
+    height: 100%; position: relative; --lw: 296px; --rw: 376px; }
+  #app.lc { --lw: 0px; }
+  #app.rc { --rw: 0px; }
+  #app.lc #left, #app.rc #right { display: none; }
+  /* With no rail to line up against, the brand keeps its own width rather than vanishing. */
+  #app.lc .brand { width: auto; border-right: none; }
+
+  /* A 9px grab strip straddling the rail border, drawn only on hover/drag. */
+  .rsz { position: absolute; top: 44px; bottom: 0; width: 9px; z-index: 6; cursor: col-resize; }
+  .rsz::before { content: ""; position: absolute; top: 0; bottom: 0; left: 4px; width: 1px; }
+  .rsz:hover::before, .rsz.drag::before { background: var(--accent); }
+  #rszL { left: calc(var(--lw) - 4px); }
+  #rszR { right: calc(var(--rw) - 4px); }
+  #app.lc #rszL { left: 0; }
+  #app.rc #rszR { right: 0; }
   #head { grid-column: 1 / -1; display: flex; align-items: stretch; height: 44px;
     background: var(--panel); border-bottom: 1px solid var(--border); overflow: hidden; }
   #head .pill { margin-left: auto; align-self: center; padding: 0 16px 0 18px; white-space: nowrap;
     flex: none; }
+  /* Rail toggles sit at the far right of the header, so they border on the left. */
+  .tbtn.rail { border-right: none; border-left: 1px solid var(--border); padding: 0 14px;
+    flex: none; }
+  .tbtn.rail.off { color: var(--dim); }
   .mapswitch { display: flex; flex: none; }
   .mapswitch button { display: flex; align-items: center; gap: 8px; padding: 0 16px;
     color: var(--muted); border-right: 1px solid var(--border); }
@@ -35,16 +55,21 @@
   aside { background: var(--panel); overflow-y: auto; }
   /* The rail does not scroll: fixed blocks keep their size, the explorer takes what is
      left and scrolls inside itself. One scroll region per pane, never two nested. */
-  #left { border-right: 1px solid var(--border); display: flex; flex-direction: column;
-    overflow: hidden; }
+  /* Pinned to their columns: hiding a rail removes it from the grid, and without this
+     auto-placement slides the survivors left - the graph ends up 0px wide. */
+  #left { grid-area: 2 / 1; border-right: 1px solid var(--border); display: flex;
+    flex-direction: column; overflow: hidden; }
   #left > * { flex: none; }
   #left > .sect.grow { flex: 1; min-height: 96px; display: flex; flex-direction: column;
-    overflow: hidden; }
-  #right { border-left: 1px solid var(--border); }
-  #center { display: flex; flex-direction: column; min-width: 0; }
+    overflow: hidden; position: relative; }
+  /* Dragged to an explicit height. It can only shrink from "all the leftover space", so no
+     new scroll region appears in the rail - folding the sections above is how you grow it. */
+  #left > .sect.grow.sized { flex: none; }
+  #right { grid-area: 2 / 3; border-left: 1px solid var(--border); }
+  #center { grid-area: 2 / 2; display: flex; flex-direction: column; min-width: 0; }
 
   /* ---- left ---- */
-  .brand { display: flex; align-items: center; gap: 10px; width: 296px; padding: 0 16px;
+  .brand { display: flex; align-items: center; gap: 10px; width: var(--lw); padding: 0 16px;
     border-right: 1px solid var(--border); flex: none; }
   .brand .dot { width: 18px; height: 18px; border: 1px solid var(--accent); display: grid;
     place-items: center; color: var(--accent); font-weight: 500; font-size: 11px; flex: none; }
@@ -114,8 +139,18 @@
   .row .dir { color: var(--bright); }
   .row .n { margin-left: auto; display: flex; align-items: center; gap: 6px;
     color: var(--dim); font-size: 11px; }
-  .row .tw { width: 9px; color: var(--muted); font-size: 8px; flex: none; }
+  /* Its own hit target: the twisty expands, the rest of the row filters. Negative margins
+     buy a clickable area bigger than the glyph without moving the row. */
+  .row .tw { width: 9px; color: var(--muted); font-size: 8px; flex: none; text-align: center;
+    margin: -4px 0 -4px -4px; padding: 4px 0 4px 4px; }
+  .row .tw:hover { color: var(--accent); }
   .row .n i { width: 5px; height: 5px; background: var(--danger); flex: none; }
+
+  /* Horizontal grab strip on the explorer's top edge; mirrors .rsz. */
+  .vrsz { position: absolute; top: 0; left: 0; right: 0; height: 7px; z-index: 3;
+    cursor: row-resize; }
+  .vrsz::before { content: ""; position: absolute; left: 0; right: 0; top: 3px; height: 1px; }
+  .vrsz:hover::before, .vrsz.drag::before { background: var(--accent); }
 
   /* ---- center ---- */
   .toolbar { display: flex; align-items: stretch; height: 34px;
@@ -131,7 +166,17 @@
   .toolbar label { display: inline-flex; align-items: center; gap: 6px; padding: 0 12px;
     font-size: 11.5px; color: var(--muted); cursor: pointer; border-left: 1px solid var(--border); }
   .toolbar label:hover { color: var(--text); }
-  .toolbar label input { accent-color: var(--accent); }
+  /* The native control paints a white box the palette has no room for: same hairline
+     border as every other chrome element, amber only when it is actually on. */
+  .toolbar label input { appearance: none; -webkit-appearance: none; margin: 0; flex: none;
+    width: 12px; height: 12px; background: var(--panel2); border: 1px solid var(--dim);
+    display: grid; place-items: center; cursor: pointer; }
+  .toolbar label:hover input { border-color: var(--muted); }
+  .toolbar label input:checked { background: var(--accent); border-color: var(--accent); }
+  /* The tick is drawn, not a glyph, so it cannot pick up a font the machine lacks. */
+  .toolbar label input:checked::before { content: ""; width: 6px; height: 3px; margin-top: -1px;
+    border: solid var(--bg); border-width: 0 0 1.5px 1.5px; transform: rotate(-45deg); }
+  .toolbar label input:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
   .toolbar .sp { margin-left: auto; }
 
   #stage { position: relative; flex: 1; min-height: 0; }
@@ -215,9 +260,10 @@
   .grp { margin: 18px 0 8px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
     color: var(--muted); }
 
+  /* Narrower default rails, but only until the user drags one: a dragged width is an
+     inline style on #app, which outranks this. */
   @media (max-width: 1180px) {
-    #app { grid-template-columns: 244px 1fr 320px; }
-    .brand { width: 244px; }
+    #app { --lw: 244px; --rw: 320px; }
   }
   /* Too short to give the explorer a usable height: let the rail scroll as a whole
      rather than squeezing it to nothing. */
@@ -225,6 +271,8 @@
     #left { overflow-y: auto; }
     #left > .sect.grow { flex: none; overflow: visible; }
     .sect.grow .tree { overflow: visible; }
+    /* Beats the inline height a drag left behind: at this size the rail scrolls instead. */
+    #left > .sect.grow.sized { height: auto !important; }
   }
 </style>
 <script>/*!
@@ -267,6 +315,12 @@ ii.readability=function(t,n){var e=ii(t),r=ii(n);return(Math.max(e.getLuminance(
     <div class="mapswitch" id="mapSwitch"></div>
     <span id="mapSub"></span>
     <span class="pill" id="mapGrade"></span>
+    <button class="tbtn rail" id="toggleL" title="Hide / show the left rail"><svg width="13"
+      height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect
+      x="1.5" y="2.5" width="13" height="11"/><path d="M6 2.5v11"/></svg></button>
+    <button class="tbtn rail" id="toggleR" title="Hide / show the right panel"><svg width="13"
+      height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect
+      x="1.5" y="2.5" width="13" height="11"/><path d="M10 2.5v11"/></svg></button>
   </header>
 
   <aside id="left">
@@ -290,6 +344,7 @@ ii.readability=function(t,n){var e=ii(t),r=ii(n);return(Math.max(e.getLuminance(
     </div>
 
     <div class="sect grow">
+      <div class="vrsz" id="vrsz" title="Drag to resize - double-click to reset"></div>
       <h3>Explorer<span class="n" id="treeCount"></span></h3>
       <button id="filterChip"><b>×</b> <span id="filterName"></span></button>
       <input id="search" placeholder="Search node…  (press /)" autocomplete="off" />
@@ -334,6 +389,9 @@ ii.readability=function(t,n){var e=ii(t),r=ii(n);return(Math.max(e.getLuminance(
     <div class="tabs" id="tabs"></div>
     <div class="pad" id="panel"></div>
   </aside>
+
+  <div class="rsz" id="rszL" title="Drag to resize - double-click to hide"></div>
+  <div class="rsz" id="rszR" title="Drag to resize - double-click to hide"></div>
 </div>
 
 <script>
@@ -616,9 +674,17 @@ function renderTree() {
   walk(treeRoot, 0);
   el("tree").innerHTML = out.join("");
   el("treeCount").textContent = `${filesIndex.size} files`;
+  // The twisty owns expand/collapse on its own, so a folder can be closed without also
+  // changing the filter - which is what folding it used to be tangled up with.
+  el("tree").querySelectorAll("[data-dir] .tw").forEach((t) => t.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const p = t.parentElement.dataset.dir;
+    if (openDirs.has(p)) openDirs.delete(p); else openDirs.add(p);
+    renderTree();
+  }));
   el("tree").querySelectorAll("[data-dir]").forEach((r) => r.addEventListener("click", () => {
     const p = r.dataset.dir;
-    if (openDirs.has(p) && fileFilter === p) openDirs.delete(p); else openDirs.add(p);
+    openDirs.add(p);
     setFilter(fileFilter === p ? null : p);
   }));
   el("tree").querySelectorAll("[data-file]").forEach((r) => r.addEventListener("click", () => {
@@ -1273,6 +1339,90 @@ function renderPatterns() {
 // explorer room; state is per session and survives a map switch (the markup is not re-rendered).
 document.querySelectorAll("#left .sect > h3").forEach((h) =>
   h.addEventListener("click", () => h.parentElement.classList.toggle("folded")));
+
+// ---------------------------------------------------------------- panes
+// Widths live in --lw / --rw on #app, set inline by a drag. Nothing re-renders #app, so a
+// dragged or collapsed rail survives a map switch the same way a folded section does.
+const app = el("app");
+const RAIL = { rszL: { side: "left", v: "--lw", cls: "lc", btn: "toggleL", min: 200, max: 560 },
+               rszR: { side: "right", v: "--rw", cls: "rc", btn: "toggleR", min: 260, max: 720 } };
+
+// A rail may not eat the toolbar. Summing the children gives what it needs whatever the
+// current width is - clientWidth would say "exactly what it already has" and let a drag
+// ratchet controls off the right edge one pixel at a time.
+const toolbar = document.querySelector(".toolbar");
+const stageMin = () =>
+  Math.max(360, [...toolbar.children].reduce((w, c) => w + c.offsetWidth, 0));
+function setRail(cfg, px) {
+  const other = el(cfg.side === "left" ? "right" : "left").getBoundingClientRect().width;
+  const max = Math.min(cfg.max, document.documentElement.clientWidth - other - stageMin());
+  app.style.setProperty(cfg.v, Math.round(Math.max(cfg.min, Math.min(max, px))) + "px");
+}
+function toggleRail(cfg) {
+  const off = app.classList.toggle(cfg.cls);
+  el(cfg.btn).classList.toggle("off", off);
+}
+
+Object.entries(RAIL).forEach(([id, cfg]) => {
+  el(id).addEventListener("pointerdown", (e) => {
+    if (app.classList.contains(cfg.cls)) return;   // collapsed: only the toggle brings it back
+    e.preventDefault();
+    const grip = el(id);
+    grip.setPointerCapture(e.pointerId);
+    grip.classList.add("drag");
+    const move = (ev) => setRail(cfg, cfg.side === "left"
+      ? ev.clientX : document.documentElement.clientWidth - ev.clientX);
+    const up = () => {
+      grip.classList.remove("drag");
+      grip.removeEventListener("pointermove", move);
+      grip.removeEventListener("pointerup", up);
+    };
+    grip.addEventListener("pointermove", move);
+    grip.addEventListener("pointerup", up);
+  });
+  el(id).addEventListener("dblclick", () => toggleRail(cfg));
+  el(cfg.btn).addEventListener("click", () => toggleRail(cfg));
+});
+
+// The explorer already takes every pixel the fixed blocks above it leave, so dragging can
+// only make it smaller. Fold a section to give it more - that is what folding is for.
+const growSect = el("vrsz").parentElement;
+function maxExplorer() {
+  const rail = el("left");
+  let fixed = 0;
+  [...rail.children].forEach((c) => { if (c !== growSect) fixed += c.offsetHeight; });
+  return rail.clientHeight - fixed;
+}
+function sizeExplorer(px) {
+  const h = Math.min(maxExplorer(), Math.max(140, px));
+  growSect.classList.add("sized");
+  growSect.style.height = h + "px";
+}
+el("vrsz").addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  const grip = el("vrsz");
+  grip.setPointerCapture(e.pointerId);
+  grip.classList.add("drag");
+  const bottom = el("left").getBoundingClientRect().bottom;
+  const move = (ev) => sizeExplorer(bottom - ev.clientY);
+  const up = () => {
+    grip.classList.remove("drag");
+    grip.removeEventListener("pointermove", move);
+    grip.removeEventListener("pointerup", up);
+  };
+  grip.addEventListener("pointermove", move);
+  grip.addEventListener("pointerup", up);
+});
+// Back to "all the leftover space".
+el("vrsz").addEventListener("dblclick", () => {
+  growSect.classList.remove("sized");
+  growSect.style.height = "";
+});
+// A shorter window can leave a dragged height taller than the rail; re-clamp instead of
+// letting the fixed blocks above get pushed out of view.
+new ResizeObserver(() => {
+  if (growSect.classList.contains("sized")) sizeExplorer(growSect.offsetHeight);
+}).observe(el("left"));
 
 el("zoomIn").addEventListener("click", () => Graph.zoom(Graph.zoom() * 1.4, 250));
 el("zoomOut").addEventListener("click", () => Graph.zoom(Graph.zoom() / 1.4, 250));

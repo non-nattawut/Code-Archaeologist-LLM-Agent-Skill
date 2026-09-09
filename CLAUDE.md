@@ -163,9 +163,22 @@ scrolls.
   in the rail needs a header. A folded header still carries its count (`Explorer 7 files`) — a
   section that says nothing when closed is a dead control.
 - **Fold state is a class on static markup**, so it survives every re-render and map switch by
-  construction. Do not store it in a variable that `applyMap()` resets.
+  construction. Do not store it in a variable that `applyMap()` resets. The same goes for the two
+  things a drag sets: rail width is `--lw` / `--rw` set inline on `#app`, and the explorer's
+  dragged height is an inline `height` plus a `sized` class on the section. Nothing re-renders
+  `#app` or the rail markup, so all three survive a map switch for the same reason.
+- **The three panes are pinned to their grid columns** (`grid-area: 2 / 1|2|3`). Collapsing a rail
+  hides it, and a hidden grid item is removed from the grid — without explicit columns
+  auto-placement slides the survivors left and the stage ends up 0px wide.
+- **A rail may never eat the toolbar.** `setRail` caps a drag at what the centre still needs,
+  measured by summing the toolbar's children — `clientWidth` would report "exactly what it already
+  has" and let a drag ratchet controls off the right edge a pixel at a time.
+- **Dragging the explorer can only shrink it**, because it already takes every pixel the fixed
+  blocks leave. That is deliberate: growing it is what folding a section above is for, and it keeps
+  the rail's one-scroll-region rule true by construction. Double-click the grip to give it back.
 - **Below `max-height: 620px`** the rail gives up and scrolls as a whole — a 60px tree is worse
-  than a scrollbar.
+  than a scrollbar. A dragged height is overridden there (`height: auto !important`), since an
+  inline style would otherwise outrank the fallback.
 
 ## Hard constraints
 
