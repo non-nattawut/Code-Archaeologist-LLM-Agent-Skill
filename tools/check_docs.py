@@ -34,9 +34,9 @@ TAXONOMY_MD = os.path.join(SKILL, "templates", "TAXONOMY.md")
 # Every doc that quotes a command path. Relative to the repo root.
 DOCS = [
     "README.md",
-    "USAGE.md",
+    "docs/USAGE.md",
     "CLAUDE.md",
-    "PRESENTATION.html",
+    "docs/PRESENTATION.html",
     ".agents/skills/code-archaeologist/SKILL.md",
     ".agents/skills/code-archaeologist/templates/TAXONOMY.md",
 ]

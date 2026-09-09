@@ -1,7 +1,7 @@
 # Usage — command reference
 
 **Most people never run these by hand.** The agent does: it reads
-[`SKILL.md`](.agents/skills/code-archaeologist/SKILL.md) — which carries the same commands plus the
+[`SKILL.md`](../.agents/skills/code-archaeologist/SKILL.md) — which carries the same commands plus the
 rules for *when* to run each one — and calls them for you. This file is the human-readable mirror,
 for when you want to drive the pipeline yourself, script it in CI, or check what the agent just ran.
 

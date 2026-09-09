@@ -11,7 +11,7 @@
     ".agents/",
     "sample_src/",
     "README.md",
-    "USAGE.md",
+    "docs/USAGE.md",
     "LICENSE"
   ],
   "keywords": [

@@ -325,7 +325,7 @@ produce the answer once, for every future session.
   library" means use what is already on the machine while developing, never add a dependency to
   the skill.
 - A new script pays for itself the second time it runs. A one-off shell pipeline is fine; copy it
-  into `USAGE.md` if it will be wanted again.
+  into `docs/USAGE.md` if it will be wanted again.
 
 ### 6. Keep the docs in the same commit
 Every document in this repo describes the skill to some reader. When behavior changes, they all
@@ -341,17 +341,17 @@ that nobody rewrites them.
 | `CLAUDE.md` | the next session working on the skill | the pipeline, script inventory, layout, constraints, colour/layout rules or the expected-numbers block change |
 | `SKILL.md` | the agent using the skill | a command or an operating rule changes |
 | `README.md` | a human evaluating/installing it | features, language table, requirements or the structure tree change |
-| `USAGE.md` | a human running it by hand | any command's form or flags change |
+| `docs/USAGE.md` | a human running it by hand | any command's form or flags change |
 | `templates/TAXONOMY.md` | anyone adding a field value | a `kind`/`layer`/severity/grade value changes |
-| `PRESENTATION.html` | someone being shown the project | Features, Architecture, Honest limitations or Commands drift |
+| `docs/PRESENTATION.html` | someone being shown the project | Features, Architecture, Honest limitations or Commands drift |
 
 **Append, never revise** — these are records of what was actually done and thought at the time;
 editing them to match the present is the one way to make them worthless:
 
 | File | Discipline |
 | --- | --- |
-| `PROJECT_HISTORY.md` | extend with new phases; never rewrite a past entry to agree with the present |
-| `prompt.md` | append the turn verbatim at the end of every turn (principle 7) |
+| `docs/PROJECT_HISTORY.md` | extend with new phases; never rewrite a past entry to agree with the present |
+| `docs/prompt.md` | append the turn verbatim at the end of every turn (principle 7) |
 
 **This file is not exempt.** `CLAUDE.md` describes the repo to its next session, so when the repo
 changes, `CLAUDE.md` changes in the same commit. It has drifted before precisely because it was
@@ -359,7 +359,7 @@ the one doc outside its own rule — its pipeline diagram lost `brief` and nobod
 
 A new script also needs: a docstring saying what it is and why, a line in the README structure
 tree **and** in this file's script layout, a numbered command in `SKILL.md` if the agent should
-call it, and its command form in `USAGE.md`.
+call it, and its command form in `docs/USAGE.md`.
 
 The mechanical half of this rule is checked, so it cannot quietly rot:
 
@@ -372,9 +372,9 @@ It verifies that every script is listed in `README.md` and named in `CLAUDE.md`,
 `taxonomy.py` is documented in `TAXONOMY.md`. It deliberately checks facts, never prose — keeping
 the *words* honest is still the writer's job.
 
-### 7. Log every exchange to `prompt.md`
+### 7. Log every exchange to `docs/prompt.md`
 This repo keeps a running transcript of its own construction. **At the end of every turn, append
-that turn to `prompt.md`** — the user's prompt verbatim, then what you did and said.
+that turn to `docs/prompt.md`** — the user's prompt verbatim, then what you did and said.
 
 ```markdown
 ## [N] YYYY-MM-DD — <short title>
@@ -397,4 +397,4 @@ Rules that keep the log worth having:
   the log's value is everything git cannot show.
 - **Number entries sequentially** and keep them in chronological order.
 - It is a plain log, not a doc for a reader: no need to keep it in sync with behavior the way
-  principle 6 requires of `SKILL.md` / `README.md` / `USAGE.md`.
+  principle 6 requires of `SKILL.md` / `README.md` / `docs/USAGE.md`.

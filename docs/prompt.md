@@ -767,3 +767,39 @@ Size delta: explorer.html **109 KB -> 272 KB (+163 KB)**, entirely the vendored 
 
 Two things I hit worth remembering: Python here is native Windows, so it cannot read Git Bash `/tmp`
 paths — `pwd -W` first. And a `git pull` was declined the first time; re-run when re-issued.
+
+---
+
+## [31] 2026-09-09 — Move the long-form docs into docs/
+
+**Prompt**
+> @USAGE.md @prompt.md @PROJECT_HISTORY.md @PRESENTATION.html
+>
+> move these file to /docs
+
+**Response**
+`git mv`'d all four into `docs/`, leaving only `README.md` (repo front page) and `CLAUDE.md` (loaded
+by path convention) at the root.
+
+The move itself was trivial; the references were not. Found them before touching anything, because
+a blind `git mv` would have broken three things silently:
+
+- **`package.json` `files[]`** listed `USAGE.md`, so the npm package would have shipped without the
+  command reference -> `docs/USAGE.md`. Verified with `npm pack --dry-run`: present, 12.1 kB.
+- **`tools/check_docs.py` `DOCS`** reads docs by repo-relative path; `USAGE.md` and
+  `PRESENTATION.html` would have raised FileNotFoundError on the next docs check.
+- **`docs/USAGE.md`'s own outgoing link** to `SKILL.md` was repo-root-relative and needed `../`.
+  The `python .agents/skills/...` strings in it are commands run from the repo root, not links, so
+  they correctly stay as they are.
+
+Also updated the README pointer and nine references in CLAUDE.md (both doc tables, principle 5's
+"copy it into USAGE.md", principle 7's heading and body, and the principle-6 exemption line).
+
+Deliberately left alone: `docs/prompt.md`'s earlier entries and `docs/ROADMAP_PLAN.md`'s phase
+bodies still name the old root paths. Both are append-only records of what was true at the time —
+CLAUDE.md is explicit that editing them to agree with the present is what makes them worthless.
+Confirmed ROADMAP_PLAN contains mentions only, no markdown links, so nothing dangles.
+
+Verified: `check_docs.py` OK, zero broken relative links across README/CLAUDE/USAGE/PROJECT_HISTORY,
+no stale references left outside the append-only files, npm package correct, and the pipeline
+unchanged (structure 25/22, flow 50/31).

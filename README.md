@@ -77,7 +77,7 @@ suffix still links (so an `/api` mount prefix works) and an ambiguous one is lef
 ## What it can tell you
 
 Every item below is a command, and every answer is computed from the graphs — never from an LLM
-guessing. Full syntax lives in **[USAGE.md](USAGE.md)**.
+guessing. Full syntax lives in **[USAGE.md](docs/USAGE.md)**.
 
 ### Navigate
 
