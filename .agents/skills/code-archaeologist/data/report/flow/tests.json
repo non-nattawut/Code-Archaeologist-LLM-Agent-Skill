@@ -1,15 +1,15 @@
 {
-  "generated": "2026-09-09T01:51:10Z",
+  "generated": "2026-09-09T07:07:18Z",
   "roots": [
     "sample_src"
   ],
   "graph": "data/flow/flow_graph.json",
   "summary": {
     "test_files": 2,
-    "considered": 46,
+    "considered": 47,
     "referenced": 4,
-    "unreferenced": 42,
-    "referenced_pct": 8.7
+    "unreferenced": 43,
+    "referenced_pct": 8.5
   },
   "test_files": [
     "sample_src/backend/tests/test_orders.py",
@@ -217,6 +217,12 @@
       "kind": "method"
     },
     {
+      "id": "createInvoice",
+      "source": "sample_src/frontend/api_client.ts:16",
+      "layer": "client",
+      "kind": "function"
+    },
+    {
       "id": "createOrder",
       "source": "sample_src/frontend/api_client.ts:8",
       "layer": "client",
@@ -230,19 +236,19 @@
     },
     {
       "id": "getOrder",
-      "source": "sample_src/frontend/api_client.ts:13",
+      "source": "sample_src/frontend/api_client.ts:21",
       "layer": "client",
       "kind": "function"
     },
     {
       "id": "getOrderEvents",
-      "source": "sample_src/frontend/api_client.ts:28",
+      "source": "sample_src/frontend/api_client.ts:36",
       "layer": "client",
       "kind": "function"
     },
     {
       "id": "getOrderStatus",
-      "source": "sample_src/frontend/api_client.ts:20",
+      "source": "sample_src/frontend/api_client.ts:28",
       "layer": "client",
       "kind": "function"
     },

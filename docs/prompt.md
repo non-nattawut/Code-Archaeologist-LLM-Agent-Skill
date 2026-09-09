@@ -803,3 +803,54 @@ Confirmed ROADMAP_PLAN contains mentions only, no markdown links, so nothing dan
 Verified: `check_docs.py` OK, zero broken relative links across README/CLAUDE/USAGE/PROJECT_HISTORY,
 no stale references left outside the append-only files, npm package correct, and the pipeline
 unchanged (structure 25/22, flow 50/31).
+
+---
+
+## [32] 2026-09-09 — Phase 5: duplicate-code clusters
+
+**Prompt**
+> ok continue phase 4 in ROADMAP_PLAN
+
+*(resumed after a token limit with: "continue where you left off due to token limit")*
+
+**Response**
+Phase 4 was already done (`7ce1ff2`, previous turn) and the roadmap marked phase 5 next, so I read
+"continue" as continue the roadmap, said so, and did phase 5. Also filled in phase 4's empty commit
+cell in the status table.
+
+**Departure from the plan, deliberate.** The plan had `duplicates.py` derive source ranges itself
+(ast for Python, `endLine` from the extractors for the rest). Checking the import graph first showed
+`review/` imports nothing from `extract/` — doing so would have been a new cross-category edge *and*
+would have made `report.py` re-spawn the Node extractor on every report. Instead `build_flow.py` now
+records `end` on every node: it already had the value at all four construction sites and was
+throwing it away (CLAUDE.md even notes the waste). `duplicates.py` then reads ranges from the graph
+like every other review pass. 49/50 nodes got an end line; the one without is `GET /go/healthz`, a
+synthetic inline-route node with no body — correctly skipped.
+
+`review/duplicates.py`, modelled on `debt.py`'s skeleton: normalize each body to a token shape
+(identifiers -> `ID`, literals -> `LIT`, comments and whitespace dropped, keywords and operators
+kept), sha1, group, floor at 30 tokens. Wired into `report.py` (import, build call, `data` key,
+markdown section, console line), `build_html.report_for()` (cluster summaries only — ids, never
+bodies), and `viewer.html` (a Patterns group via the existing `push`/`nodeItem` helpers, plus the
+tab badge count; `DUPES` is bound in `loadMap`, not a top-level const, per the front-end rule).
+
+Verified as the plan asked, at two levels. Unit: a pure rename keeps the shape identical, an
+operator swap changes it. End-to-end on the sample: renaming a variable inside the planted copy
+kept the cluster (1 cluster), changing an operator split it (0 clusters). Also confirmed the
+markdown section renders and the cluster reaches the embedded explorer payload for the flow map
+only — structure legitimately has 0, since its nodes are classes rather than functions.
+
+**One thing I found and left alone**: a docstring counts as a token, so documenting one copy and not
+the other hides the pair. Every rule I tried for stripping leading docs was fragile enough to risk
+clustering functions that merely start alike. A false positive costs more than a miss here, so it
+stays conservative and the module docstring says so outright.
+
+Planted `createInvoice` in `frontend/api_client.ts` — `createOrder` with every identifier renamed,
+the most realistic clone shape there is (a copy-pasted fetch wrapper). It adds one orphan, which
+dropped the flow grade D(69) -> D(68); that is the honest consequence, not a regression, and
+CLAUDE.md now says so.
+
+Numbers now: structure 25/22 D(69) unchanged; flow **51/31**, 16 endpoints, 0 pending, **D(68)**,
+tests **4/47**, 528 lines, **1 duplicate cluster / 4 duplicated lines**, `stale: false`, all traces
+intact. Installer self-test passes; on a fresh install duplicates reads 0 because there is no
+`node_modules`, so the TS clone is skipped — phase 4's degradation behaviour, working.

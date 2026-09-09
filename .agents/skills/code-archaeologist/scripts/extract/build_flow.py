@@ -322,7 +322,8 @@ def analyze(roots: list[str]):
                     "kind": "endpoint" if is_endpoint else "method",
                     "signature": _signature(m),
                     "doc": doc.strip().splitlines()[0] if doc.strip() else "",
-                    "source": f"{rel}:{m.lineno}", "calls": [], "callers": [],
+                    "source": f"{rel}:{m.lineno}", "end": getattr(m, "end_lineno", 0) or m.lineno,
+                    "calls": [], "callers": [],
                     "hash": _hash(code), "code": code, "routes": routes,
                 }
                 local_types = _local_types(m, attr_types)
@@ -342,7 +343,8 @@ def analyze(roots: list[str]):
                 "layer": "controller" if routes else "function",
                 "kind": "endpoint" if routes else "function", "signature": _signature(fn),
                 "doc": doc.strip().splitlines()[0] if doc.strip() else "",
-                "source": f"{rel}:{fn.lineno}", "calls": [], "callers": [],
+                "source": f"{rel}:{fn.lineno}", "end": getattr(fn, "end_lineno", 0) or fn.lineno,
+                "calls": [], "callers": [],
                 "hash": _hash(code), "code": code, "routes": routes,
             }
             local_types = _local_types(fn, {})
@@ -402,7 +404,8 @@ def _js_node(nid: str, name: str, cls, layer: str, kind: str, data: dict, rel: s
         "id": nid, "name": name, "cls": cls, "layer": layer, "kind": kind,
         "signature": f"{name}()",
         "doc": doc.splitlines()[0] if doc else "",
-        "source": f"{rel}:{data.get('line', 0)}", "calls": [], "callers": [],
+        "source": f"{rel}:{data.get('line', 0)}", "end": data.get("endLine", 0),
+        "calls": [], "callers": [],
         "hash": _hash(content), "code": code, "http": http, "lang": "js",
         "routes": _dedupe_routes(data.get("routes") or []),
     }
@@ -489,7 +492,8 @@ def _lang_node(nid: str, name: str, cls, layer: str, kind: str, data: dict,
         "id": nid, "name": name, "cls": cls, "layer": layer, "kind": kind,
         "signature": f'{name}({", ".join(sorted(params))})',
         "doc": doc.splitlines()[0] if doc else "",
-        "source": f'{rel}:{data.get("line", 0)}', "calls": [], "callers": [],
+        "source": f'{rel}:{data.get("line", 0)}', "end": data.get("endLine", 0),
+        "calls": [], "callers": [],
         "hash": _hash(content), "code": f"// {rel}\n{name}(...)", "lang": lang,
         "routes": _dedupe_routes(data.get("routes") or []), "approx": True,
     }
@@ -697,7 +701,8 @@ def write_graph(methods: dict, edges, graph_path: str) -> None:
     for i in sorted(methods.values(), key=lambda x: x["id"]):
         node = {"id": i["id"], "layer": i["layer"], "kind": i["kind"],
                 "cls": i["cls"], "signature": i["signature"], "doc": i.get("summary", ""),
-                "source": i["source"], "lang": i.get("lang", "py"),
+                "source": i["source"], "end": i.get("end", 0),
+                "lang": i.get("lang", "py"),
                 "ext": i.get("ext", 0)}  # call sites that leave the graph (libs/stdlib)
         if i.get("http"):
             node["http"] = i["http"]

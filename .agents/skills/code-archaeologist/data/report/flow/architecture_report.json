@@ -1,11 +1,11 @@
 {
   "graph": "data/flow/flow_graph.json",
-  "generated": "2026-09-09 01:51 UTC",
+  "generated": "2026-09-09 07:07 UTC",
   "census": {
-    "nodes": 50,
+    "nodes": 51,
     "edges": 31,
     "layers": {
-      "client": 5,
+      "client": 6,
       "controller": 18,
       "repository": 8,
       "service": 10,
@@ -17,13 +17,13 @@
       "csharp": 7,
       "go": 8,
       "java": 8,
-      "js": 14,
+      "js": 15,
       "py": 13
     },
     "kinds": {
       "component": 2,
       "endpoint": 16,
-      "function": 10,
+      "function": 11,
       "method": 22
     },
     "edge_types": {
@@ -153,7 +153,7 @@
         "lang": "tsx"
       },
       "sample_src/frontend/api_client.ts": {
-        "lines": 31,
+        "lines": 39,
         "lang": "ts"
       },
       "sample_src/frontend/order_page.test.ts": {
@@ -206,24 +206,24 @@
       }
     },
     "file_count": 22,
-    "loc": 520,
+    "loc": 528,
     "languages": {
       "py": 126,
       "java": 101,
       "csharp": 90,
-      "ts": 82,
+      "ts": 90,
       "go": 66,
       "js": 28,
       "tsx": 27
     },
     "language_pct": {
-      "py": 24.2,
-      "java": 19.4,
-      "csharp": 17.3,
-      "ts": 15.8,
-      "go": 12.7,
-      "js": 5.4,
-      "tsx": 5.2
+      "py": 23.9,
+      "java": 19.1,
+      "csharp": 17.0,
+      "ts": 17.0,
+      "go": 12.5,
+      "js": 5.3,
+      "tsx": 5.1
     }
   },
   "analysis": {
@@ -231,6 +231,7 @@
     "orphans": [
       "FlatRate.price",
       "TieredRate.price",
+      "createInvoice",
       "getOrderStatus",
       "loadOrder",
       "loadOrderHistory",
@@ -241,11 +242,11 @@
     "god_objects": [],
     "patterns": {},
     "health": {
-      "score": 69,
+      "score": 68,
       "grade": "D",
-      "dead_code_pct": 12.0,
+      "dead_code_pct": 13.7,
       "deductions": {
-        "dead_code": 6,
+        "dead_code": 7,
         "cycles": 0,
         "layer_violations": 0,
         "high_coupling": 0,
@@ -254,10 +255,10 @@
       }
     },
     "summary": {
-      "nodes": 50,
+      "nodes": 51,
       "edges": 31,
       "cycles": 0,
-      "orphans": 6,
+      "orphans": 7,
       "layer_violations": 0,
       "hubs": 0,
       "god_objects": 0
@@ -1120,6 +1121,21 @@
         "fan_out": 0,
         "risk": 1
       },
+      "createInvoice": {
+        "file": "sample_src/frontend/api_client.ts",
+        "commits": 3,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 2,
+          "Nattawut Rodthong": 1
+        },
+        "author_count": 2,
+        "last_commit": "2026-09-08T22:13:49+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 0,
+        "fan_out": 0,
+        "risk": 3
+      },
       "createOrder": {
         "file": "sample_src/frontend/api_client.ts",
         "commits": 3,
@@ -1636,6 +1652,22 @@
         "risk": 3
       },
       {
+        "node": "createInvoice",
+        "file": "sample_src/frontend/api_client.ts",
+        "commits": 3,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 2,
+          "Nattawut Rodthong": 1
+        },
+        "author_count": 2,
+        "last_commit": "2026-09-08T22:13:49+07:00",
+        "first_commit": "2026-09-02T16:10:56+07:00",
+        "fan_in": 0,
+        "fan_out": 0,
+        "risk": 3
+      },
+      {
         "node": "handleOrderEvents",
         "file": "sample_src/services/orders_go/router.go",
         "commits": 1,
@@ -2095,17 +2127,17 @@
     }
   },
   "metrics": {
-    "generated": "2026-09-09T01:51:10Z",
+    "generated": "2026-09-09T07:07:18Z",
     "roots": [
       "sample_src"
     ],
     "totals": {
       "files": 22,
-      "lines": 520,
-      "code": 339,
-      "comment": 80,
-      "blank": 101,
-      "comment_ratio": 0.154
+      "lines": 528,
+      "code": 343,
+      "comment": 83,
+      "blank": 102,
+      "comment_ratio": 0.157
     },
     "languages": {
       "py": {
@@ -2122,7 +2154,7 @@
       },
       "ts": {
         "files": 4,
-        "lines": 82
+        "lines": 90
       },
       "go": {
         "files": 3,
@@ -2202,10 +2234,10 @@
         "lang": "tsx"
       },
       "sample_src/frontend/api_client.ts": {
-        "lines": 31,
-        "code": 18,
-        "comment": 8,
-        "blank": 5,
+        "lines": 39,
+        "code": 22,
+        "comment": 11,
+        "blank": 6,
         "lang": "ts"
       },
       "sample_src/frontend/order_page.test.ts": {
@@ -2621,6 +2653,11 @@
     ],
     "top_files": [
       {
+        "file": "sample_src/frontend/api_client.ts",
+        "lines": 39,
+        "code": 22
+      },
+      {
         "file": "sample_src/services/orders_cs/InvoiceService.cs",
         "lines": 39,
         "code": 26
@@ -2629,11 +2666,6 @@
         "file": "sample_src/services/orders_go/router.go",
         "lines": 34,
         "code": 21
-      },
-      {
-        "file": "sample_src/frontend/api_client.ts",
-        "lines": 31,
-        "code": 18
       },
       {
         "file": "sample_src/api_express/order_router.js",
@@ -2698,6 +2730,7 @@
       "OrdersController.findOne",
       "StatusBadge",
       "TieredRate.price",
+      "createInvoice",
       "createOrder",
       "createOrderHandler",
       "getOrder",
@@ -2712,7 +2745,7 @@
     ]
   },
   "debt": {
-    "generated": "2026-09-09T01:51:10Z",
+    "generated": "2026-09-09T07:07:18Z",
     "roots": [
       "sample_src"
     ],
@@ -2723,7 +2756,7 @@
         "FIXME": 1,
         "TODO": 1
       },
-      "dead_nodes": 6,
+      "dead_nodes": 7,
       "dead_files": 2
     },
     "markers": [
@@ -2756,8 +2789,14 @@
         "kind": "method"
       },
       {
+        "id": "createInvoice",
+        "source": "sample_src/frontend/api_client.ts:16",
+        "layer": "client",
+        "kind": "function"
+      },
+      {
         "id": "getOrderStatus",
-        "source": "sample_src/frontend/api_client.ts:20",
+        "source": "sample_src/frontend/api_client.ts:28",
         "layer": "client",
         "kind": "function"
       },
@@ -2786,17 +2825,17 @@
     ]
   },
   "tests": {
-    "generated": "2026-09-09T01:51:10Z",
+    "generated": "2026-09-09T07:07:18Z",
     "roots": [
       "sample_src"
     ],
     "graph": "data/flow/flow_graph.json",
     "summary": {
       "test_files": 2,
-      "considered": 46,
+      "considered": 47,
       "referenced": 4,
-      "unreferenced": 42,
-      "referenced_pct": 8.7
+      "unreferenced": 43,
+      "referenced_pct": 8.5
     },
     "test_files": [
       "sample_src/backend/tests/test_orders.py",
@@ -3004,6 +3043,12 @@
         "kind": "method"
       },
       {
+        "id": "createInvoice",
+        "source": "sample_src/frontend/api_client.ts:16",
+        "layer": "client",
+        "kind": "function"
+      },
+      {
         "id": "createOrder",
         "source": "sample_src/frontend/api_client.ts:8",
         "layer": "client",
@@ -3017,19 +3062,19 @@
       },
       {
         "id": "getOrder",
-        "source": "sample_src/frontend/api_client.ts:13",
+        "source": "sample_src/frontend/api_client.ts:21",
         "layer": "client",
         "kind": "function"
       },
       {
         "id": "getOrderEvents",
-        "source": "sample_src/frontend/api_client.ts:28",
+        "source": "sample_src/frontend/api_client.ts:36",
         "layer": "client",
         "kind": "function"
       },
       {
         "id": "getOrderStatus",
-        "source": "sample_src/frontend/api_client.ts:20",
+        "source": "sample_src/frontend/api_client.ts:28",
         "layer": "client",
         "kind": "function"
       },
@@ -3068,6 +3113,39 @@
         "source": "sample_src/api_express/order_router.js:17",
         "layer": "controller",
         "kind": "function"
+      }
+    ]
+  },
+  "duplicates": {
+    "generated": "2026-09-09T07:07:18Z",
+    "roots": [
+      "sample_src"
+    ],
+    "graph": "data/flow/flow_graph.json",
+    "summary": {
+      "clusters": 1,
+      "nodes_involved": 2,
+      "duplicated_loc": 4
+    },
+    "clusters": [
+      {
+        "hash": "cb11fc74c963",
+        "tokens": 42,
+        "loc": 4,
+        "nodes": [
+          {
+            "id": "createInvoice",
+            "source": "sample_src/frontend/api_client.ts:16",
+            "layer": "client",
+            "kind": "function"
+          },
+          {
+            "id": "createOrder",
+            "source": "sample_src/frontend/api_client.ts:8",
+            "layer": "client",
+            "kind": "function"
+          }
+        ]
       }
     ]
   }

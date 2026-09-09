@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-09T01:51:10Z",
+  "generated": "2026-09-09T07:07:18Z",
   "roots": [
     "sample_src"
   ],
@@ -10,7 +10,7 @@
       "FIXME": 1,
       "TODO": 1
     },
-    "dead_nodes": 6,
+    "dead_nodes": 7,
     "dead_files": 2
   },
   "markers": [
@@ -43,8 +43,14 @@
       "kind": "method"
     },
     {
+      "id": "createInvoice",
+      "source": "sample_src/frontend/api_client.ts:16",
+      "layer": "client",
+      "kind": "function"
+    },
+    {
       "id": "getOrderStatus",
-      "source": "sample_src/frontend/api_client.ts:20",
+      "source": "sample_src/frontend/api_client.ts:28",
       "layer": "client",
       "kind": "function"
     },

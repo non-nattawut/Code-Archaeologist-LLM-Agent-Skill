@@ -1,6 +1,6 @@
 {
   "graph": "data/structure/graph.json",
-  "generated": "2026-09-09 01:51 UTC",
+  "generated": "2026-09-09 07:07 UTC",
   "census": {
     "nodes": 25,
     "edges": 22,
@@ -70,7 +70,7 @@
         "lang": "tsx"
       },
       "sample_src/frontend/api_client.ts": {
-        "lines": 31,
+        "lines": 39,
         "lang": "ts"
       },
       "sample_src/frontend/order_page.test.ts": {
@@ -123,24 +123,24 @@
       }
     },
     "file_count": 22,
-    "loc": 520,
+    "loc": 528,
     "languages": {
       "py": 126,
       "java": 101,
       "csharp": 90,
-      "ts": 82,
+      "ts": 90,
       "go": 66,
       "js": 28,
       "tsx": 27
     },
     "language_pct": {
-      "py": 24.2,
-      "java": 19.4,
-      "csharp": 17.3,
-      "ts": 15.8,
-      "go": 12.7,
-      "js": 5.4,
-      "tsx": 5.2
+      "py": 23.9,
+      "java": 19.1,
+      "csharp": 17.0,
+      "ts": 17.0,
+      "go": 12.5,
+      "js": 5.3,
+      "tsx": 5.1
     }
   },
   "analysis": {
@@ -1272,17 +1272,17 @@
     }
   },
   "metrics": {
-    "generated": "2026-09-09T01:51:10Z",
+    "generated": "2026-09-09T07:07:18Z",
     "roots": [
       "sample_src"
     ],
     "totals": {
       "files": 22,
-      "lines": 520,
-      "code": 339,
-      "comment": 80,
-      "blank": 101,
-      "comment_ratio": 0.154
+      "lines": 528,
+      "code": 343,
+      "comment": 83,
+      "blank": 102,
+      "comment_ratio": 0.157
     },
     "languages": {
       "py": {
@@ -1299,7 +1299,7 @@
       },
       "ts": {
         "files": 4,
-        "lines": 82
+        "lines": 90
       },
       "go": {
         "files": 3,
@@ -1379,10 +1379,10 @@
         "lang": "tsx"
       },
       "sample_src/frontend/api_client.ts": {
-        "lines": 31,
-        "code": 18,
-        "comment": 8,
-        "blank": 5,
+        "lines": 39,
+        "code": 22,
+        "comment": 11,
+        "blank": 6,
         "lang": "ts"
       },
       "sample_src/frontend/order_page.test.ts": {
@@ -1728,6 +1728,11 @@
     ],
     "top_files": [
       {
+        "file": "sample_src/frontend/api_client.ts",
+        "lines": 39,
+        "code": 22
+      },
+      {
         "file": "sample_src/services/orders_cs/InvoiceService.cs",
         "lines": 39,
         "code": 26
@@ -1736,11 +1741,6 @@
         "file": "sample_src/services/orders_go/router.go",
         "lines": 34,
         "code": 21
-      },
-      {
-        "file": "sample_src/frontend/api_client.ts",
-        "lines": 31,
-        "code": 18
       },
       {
         "file": "sample_src/api_express/order_router.js",
@@ -1802,7 +1802,7 @@
     ]
   },
   "debt": {
-    "generated": "2026-09-09T01:51:10Z",
+    "generated": "2026-09-09T07:07:18Z",
     "roots": [
       "sample_src"
     ],
@@ -1857,7 +1857,7 @@
     ]
   },
   "tests": {
-    "generated": "2026-09-09T01:51:10Z",
+    "generated": "2026-09-09T07:07:18Z",
     "roots": [
       "sample_src"
     ],
@@ -2006,5 +2006,18 @@
         "kind": "class"
       }
     ]
+  },
+  "duplicates": {
+    "generated": "2026-09-09T07:07:18Z",
+    "roots": [
+      "sample_src"
+    ],
+    "graph": "data/structure/graph.json",
+    "summary": {
+      "clusters": 0,
+      "nodes_involved": 0,
+      "duplicated_loc": 0
+    },
+    "clusters": []
   }
 }

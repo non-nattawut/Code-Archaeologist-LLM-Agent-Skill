@@ -3,7 +3,7 @@ entity: getOrderStatus
 kind: function
 layer: client
 class: 
-source: sample_src/frontend/api_client.ts:20
+source: sample_src/frontend/api_client.ts:28
 lang: js
 desc_source: docstring
 ---

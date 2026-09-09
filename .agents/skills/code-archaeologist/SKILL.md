@@ -249,6 +249,19 @@ nothing in the graph does. Their calls into production code are coverage, not co
 also left out of the hub / god-object counts; what they *are* used for is Command 7's "Covered by"
 and `--impact-of`, which then tells you which tests a change puts at risk.
 
+### 17. Duplicate code clusters
+Copy-pasted functions, found even when the identifiers were renamed. Every node's body is reduced
+to its token shape — identifiers become `ID`, literals `LIT`, comments and whitespace vanish,
+keywords and operators stay — and bodies with the same shape are the same code.
+```bash
+python .agents/skills/code-archaeologist/scripts/review/duplicates.py --src ./src --top 10
+```
+A rename cannot hide a copy; changing an operator or adding a branch does split the pair, which is
+the point — it finds copies, not merely similar-looking code. Bodies under 30 tokens are ignored so
+getters and one-line delegates do not flood the list. It errs toward missing a copy rather than
+inventing one: a docstring counts as a token, so documenting one copy and not the other hides the
+pair. Treat a cluster as a prompt to look, not proof of a bad abstraction.
+
 ## Keeping the maps current (hybrid AI descriptions)
 
 Graph *structure* is always extracted by AST — exact, zero tokens. Method *descriptions* resolve

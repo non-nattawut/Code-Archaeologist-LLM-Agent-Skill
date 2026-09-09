@@ -10,6 +10,14 @@ export async function createOrder(payload: object) {
   return res.json();
 }
 
+// Deliberate copy-paste, so the duplicate pass has something to find: this is
+// `createOrder` with every identifier renamed and nothing else changed. The
+// token shapes are identical, so the two must cluster despite the new names.
+export async function createInvoice(body: object) {
+  const response = await fetch("/invoices", { method: "POST", body: JSON.stringify(body) });
+  return response.json();
+}
+
 export async function getOrder(orderId: string) {
   const res = await fetch(`/orders/${orderId}`, { method: "GET" });
   return res.json();

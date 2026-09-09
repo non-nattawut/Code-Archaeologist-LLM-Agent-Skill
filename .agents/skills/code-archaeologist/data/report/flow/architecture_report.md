@@ -1,24 +1,24 @@
 # Architecture report — flow_graph.json
 
-Generated 2026-09-09 01:51 UTC · 50 nodes · 31 edges
+Generated 2026-09-09 07:07 UTC · 51 nodes · 31 edges
 
-## Health: **D** (69/100)
+## Health: **D** (68/100)
 
 | Deduction | Points |
 | --- | --- |
-| dead code | -6 |
+| dead code | -7 |
 | security | -25 |
 
-Dead-code ratio 12.0% · cycles 0 · layer violations 0 · security findings 4
+Dead-code ratio 13.7% · cycles 0 · layer violations 0 · security findings 4
 
-> **23 of 50 nodes are approximate.** Java, Go and C# are read textually rather than parsed, so this grade rests in part on edges that were inferred from declared types. Unresolvable calls (interface dispatch, overloads, lambdas) were dropped, not guessed — so the real coupling is at least this much.
+> **23 of 51 nodes are approximate.** Java, Go and C# are read textually rather than parsed, so this grade rests in part on edges that were inferred from declared types. Unresolvable calls (interface dispatch, overloads, lambdas) were dropped, not guessed — so the real coupling is at least this much.
 
 ## Census
 
-- Source: 22 file(s), 520 lines (py 24.2%, java 19.4%, csharp 17.3%, ts 15.8%, go 12.7%, js 5.4%, tsx 5.2%)
-- Layers: `client` 5, `controller` 18, `repository` 8, `service` 10, `test` 2, `ui` 5, `unknown` 2
-- Kinds: `component` 2, `endpoint` 16, `function` 10, `method` 22
-- Languages: `csharp` 7, `go` 8, `java` 8, `js` 14, `py` 13
+- Source: 22 file(s), 528 lines (py 23.9%, java 19.1%, csharp 17.0%, ts 17.0%, go 12.5%, js 5.3%, tsx 5.1%)
+- Layers: `client` 6, `controller` 18, `repository` 8, `service` 10, `test` 2, `ui` 5, `unknown` 2
+- Kinds: `component` 2, `endpoint` 16, `function` 11, `method` 22
+- Languages: `csharp` 7, `go` 8, `java` 8, `js` 15, `py` 13
 - Edge types: `calls` 27, `http` 4
 
 ## Entry points (routes)
@@ -44,7 +44,7 @@ Dead-code ratio 12.0% · cycles 0 · layer violations 0 · security findings 4
 
 ## Size & complexity
 
-- 22 file(s), 520 lines — 339 code, 80 comment, 101 blank (comment ratio 15%)
+- 22 file(s), 528 lines — 343 code, 83 comment, 102 blank (comment ratio 16%)
 - Complexity is McCabe: 1 + every branch. Python nodes only.
 
 ### Longest nodes
@@ -81,9 +81,9 @@ Dead-code ratio 12.0% · cycles 0 · layer violations 0 · security findings 4
 
 | File | Lines | Code |
 | --- | --- | --- |
+| `sample_src/frontend/api_client.ts` | 39 | 22 |
 | `sample_src/services/orders_cs/InvoiceService.cs` | 39 | 26 |
 | `sample_src/services/orders_go/router.go` | 34 | 21 |
-| `sample_src/frontend/api_client.ts` | 31 | 18 |
 | `sample_src/api_express/order_router.js` | 28 | 14 |
 | `sample_src/api_flask/order_routes.py` | 28 | 21 |
 | `sample_src/services/orders_cs/InvoiceController.cs` | 28 | 21 |
@@ -102,12 +102,13 @@ _None._
 
 _None._
 
-### Orphans (no callers, not an entry point) — 6
+### Orphans (no callers, not an entry point) — 7
 
 | Node |
 | --- |
 | `FlatRate.price` |
 | `TieredRate.price` |
+| `createInvoice` |
 | `getOrderStatus` |
 | `loadOrder` |
 | `loadOrderHistory` |
@@ -151,7 +152,7 @@ _None._
 | `PaymentClient.charge` | 3 | 1 | 0 | 6 | non-nattawut |
 | `getOrderStatus` | 3 | 0 | 1 | 6 | non-nattawut |
 
-## Debt — 2 marker(s) (FIXME 1, TODO 1), 6 dead node(s)
+## Debt — 2 marker(s) (FIXME 1, TODO 1), 7 dead node(s)
 
 | Tag | Location | Owner | Note |
 | --- | --- | --- | --- |
@@ -160,7 +161,7 @@ _None._
 
 Files where every node is dead: `sample_src/frontend/order_page.ts`, `sample_src/services/orders_java/PricingRule.java`
 
-## Tests — 4/46 node(s) named by a test (8.7%)
+## Tests — 4/47 node(s) named by a test (8.5%)
 
 _2 test file(s). Name-based, not execution coverage: a node counts as referenced when a test file names it._
 
@@ -183,6 +184,14 @@ _2 test file(s). Name-based, not execution coverage: a node counts as referenced
 | `InvoiceStore.Get` | repository | `sample_src/services/orders_cs/InvoiceStore.cs:19` |
 | `InvoiceStore.Put` | repository | `sample_src/services/orders_cs/InvoiceStore.cs:11` |
 | `NewRouter` | controller | `sample_src/services/orders_go/router.go:10` |
+
+## Duplicate code — 1 cluster(s), 4 duplicated line(s)
+
+_Matched on token shape: identifiers and literals are normalized away, so a renamed copy still matches. Similar-looking code can cluster; it is a prompt to look, not proof._
+
+| Tokens | Copies | Nodes |
+| --- | --- | --- |
+| 42 | 2 | `createInvoice`, `createOrder` |
 
 ## Dig deeper
 

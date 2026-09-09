@@ -1,6 +1,6 @@
 # Implement the README roadmap, phase by phase
 
-> ## Status: phases 0-4 are complete. **Phase 5 is next.**
+> ## Status: phases 0-5 are complete. **Phase 6 is next.**
 >
 > | Phase | State | Commit |
 > | --- | --- | --- |
@@ -9,15 +9,15 @@
 > | — `firstDocLine` adjacency fix (follow-up) | **done** | `29ff85f` |
 > | 2 — Route/framework coverage (Flask, Express, Nest) | **done** | `bd983c8` |
 > | 3 — Graph extractors for Java, Go and C# | **done** | `a3fdc69` |
-> | 4 — Fully offline viewer (vendor force-graph) | **done** | |
-> | 5 — Duplicate-code clusters | **next** | |
-> | 6 — Roadmap rewrite and final doc pass | pending | |
+> | 4 — Fully offline viewer (vendor force-graph) | **done** | `7ce1ff2` |
+> | 5 — Duplicate-code clusters | **done** | |
+> | 6 — Roadmap rewrite and final doc pass | **next** | |
 >
 > This file was moved into the repo at the end of phase 3 so the remaining phases can be
 > picked up on another machine. The phase sections below are the **original plan as written**
 > — they are not revised as phases land, so where the implementation departed from the plan,
 > the commit and `prompt.md` are the record of what was actually done. Departures worth
-> knowing before starting phase 5:
+> knowing before starting phase 6:
 >
 > - Phase 0c put the doc checker at `tools/check_docs.py`, not `scripts/check_docs.py`: it
 >   reads repo files (`README.md`, `CLAUDE.md`) that no installed skill has.
@@ -31,6 +31,12 @@
 >   attribution URL. The goal — nothing *loads* over the network — is met and is now asserted in
 >   `bin/cli.js --self-test` against resource-loading references (`<script src>`, `<link href>`,
 >   `<img src>`, `@import`, `url(http…)`), which is what actually causes a request.
+>
+> - Phase 5 did **not** derive source ranges inside `duplicates.py` as written. `review/` imports
+>   nothing from `extract/` today, and doing so would have made `report.py` re-spawn the Node
+>   extractor. Instead `build_flow.py` now records `end` on every node -- it already had the value
+>   from all three tiers and was discarding it -- so `duplicates.py` reads ranges from the graph
+>   like every other review pass. Synthetic route nodes have no range and are skipped.
 >
 > Everything each phase promises to verify has been verified; `CLAUDE.md`'s expected-numbers
 > block is the current truth for the sample.

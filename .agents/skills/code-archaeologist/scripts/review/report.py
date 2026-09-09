@@ -36,6 +36,7 @@ DEFAULT_OUT_DIR = os.path.join(DATA_DIR, "report")
 import analyze          # noqa: E402
 import console          # noqa: E402  (stdout must survive a non-UTF-8 console)
 import debt             # noqa: E402
+import duplicates       # noqa: E402
 import git_insights     # noqa: E402
 import metrics          # noqa: E402
 import scan_security    # noqa: E402
@@ -239,6 +240,19 @@ def to_markdown(data: dict) -> str:
                         [[f"`{n['id']}`", n["layer"] or "—", f"`{n['source']}`"]
                          for n in tests["unreferenced"][:TOP_ORPHANS]])
 
+    dupes = data.get("duplicates") or {}
+    if dupes and dupes["summary"]["clusters"]:
+        ds = dupes["summary"]
+        lines += [f"## Duplicate code — {ds['clusters']} cluster(s), "
+                  f"{ds['duplicated_loc']} duplicated line(s)", "",
+                  "_Matched on token shape: identifiers and literals are normalized away, so a "
+                  "renamed copy still matches. Similar-looking code can cluster; it is a prompt "
+                  "to look, not proof._", ""]
+        lines += _table(["Tokens", "Copies", "Nodes"],
+                        [[str(c["tokens"]), str(len(c["nodes"])),
+                          ", ".join(f"`{n['id']}`" for n in c["nodes"])]
+                         for c in dupes["clusters"][:TOP_FINDINGS]])
+
     lines += [
         "## Dig deeper",
         "",
@@ -266,13 +280,14 @@ def build(src, graph_path: str = DEFAULT_GRAPH, out_dir: str = DEFAULT_OUT_DIR) 
     size = metrics.build(src, graph_path, os.path.join(out_dir, "metrics.json"), TOP_BIG)
     rot = debt.build(src, graph_path, os.path.join(out_dir, "debt.json"))
     tests = tests_map.build(src, graph_path, os.path.join(out_dir, "tests.json"))
+    dupes = duplicates.build(src, graph_path, os.path.join(out_dir, "duplicates.json"))
 
     data = {
         "graph": os.path.relpath(graph_path, SKILL_ROOT).replace("\\", "/"),
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         "census": census(graph), "files": file_census(size), "analysis": analysis,
         "security": security, "insights": insights, "metrics": size,
-        "debt": rot, "tests": tests,
+        "debt": rot, "tests": tests, "duplicates": dupes,
     }
 
     writes = {
@@ -296,8 +311,10 @@ def build(src, graph_path: str = DEFAULT_GRAPH, out_dir: str = DEFAULT_OUT_DIR) 
           f"longest node {size['top_loc'][0]['id'] if size['top_loc'] else 'n/a'}")
     print(f"  {rot['summary']['markers']} marker(s), {rot['summary']['dead_nodes']} dead node(s), "
           f"{tests['summary']['referenced']}/{tests['summary']['considered']} node(s) named by a test")
+    print(f"  {dupes['summary']['clusters']} duplicate cluster(s), "
+          f"{dupes['summary']['duplicated_loc']} duplicated line(s)")
     print(f"  also: architecture_report.json, security.json, insights.json, metrics.json, "
-          f"debt.json, tests.json in {out_dir}")
+          f"debt.json, tests.json, duplicates.json in {out_dir}")
     return data
 
 

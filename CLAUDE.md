@@ -31,7 +31,8 @@ archaeologist.py  project | flow | both | check | report | brief   <- the only e
   flow     -> build_flow ---------------------------------+--> render_explorer()
       both extract through: js_bridge -> js_extract.js  (JS/TS, exact)
                             lang_extract.py             (Java/Go/C#, approximate)
-  report   -> report.py (scan_security + git_insights + analyze + metrics + debt + tests_map)
+  report   -> report.py (scan_security + git_insights + analyze + metrics + debt + tests_map
+                         + duplicates)
                                                                     -> data/report/<map>/
   brief    -> brief.py (reads the artifacts above, computes nothing)
   check    -> manifest.py (source hashes vs last build)
@@ -51,7 +52,7 @@ scripts/
   extract/  build_wiki.py  build_graph.py  build_flow.py  js_bridge.py  js_extract.js
             lang_extract.py  apply_descriptions.py
   review/   analyze.py  scan_security.py  git_insights.py  metrics.py  debt.py
-            tests_map.py  report.py  brief.py
+            tests_map.py  duplicates.py  report.py  brief.py
   query/    trace_path.py  context.py  search.py  build_html.py
 ```
 
@@ -99,6 +100,10 @@ it needs the directory holding `js_extract.js`, not the skill root — and `cons
 - `debt.py` (markers in comments + orphan nodes/files) and `tests_map.py` (which nodes a test file
   names) are the two "what is rotting / what is untested" passes. Both are heuristics on purpose
   and neither feeds the health grade -- they report, they do not judge.
+- `duplicates.py` is the third such pass: it reduces each node's body to a token shape
+  (identifiers -> `ID`, literals -> `LIT`, comments gone) and clusters equal hashes, so a renamed
+  copy still matches. It reads ranges from the graph (`source` + `end`), never re-parsing --
+  which is why `build_flow.py` records `end` on every node it builds.
 - `brief.py` is the fixed-size digest an agent should open a session with — it only reads what the
   other scripts wrote. Anything expensive belongs upstream of it, never inside it.
 - `report.py` joins all of it into `data/report/<map>/architecture_report.{md,json}` plus
@@ -200,7 +205,7 @@ hard cases, so the review path, the test path, the component path, every route s
 
 - structure graph: **25 nodes / 22 edges** -- 7 Python, 6 JS/TS, 12 approximate (6 Java, 3 Go,
   3 C#), of which `OrderCard` and `StatusBadge` are `kind: component` / `layer: ui`
-- flow graph: **50 nodes / 31 edges, 16 endpoints, 0 pending** descriptions; 23 nodes `approx`
+- flow graph: **51 nodes / 31 edges, 16 endpoints, 0 pending** descriptions; 23 nodes `approx`
 - routes, one per framework shape: FastAPI `OrderController.create_order`; Flask `orders` with
   **two** entries (`GET` + `POST /legacy/orders`) and `order_detail` (`<int:order_id>`); Express
   `createOrderHandler` (named handler) and the endpoint node `GET /orders/:id/status` (inline
@@ -224,12 +229,17 @@ hard cases, so the review path, the test path, the component path, every route s
   `FlatRate.price` / `TieredRate.price` stay orphans), and `InvoiceService.Total` is an overload
   pair collapsing to one node. The structure map *does* show `OrderWorkflow -> PricingRule` --
   a declared field is a real reference even when the dispatch is not resolvable.
-- grades: structure **D (69)**, flow **D (69)**; 4 risk findings each; 2 debt markers. Structure
+- grades: structure **D (69)**, flow **D (68)**; 4 risk findings each; 2 debt markers. Structure
   fell from C(71) when the interface impls were added -- that is the hard case being honest, not a
-  regression.
-- tests: 2 test files, flow **4/46 nodes named by a test**, and the two test nodes carry
+  regression. Flow fell from D(69) when the planted clone below was added: nothing calls it, so it
+  is one more orphan.
+- duplicates: **1 cluster, 2 nodes, 4 duplicated lines** -- `createInvoice` is `createOrder` with
+  every identifier renamed, planted in `frontend/api_client.ts` so the clone pass has something to
+  find. Renaming a variable in one copy must keep them clustered; changing an operator must split
+  them.
+- tests: 2 test files, flow **4/47 nodes named by a test**, and the two test nodes carry
   `layer: test` with call edges into `OrderService.place_order` / `OrderRepository.get`
-- 520 lines across 22 files (py 126, java 101, csharp 90, ts 82, go 66, js 28, tsx 27)
+- 528 lines across 22 files (py 126, java 101, csharp 90, ts 90, go 66, js 28, tsx 27)
 - `archaeologist.py check --src ./sample_src` -> `stale: false` right after a build
 
 With `node_modules` renamed away the same build must still succeed, print the one

@@ -1,0 +1,33 @@
+{
+  "generated": "2026-09-09T07:07:18Z",
+  "roots": [
+    "sample_src"
+  ],
+  "graph": "data/flow/flow_graph.json",
+  "summary": {
+    "clusters": 1,
+    "nodes_involved": 2,
+    "duplicated_loc": 4
+  },
+  "clusters": [
+    {
+      "hash": "cb11fc74c963",
+      "tokens": 42,
+      "loc": 4,
+      "nodes": [
+        {
+          "id": "createInvoice",
+          "source": "sample_src/frontend/api_client.ts:16",
+          "layer": "client",
+          "kind": "function"
+        },
+        {
+          "id": "createOrder",
+          "source": "sample_src/frontend/api_client.ts:8",
+          "layer": "client",
+          "kind": "function"
+        }
+      ]
+    }
+  ]
+}

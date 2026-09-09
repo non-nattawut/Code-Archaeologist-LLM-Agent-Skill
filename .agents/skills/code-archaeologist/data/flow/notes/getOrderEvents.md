@@ -3,7 +3,7 @@ entity: getOrderEvents
 kind: function
 layer: client
 class: 
-source: sample_src/frontend/api_client.ts:28
+source: sample_src/frontend/api_client.ts:36
 lang: js
 desc_source: docstring
 ---

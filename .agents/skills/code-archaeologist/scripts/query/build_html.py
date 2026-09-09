@@ -104,6 +104,7 @@ def report_for(graph_path: str, graph: dict, report: dict) -> dict:
     files = {(n.get("source") or "").split(":")[0] for n in graph.get("nodes", [])}
     security = report.get("security", {})
     insights = report.get("insights", {})
+    dupes = report.get("duplicates", {})
     # Only what the page actually reads, so the embedded payload stays small.
     return {
         "analysis": report.get("analysis", {}),
@@ -112,6 +113,12 @@ def report_for(graph_path: str, graph: dict, report: dict) -> dict:
                      "findings": [f for f in security.get("findings", [])
                                   if f.get("node") in ids or f.get("file") in files]},
         "insights": {"nodes": {k: v for k, v in insights.get("nodes", {}).items() if k in ids}},
+        # Cluster summaries only -- the page lists node ids, never the bodies.
+        "duplicates": {"summary": dupes.get("summary", {}),
+                       "clusters": [{"tokens": c["tokens"], "loc": c["loc"],
+                                     "nodes": [n["id"] for n in c["nodes"]]}
+                                    for c in dupes.get("clusters", [])
+                                    if all(n["id"] in ids for n in c["nodes"])]},
     }
 
 

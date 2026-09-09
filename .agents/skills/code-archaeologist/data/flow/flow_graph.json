@@ -8,6 +8,7 @@
       "signature": "Events(orderID)",
       "doc": "Events returns every recorded event for one order.",
       "source": "sample_src/services/orders_go/event_service.go:9",
+      "end": 11,
       "lang": "go",
       "ext": 0,
       "approx": true
@@ -20,6 +21,7 @@
       "signature": "Record(kind, orderID)",
       "doc": "Record appends one event for an order.",
       "source": "sample_src/services/orders_go/event_service.go:14",
+      "end": 16,
       "lang": "go",
       "ext": 0,
       "approx": true
@@ -32,6 +34,7 @@
       "signature": "Append(kind, orderID)",
       "doc": "Append records one event against an order.",
       "source": "sample_src/services/orders_go/event_store.go:14",
+      "end": 16,
       "lang": "go",
       "ext": 0,
       "approx": true
@@ -44,6 +47,7 @@
       "signature": "List(orderID)",
       "doc": "List returns the events recorded against one order.",
       "source": "sample_src/services/orders_go/event_store.go:9",
+      "end": 11,
       "lang": "go",
       "ext": 0,
       "approx": true
@@ -56,6 +60,7 @@
       "signature": "price(request)",
       "doc": "One price, whatever the order says.",
       "source": "sample_src/services/orders_java/PricingRule.java:13",
+      "end": 15,
       "lang": "java",
       "ext": 0,
       "approx": true
@@ -68,6 +73,7 @@
       "signature": "GET /go/healthz",
       "doc": "Liveness probe. No handler function to attach to, so the registration",
       "source": "sample_src/services/orders_go/router.go:16",
+      "end": 0,
       "lang": "go",
       "ext": 0,
       "routes": [
@@ -86,6 +92,7 @@
       "signature": "GET /orders/:id/status",
       "doc": "Report one order's current status.",
       "source": "sample_src/api_express/order_router.js:24",
+      "end": 26,
       "lang": "js",
       "ext": 1,
       "routes": [
@@ -103,6 +110,7 @@
       "signature": "Create(request)",
       "doc": "Issue an invoice for one order.",
       "source": "sample_src/services/orders_cs/InvoiceController.cs:17",
+      "end": 20,
       "lang": "csharp",
       "ext": 0,
       "routes": [
@@ -121,6 +129,7 @@
       "signature": "Find(id)",
       "doc": "Fetch one invoice by id.",
       "source": "sample_src/services/orders_cs/InvoiceController.cs:24",
+      "end": 27,
       "lang": "csharp",
       "ext": 0,
       "routes": [
@@ -139,6 +148,7 @@
       "signature": "Find(id)",
       "doc": "Read one invoice back.",
       "source": "sample_src/services/orders_cs/InvoiceService.cs:21",
+      "end": 24,
       "lang": "csharp",
       "ext": 0,
       "approx": true
@@ -151,6 +161,7 @@
       "signature": "Issue(request)",
       "doc": "Issue an invoice and store it.",
       "source": "sample_src/services/orders_cs/InvoiceService.cs:14",
+      "end": 18,
       "lang": "csharp",
       "ext": 0,
       "approx": true
@@ -163,6 +174,7 @@
       "signature": "Total(unitPrice, units)",
       "doc": "Total for a quantity at a price. This is an overload: both",
       "source": "sample_src/services/orders_cs/InvoiceService.cs:35",
+      "end": 38,
       "lang": "csharp",
       "ext": 0,
       "approx": true
@@ -175,6 +187,7 @@
       "signature": "Get(id)",
       "doc": "Read one invoice by id.",
       "source": "sample_src/services/orders_cs/InvoiceStore.cs:19",
+      "end": 22,
       "lang": "csharp",
       "ext": 1,
       "approx": true
@@ -187,6 +200,7 @@
       "signature": "Put(id, total)",
       "doc": "Store one invoice against an order id.",
       "source": "sample_src/services/orders_cs/InvoiceStore.cs:11",
+      "end": 16,
       "lang": "csharp",
       "ext": 0,
       "approx": true
@@ -199,6 +213,7 @@
       "signature": "NewRouter()",
       "doc": "NewRouter wires the Go order-event endpoints.",
       "source": "sample_src/services/orders_go/router.go:10",
+      "end": 20,
       "lang": "go",
       "ext": 3,
       "approx": true
@@ -211,6 +226,7 @@
       "signature": "create(request)",
       "doc": "Place a new order.",
       "source": "sample_src/services/orders_java/OrderApiController.java:16",
+      "end": 18,
       "lang": "java",
       "ext": 0,
       "routes": [
@@ -229,6 +245,7 @@
       "signature": "findOne(id)",
       "doc": "Fetch one order by id.",
       "source": "sample_src/services/orders_java/OrderApiController.java:22",
+      "end": 24,
       "lang": "java",
       "ext": 0,
       "routes": [
@@ -247,6 +264,7 @@
       "signature": "get(id)",
       "doc": "Look up one order by id.",
       "source": "sample_src/services/orders_java/OrderArchive.java:20",
+      "end": 22,
       "lang": "java",
       "ext": 1,
       "approx": true
@@ -259,6 +277,7 @@
       "signature": "save(request, total)",
       "doc": "Store one order and return it.",
       "source": "sample_src/services/orders_java/OrderArchive.java:13",
+      "end": 17,
       "lang": "java",
       "ext": 3,
       "approx": true
@@ -271,6 +290,7 @@
       "signature": "OrderCard()",
       "doc": "Loads one order by id and renders it as a card.",
       "source": "sample_src/frontend/OrderCard.tsx:11",
+      "end": 27,
       "lang": "js",
       "ext": 3
     },
@@ -282,6 +302,7 @@
       "signature": "__init__(self, service: OrderService)",
       "doc": "Wires the controller to its OrderService dependency (constructor injection).",
       "source": "sample_src/backend/order_controller.py:12",
+      "end": 13,
       "lang": "py",
       "ext": 0
     },
@@ -293,6 +314,7 @@
       "signature": "create_order(self, payload)",
       "doc": "POST /orders \u2014 create a new order.",
       "source": "sample_src/backend/order_controller.py:16",
+      "end": 18,
       "lang": "py",
       "ext": 1,
       "routes": [
@@ -310,6 +332,7 @@
       "signature": "get_order(self, order_id)",
       "doc": "GET /orders/{id} \u2014 fetch a single order.",
       "source": "sample_src/backend/order_controller.py:21",
+      "end": 23,
       "lang": "py",
       "ext": 1,
       "routes": [
@@ -327,6 +350,7 @@
       "signature": "get(self, order_id)",
       "doc": "Select an order by id.",
       "source": "sample_src/backend/order_repository.py:11",
+      "end": 15,
       "lang": "py",
       "ext": 1
     },
@@ -338,6 +362,7 @@
       "signature": "save(self, order)",
       "doc": "Insert a new order row.",
       "source": "sample_src/backend/order_repository.py:7",
+      "end": 9,
       "lang": "py",
       "ext": 0
     },
@@ -349,6 +374,7 @@
       "signature": "test_get_returns_the_row(self)",
       "doc": "Reading an order back by id returns something.",
       "source": "sample_src/backend/tests/test_orders.py:22",
+      "end": 25,
       "lang": "py",
       "ext": 2
     },
@@ -360,6 +386,7 @@
       "signature": "__init__(self, repository: OrderRepository, payments: PaymentClient)",
       "doc": "Stores the injected OrderRepository and PaymentClient used to place and look up orders.",
       "source": "sample_src/backend/order_service.py:9",
+      "end": 11,
       "lang": "py",
       "ext": 0
     },
@@ -371,6 +398,7 @@
       "signature": "find_order(self, order_id)",
       "doc": "Look up an order by id.",
       "source": "sample_src/backend/order_service.py:18",
+      "end": 20,
       "lang": "py",
       "ext": 0
     },
@@ -382,6 +410,7 @@
       "signature": "place_order(self, payload)",
       "doc": "Charge payment then persist the order.",
       "source": "sample_src/backend/order_service.py:13",
+      "end": 16,
       "lang": "py",
       "ext": 0
     },
@@ -393,6 +422,7 @@
       "signature": "find(id)",
       "doc": "Read one order back out of the archive.",
       "source": "sample_src/services/orders_java/OrderWorkflow.java:25",
+      "end": 27,
       "lang": "java",
       "ext": 0,
       "approx": true
@@ -405,6 +435,7 @@
       "signature": "place(request)",
       "doc": "Price the order and store the result.",
       "source": "sample_src/services/orders_java/OrderWorkflow.java:16",
+      "end": 22,
       "lang": "java",
       "ext": 1,
       "approx": true
@@ -417,6 +448,7 @@
       "signature": "create()",
       "doc": "Place a new order.",
       "source": "sample_src/api_nest/orders.controller.ts:10",
+      "end": 13,
       "lang": "js",
       "ext": 0,
       "routes": [
@@ -434,6 +466,7 @@
       "signature": "findOne()",
       "doc": "Fetch one order by id.",
       "source": "sample_src/api_nest/orders.controller.ts:16",
+      "end": 19,
       "lang": "js",
       "ext": 0,
       "routes": [
@@ -451,6 +484,7 @@
       "signature": "charge(self, payload)",
       "doc": "Charge the customer for an order.",
       "source": "sample_src/backend/payment_client.py:11",
+      "end": 15,
       "lang": "py",
       "ext": 1
     },
@@ -462,6 +496,7 @@
       "signature": "StatusBadge()",
       "doc": "Renders one order's status as a coloured badge.",
       "source": "sample_src/frontend/OrderCard.tsx:6",
+      "end": 8,
       "lang": "js",
       "ext": 0
     },
@@ -473,9 +508,28 @@
       "signature": "price(request)",
       "doc": "Cheaper per unit above ten units.",
       "source": "sample_src/services/orders_java/PricingRule.java:22",
+      "end": 24,
       "lang": "java",
       "ext": 1,
       "approx": true
+    },
+    {
+      "id": "createInvoice",
+      "layer": "client",
+      "kind": "function",
+      "cls": null,
+      "signature": "createInvoice()",
+      "doc": "token shapes are identical, so the two must cluster despite the new names.",
+      "source": "sample_src/frontend/api_client.ts:16",
+      "end": 19,
+      "lang": "js",
+      "ext": 3,
+      "http": [
+        {
+          "method": "POST",
+          "url": "/invoices"
+        }
+      ]
     },
     {
       "id": "createOrder",
@@ -485,6 +539,7 @@
       "signature": "createOrder()",
       "doc": "Frontend API client: POST /orders with the form payload and return the created order JSON.",
       "source": "sample_src/frontend/api_client.ts:8",
+      "end": 11,
       "lang": "js",
       "ext": 3,
       "http": [
@@ -502,6 +557,7 @@
       "signature": "createOrderHandler()",
       "doc": "Create an order and return it.",
       "source": "sample_src/api_express/order_router.js:11",
+      "end": 14,
       "lang": "js",
       "ext": 1,
       "routes": [
@@ -518,7 +574,8 @@
       "cls": null,
       "signature": "getOrder()",
       "doc": "Frontend API client: GET /orders/:id and return the parsed order JSON.",
-      "source": "sample_src/frontend/api_client.ts:13",
+      "source": "sample_src/frontend/api_client.ts:21",
+      "end": 24,
       "lang": "js",
       "ext": 2,
       "http": [
@@ -535,7 +592,8 @@
       "cls": null,
       "signature": "getOrderEvents()",
       "doc": "than through the suffix fallback.",
-      "source": "sample_src/frontend/api_client.ts:28",
+      "source": "sample_src/frontend/api_client.ts:36",
+      "end": 39,
       "lang": "js",
       "ext": 1,
       "http": [
@@ -552,7 +610,8 @@
       "cls": null,
       "signature": "getOrderStatus()",
       "doc": "to its mount point - so this only links via the unique-suffix fallback.",
-      "source": "sample_src/frontend/api_client.ts:20",
+      "source": "sample_src/frontend/api_client.ts:28",
+      "end": 31,
       "lang": "js",
       "ext": 1,
       "http": [
@@ -570,6 +629,7 @@
       "signature": "handleOrderEvents(r, w)",
       "doc": "handleOrderEvents writes one order's event history.",
       "source": "sample_src/services/orders_go/router.go:23",
+      "end": 28,
       "lang": "go",
       "ext": 2,
       "routes": [
@@ -588,6 +648,7 @@
       "signature": "loadOrder()",
       "doc": "Fetches one order through the API client and renders it into the order element.",
       "source": "sample_src/frontend/order_page.ts:8",
+      "end": 13,
       "lang": "js",
       "ext": 2
     },
@@ -599,6 +660,7 @@
       "signature": "loadOrderHistory()",
       "doc": "Loads one order's event history from the Go service.",
       "source": "sample_src/frontend/order_page.ts:16",
+      "end": 18,
       "lang": "js",
       "ext": 0
     },
@@ -610,6 +672,7 @@
       "signature": "order_detail(order_id: int)",
       "doc": "Fetch one order by id. Flask's `<int:id>` converter normalizes like any param.",
       "source": "sample_src/api_flask/order_routes.py:25",
+      "end": 28,
       "lang": "py",
       "ext": 3,
       "routes": [
@@ -627,6 +690,7 @@
       "signature": "orders()",
       "doc": "List orders, or place a new one - one handler, two verbs.",
       "source": "sample_src/api_flask/order_routes.py:16",
+      "end": 21,
       "lang": "py",
       "ext": 4,
       "routes": [
@@ -648,6 +712,7 @@
       "signature": "recordOrderEvent(r, w)",
       "doc": "recordOrderEvent appends one event to an order's history.",
       "source": "sample_src/services/orders_go/router.go:31",
+      "end": 34,
       "lang": "go",
       "ext": 2,
       "routes": [
@@ -666,6 +731,7 @@
       "signature": "saveOrder()",
       "doc": "Persist an order. Stands in for a real repository call.",
       "source": "sample_src/api_express/order_router.js:17",
+      "end": 19,
       "lang": "js",
       "ext": 0
     },
@@ -677,6 +743,7 @@
       "signature": "submitOrder()",
       "doc": "Frontend page action: submits a new order form via the API client.",
       "source": "sample_src/frontend/order_page.ts:4",
+      "end": 6,
       "lang": "js",
       "ext": 0
     },
@@ -688,6 +755,7 @@
       "signature": "test_place_order_charges_and_saves()",
       "doc": "pytest style: placing an order goes through payment and persistence.",
       "source": "sample_src/backend/tests/test_orders.py:13",
+      "end": 16,
       "lang": "py",
       "ext": 3
     }

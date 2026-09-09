@@ -313,7 +313,7 @@ const MAP_NAMES = Object.keys(MAPS);
 let mapName = MAP_NAMES.includes("flow") ? "flow" : MAP_NAMES[0];
 
 // All of this is rebuilt by loadMap() whenever the active map changes.
-let GRAPH, REPORT, ANALYSIS, HEALTH, FINDINGS, CHURN, FILE_META, FILE_STATS, HAS_CHURN;
+let GRAPH, REPORT, ANALYSIS, HEALTH, FINDINGS, CHURN, FILE_META, FILE_STATS, HAS_CHURN, DUPES;
 let nodes, byId, links, isFlow, OUT_LABEL, IN_LABEL, outAdj, inAdj;
 let filesIndex, folders, issuesByNode, issuesByFile, MAX, treeRoot, openDirs;
 
@@ -331,6 +331,7 @@ function loadMap(name) {
   ANALYSIS = REPORT.analysis || {};
   HEALTH = ANALYSIS.health || null;
   FINDINGS = (REPORT.security || {}).findings || [];
+  DUPES = ((REPORT.duplicates || {}).clusters) || [];
   CHURN = ((REPORT.insights || {}).nodes) || {};
   FILE_META = ((REPORT.files || {}).files) || {};
   FILE_STATS = REPORT.files || {};
@@ -1028,7 +1029,7 @@ function renderTabs() {
   const counts = {
     patterns: (ANALYSIS.cycles || []).length + (ANALYSIS.layer_violations || []).length
       + (ANALYSIS.hubs || []).length + (ANALYSIS.god_objects || []).length
-      + (ANALYSIS.orphans || []).length
+      + (ANALYSIS.orphans || []).length + (DUPES || []).length
       + Object.values(ANALYSIS.patterns || {}).reduce((s, v) => s + v.length, 0),
     security: FINDINGS.length,
   };
@@ -1221,6 +1222,9 @@ function renderPatterns() {
     `<div class="item"><span class="mono">${esc(g.name)}</span>
       <span class="grow"><span class="badge med">${g.count} ${esc(g.reason)}</span></span></div>`);
   push("Dead / unused nodes", ANALYSIS.orphans || [], (o) => nodeItem(o));
+  push("Duplicate code", DUPES || [], (c) =>
+    `<div class="item"><span class="grow">${c.nodes.map((id) => nodeItem(id)).join("")}</span>
+      <span class="badge med">${c.tokens} tokens x${c.nodes.length}</span></div>`);
   Object.entries(idioms).forEach(([name, ids]) =>
     push(name.replace(/_/g, " "), ids, (id) => nodeItem(id)));
 

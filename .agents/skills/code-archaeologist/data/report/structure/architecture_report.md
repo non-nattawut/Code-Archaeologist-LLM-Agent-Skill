@@ -1,6 +1,6 @@
 # Architecture report — graph.json
 
-Generated 2026-09-09 01:51 UTC · 25 nodes · 22 edges
+Generated 2026-09-09 07:07 UTC · 25 nodes · 22 edges
 
 ## Health: **D** (69/100)
 
@@ -15,7 +15,7 @@ Dead-code ratio 12.0% · cycles 0 · layer violations 0 · security findings 4
 
 ## Census
 
-- Source: 22 file(s), 520 lines (py 24.2%, java 19.4%, csharp 17.3%, ts 15.8%, go 12.7%, js 5.4%, tsx 5.2%)
+- Source: 22 file(s), 528 lines (py 23.9%, java 19.1%, csharp 17.0%, ts 17.0%, go 12.5%, js 5.3%, tsx 5.1%)
 - Layers: `client` 2, `controller` 7, `repository` 4, `service` 4, `test` 2, `ui` 3, `unknown` 3
 - Kinds: `class` 17, `component` 2, `module` 6
 - Languages: `csharp` 3, `go` 3, `java` 6, `js` 6, `py` 7
@@ -27,7 +27,7 @@ _None._
 
 ## Size & complexity
 
-- 22 file(s), 520 lines — 339 code, 80 comment, 101 blank (comment ratio 15%)
+- 22 file(s), 528 lines — 343 code, 83 comment, 102 blank (comment ratio 16%)
 - Complexity is McCabe: 1 + every branch. Python nodes only.
 
 ### Longest nodes
@@ -54,9 +54,9 @@ _None._
 
 | File | Lines | Code |
 | --- | --- | --- |
+| `sample_src/frontend/api_client.ts` | 39 | 22 |
 | `sample_src/services/orders_cs/InvoiceService.cs` | 39 | 26 |
 | `sample_src/services/orders_go/router.go` | 34 | 21 |
-| `sample_src/frontend/api_client.ts` | 31 | 18 |
 | `sample_src/api_express/order_router.js` | 28 | 14 |
 | `sample_src/api_flask/order_routes.py` | 28 | 21 |
 | `sample_src/services/orders_cs/InvoiceController.cs` | 28 | 21 |

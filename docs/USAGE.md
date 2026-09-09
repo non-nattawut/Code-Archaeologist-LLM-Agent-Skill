@@ -145,6 +145,9 @@ python .agents/skills/code-archaeologist/scripts/review/debt.py --src ./src --to
 # which nodes the test suite names, and which it never mentions
 # (pytest, Jest, JUnit 5/Spring Boot, Go, Rust, .NET, RSpec, PHPUnit conventions)
 python .agents/skills/code-archaeologist/scripts/review/tests_map.py --src ./src --top 15
+
+# copy-pasted functions, found even when the names were changed
+python .agents/skills/code-archaeologist/scripts/review/duplicates.py --src ./src --top 10
 ```
 
 Every stage is runnable on its own (`build_wiki.py`, `build_graph.py`, `build_flow.py`,

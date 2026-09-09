@@ -3,7 +3,7 @@ entity: getOrder
 kind: function
 layer: client
 class: 
-source: sample_src/frontend/api_client.ts:13
+source: sample_src/frontend/api_client.ts:21
 lang: js
 desc_source: ai
 ---
