@@ -175,6 +175,12 @@ scrolls.
   the toolbar needs nearly the whole centre, so a rail there can be narrowed but barely widened.
 - **Below `max-height: 620px`** the rail gives up and scrolls as a whole — a 60px tree is worse
   than a scrollbar.
+- **Dragging a node pins it** (force-graph sets `fx`/`fy` and leaves them), so `resetLayout()` is
+  the only way back. It deletes `x`/`y`/`vx`/`vy` as well as clearing the pins, because `setView`
+  alone only unpins and reheats — the simulation would restart from wherever the nodes were
+  dragged. It hangs off the existing toolbar **reset** rather than a button of its own: the
+  toolbar already wants ~930px against a 928px stage at 1600px wide, so one more control would
+  make it clip by default.
 
 ## Hard constraints
 

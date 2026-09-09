@@ -165,7 +165,9 @@ it or email it.
 
 Both side panels drag to resize from their inner border. In the tree, `+`/`–` expands a folder and
 clicking its name filters the canvas — two separate controls. The explorer fills whatever the
-panels above it leave, so fold one from its heading to give the tree more room.
+panels above it leave, so fold one from its heading to give the tree more room. Dragging a node
+pins it where you drop it, so the **reset** button in the toolbar throws the layout away and
+re-runs it from scratch — along with the current selection and filter.
 
 ---
 

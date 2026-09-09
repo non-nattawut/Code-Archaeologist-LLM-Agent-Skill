@@ -1137,3 +1137,43 @@ Also ran the classic-script parse, `check_docs: OK`, the deck's own parse (26 fe
 refs), the full pipeline (25/22, 51/31, both grade D) and the installer self-test including the
 offline assertion. Docs rolled back with the code: CLAUDE.md's layout rules, README's explorer
 section and the deck's explorer feature and Q&A.
+
+## [38] 2026-09-09 — A way back from a mangled graph layout
+
+**Prompt**
+> add reset graph node position like when we check and uncheck to show/hide test node
+>
+> in case of user mass with node and cannot bring it back
+>
+> after finihs commit and push
+
+**Response**
+The diagnosis matters more than the fix. force-graph pins a node on drag — it sets `fx`/`fy` and
+leaves them set — so a dragged layout is permanent. The two existing escapes are accidents: the
+Tests checkbox works because `loadMap` rebuilds every node as a fresh clone with no coordinates,
+and d3 re-seeds any node whose `x`/`y` is missing. `setView` looked like the fix but is not: it
+clears `fx`/`fy` and reheats, so the simulation restarts from wherever the nodes were dragged to.
+
+`resetLayout()` therefore deletes `x`/`y`/`vx`/`vy` as well as clearing the pins, re-seeds through
+`Graph.graphData`, and ends in `setView(view)` so a view that pins on purpose (bundle, cluster, and
+the DAG modes) re-applies its own pinning.
+
+**Hung off the existing toolbar `reset` rather than a new button**, and the reason is a number
+from two turns ago: the toolbar wants ~930px and the stage is 928px at a 1600px viewport, so one
+more control would make it clip by default — the same measurement that already forces the rail
+drag clamp. The button's icon is a circular arrow and it already cleared selection and filter, so
+"reset" widening to mean the layout too is coherent rather than a stretch. Title updated to say so.
+
+Verified by actually mangling it rather than by reading the code: flung all 51 nodes to
+(5000+400i, 5000+137i) and pinned them, taking the spread from 128x131 to 20000x6850 with 51/51
+pinned. One click of reset returned it to exactly 128x131 with 0 pinned, no NaN coordinates, and
+all 51 nodes and 31 links intact with link endpoints still resolved to node objects. Repeated the
+mangle-and-recover in all seven views: graph/treemap/matrix come back to 128x131 unpinned, tree to
+128x280 and flow to 280x131 (the DAG modes), cluster to 1561x1541 and bundle to 997x998 with 51
+pinned — those three re-pin because that is what those layouts do, which is `setView` working.
+No errors in any view. Selection and filter still clear, and there were no console errors.
+
+Also ran the classic-script parse, `check_docs: OK`, the deck parse (26 features, 0 remote refs),
+the full pipeline (25/22, 51/31, both grade D) and the installer self-test with its offline
+assertion. Docs in the same commit: CLAUDE.md's layout rules record why the reset deletes
+coordinates and why it shares the existing button, and README and the deck describe the control.
