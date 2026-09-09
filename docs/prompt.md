@@ -1373,3 +1373,42 @@ within two languages.
 
 Wired into phase 3's regression list — a language silently dropping to zero nodes is precisely what
 that gate exists to catch — and into the header table. `check_docs: OK`. Nothing implemented.
+
+## [43] 2026-09-09 — `ast` as a differential oracle, and the bug it caught immediately
+
+**Prompt**
+> so ast can keep for addition role as aserttion irght?
+
+**Response**
+Yes — and it is a better shape than either column of the table I had written in 2e, so the plan now
+carries it as a third option and the recommended one.
+
+The idea: tree-sitter is the **single production engine** (the stated goal, and determinism is
+intact because Python then has exactly one build-time parser), and `ast` is retained as an
+independent **test oracle** — parse the same files both ways, diff the set of module-level defs,
+classes and direct methods, fail on disagreement. Not a parallel extractor, which would reintroduce
+the cost the port exists to remove; one invariant, about 40 lines each side.
+
+**Prototyped it rather than asserting it, and it caught a real bug on its first run.** Against
+`sample_src/`: `order_routes.py` ast=2 / tree-sitter=0, `order_controller.py` ast=4 /
+tree-sitter=2. My query was subtly wrong — a decorated function is wrapped in
+`decorated_definition`, so `@app.route` handlers and decorated methods are **not** direct
+`function_definition` children of the module or class body. Unwrapping the decorator took it to
+6 files, 0 disagreements.
+
+That is worth recording carefully, because it is the exact failure mode 2g was written to worry
+about: the port would have silently dropped every Flask route handler, the build would have
+succeeded, and the only symptom would have been a slightly smaller graph. A hand-written fixture
+might well have encoded the wrong answer as correct. A free second parser caught it in one run.
+
+So the two mechanisms are complementary, and the plan now says so: Python gets the strongest test
+of any language at zero runtime cost, and 2g's hand-written fixtures exist precisely for the
+languages that have no oracle available.
+
+Was careful not to oversell it. Added explicitly: **the oracle does not rescue the zero-install
+property.** With tree-sitter as the only production engine, no Node still means no graph — the
+oracle runs in tests, not at build time. The header decision is reworded to say what is actually at
+stake now: "the only thing genuinely at stake is whether a machine without Node can still build a
+Python graph; everything else favours one engine."
+
+`check_docs: OK`. Nothing implemented.

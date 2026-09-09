@@ -8,9 +8,11 @@
 > | 2 — Port extraction onto a tree-sitter engine, remove `@babel/parser`, fixture every language | the structural change | not started | |
 > | 3 — Full regression gate: nothing old may break | verification | not started | |
 >
-> **One decision is open and blocks 2b: does Python keep stdlib `ast`, or does everything move to
-> a single engine?** Capability is proven either way — see the spike results. It is a trade, not a
-> blocker, and it is recorded in 2e. Settle it before writing code, not during.
+> **One decision is open and blocks 2b: does Python keep stdlib `ast` as a build-time parser, or
+> does everything move to a single engine with `ast` retained as a test oracle?** Capability is
+> proven either way — see the spike results. The only thing genuinely at stake is whether a machine
+> without Node can still build a Python graph; everything else favours one engine. Recorded in 2e.
+> Settle it before writing code, not during.
 >
 > The six phases of the previous roadmap are finished and this file has been rewritten for the
 > next goal. Their record is **not** lost: `docs/PROJECT_HISTORY.md` carries the narrative and
@@ -262,8 +264,41 @@ where nothing else is installed. "One engine" is worth real money for Java/Kotli
 alternative is hand-written extractors; it is worth almost nothing for Python, where the
 alternative is a stdlib module that costs zero bytes and never breaks.
 
-**If the decision is one engine anyway** — a legitimate call, and the user's to make — then this
-phase additionally: rewrites hard constraint 1 in `CLAUDE.md`, deletes the degradation instruction
+#### A third option, and the best one: `ast` as a differential oracle
+
+Neither column above is the only shape available. **One production engine, with `ast` retained as
+an independent test oracle** gets most of both:
+
+- tree-sitter is the single engine that builds the graph — the "one engine" goal, satisfied, with
+  determinism intact because Python has exactly one production parser.
+- `ast` never runs at build time. It runs in the test suite, as a **second opinion** on
+  tree-sitter's Python: parse the same files both ways, diff the set of module-level defs, classes
+  and direct methods, and fail on any disagreement.
+
+This is not a parallel extractor — that would reintroduce the cost the port is meant to remove. It
+is one invariant, roughly 40 lines each side, asserting the two parsers agree on *what exists*.
+
+**Proven, not assumed.** A prototype oracle was run against `sample_src/` and **caught a real bug
+on its first execution**: `order_routes.py` and `order_controller.py` disagreed, ast=2/ts=0 and
+ast=4/ts=2. The cause was a subtly wrong query — a decorated function is wrapped in
+`decorated_definition`, so `@app.route` handlers are **not** direct `function_definition` children
+and were silently missing. Unwrapping the decorator took the run to 6 files, 0 disagreements.
+
+That failure is exactly the one 2g worries about, and it is worth dwelling on: the port would have
+silently dropped every Flask route handler, the build would have succeeded, and the only symptom
+would have been a slightly smaller graph. Hand-written fixtures might not have caught it. A free
+second parser caught it immediately.
+
+So Python ends up with the **strongest** test of any language, at zero runtime cost — and the other
+languages, which have no oracle available, are exactly the ones that need 2g's hand-written
+fixtures. The two mechanisms are complementary rather than alternatives.
+
+**What this option does not do:** it does not rescue the zero-install property. With tree-sitter as
+the only production engine, no Node still means no graph — the oracle runs in tests, not at build
+time. That trade is unchanged and is still the decision below.
+
+**If the decision is one engine (with the oracle)** — a legitimate call, and the user's to make —
+then this phase additionally: rewrites hard constraint 1 in `CLAUDE.md`, deletes the degradation instruction
 in `SKILL.md`, corrects the README headline and the Requirements table, ports `metrics.py` to the
 CST, and drops 2f entirely (no fallback engine to keep in sync). Record the decision here before
 starting 2b; do not let it be settled by whichever code gets written first.
@@ -319,6 +354,11 @@ comparable and a new language is a copy-and-translate rather than a design exerc
   actually exercised rather than just parsing,
 - a route, where the language has a mainstream web framework,
 - a test file, so `taxonomy.is_test_file` is exercised per language.
+
+Where a language has a free second parser available, prefer the differential oracle in 2e over
+hand-written expectations — it caught a real query bug on its first run that a fixture might have
+encoded as correct. Python is the only language that gets one; the rest need fixtures precisely
+because they do not.
 
 **The dynamically typed fixtures are the important ones.** Ruby, PHP, Elixir and Lua should assert
 *sparseness* — nodes yes, edges few or none — because that is what proves the `sparse` tier from 2d
