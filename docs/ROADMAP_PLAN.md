@@ -5,8 +5,12 @@
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
 > | 1 — Resolve the edges the textual extractor drops | semantics, no new dependency | not started | |
-> | 2 — Port extraction onto a tree-sitter engine | the structural change | not started | |
+> | 2 — Port extraction onto a tree-sitter engine, remove `@babel/parser` | the structural change | not started | |
 > | 3 — Full regression gate: nothing old may break | verification | not started | |
+>
+> **One decision is open and blocks 2b: does Python keep stdlib `ast`, or does everything move to
+> a single engine?** Capability is proven either way — see the spike results. It is a trade, not a
+> blocker, and it is recorded in 2e. Settle it before writing code, not during.
 >
 > The six phases of the previous roadmap are finished and this file has been rewritten for the
 > next goal. Their record is **not** lost: `docs/PROJECT_HISTORY.md` carries the narrative and
@@ -31,6 +35,31 @@ parsing, not resolution.** It hands back a concrete syntax tree. Deciding that `
 means `PricingRule.price` is a semantic question a syntax tree cannot answer, and it is exactly the
 question the current extractor already answers — through declared types — for Java, Go and C#.
 
+### Spike results — measured, not assumed (2026-09-09)
+
+Run in a scratchpad against the real `sample_src`, before committing to any of this. Every claim
+below is something the spike printed, not something believed:
+
+| Question | Result |
+| --- | --- |
+| JSX detection for the `component` kind | **yes** — `jsx_element` x4 / `jsx_self_closing_element` x1 in `OrderCard.tsx`, and filtering functions by "contains JSX" picks out exactly `OrderCard` and `StatusBadge`, which is what Babel gives today |
+| Type annotations for receiver resolution | **yes** — `type_annotation`, `required_parameter` (`id: string`, `body: object`) |
+| Decorators for Nest routes | **yes** — `@Controller("nest/orders")`, `@Post()`, `@Get(":id")` read straight off the CST |
+| Java annotations / C# attributes for Spring + ASP.NET routes | **yes** — `marker_annotation` (`@RestController`), `annotation` (`@RequestMapping("/java/orders")`), `attribute` (`Route("cs/[controller]")`) |
+| Parse errors on any sample file | **none** — tsx, ts, py, java, cs all clean |
+
+**Two findings that change the plan:**
+
+1. **tree-sitter delivers phase 1a for free.** A Java interface method is simply a
+   `method_declaration` whose `body` field is absent — the spike printed `body=NO  int
+   price(OrderRequest request);` alongside the two implementations. No regex, no `throws` clause
+   edge cases, no false-positive risk. See the sequencing note in phase 1.
+2. **Runtime and grammars are ABI-coupled, and the convenient prebuilt source is stale.**
+   `tree-sitter-wasms@0.1.13` is built with `tree-sitter-cli ^0.20.8` and **fails to load** under
+   `web-tree-sitter@0.27` (`getDylinkMetadata` throws). The spike only ran after pinning the
+   runtime back to `0.20.8`. Vendoring must therefore pin a *matched pair*, and the version we
+   vendor is the version we are stuck on until someone rebuilds the grammars. See 2a.
+
 Two consequences shape the phases:
 
 1. **Phase 1 comes first and is independent of tree-sitter.** The edges being dropped today are
@@ -49,6 +78,22 @@ Two consequences shape the phases:
 
 No new dependency, mostly one file. This is the phase that makes the Java/C# graphs actually
 useful, and it is worth doing whether or not phase 2 ever happens.
+
+> **Sequencing note, from the spike.** tree-sitter gives 1a for free (`method_declaration` with no
+> `body` field), so the regex below is **throwaway work** — roughly 30 lines plus `throws`-clause
+> and false-positive handling, all deleted in phase 2. Three honest options:
+>
+> - **Keep this order.** Accept the throwaway. You get working interface edges now, on an engine
+>   that already works, and phase 1's resolution logic is proven before it is ported.
+> - **Do 1b and 1c only**, and let phase 2 deliver 1a. Skips the throwaway regex, but nothing
+>   improves until the port lands.
+> - **Reorder**: port Java/C# to tree-sitter first, take 1a free, then do 1b on the new engine.
+>   Fastest to the end state, but debugs a new parser and new semantics together — the exact thing
+>   this plan was sequenced to avoid.
+>
+> Recommendation: **keep this order** unless phase 2 is starting immediately. 1b is the durable
+> part and it is engine-independent; 30 lines of throwaway regex is a cheap price for having the
+> resolution behaviour proven before the port.
 
 ### 1a. Extract declaration-only methods
 
@@ -125,6 +170,13 @@ build).
   vendored, rather than depending on `tree-sitter-wasms` — that bundle is 51.7 MB for 36 grammars
   and is a third-party convenience package, not the tree-sitter org's. Ship only the grammars we
   extract from, with a README recording version and provenance like the existing vendor README.
+- **Pin the runtime and the grammars as a matched pair, and record both versions.** The spike hit
+  this immediately: `tree-sitter-wasms@0.1.13` is built with `tree-sitter-cli ^0.20.8` and throws
+  `getDylinkMetadata` under `web-tree-sitter@0.27`. Whichever pair is vendored is the pair the
+  skill is pinned to; upgrading the runtime means rebuilding every grammar. Decide before
+  vendoring whether to (a) pin to the stale prebuilt set, or (b) build current `.wasm` from the
+  grammar repos with `tree-sitter build --wasm`, which needs Docker or emscripten **once**, at
+  vendoring time, not on the user's machine.
 - The official `tree-sitter-<lang>` npm packages compile native code (`node-gyp-build`). They are
   **not** an option: `@babel/parser` is pure JS today and install must stay compiler-free.
 
@@ -136,6 +188,19 @@ call, a field, an annotation/attribute.
 
 Start with the languages that already have a graph, so the port can be checked against a known
 answer: Java, Go, C#, then JS/TS. Only then add new ones.
+
+**`@babel/parser` and `js_extract.js` are removed, not kept.** The spike proved parity on all three
+things Babel is used for — JSX detection, type annotations, decorators — so once tree-sitter is in
+the build for other languages, keeping Babel is purely additive: a second engine, a second code
+path and 1.86 MB, for languages tree-sitter already covers. Neither argument that protects `ast`
+applies to it: both need Node, so degradation is identical, and JS/TS ends up on exactly one engine
+either way.
+
+Port it **last** all the same. It is the only piece of phase 2 that replaces working, well-exercised
+code for **zero user-visible gain** — every other port adds a language. Do it after the wins are
+banked, and gate it on reproducing today's output: 6 JS/TS nodes, `OrderCard` and `StatusBadge` as
+`kind: component` / `layer: ui`, the Nest and Express routes, and the `getOrderStatus ->
+GET /orders/:id/status` suffix-fallback match.
 
 ### 2c. Receiver resolution per language
 
@@ -158,18 +223,68 @@ Replace the boolean `approx` with one three-valued field owned by `taxonomy.py`.
 (`build_wiki.py`), `context.py`, `report.py`, `brief.py`, and the chip in `templates/viewer.html`.
 `TAXONOMY.md` documents the values; `tools/check_docs.py` already enforces that.
 
-### 2e. Python stays on stdlib `ast` — non-negotiable
+### 2e. Python and `ast` — an open decision, not a foregone one
 
-If tree-sitter owned Python parsing too, then "no Node" would mean **no graph at all**, where today
-it means "no JS/TS, still a Python graph". That would break hard constraint 1's degradation
-promise. Python keeps `ast`.
+The stated goal is **one engine**. Capability is not the obstacle: the spike parsed
+`order_service.py` cleanly (`function_definition`, `class_definition`, `call`, `attribute`, no
+errors). So this is a trade, not a blocker, and it needs deciding before 2b starts rather than
+during it.
 
-### 2f. `lang_extract.py` stays as the no-Node fallback
+**A correction to an argument made earlier in this plan's own history:** determinism was cited
+against removing `ast`. That was wrong-headed. The determinism hazard is having *two possible*
+engines for one language, where the same source yields different graphs depending on what is
+installed. Removing `ast` outright gives Python exactly one engine and is therefore **more**
+deterministic, not less. Determinism argues *for* consolidation.
 
-Which means this phase **adds** a code path rather than replacing one, and the two must agree.
-Accept that cost explicitly, or decide the opposite explicitly — do not let it happen by accident.
-If it stays, a test that runs both engines over `sample_src` and diffs the node sets is the only
-thing that will keep them honest.
+What actually costs something:
+
+| | Keep `ast` for Python | One engine (remove `ast`) |
+| --- | --- | --- |
+| Engines to maintain | 2 | **1** |
+| Determinism | fine (one engine per language) | fine |
+| No Node on the machine | Python graph still builds | **nothing builds** |
+| README's "the Python side has **zero dependencies**" | true | **false** — must be rewritten |
+| `SKILL.md:39` "If Node itself is missing, do not stop — build anyway" | stays | **deleted** |
+| Hard constraint 1 | unchanged | **rewritten** |
+| `metrics.py` (15 `ast.` call sites) | stays as-is | ported to CST |
+| "Per-node metrics are Python-only" limitation | stays | **retired** |
+
+Note the metrics row cuts both ways: CST-based complexity has to be written for the other languages
+*regardless*, so keeping `ast` does not avoid that work — it only means Python keeps a second,
+better implementation of it.
+
+The one thing that genuinely gets worse is the bottom-left cell. The documented install path is
+already `npx`, so Node is present for most users — but "works with Python and nothing else" is a
+headline property of this skill, not an incidental one.
+
+**Recommendation: keep `ast`.** It is free, always present, and it is what lets the tool run
+where nothing else is installed. "One engine" is worth real money for Java/Kotlin/Ruby, where the
+alternative is hand-written extractors; it is worth almost nothing for Python, where the
+alternative is a stdlib module that costs zero bytes and never breaks.
+
+**If the decision is one engine anyway** — a legitimate call, and the user's to make — then this
+phase additionally: rewrites hard constraint 1 in `CLAUDE.md`, deletes the degradation instruction
+in `SKILL.md`, corrects the README headline and the Requirements table, ports `metrics.py` to the
+CST, and drops 2f entirely (no fallback engine to keep in sync). Record the decision here before
+starting 2b; do not let it be settled by whichever code gets written first.
+
+### 2f. `lang_extract.py` as the no-Node fallback — only if 2e keeps `ast`
+
+Moot if 2e chooses one engine: with no Python fallback there is no point keeping a Java one.
+
+If `ast` stays, then keeping `lang_extract.py` means this phase **adds** a code path rather than
+replacing one. The question is sharper than "do the two engines agree?" — it is a **determinism**
+question. Two engines for the same Java file means the same source produces different graphs
+depending on whether Node is installed. That is worse than today's situation, where no Node means
+JS/TS are simply *absent*: a subset, not a different answer.
+
+The mitigation is the tier field from 2d: every node records which engine produced it, so the
+difference is visible in the artifact rather than silent. Plus a test that runs both engines over
+`sample_src` and diffs the node sets.
+
+The alternative — delete `lang_extract.py` and let Java/Go/C# vanish without Node, exactly as
+JS/TS do today — is simpler, honest, and consistent with how the skill already behaves. Prefer it
+unless the textual fallback is genuinely wanted.
 
 ### Verify
 

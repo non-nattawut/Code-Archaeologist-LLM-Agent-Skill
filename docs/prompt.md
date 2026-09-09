@@ -1272,3 +1272,60 @@ printing the lines the plan names. `check_docs: OK`, and the new file also fixes
 stale `scripts/check_docs.py` path in the verification block — it is `tools/check_docs.py`.
 
 Nothing was implemented; this turn is the plan only.
+
+## [41] 2026-09-09 — Spike: tree-sitter parity proven, and two findings that change the plan
+
+**Prompt**
+> run the spike and update the plan for both ast and babel
+>
+> so if you rpove it can totally remove add to the plan to remove it I want to relie on 1 engine only
+
+**Response**
+Ran it for real in the scratchpad against `sample_src`, nothing touching the project. Installed
+`web-tree-sitter` + `tree-sitter-wasms`, parsed the actual sample files, printed node types.
+
+**Parity proven on all three things Babel is used for**, plus the route inputs for the other tiers:
+`jsx_element` x4 / `jsx_self_closing_element` x1 in `OrderCard.tsx`, and filtering functions by
+"contains JSX" picked out exactly `OrderCard` and `StatusBadge` — the same two the current build
+marks `kind: component`. `type_annotation` / `required_parameter` (`id: string`, `body: object`)
+for receiver resolution. All three Nest decorators read off the CST verbatim:
+`@Controller("nest/orders")`, `@Post()`, `@Get(":id")`. Java `marker_annotation` / `annotation`
+and C# `attribute` all present for the Spring and ASP.NET routes. Zero parse errors on tsx, ts, py,
+java, cs. So `@babel/parser` and `js_extract.js` are now written into the plan as **removed**, not
+kept — with the caveat that they go last, gated on reproducing today's output, because that port is
+the only one that replaces working code for no user-visible gain.
+
+**Two findings I did not expect, both now in the plan:**
+
+1. **tree-sitter delivers phase 1a for free.** The spike printed
+   `body=NO  int price(OrderRequest request);` next to the two implementations — a Java interface
+   method is just a `method_declaration` with no `body` field. No regex, no `throws` clause, no
+   false positives. That makes phase 1a's ~30 lines throwaway work, so the plan now carries an
+   explicit sequencing note with three options and a recommendation to keep the order anyway (1b is
+   the durable, engine-independent part, and proving resolution before porting is worth 30 lines).
+2. **The runtime and grammars are ABI-coupled and the convenient source is stale.**
+   `tree-sitter-wasms@0.1.13` is built with `tree-sitter-cli ^0.20.8` and throws
+   `getDylinkMetadata` under `web-tree-sitter@0.27` — the spike only ran after pinning the runtime
+   back to 0.20.8. Vendoring means pinning a matched pair and being stuck on it until someone
+   rebuilds. 2a now says to decide between the stale prebuilt set and building current `.wasm`
+   once at vendoring time.
+
+**On "one engine only" I did not just comply, and I also corrected myself.** The determinism
+argument I gave last turn against removing `ast` was wrong-headed: the hazard is *two possible*
+engines for one language, so removing `ast` outright would be **more** deterministic, not less.
+Determinism argues for consolidation. Said so in the plan rather than quietly dropping it.
+
+What actually costs something is one cell of the table: no Node would mean nothing builds, where
+today a Python-only repo still gets a graph. That is a headline property — README says "the Python
+side has zero dependencies" and `SKILL.md:39` tells the agent to build anyway when Node is missing.
+So 2e is now an explicit open decision with both paths fully costed, recommending **keep `ast`**,
+and listing exactly what changes if the call goes the other way (constraint 1 rewritten, SKILL.md
+instruction deleted, README headline corrected, `metrics.py` ported to CST, 2f dropped). Flagged in
+the file's header as blocking 2b. The metrics row cuts both ways and the plan says so: CST
+complexity is needed for other languages regardless, so keeping `ast` does not avoid that work.
+
+Also sharpened 2f: the real question about a `lang_extract.py` fallback is determinism, not
+agreement — two engines mean the same Java file yields different graphs depending on what is
+installed, which is worse than today's "JS/TS simply absent". Recommends deleting the fallback.
+
+Nothing implemented. `check_docs: OK`.
