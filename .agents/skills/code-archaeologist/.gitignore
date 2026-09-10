@@ -6,6 +6,12 @@
 # Frontend parser dependency: `npm install` inside this folder pulls @babel/parser
 node_modules/
 
+# Java/Go/C# parser dependency: `pip install --target vendor` puts the tree-sitter
+# runtime and grammar wheels here. Machine-local twice over -- the runtime wheel is
+# built for one interpreter version and every wheel for one OS -- so it must never
+# be committed, only rebuilt by re-running the install.
+vendor/
+
 # Python bytecode from running the scripts
 __pycache__/
 *.py[cod]

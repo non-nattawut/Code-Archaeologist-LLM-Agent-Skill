@@ -1,11 +1,11 @@
 # Graph as many languages as possible
 
-> ## Status: **phase 1 done; phase 2 at step 1 of 6.** Phases 3 and 4 are verification, not features.
+> ## Status: **phase 1 done; phase 2 at step 1b of 6.** Phases 3 and 4 are verification, not features.
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
 > | 1 — Resolve the edges the textual extractor drops | semantics, no new dependency | **done** | `e8464f8` |
-> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **step 1 of 6 done** | `8974c27` |
+> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **steps 1 and 1b of 6 done** | `8974c27`, `b394fdf`+ |
 > | 3 — Full regression gate: nothing old may break | does it still run | not started | |
 > | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | not started | |
 >
@@ -17,8 +17,8 @@
 > | Step | What | State |
 > | --- | --- | --- |
 > | 1 | Java/Go/C# ported to tree-sitter, matching the phase-1 numbers | **done** — `8974c27` |
-> | 1b | Move the install into `<skill>/vendor/` instead of the user's Python | **next** — decided below, not built |
-> | 2 | delete `lang_extract.py` | not started |
+> | 1b | Move the install into `<skill>/vendor/` instead of the user's Python | **done** — this commit |
+> | 2 | delete `lang_extract.py` | **next** |
 > | 3 | JS/TS ported, diffed against `js_extract.js` | not started |
 > | 4 | delete `@babel/parser`, `js_extract.js`, `js_bridge.py`, the skill's `package.json` | not started |
 > | 5 | Python ported; `ast` oracle reports 0 disagreements | not started |
@@ -29,6 +29,18 @@
 > in the manifest; `check` reporting a grammar change as staleness; a `SKIPPED` block in `brief`;
 > the exact install command in every message; and hard constraint 1 rewritten, since "zero external
 > Python dependencies" stopped being true.
+>
+> **What 1b shipped**, all three states verified rather than reasoned about: `paths.VENDOR_DIR`
+> prepended to `sys.path` (vendored wins over site-packages); `vendor/` git-ignored beside
+> `node_modules/`; `grammars.install_hint()` emitting the full
+> `--only-binary :all: --no-cache-dir --target` command; `grammars.origins()` answering which copy
+> is actually in use; and `grammars.runtime()` / `runtime_error()` turning an unloadable wheel into
+> one named sentence. `SKILL.md` no longer tells the agent to ask permission before installing,
+> because the install no longer touches anything of the user's.
+>
+> **1b did not** change `bin/cli.js` (the wheels are interpreter-specific and the installer does
+> not know which Python will run the skill — decided in 1b's requirements), and did not vendor
+> anything for JS/TS, which already had this shape.
 >
 > **Not done, and not started** — none of this is blocked, it simply has not been reached:
 > 2b's supplementary query for TypeScript (its shipped `TAGS_QUERY` yields zero captures on real
@@ -971,9 +983,11 @@ re-implemented, not just re-queried. It is exercised by `OrderCard` and `StatusB
   that the next session will act on. Both have already happened here: `e37f8fb` reads "Install the
   wheels into the skill" and changed no code (it scheduled 1b, it did not build it), and phase 4
   was written into this file with the header above it still announcing three phases. So, every
-  commit that advances a step: move the row, name the commit hash in it, and move anything it
-  pulled in out of the "not done" list. **A step is done when its row says so, not when the code
-  lands.**
+  commit that advances a step: move the row, and move anything it pulled in out of the "not done"
+  list. **A step is done when its row says so, not when the code lands.** The *state* moves in the
+  work commit; the **hash cannot** — a commit cannot contain its own id — so the row says "this
+  commit" and the id is filled in by the next one. That is the only part that may lag, and it lags
+  by design rather than by neglect.
 - One commit per phase, unless a phase splits cleanly into independently verifiable pieces.
 
 ## Verification run after every phase

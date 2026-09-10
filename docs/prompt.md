@@ -1966,3 +1966,60 @@ Three edits to the plan:
    something to intend.
 
 `python tools/check_docs.py` → OK. Plan-only; no ledger row moved because no step advanced.
+
+## [55] 2026-09-10 — Phase 2 step 1b: the wheels move into the skill
+
+**Prompt**
+> ok now continue do next step of phase 2
+
+**Response**
+Built 1b. The skill's Python dependencies now install into `<skill>/vendor` instead of the user's
+environment, matching what `@babel/parser` already does in `<skill>/node_modules`.
+
+**Code, five files:**
+
+- `paths.py` — `VENDOR_DIR`, prepended to `sys.path` *last* so it lands *first*. Conditional on the
+  directory existing, which is what keeps a plain `pip install` working for anyone who already ran
+  one.
+- `.gitignore` — `vendor/` beside `node_modules/`. Verified with `git check-ignore -v`.
+- `grammars.py` — `install_hint()` now emits the full
+  `--only-binary :all: --no-cache-dir --target "<skill>/vendor"` command; new `origins()` reports
+  vendored vs site-packages; new `runtime()` / `runtime_error()` catch the `ImportError`.
+- `ts_extract.py` — asks `runtime_error()` before printing the missing-grammar hint.
+- Docs: `SKILL.md`, `README.md`, `docs/USAGE.md`, `docs/PRESENTATION.html`, `CLAUDE.md`.
+
+**The split between `runtime_available()` and `runtime()` is the load-bearing bit.** `find_spec`
+succeeds on a `vendor/` built for a different Python; the `import` is what fails. Left alone that
+surfaces as a traceback out of whichever pass parsed first. Worse, the existing skip path would
+have printed *"no tree-sitter grammar installed"* — sending someone to reinstall a wheel sitting
+right there in front of them. So the two questions are now separate functions and the caller asks
+the right one.
+
+**Verified all three states, and the middle one by breaking it on purpose:**
+
+| State | Result |
+| --- | --- |
+| vendored | 25/22 structure, 52/32 flow, 16 endpoints, 0 pending — CLAUDE.md's numbers exactly; `origins()` says all four are vendored |
+| vendored runtime broken (fake `__init__.py` raising `ImportError`) | one named sentence, **no traceback**, build still succeeds at 13/13 |
+| no `vendor/` at all | falls back to site-packages, full 25/22 |
+
+That third one got confirmed twice, the second time by accident and better for it: the installer
+self-test builds into a fresh target with no `vendor/`, and its only warning was
+`! frontend skipped: @babel/parser is not installed` — Java/Go/C# parsed fine. So the fallback
+works in the real installed-skill path, not just in my scratch test.
+
+**One flaw I introduced and then fixed:** the broken-runtime message printed once per language, so
+a single fault read as three. Deduped to one line naming all three languages.
+
+**One observation, not fixed — out of scope.** The report artifacts differ between two builds of
+identical source, purely on a `generated` timestamp; the graphs themselves are byte-identical.
+Constraint 2 says "same source in, same bytes out", and for `data/report/*` that is not literally
+true today. It is pre-existing, unrelated to this step, and belongs to phase 4's remit.
+
+`compileall`, `both`, `report`, `check` (stale: false), `brief`, `check_docs.py` and the installer
+self-test all pass. Ledger row 1b moved to done, step 2 marked next.
+
+**Amended the rule I wrote in [53].** It said to name the commit hash in the same commit that moves
+the row — impossible, since a commit cannot contain its own id. The state moves in the work commit;
+the hash is filled in by the next one. Corrected in place rather than left as a rule that cannot be
+followed.

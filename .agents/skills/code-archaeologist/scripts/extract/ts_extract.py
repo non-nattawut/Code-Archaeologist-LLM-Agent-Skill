@@ -590,9 +590,23 @@ def extract_file(path: str) -> dict | None:
     if parser is None:
         if lang not in _warned:
             _warned.add(lang)
-            hint = grammars.install_hint([lang])
-            print(f"  ! {lang} skipped: no tree-sitter grammar installed."
-                  f" Run `{hint}` to enable it.", file=sys.stderr)
+            # A runtime that will not load is a different failure from a grammar
+            # that was never installed, and the fixes are different too. Saying
+            # "no grammar installed" to someone whose grammar is right there
+            # sends them to reinstall what they already have.
+            broken = grammars.runtime_error()
+            if broken:
+                # One runtime, one message: it is the same sentence for every
+                # language, and repeating it per language reads like three
+                # separate faults.
+                if "" not in _warned:
+                    _warned.add("")
+                    langs = ", ".join(sorted(LANG_EXTS.values()))
+                    print(f"  ! {langs} skipped: {broken}", file=sys.stderr)
+            else:
+                hint = grammars.install_hint([lang])
+                print(f"  ! {lang} skipped: no tree-sitter grammar installed."
+                      f" Run `{hint}` to enable it.", file=sys.stderr)
         return None
     try:
         with open(path, "rb") as fh:

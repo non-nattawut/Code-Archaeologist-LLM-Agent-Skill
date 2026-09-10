@@ -44,18 +44,28 @@ map and the cross-stack `http` edges.
 **3. tree-sitter — only if the project has `.java`, `.go` or `.cs`.** Grammars are installed per
 language, so install only what the repo actually contains:
 ```bash
-python -c "import tree_sitter; print('runtime ok')"
-pip install tree-sitter tree-sitter-java tree-sitter-go tree-sitter-c-sharp   # pick the ones you need
+cd .agents/skills/code-archaeologist && python -c "import tree_sitter; print('runtime ok')"
+cd .agents/skills/code-archaeologist && pip install --only-binary :all: --no-cache-dir --target vendor tree-sitter tree-sitter-java tree-sitter-go tree-sitter-c-sharp
 ```
-These are wheels — no compiler, grammar bundled, one package per language.
+These are wheels — no compiler, grammar bundled, one package per language. Pick the languages the
+repo actually has; the runtime (`tree-sitter`) is needed for any of them.
 
-**Ask the user before running `pip install`, or give them the command.** Unlike `npm install` into
-the skill folder, this touches their Python environment, so it is their call. The build tells you
-exactly what is missing and the exact command:
+**Install it yourself — this does not touch the user's Python.** `--target vendor` puts the wheels
+in `<skill>/vendor`, which the skill's `.gitignore` excludes, exactly like `npm install` and
+`<skill>/node_modules`: nothing enters the environment the user runs their own projects in, no
+version can collide with theirs, and deleting the skill folder removes every trace. Keep all three
+flags — `--target` is the whole point, `--only-binary :all:` fails loudly instead of trying to
+compile, and `--no-cache-dir` stops pip writing the wheels outside the skill folder.
+
+The build tells you exactly what is missing and the exact command:
 
 ```
-! csharp skipped: no tree-sitter grammar installed. Run `pip install tree-sitter-c-sharp` to enable it.
+! csharp skipped: no tree-sitter grammar installed. Run `pip install ... --target <skill>/vendor tree-sitter-c-sharp` to enable it.
 ```
+
+If instead it says **"runtime found but not loadable"**, the wheels were installed under a
+different Python version than the one running now — re-run the install command above, which
+rebuilds `vendor/` for this interpreter.
 
 If a grammar is missing, the build still succeeds and those files simply produce **no nodes**.
 `brief` prints a `SKIPPED` block naming the language and the fix. **Never answer a "what calls X",

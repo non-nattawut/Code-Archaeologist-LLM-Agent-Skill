@@ -69,10 +69,20 @@ covers. To see what the extractor made of those files directly:
 python .agents/skills/code-archaeologist/scripts/extract/ts_extract.py --src ./src
 ```
 
-Needs `pip install tree-sitter` plus the wheel per language (`tree-sitter-java`, `tree-sitter-go`,
-`tree-sitter-c-sharp`). Any that is missing is named in the build output with the exact command,
-those files produce no nodes, and `brief` prints a `SKIPPED` block — the graph is smaller than the
-codebase and says so.
+Needs the tree-sitter runtime plus the wheel per language, installed **into the skill folder**
+rather than into your Python:
+
+```bash
+cd .agents/skills/code-archaeologist && pip install --only-binary :all: --no-cache-dir --target vendor tree-sitter tree-sitter-java tree-sitter-go tree-sitter-c-sharp
+```
+
+They land in `<skill>/vendor`, which is git-ignored: your own environment is untouched, nothing can
+collide with your projects' versions, and removing the skill removes them. Any grammar that is
+missing is named in the build output with the exact command, those files produce no nodes, and
+`brief` prints a `SKIPPED` block — the graph is smaller than the codebase and says so.
+
+`vendor/` is built for the Python that installed it. If a build reports *"runtime found but not
+loadable"*, you changed Python version — re-run the command above.
 
 ## Query the graphs
 

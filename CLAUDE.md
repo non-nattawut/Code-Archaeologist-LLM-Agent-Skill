@@ -67,11 +67,17 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from paths import DATA_DIR  # noqa: E402  (also puts sibling script dirs on sys.path)
 ```
 
-Importing `paths` puts `scripts/` and all four category dirs on `sys.path`, which is why sibling
-imports stay bare (`import taxonomy`) and why every script still runs directly from any working
+Importing `paths` puts `scripts/`, all four category dirs **and `<skill>/vendor`** on `sys.path`,
+which is why sibling imports stay bare (`import taxonomy`), why `import tree_sitter` finds the
+skill's own copy before the user's, and why every script still runs directly from any working
 directory (constraint 3). `extract/js_bridge.py` keeps a `SCRIPT_DIR` of its own on top of that —
 it needs the directory holding `js_extract.js`, not the skill root — and `console.py` and
 `taxonomy.py` need no preamble at all because they touch neither `data/` nor a sibling.
+
+`paths` is the one exception to "`core/` imports nothing of the skill's": `grammars.py` imports it
+for `VENDOR_DIR`. That is deliberate — `paths` sits *below* the categories, imports nothing itself,
+and re-deriving the skill root inside `core/` is exactly the duplication `paths` was created to
+delete. Nothing else in `core/` may import a skill module.
 
 - `taxonomy.py` owns every `kind`/`layer` value (mirrored in `templates/TAXONOMY.md`). Add values
   there, never inline. It also owns `LANG_BY_EXT` / `lang_of()` -- one answer to "what language is
@@ -82,7 +88,14 @@ it needs the directory holding `js_extract.js`, not the skill root — and `cons
   `scan_security.py` skips them. Every pass must ask taxonomy, never re-implement the check.
 - `grammars.py` owns "can this machine parse language X" -- the wheel table, lazy cached parsers,
   the exact `pip install` for anything missing, and the installed versions for the manifest. It
-  lives in `core/` because `manifest.py` needs it, and `core/` may not import `extract/`.
+  lives in `core/` because `manifest.py` needs it, and `core/` may not import `extract/`. It also
+  owns the two questions the vendor directory creates: **`origins()`** (did this resolve from
+  `vendor/` or from site-packages — both can be installed, and `sys.path` order decides silently)
+  and **`runtime()` / `runtime_error()`**, which turn an unloadable runtime into one sentence
+  instead of a traceback. `runtime_available()` is a `find_spec`, `runtime()` is the real import;
+  they disagree exactly when the wheels were built for another Python, so a caller reporting a
+  skip must ask `runtime_error()` first — telling someone a grammar is missing when it is sitting
+  right there sends them to reinstall what they already have.
 - `ts_extract.py` reads Java/Go/C# from a real parse tree, and keeps the same
   `find_lang_files` / `extract_lang_files` contract the textual extractor had -- which is what let
   the port be verified by diffing the graph instead of by reading code. One shared consumer works
@@ -200,10 +213,18 @@ scrolls.
 
 1. **One parser per language, and every one of them degrades.** Python 3.10+.
    Python is stdlib `ast` and needs nothing installed. JS/TS needs Node + `@babel/parser` in the
-   skill folder. Java/Go/C# needs `pip install tree-sitter` plus the wheel for that language
+   skill folder. Java/Go/C# needs the `tree-sitter` runtime plus the wheel for that language
    (`tree-sitter-java`, `tree-sitter-go`, `tree-sitter-c-sharp`) — wheels, no compiler, grammar
    bundled. **Grammars are installed on demand, not shipped**: a repo with no Go pays nothing for
    Go.
+   **Every dependency installs inside the skill folder, never into the user's environment.**
+   `npm install` → `<skill>/node_modules`; `pip install --only-binary :all: --no-cache-dir --target
+   vendor` → `<skill>/vendor`. Both are git-ignored, neither can collide with the user's own
+   versions, and deleting the skill folder removes every trace. Keep all three pip flags:
+   `--target` is the point, `--only-binary :all:` refuses to compile, `--no-cache-dir` stops pip
+   writing wheels outside the folder. Because `vendor/` is built for one interpreter version, a
+   Python upgrade breaks it — that must surface as a named message telling the user to re-run the
+   install, never as an `ImportError` traceback.
    Every one of those is optional at runtime and must fail the same way: **warn by name, skip
    those files, still build the rest.** A missing parser may never be silent, because a graph that
    is smaller for want of a wheel is indistinguishable from a graph of a smaller codebase — which

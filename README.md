@@ -213,7 +213,7 @@ dead code** and its calls never count as coupling.
 | | |
 | --- | --- |
 | **Python 3.10+** | required — the Python graph is stdlib `ast`, no install |
-| **`tree-sitter` + a grammar wheel** | for Java/Go/C# — `pip install tree-sitter tree-sitter-java` (etc). Wheels, no compiler; install only the languages you have |
+| **`tree-sitter` + a grammar wheel** | for Java/Go/C# — `pip install --only-binary :all: --no-cache-dir --target vendor tree-sitter tree-sitter-java` (etc), run inside the skill folder. Wheels, no compiler; install only the languages you have. Lands in `<skill>/vendor`, **not** in your Python — delete the skill folder and it is gone |
 | **Node + `@babel/parser`** | only for JS/TS parsing (`npm install` in the skill folder) |
 | **git** | optional — only for churn / ownership / hotspots |
 | **A browser** | to open the explorer — no network needed |

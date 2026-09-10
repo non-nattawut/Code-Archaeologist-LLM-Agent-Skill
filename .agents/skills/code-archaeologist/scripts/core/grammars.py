@@ -18,9 +18,16 @@ grammars installed yields different graphs, which would break determinism if the
 grammar set were invisible; recording it turns a silent difference into a
 reported staleness.
 
-Nothing here imports another skill module -- `core/` sits at the bottom of the
-layering -- and importing this module never imports a grammar. Loading is lazy
-and cached, so listing what is available costs one `find_spec` per language.
+The wheels live in `<skill>/vendor`, put on `sys.path` by `paths.py` -- the one
+skill module `core/` imports, because it sits below the categories and knows
+where the skill's own files are. Installing there rather than into the user's
+Python is the same bargain `@babel/parser` already takes in `<skill>/node_modules`:
+the dependency cannot collide with anything the user runs, and deleting the skill
+folder removes it. A machine that installed the wheels straight into site-packages
+still works -- the vendor entry is a preference, not a requirement.
+
+Importing this module never imports a grammar. Loading is lazy and cached, so
+listing what is available costs one `find_spec` per language.
 
 Zero external dependencies at import time. Python 3.10+.
 """
@@ -29,6 +36,11 @@ from __future__ import annotations
 import importlib
 import importlib.metadata
 import importlib.util
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from paths import VENDOR_DIR  # noqa: E402  (also puts sibling script dirs on sys.path)
 
 # Our language key (taxonomy.LANG_BY_EXT values) -> the wheel that provides it.
 # A language is supported when it is in this table AND its wheel is installed AND
@@ -47,11 +59,93 @@ PIP_NAMES = {
 }
 
 _parsers: dict[str, object] = {}
+_runtime: list = []  # [module | None, error message] -- one import attempt, cached
 
 
 def runtime_available() -> bool:
-    """Is the `tree-sitter` runtime itself installed?"""
+    """Is the `tree-sitter` runtime itself installed?
+
+    A spec check, not an import: this is asked once per language while listing
+    what is available, and importing a native extension to answer it would make
+    listing cost more than parsing. Whether it actually *loads* is `runtime()`.
+    """
     return importlib.util.find_spec("tree_sitter") is not None
+
+
+def runtime():
+    """The imported `tree_sitter` module, or None with `runtime_error()` set.
+
+    Split from `runtime_available()` because the two can disagree, and the way
+    they disagree is nasty. The runtime wheel is built for one interpreter minor
+    version (`cp314-cp314-win_amd64`); the grammars are `abi3` and are not. So a
+    user who upgrades Python keeps a `vendor/` directory that still *looks*
+    installed -- `find_spec` finds it -- and fails at the `import`. Left to raise,
+    that surfaces as a traceback out of whichever pass happened to parse first.
+    Caught here, it is one sentence naming the fix.
+    """
+    if not _runtime:
+        try:
+            _runtime.extend([importlib.import_module("tree_sitter"), ""])
+        except ImportError as exc:
+            where = "vendored " if _under_vendor(_module_path("tree_sitter")) else ""
+            _runtime.extend([None, (
+                f"tree-sitter runtime found but not loadable ({exc}). The {where}wheel is built"
+                f" for one Python version; this is {_pyver()}. Re-run the install to rebuild it.")])
+    return _runtime[0]
+
+
+def runtime_error() -> str:
+    """Why the runtime would not load, or "" when it did (or was never there).
+
+    Callers print this *instead of* the missing-grammar hint. Reporting a broken
+    runtime as an absent grammar would send the user to install a wheel they
+    already have, which is worse than saying nothing.
+    """
+    runtime()
+    return _runtime[1]
+
+
+def _pyver() -> str:
+    return f"Python {sys.version_info.major}.{sys.version_info.minor}"
+
+
+def _module_path(mod: str) -> str:
+    """Where `mod` would be imported from, without importing it."""
+    try:
+        spec = importlib.util.find_spec(mod)
+    except (ImportError, ValueError):
+        return ""
+    if spec is None:
+        return ""
+    if spec.origin and spec.origin != "built-in":
+        return spec.origin
+    return (spec.submodule_search_locations or [""])[0]
+
+
+def _under_vendor(path: str) -> bool:
+    if not path:
+        return False
+    try:
+        return os.path.commonpath([os.path.abspath(path), VENDOR_DIR]) == VENDOR_DIR
+    except ValueError:  # different drives on Windows
+        return False
+
+
+def origins() -> dict[str, str]:
+    """Where each installed piece resolved from: "vendored" or "site-packages".
+
+    Two copies of a grammar can be installed at once -- someone who ran the old
+    plain `pip install` and then a vendored one has both, and `sys.path` order
+    silently decides which is used. That is a version difference with no visible
+    cause, so the answer to "which one am I actually running" is reported rather
+    than inferred.
+    """
+    out: dict[str, str] = {}
+    for mod in ["tree_sitter"] + [GRAMMAR_MODULES[l] for l in available()]:
+        path = _module_path(mod)
+        if path:
+            out[mod] = "vendored" if _under_vendor(path) else "site-packages"
+    return out
 
 
 def have(lang: str) -> bool:
@@ -82,13 +176,21 @@ def install_hint(langs) -> str:
 
     Includes the runtime when that is what is missing, so the message is one
     command a user can paste rather than one that fails and needs a second.
+
+    It installs into `<skill>/vendor`, never into the user's environment, and the
+    flags are load-bearing rather than decoration: `--only-binary :all:` fails
+    loudly instead of trying to compile a grammar from source, and
+    `--no-cache-dir` keeps pip from writing the wheels to a cache outside the
+    skill folder -- which is the difference between "delete the skill and nothing
+    is left" being true and being nearly true.
     """
     pkgs = [PIP_NAMES[GRAMMAR_MODULES[l]] for l in sorted(set(langs)) if l in GRAMMAR_MODULES]
     if not pkgs:
         return ""
     if not runtime_available():
         pkgs.insert(0, "tree-sitter")
-    return f"pip install {' '.join(pkgs)}"
+    return ("pip install --only-binary :all: --no-cache-dir"
+            f" --target \"{VENDOR_DIR}\" {' '.join(pkgs)}")
 
 
 def versions() -> dict[str, str]:
@@ -111,20 +213,18 @@ def parser_for(lang: str):
     """A cached `tree_sitter.Parser` for `lang`, or None when it is unavailable."""
     if lang in _parsers:
         return _parsers[lang]
-    if not runtime_available() or not have(lang):
+    ts = runtime() if have(lang) else None
+    if ts is None:
         _parsers[lang] = None
         return None
-    import tree_sitter
-
     grammar = importlib.import_module(GRAMMAR_MODULES[lang])
-    language = tree_sitter.Language(grammar.language())
-    _parsers[lang] = tree_sitter.Parser(language)
+    language = ts.Language(grammar.language())
+    _parsers[lang] = ts.Parser(language)
     return _parsers[lang]
 
 
 def query(lang: str, source: str):
     """Compile a query string against `lang`'s grammar."""
-    import tree_sitter
-
+    ts = runtime()
     grammar = importlib.import_module(GRAMMAR_MODULES[lang])
-    return tree_sitter.Query(tree_sitter.Language(grammar.language()), source)
+    return ts.Query(ts.Language(grammar.language()), source)
