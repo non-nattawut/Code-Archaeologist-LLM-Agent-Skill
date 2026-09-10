@@ -278,7 +278,6 @@ It has no npm dependencies of its own.
 │   │   ├── js_extract.js   (Node/@babel)
 │   │   ├── js_bridge.py
 │   │   ├── ts_extract.py   Java/Go/C#, parsed with tree-sitter
-│   │   ├── lang_extract.py the textual extractor ts_extract.py replaced (reference only)
 │   │   └── apply_descriptions.py
 │   │
 │   ├── review/           graphs -> findings

@@ -1152,7 +1152,7 @@ function renderFile(node) {
       ${node.layer ? `<span class="chip">${esc(node.layer)}</span>` : ""}
       ${node.cls ? `<span class="chip">${esc(node.cls)}</span>` : ""}
       ${node.lang ? `<span class="chip">${esc(node.lang)}</span>` : ""}
-      ${node.approx ? `<span class="chip" title="Java/Go/C# are read textually rather than parsed. Calls that could not be resolved from declared types were dropped, not guessed, so this node's edges are a lower bound.">approx</span>` : ""}
+      ${node.approx ? `<span class="chip" title="Java/Go/C# are parsed with tree-sitter, but calls are resolved only through declared types. Interface dispatch, overloads and lambda handlers are dropped rather than guessed, so this node's edges are a lower bound.">approx</span>` : ""}
     </div>`);
   if (node.doc) parts.push(`<p class="doc">${renderDoc(node.doc)}</p>`);
   if (node.signature) parts.push(`<p class="doc mono" style="color:var(--muted)">${esc(node.signature)}</p>`);

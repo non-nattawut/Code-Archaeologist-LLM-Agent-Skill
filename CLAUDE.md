@@ -50,7 +50,7 @@ scripts/
   paths.py           SKILL_ROOT / DATA_DIR / TEMPLATES_DIR, and the sys.path bootstrap
   core/     taxonomy.py  manifest.py  console.py  grammars.py
   extract/  build_wiki.py  build_graph.py  build_flow.py  js_bridge.py  js_extract.js
-            ts_extract.py  lang_extract.py  apply_descriptions.py
+            ts_extract.py  apply_descriptions.py
   review/   analyze.py  scan_security.py  git_insights.py  metrics.py  debt.py
             tests_map.py  duplicates.py  report.py  brief.py
   query/    trace_path.py  context.py  search.py  build_html.py
@@ -97,15 +97,14 @@ delete. Nothing else in `core/` may import a skill module.
   skip must ask `runtime_error()` first — telling someone a grammar is missing when it is sitting
   right there sends them to reinstall what they already have.
 - `ts_extract.py` reads Java/Go/C# from a real parse tree, and keeps the same
-  `find_lang_files` / `extract_lang_files` contract the textual extractor had -- which is what let
-  the port be verified by diffing the graph instead of by reading code. One shared consumer works
+  `find_lang_files` / `extract_lang_files` contract the textual extractor before it had -- which is
+  what let the port be verified by diffing the graph instead of by reading code. That extractor
+  (`lang_extract.py`, 788 lines) was deleted at step 2 once the diff was clean; it is in git
+  history if the comparison is ever wanted again. One shared consumer works
   in tree-sitter *field* names (`name`, `body`, `parameters`, `type`); only the `SPEC` table knows
   node-type spellings. Adding a language is a row there plus its receiver rule. tree-sitter gives
   declarations, bodies, param types and doc attachment; it does **not** give resolution, so
   `_calls` still answers `""` / `"Type"` / `"?"` exactly as before.
-- `lang_extract.py` is the textual extractor `ts_extract.py` replaced. It is still here **only** as
-  the reference the port is checked against, and is deleted at step 2 of the roadmap's deletion
-  order. Nothing imports it.
 - `trace_path.py` is the query tool: `--from/--to` (BFS path), `--impact-of` (blast radius),
   `--impact-of-diff` (map a git diff to nodes, union their impact). Works on either graph.
 - `analyze.py` is graph-only: cycles, orphans, layer violations, hubs, god objects, name-based
@@ -436,7 +435,7 @@ editing them to match the present is the one way to make them worthless:
 | File | Discipline |
 | --- | --- |
 | `docs/PROJECT_HISTORY.md` | extend with new phases; never rewrite a past entry to agree with the present |
-| `docs/prompt.md` | append the turn verbatim at the end of every turn (principle 7) |
+| `docs/prompt.md` | append the turn verbatim at the end of every turn (principle 8) |
 
 **This file is not exempt.** `CLAUDE.md` describes the repo to its next session, so when the repo
 changes, `CLAUDE.md` changes in the same commit. It has drifted before precisely because it was
@@ -457,7 +456,27 @@ It verifies that every script is listed in `README.md` and named in `CLAUDE.md`,
 `taxonomy.py` is documented in `TAXONOMY.md`. It deliberately checks facts, never prose — keeping
 the *words* honest is still the writer's job.
 
-### 7. Log every exchange to `docs/prompt.md`
+### 7. Fix what you find, or write it down — never just mention it
+Implementing one thing surfaces others: a stale claim in a tooltip, a number that contradicts a
+doc, an artifact that is not as deterministic as the constraint says. Saying so in a chat reply
+and moving on is the one option that is always wrong — the observation is gone the moment the
+session ends.
+
+Two outcomes, and which one applies is decided by whether a person has to choose something:
+
+- **Fixable without a decision — fix it now**, in the same commit, and say so. A claim that is
+  simply false, a message that misdiagnoses, an orphan your own change created: there is one right
+  answer, so asking for it is just latency. Principle 3 still binds — fix the thing you found, not
+  its neighbourhood.
+- **Needs a judgement call — record it in `docs/ROADMAP_PLAN.md`** under *Found while
+  implementing*, with what it is, why it is not obviously fixable, and a recommendation. It is
+  reviewed with the phase, not mid-flight. Anything that changes output format, drops a
+  user-visible field, or trades one guarantee for another belongs here.
+
+The test for which bucket: *if I fix this my way and the user disagrees, have I destroyed
+something?* If yes, write it down. If no, fix it.
+
+### 8. Log every exchange to `docs/prompt.md`
 This repo keeps a running transcript of its own construction. **At the end of every turn, append
 that turn to `docs/prompt.md`** — the user's prompt verbatim, then what you did and said.
 

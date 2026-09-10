@@ -2023,3 +2023,52 @@ self-test all pass. Ledger row 1b moved to done, step 2 marked next.
 the row — impossible, since a commit cannot contain its own id. The state moves in the work commit;
 the hash is filled in by the next one. Corrected in place rather than left as a rule that cannot be
 followed.
+
+## [56] 2026-09-10 — Step 2: `lang_extract.py` deleted, and a rule for what turns up on the way
+
+**Prompt**
+> The things you found during implement like this if you can fix without my control fix it but if
+> you need to ask me just save it in plan and I review after all pahse finish
+>
+> [then, mid-turn] thhen continue implement next step
+
+**Response**
+
+**The rule, first**, as working principle 7 in `CLAUDE.md` (the prompt.md one becomes 8). Two
+buckets, with the deciding question stated so it does not need re-litigating: *if I fix this my way
+and you disagree, have I destroyed something?* No → fix it in the same commit. Yes →
+`docs/ROADMAP_PLAN.md` under a new **Found while implementing** section, with a recommendation, to
+be read with the phase. The one option removed is the one I took last turn: mentioning it in chat,
+where it dies with the session.
+
+**Filed under it: the timestamp finding from [55].** Twelve report files differ between builds of
+identical source; the graphs are byte-identical. Five scripts stamp `"generated": <now>`. It is
+*not* a free deletion — `report.py:120` prints it in the markdown header and `brief.py:65` reads it
+back as `reported`, so removing it drops a visible field, which is a decision about artifact
+content rather than a bug fix. Recorded with the real cost (the repo commits `data/` as its worked
+example, so every rebuild dirties twelve files with no semantic change, training the reader to skim
+exactly the diffs a regression would hide) and a recommendation: **remove the field**, because
+`check` already answers freshness properly through source hashes and a wall-clock stamp is a weaker
+duplicate of it.
+
+**Then step 2: `lang_extract.py` is gone** — 788 lines. Its precondition was "step 1 verified",
+which `67d4df4` met. Nothing imported it; only docs named it. Removed from `CLAUDE.md`'s script
+layout and its own entry, and from the README structure tree. `CLAUDE.md`'s `ts_extract.py` entry
+now says the extractor it was diffed against is in git history rather than implying it is still
+sitting there.
+
+**And one thing found while doing it, fixed under the new rule rather than mentioned.** Grepping
+for the `textual` tier turned up `templates/viewer.html:1155` — the `approx` chip's tooltip still
+told users *"Java/Go/C# are read textually rather than parsed"*. That stopped being true at step 1
+and nothing caught it: `check_docs.py` checks facts, not prose, and this string is inside the
+front-end. It now says they are parsed with tree-sitter and names why edges are still a lower bound
+(resolution through declared types only). No decision involved — the old text was simply false.
+
+**Verified:** `compileall`; `both` → 25/22 and 52/32, 16 endpoints, 0 pending; `report` → D(69) /
+D(68), 4 risk findings each, 2 markers, 1 duplicate cluster / 4 lines, 4/48 named by a test — every
+number in CLAUDE.md's block; `check` → stale: false; `check_docs.py` OK; installer self-test OK with
+the explorer confirmed offline. `viewer.html` changed, so its inline script was parsed as a
+**classic** script via `new vm.Script()` (50,308 chars, OK) rather than `node --check`, which would
+have accepted a top-level `return` a browser rejects.
+
+Step 3 (JS/TS ported, diffed against `js_extract.js`) is next.

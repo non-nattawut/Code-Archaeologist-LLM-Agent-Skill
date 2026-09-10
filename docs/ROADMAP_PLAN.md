@@ -1,11 +1,11 @@
 # Graph as many languages as possible
 
-> ## Status: **phase 1 done; phase 2 at step 1b of 6.** Phases 3 and 4 are verification, not features.
+> ## Status: **phase 1 done; phase 2 at step 2 of 6.** Phases 3 and 4 are verification, not features.
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
 > | 1 — Resolve the edges the textual extractor drops | semantics, no new dependency | **done** | `e8464f8` |
-> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **steps 1 and 1b of 6 done** | `8974c27`, `67d4df4` |
+> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **steps 1, 1b and 2 of 6 done** | `8974c27`, `67d4df4`, this commit |
 > | 3 — Full regression gate: nothing old may break | does it still run | not started | |
 > | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | not started | |
 >
@@ -18,8 +18,8 @@
 > | --- | --- | --- |
 > | 1 | Java/Go/C# ported to tree-sitter, matching the phase-1 numbers | **done** — `8974c27` |
 > | 1b | Move the install into `<skill>/vendor/` instead of the user's Python | **done** — `67d4df4` |
-> | 2 | delete `lang_extract.py` | **next** |
-> | 3 | JS/TS ported, diffed against `js_extract.js` | not started |
+> | 2 | delete `lang_extract.py` | **done** — this commit |
+> | 3 | JS/TS ported, diffed against `js_extract.js` | **next** |
 > | 4 | delete `@babel/parser`, `js_extract.js`, `js_bridge.py`, the skill's `package.json` | not started |
 > | 5 | Python ported; `ast` oracle reports 0 disagreements | not started |
 > | 6 | drop `ast` from the build path (it stays forever as the oracle) | not started |
@@ -907,6 +907,37 @@ commit -- visible to a user, not only to whoever reads this file.
 
 ---
 
+## Found while implementing
+
+Things noticed while building a step that were **not** obviously fixable — each needs a decision,
+so each waits for review rather than being settled mid-flight (working principle 7). Anything that
+*was* obviously fixable is not here; it was fixed in the commit that found it.
+
+### 1. Report artifacts are not byte-reproducible — found in step 1b
+
+**What.** Constraint 2 says "same source in, same bytes out". The graphs honour it exactly: two
+builds of identical source produce byte-identical `graph.json` and `flow_graph.json`. The
+**reports do not** — 12 files under `data/report/` differ between runs, entirely because five
+scripts stamp `"generated": <now>` (`report.py:287`, `metrics.py:191`, `debt.py:122`,
+`duplicates.py:175`, `tests_map.py:84`).
+
+**Why it is not just a bug to delete.** The timestamp is surfaced: `report.py:120` puts it in the
+markdown header, and `brief.py:65` reads it back as `reported`. Removing it drops a field a user
+can currently see, which is a decision about what the artifacts contain rather than a defect fix.
+
+**Cost of leaving it.** The repo commits `data/` as its worked example, so every rebuild dirties
+twelve files with no semantic change — which trains the reader to skim exactly the diffs that
+would show a real regression.
+
+**Recommendation: remove the field.** Freshness is already answered properly and by something
+better: `check` compares source hashes through `manifest.py` and returns `stale: true/false`, which
+is what `brief` should cite. A wall-clock stamp is a weaker duplicate of that, and it is the only
+thing standing between the reports and a constraint the rest of the pipeline already meets.
+Alternative if the stamp is wanted: keep it out of the committed artifacts and print it at the
+console instead.
+
+---
+
 ## Open concerns — review these before implementing
 
 Collected while planning, none of them blocking, all of them things that will bite if nobody
@@ -975,7 +1006,7 @@ re-implemented, not just re-queried. It is exercised by `OrderCard` and `StatusB
   `docs/USAGE.md`, `templates/TAXONOMY.md`, `docs/PRESENTATION.html`) rewritten to match new
   behavior; append-only files (`docs/PROJECT_HISTORY.md`, `docs/prompt.md`) extended, never revised.
 - **Regenerate committed sample data in the same commit** whenever `sample_src/` or the graphs change.
-- **Append to `prompt.md` at the end of every turn** (working principle 7), **before committing** —
+- **Append to `prompt.md` at the end of every turn** (working principle 8), **before committing** —
   the entry rides in the same commit as the work it describes.
 - **Update this file's status ledger in the same commit as the work.** The block at the top is the
   only place that says what is done and what is not; a step finished without moving its row is a
