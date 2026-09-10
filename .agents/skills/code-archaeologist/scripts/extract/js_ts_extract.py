@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """js_ts_extract.py — JS/TS/JSX/TSX structure extraction from a tree-sitter parse.
 
-Replaces the Node extractor (`js_bridge.py` -> `js_extract.js`, @babel/parser),
-and deliberately keeps its exact output contract: `find_js_files` /
+Replaced the Node extractor (`js_bridge.py` -> `js_extract.js`, @babel/parser 7.29.8)
+and deliberately kept its exact output contract: `find_js_files` /
 `extract_js_files` returning one dict per file with `classes`, `functions`,
 `imports` and `routes`. Keeping the contract is what let the port be verified by
 diffing JSON against Babel's rather than by reading code -- the same method that
-caught three real bugs when Java/Go/C# moved to tree-sitter.
+caught three real bugs when Java/Go/C# moved to tree-sitter. That diff reported
+**identical output** on all six sample files, and the graphs it produced were
+byte-identical to Babel's; the reference and the diff tool were deleted at step 4
+of the roadmap, so the record of that comparison is the commit that made it.
 
 Four grammars for four extensions, because they are genuinely different parsers:
 `.tsx` will not parse with the TypeScript language (the `<` is ambiguous between

@@ -2139,3 +2139,41 @@ listing both wheels, build succeeds at 19/19 and 37/23.
 Step 4 (delete `@babel/parser`, `js_extract.js`, `js_bridge.py`, `package.json`) is next, and
 nothing in the build imports them any more. Note `tools/diff_js_extractors.py` dies with them — it
 is the last chance to re-run that comparison.
+
+## [58] 2026-09-10 — Step 4: Node leaves the runtime
+
+**Prompt**
+> continue all step in phase 2
+
+**Response**
+Step 4 of the deletion order. Before deleting anything I re-ran the equivalence check and wrote the
+result down, because it is the last moment it can ever be run: **@babel/parser 7.29.8, Node
+v24.16.0, 6 files compared, identical output.**
+
+Deleted: `js_extract.js`, `js_bridge.py`, the skill's `package.json` and `package-lock.json`,
+`node_modules/`, and `tools/diff_js_extractors.py` — the diff tool imports both extractors, so it
+dies with the reference rather than lingering as a script that cannot run.
+
+**The skill folder is now `SKILL.md`, `data/`, `scripts/`, `templates/` and a git-ignored
+`vendor/`.** No `package.json`. Node is not required, not checked for, and not installed;
+`bin/cli.js` still needs it, but that is the installer, not the runtime.
+
+Two things the deletion exposed, both fixed here:
+
+- **`bin/cli.js` copied `package.json` unconditionally**, so the installer crashed with `ENOENT`
+  the moment the file was gone. Caught by the self-test, not by reading — the copy is a single
+  line nowhere near anything I had touched.
+- **The skill's `.gitignore` still had `node_modules/`**, and `SKIP_COPY` in the installer still
+  skipped it. Both now describe a directory that cannot exist; removed.
+
+Also swept the prose that had gone false: `SKILL.md` said "JS/TS by `js_extract.js` (Node +
+`@babel/parser`)" in its multi-root section and "Frontend parsing is the one exception" in its
+constraints list; `grammars.py` and `paths.py` both explained vendoring by analogy to
+`node_modules`, an analogy to something that no longer exists. `CLAUDE.md`'s constraint 1 now says
+Node is not used at all, and its verification section no longer tells the next session to run a
+diff tool that is gone — the standing check is now that a rebuild leaves the committed graphs
+byte-identical.
+
+**Verified:** 25/22 and 52/32 with the graphs byte-identical to the committed ones; `check_docs.py`
+OK; `compileall` OK; installer self-test OK with the explorer confirmed offline and the installed
+skill containing exactly `SKILL.md data scripts templates`.

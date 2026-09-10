@@ -50,7 +50,7 @@ scripts/
   paths.py           SKILL_ROOT / DATA_DIR / TEMPLATES_DIR, and the sys.path bootstrap
   core/     taxonomy.py  manifest.py  console.py  grammars.py
   extract/  build_wiki.py  build_graph.py  build_flow.py  js_ts_extract.py
-            ts_extract.py  apply_descriptions.py  js_bridge.py  js_extract.js
+            ts_extract.py  apply_descriptions.py
   review/   analyze.py  scan_security.py  git_insights.py  metrics.py  debt.py
             tests_map.py  duplicates.py  report.py  brief.py
   query/    trace_path.py  context.py  search.py  build_html.py
@@ -100,13 +100,11 @@ delete. Nothing else in `core/` may import a skill module.
   Express and Nest routes, `fetch`/axios calls, and the JSX rule that makes a function a
   `kind: component`. It replaced the Node extractor behind that extractor's exact output contract
   (`find_js_files` / `extract_js_files` / `frontend_degraded`), which is why the port could be
-  proved by diffing JSON rather than by reading code -- `tools/diff_js_extractors.py` reports
-  **identical output** on the sample. Four extensions, three grammars: `.tsx` will not parse under
-  the TypeScript language and needs `tsx`.
-- `js_bridge.py` and `js_extract.js` are the Node/`@babel/parser` extractor that `js_ts_extract.py`
-  replaced. Nothing in the build imports them; they are kept **only** as the reference the port is
-  diffed against, and are deleted at step 4 of the roadmap's deletion order along with
-  `package.json` and `node_modules/`.
+  proved by diffing JSON rather than by reading code: the diff reported **identical output** on
+  all six sample files and the graphs came out byte-identical. That reference (`js_bridge.py`,
+  `js_extract.js`, `@babel/parser` 7.29.8) and the diff tool were deleted at step 4, so the
+  comparison cannot be re-run -- `fd9c7d8` is its record. Four extensions, three grammars: `.tsx`
+  will not parse under the TypeScript language and needs `tsx`.
 - `ts_extract.py` reads Java/Go/C# from a real parse tree, and keeps the same
   `find_lang_files` / `extract_lang_files` contract the textual extractor before it had -- which is
   what let the port be verified by diffing the graph instead of by reading code. That extractor
@@ -225,9 +223,8 @@ scrolls.
    Python is stdlib `ast` and needs nothing installed. **Every other language is tree-sitter**:
    the runtime plus the wheel for that language (`tree-sitter-javascript` for `.js`/`.jsx`,
    `tree-sitter-typescript` for `.ts` *and* `.tsx`, `tree-sitter-java`, `tree-sitter-go`,
-   `tree-sitter-c-sharp`) — wheels, no compiler, grammar bundled. **Node is no longer used to
-   build a graph**; `js_bridge.py` / `js_extract.js` / `node_modules/` survive only as the
-   reference the JS/TS port is diffed against, until step 4 deletes them. **Grammars are installed on demand, not shipped**: a repo with no Go pays nothing for
+   `tree-sitter-c-sharp`) — wheels, no compiler, grammar bundled. **Node is not used at all**:
+   it is not required, not checked for, and not installed. The skill has no `package.json`. **Grammars are installed on demand, not shipped**: a repo with no Go pays nothing for
    Go.
    **Every dependency installs inside the skill folder, never into the user's environment.**
    `npm install` → `<skill>/node_modules`; `pip install --only-binary :all: --no-cache-dir --target
@@ -334,12 +331,9 @@ one `frontend skipped` warning naming **both** wheels, and fall back to 19 nodes
 (structure) and 37 / 23 (flow) -- the backend-only graph. Deleting `node_modules` changes nothing
 any more: no build path reads it.
 
-The JS/TS port is verified by diffing against the extractor it replaced, which is only possible
-while that extractor still exists (step 4 deletes it):
-
-```bash
-python tools/diff_js_extractors.py            # must print: OK   identical output
-```
+The JS/TS port was verified by diffing against the extractor it replaced; that extractor is gone
+(step 4), so the check is now the byte-identity of the committed graphs — rebuild and `git diff`
+on `data/structure/graph.json` and `data/flow/flow_graph.json` must be empty.
 
 Other checks worth running when you touch the relevant part:
 

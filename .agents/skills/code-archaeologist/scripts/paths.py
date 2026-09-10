@@ -13,8 +13,7 @@ it is what keeps the ~35 existing cross-category imports working unchanged, and
 what lets any script still be run directly from any working directory.
 
 It also puts `<skill>/vendor` in front of them, which is where the tree-sitter
-wheels are installed. That mirrors how `@babel/parser` lands in
-`<skill>/node_modules`: the skill's dependencies live inside the skill, so they
+wheels are installed: the skill's dependencies live inside the skill, so they
 never enter the environment the user runs everything else in, and deleting the
 skill folder removes every trace of them. The prepend is conditional, so a
 machine that installed the wheels the old way -- straight into site-packages --

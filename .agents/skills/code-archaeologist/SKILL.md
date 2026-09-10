@@ -43,9 +43,9 @@ covers both `.ts` and `.tsx`** (one wheel, two grammars — `.tsx` genuinely nee
 Python needs nothing installed: it is read with the standard library's own parser.
 
 **Install it yourself — this does not touch the user's Python.** `--target vendor` puts the wheels
-in `<skill>/vendor`, which the skill's `.gitignore` excludes, exactly like `npm install` and
-`<skill>/node_modules`: nothing enters the environment the user runs their own projects in, no
-version can collide with theirs, and deleting the skill folder removes every trace. Keep all three
+in `<skill>/vendor`, which the skill's `.gitignore` excludes: nothing enters the environment the
+user runs their own projects in, no version can collide with theirs, and deleting the skill folder
+removes every trace. Keep all three
 flags — `--target` is the whole point, `--only-binary :all:` fails loudly instead of trying to
 compile, and `--no-cache-dir` stops pip writing the wheels outside the skill folder.
 
@@ -122,8 +122,8 @@ python .agents/skills/code-archaeologist/scripts/archaeologist.py both --src ./s
 python .agents/skills/code-archaeologist/scripts/archaeologist.py flow --src ./backend ./frontend
 ```
 `--src` takes several roots, so a monorepo lands in one graph (node `source` keeps its root
-prefix: `backend/…`, `frontend/…`). Python is parsed by the stdlib AST, JS/TS by `js_extract.js`
-(Node + `@babel/parser`; missing → frontend skipped with a warning). Frontend `fetch`/`axios`
+prefix: `backend/…`, `frontend/…`). Python is parsed by the stdlib AST, every other language by
+tree-sitter (grammar missing → those files skipped with a warning). Frontend `fetch`/`axios`
 calls are matched to backend route handlers by HTTP method + path, giving cross-stack `http`
 edges — so one trace can run frontend → API → service → repository.
 
@@ -320,7 +320,8 @@ keeps the cache intact — those nodes are missing, not gone). **0 pending** mea
   lines/complexity, risk scan, debt markers, test detection — also read Java, Kotlin, Go, Rust,
   C#, Ruby, PHP, Swift, Scala, Dart, Elixir and C/C++, so a polyglot repo still gets size, risk
   and debt answers even where there is no call graph.
-- Python pipeline: stdlib only. Frontend parsing is the one exception (Node + `@babel/parser`).
+- Python pipeline: the standard library plus tree-sitter, whose wheels install into
+  `<skill>/vendor` and never into the user's Python. Node is not used at all.
   The generated HTML needs no network: the graph library is vendored and inlined, so the explorer
   opens from `file://` offline.
 - Field values (`kind`, `layer`, `lang`, `desc_source`, and the review `severity`/`rule`/`grade`

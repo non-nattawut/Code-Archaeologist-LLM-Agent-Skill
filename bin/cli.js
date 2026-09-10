@@ -142,12 +142,12 @@ function findPython() {
 }
 
 // Build junk from running the skill in place (bytecode caches, an installed
-// node_modules or vendor/) must not ride along into someone else's project.
-// The skill's own vendor/ especially: those wheels are built for one interpreter
-// version and one OS, so copying them installs a dependency that may not load.
-// It is matched by full path, not by name -- templates/vendor/ is the inlined
-// force-graph library and must always be copied (hard constraint 4).
-const SKIP_COPY = new Set(["__pycache__", "node_modules", ".pytest_cache"]);
+// vendor/) must not ride along into someone else's project. vendor/ especially:
+// those wheels are built for one interpreter version and one OS, so copying them
+// installs a dependency that may not even load there. It is matched by full path,
+// not by name -- templates/vendor/ is the inlined force-graph library and must
+// always be copied (hard constraint 4).
+const SKIP_COPY = new Set(["__pycache__", ".pytest_cache"]);
 const SKIP_COPY_PATHS = new Set([path.join(SKILL_SRC, "vendor")]);
 
 function copyDir(src, dest) {
@@ -240,7 +240,6 @@ async function main() {
   copyDir(path.join(SKILL_SRC, "scripts"), path.join(dest, "scripts"));
   copyDir(path.join(SKILL_SRC, "templates"), path.join(dest, "templates"));
   writeSkillMd(dest, relPosix);
-  fs.copyFileSync(path.join(SKILL_SRC, "package.json"), path.join(dest, "package.json"));
   writeGitignore(dest);
   seedDataDir(path.join(dest, "data"), opts.force);
   console.log("OK   Skill installed.\n");

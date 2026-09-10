@@ -1,11 +1,11 @@
 # Graph as many languages as possible
 
-> ## Status: **phase 1 done; phase 2 at step 3 of 6.** Phases 3 and 4 are verification, not features.
+> ## Status: **phase 1 done; phase 2 at step 4 of 6 — Node is out of the runtime.** Phases 3 and 4 are verification, not features.
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
 > | 1 — Resolve the edges the textual extractor drops | semantics, no new dependency | **done** | `e8464f8` |
-> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **steps 1, 1b, 2 and 3 of 6 done** | `8974c27`, `67d4df4`, `e7bfb09`, `fd9c7d8` |
+> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **steps 1, 1b, 2, 3 and 4 of 6 done** | `8974c27`, `67d4df4`, `e7bfb09`, `fd9c7d8`, this commit |
 > | 3 — Full regression gate: nothing old may break | does it still run | not started | |
 > | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | not started | |
 >
@@ -20,8 +20,8 @@
 > | 1b | Move the install into `<skill>/vendor/` instead of the user's Python | **done** — `67d4df4` |
 > | 2 | delete `lang_extract.py` | **done** — `e7bfb09` |
 > | 3 | JS/TS ported, diffed against `js_extract.js` | **done** — `fd9c7d8`; the diff is `tools/diff_js_extractors.py`, reporting **identical output** on all 6 files |
-> | 4 | delete `@babel/parser`, `js_extract.js`, `js_bridge.py`, the skill's `package.json` | **next** — nothing in the build imports them any more |
-> | 5 | Python ported; `ast` oracle reports 0 disagreements | not started |
+> | 4 | delete `@babel/parser`, `js_extract.js`, `js_bridge.py`, the skill's `package.json` | **done** — this commit; `node_modules/`, `package-lock.json` and `tools/diff_js_extractors.py` went with them |
+> | 5 | Python ported; `ast` oracle reports 0 disagreements | **next** |
 > | 6 | drop `ast` from the build path (it stays forever as the oracle) | not started |
 >
 > **Also done, outside the step list** (step 1 pulled these in because a per-language grammar is a

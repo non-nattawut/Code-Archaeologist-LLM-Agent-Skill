@@ -279,8 +279,6 @@ It has no npm dependencies of its own.
 │   │   ├── build_flow.py
 │   │   ├── js_ts_extract.py JS/JSX/TS/TSX, parsed with tree-sitter
 │   │   ├── ts_extract.py   Java/Go/C#, parsed with tree-sitter
-│   │   ├── js_extract.js   the Node/@babel extractor js_ts_extract.py replaced (reference only)
-│   │   ├── js_bridge.py    its Python side (reference only)
 │   │   └── apply_descriptions.py
 │   │
 │   ├── review/           graphs -> findings

@@ -21,10 +21,10 @@ reported staleness.
 The wheels live in `<skill>/vendor`, put on `sys.path` by `paths.py` -- the one
 skill module `core/` imports, because it sits below the categories and knows
 where the skill's own files are. Installing there rather than into the user's
-Python is the same bargain `@babel/parser` already takes in `<skill>/node_modules`:
-the dependency cannot collide with anything the user runs, and deleting the skill
-folder removes it. A machine that installed the wheels straight into site-packages
-still works -- the vendor entry is a preference, not a requirement.
+Python means the dependency cannot collide with anything the user runs, and
+deleting the skill folder removes it. A machine that installed the wheels
+straight into site-packages still works -- the vendor entry is a preference, not
+a requirement.
 
 Importing this module never imports a grammar. Loading is lazy and cached, so
 listing what is available costs one `find_spec` per language.
