@@ -1859,3 +1859,65 @@ editing.
 
 `python tools/check_docs.py` → OK. This entry is the first written under the new rule: it is being
 appended now, before the commit, and goes in with it.
+
+## [53] 2026-09-10 — A rule for the ledger, and Node tree-sitter measured then rejected
+
+**Prompt**
+> edit the plan that you must update plan which done, which not done
+>
+> and I want to ask can we change python lib install treesitter or does we will shift to node
+> tree-sitter since we want to install lib in skill instead of user machaine
+
+**Response**
+
+**1. The ledger rule.** Added to the plan's cross-cutting rules: *update the status ledger in the
+same commit as the work*, move the row, name the commit hash, and move anything pulled in out of
+the "not done" list. Stated with the two failures that motivate it, both from this repo and both
+from the last three days:
+
+- `e37f8fb` is titled "Install the wheels into the skill, not the user's Python" and changed **no
+  code** — `--stat` shows `docs/ROADMAP_PLAN.md` and `docs/prompt.md` only. It scheduled 1b. Read
+  from the log alone it looks done.
+- Phase 4 was written into the file while the header above it still announced three phases.
+
+Those are opposite errors — one is a row that under-reports, one is a title that over-reports — so
+the rule ends with the line that resolves both: **a step is done when its row says so, not when
+the code lands.** Also tightened the `prompt.md` bullet to say "before committing", matching the
+CLAUDE.md change in [52].
+
+**2. Node tree-sitter.** Measured both instead of arguing, and **rejected the switch.** Recorded
+in 2e as a dated decision with the table.
+
+What I actually ran:
+
+- `web-tree-sitter` 0.27.0 + `tree-sitter-java` from npm, `--ignore-scripts`: the grammar package
+  **ships a prebuilt `.wasm`** (`node_modules/tree-sitter-java/tree-sitter-java.wasm`, 415 KB), so
+  no node-gyp and no compiler. Parsed `sample_src/services/orders_java/OrderApiController.java`:
+  `hasError: false`, query returned `create, findOne`.
+- `pip install --only-binary :all: --target <scratch>` of `tree-sitter` + `tree-sitter-java`:
+  `tree_sitter.__file__` resolved inside the target, same file parsed `has_error: False`, same two
+  methods. **749 KB.**
+
+So both work and both are correct. The decision is not about capability or size (780 KB vs 749 KB).
+It is the last two rows of the table:
+
+- **Every script here is Python** — all ~20. Putting the parser in Node does not remove a runtime,
+  it freezes two in place.
+- **`js_bridge.py` is what step 4 exists to delete.** Under Node it becomes the path *every*
+  language takes instead of just JS/TS — and a tree cannot be held across that boundary, so it is
+  either the whole CST serialised to JSON per file or the analysis moves into JavaScript, which is
+  the entire skill.
+
+And the premise did not hold: **`pip --target` already installs into the skill and nowhere else.**
+That is exactly what 1b is. Node buys nothing Python does not already have here.
+
+**One correction fell out of the measurement.** 1b claims the grammar wheels are "far more
+portable (`cp39-abi3`)". The real tag is `tree_sitter_java-0.23.5-**cp39-abi3-win_amd64**.whl` —
+`abi3` buys portability across Python *versions* only, not across operating systems. So the vendor
+directory is machine-specific on two axes, not one. Corrected in place with a pointer to where it
+was measured, and the word "portable" withdrawn. The WASM option genuinely wins that row; it loses
+the two that matter more.
+
+Left the reopen condition on record: only if this skill's own scripts stop being Python.
+
+`python tools/check_docs.py` → OK. Plan-only change, no code touched.

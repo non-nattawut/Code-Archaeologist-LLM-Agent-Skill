@@ -336,7 +336,9 @@ folder is the skill managing its own dependencies, so the agent can just do it.
 
 **The one real cost, and it is not hypothetical.** The `tree-sitter` runtime wheel is
 version-locked to the interpreter (`tree_sitter-0.26.0-cp314-cp314-win_amd64.whl`); the grammar
-wheels are `abi3` and far more portable (`cp39-abi3`, `cp310-abi3`). So a vendored runtime breaks
+wheels are `abi3` and portable across Python versions (`cp39-abi3`, `cp310-abi3`) — but **not
+across operating systems**, the full tag being `cp39-abi3-win_amd64`. (Corrected 2026-09-10; see
+"Node `web-tree-sitter` instead of the Python wheels" under 2e, where it was measured.) So a vendored runtime breaks
 if the user switches Python minor versions — the same failure `node_modules` has when the platform
 changes, and it needs the same treatment: catch the `ImportError` and print *"vendored tree-sitter
 was built for a different Python; re-run the install"*, never a raw traceback.
@@ -472,6 +474,46 @@ below. Decided 2026-09-09; the trade accepted is spelled out under "What this co
 
 Capability was never the obstacle — the spike parsed `order_service.py` cleanly
 (`function_definition`, `class_definition`, `call`, `attribute`, no errors).
+
+#### Node `web-tree-sitter` instead of the Python wheels — asked and rejected 2026-09-10
+
+Asked because 1b's goal is "install into the skill, not the user's machine", and npm has always
+done that. Measured both rather than argued about them; **both parse the sample Java file with
+`hasError: false` and return exactly `create, findOne`.**
+
+| | Python `tree-sitter` + wheels | Node `web-tree-sitter` (WASM) | Node `tree-sitter` (native) |
+| --- | --- | --- | --- |
+| Installs inside the skill | **yes** — `pip install --target <skill>/vendor` | yes — `<skill>/node_modules` | yes |
+| Compiler needed | no | no | **yes / prebuilds** — fails constraint 1 |
+| Footprint, runtime + 1 grammar | **749 KB** | ~780 KB (12 MB installed; the grammar tarball ships its C source too) | n/a |
+| Portable across Python versions | **no** — `cp314-cp314-win_amd64` | yes | yes |
+| Portable across OS | no — grammars are `cp39-abi3-**win_amd64**` | **yes** — `.wasm` is universal | no |
+| Runtimes the skill needs | **one (Python)** | **two, permanently** | two |
+| The bridge | deleted at step 4 | **permanent, and carries every language** | permanent |
+
+**Rejected on the last two rows, not on size.** Every script in this skill is Python — all ~20 of
+them. Moving the parser to Node does not remove a runtime, it freezes two in place: Python for
+every pass, Node for every parse. And `js_bridge.py`, which step 4 exists to delete, would instead
+become the path *all* languages take rather than just JS/TS. Worse than the subprocess cost, a
+tree cannot be held across that boundary: either the whole CST is serialised to JSON per file, or
+the analysis moves into JavaScript, which is the entire skill.
+
+That is the exact opposite of what 2e decided. **The premise does not require it either** —
+`pip install --target` already installs into the skill and nowhere else; verified 2026-09-10 by
+installing to a scratch directory and confirming `tree_sitter.__file__` resolved inside it
+(749 KB, sample parsed clean). Node buys nothing here that Python does not already have.
+
+**What the WASM option really wins is portability, and it is worth being honest about the size of
+that.** A `.wasm` grammar never needs reinstalling; the wheels are locked to both the interpreter
+minor version *and* the OS. Note this corrects the claim under 1b that the grammar wheels are
+"far more portable": `abi3` makes them portable across Python versions only —
+`tree_sitter_java-0.23.5-cp39-abi3-win_amd64.whl` is still Windows-x64-only. So the vendor
+directory is per-machine on two axes, not one. It is git-ignored either way, and the failure is
+loud and fixable with one command, which is what makes the trade acceptable — but "portable" was
+the wrong word and is withdrawn.
+
+Reopen this only if the skill's own scripts ever stop being Python. Nothing else changes the
+answer.
 
 #### Nothing is deleted before its replacement is proven — and that ordering is structural
 
@@ -903,7 +945,17 @@ re-implemented, not just re-queried. It is exercised by `OrderCard` and `StatusB
   `docs/USAGE.md`, `templates/TAXONOMY.md`, `docs/PRESENTATION.html`) rewritten to match new
   behavior; append-only files (`docs/PROJECT_HISTORY.md`, `docs/prompt.md`) extended, never revised.
 - **Regenerate committed sample data in the same commit** whenever `sample_src/` or the graphs change.
-- **Append to `prompt.md` at the end of every turn** (working principle 7).
+- **Append to `prompt.md` at the end of every turn** (working principle 7), **before committing** —
+  the entry rides in the same commit as the work it describes.
+- **Update this file's status ledger in the same commit as the work.** The block at the top is the
+  only place that says what is done and what is not; a step finished without moving its row is a
+  step nobody can see is finished, and a row marked done without the code is worse — it is a lie
+  that the next session will act on. Both have already happened here: `e37f8fb` reads "Install the
+  wheels into the skill" and changed no code (it scheduled 1b, it did not build it), and phase 4
+  was written into this file with the header above it still announcing three phases. So, every
+  commit that advances a step: move the row, name the commit hash in it, and move anything it
+  pulled in out of the "not done" list. **A step is done when its row says so, not when the code
+  lands.**
 - One commit per phase, unless a phase splits cleanly into independently verifiable pieces.
 
 ## Verification run after every phase
