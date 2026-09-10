@@ -3,6 +3,7 @@ package com.example.orders;
 /** How an order's total is calculated. */
 public interface PricingRule {
 
+    /** What this order costs, in cents. */
     int price(OrderRequest request);
 }
 

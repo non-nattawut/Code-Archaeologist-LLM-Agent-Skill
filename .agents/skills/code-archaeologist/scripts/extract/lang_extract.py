@@ -509,13 +509,30 @@ JAVA_CLASS_RE = re.compile(r"\b(?:class|interface|enum|record)\s+(\w+)\b([^{;]*)
 CS_CLASS_RE = re.compile(r"\b(?:class|interface|struct|record)\s+(\w+)\b([^{;=]*)\{")
 GO_TYPE_RE = re.compile(r"^type\s+(\w+)\s+(?:struct|interface)\s*\{", re.M)
 
-MEMBER_RE = re.compile(
+# Modifiers, optional generic, return type, name, params -- everything up to the
+# point where a method either opens a body or ends. The two forms are built from
+# one string so they cannot drift apart.
+_MEMBER_HEAD = (
     r"^[ \t]*(?P<mods>(?:(?:public|protected|private|internal|static|final|abstract|"
     r"synchronized|native|default|strictfp|readonly|virtual|override|sealed|async|"
     r"extern|partial|volatile|transient|unsafe|new)\s+)*)"
     r"(?:<[^>]+>\s+)?"
     r"(?P<type>[\w.$]+(?:\s*<[^<>()]*>)?(?:\[\])*)\s+(?P<name>\w+)\s*"
-    r"\((?P<params>[^)]*)\)[^;{=]*\{", re.M)
+    r"\((?P<params>[^)]*)\)[^;{=]*")
+
+MEMBER_RE = re.compile(_MEMBER_HEAD + r"\{", re.M)
+
+# The same declaration terminated by `;` instead of a body: a Java interface
+# method, an `abstract` method, a C# interface member. They declare a name that
+# calls resolve against, so without them a call through an interface type has
+# nothing to point at and the edge is dropped.
+MEMBER_DECL_RE = re.compile(_MEMBER_HEAD + r";", re.M)
+
+# Words that can stand where MEMBER_DECL_RE expects a return type in a construct
+# that declares a type rather than a method: `record Point(int x, int y);`,
+# `delegate int Cmp(T a, T b);`. Not added to NOT_A_TYPE, because MEMBER_RE's
+# closing brace already keeps them out of the body form.
+DECLARES_A_TYPE = {"record", "class", "interface", "enum", "struct", "delegate"}
 
 FIELD_RE = re.compile(
     r"^[ \t]*(?:(?:public|protected|private|internal|static|final|readonly|volatile|"
@@ -532,29 +549,43 @@ CS_IMPORT_RE = re.compile(r"^\s*using\s+(?:static\s+)?([\w.]+)\s*;", re.M)
 
 
 def _member_decls(blanked: str, span: tuple[int, int]):
-    """(match, body_start, body_end) for every method declared in a class body."""
+    """(match, body_start, body_end, declared_only) for every method in a class body.
+
+    A method with no body -- an interface member, an `abstract` method -- gets an
+    empty body range. There is nothing to read calls from, but the name still has
+    to exist, because that is what a call through the declared type resolves to.
+    """
     start, end = span
     out = []
     for m in MEMBER_RE.finditer(blanked, start, end):
         if m.group("type") in NOT_A_TYPE or m.group("type") in MODIFIERS:
             continue        # `new Runnable() {`, `else if (x) {`, and constructors
         b_start, b_end = _body_range(blanked, m.end() - 1)
-        out.append((m, b_start, b_end))
-    return out
+        out.append((m, b_start, b_end, False))
+
+    bodies = [(a, b) for _, a, b, _ in out]
+    for m in MEMBER_DECL_RE.finditer(blanked, start, end):
+        if (m.group("type") in NOT_A_TYPE or m.group("type") in MODIFIERS
+                or m.group("type") in DECLARES_A_TYPE):
+            continue
+        if any(a <= m.start() < b for a, b in bodies):
+            continue        # a statement inside a method, not a member declaration
+        out.append((m, m.end(), m.end(), True))
+    return sorted(out, key=lambda d: d[0].start())
 
 
 def _members(blanked, lits, orig_lines, blank_lines, line_starts, line_of,
              decls, lang: str, prefix: str, fields: dict[str, str]) -> list[dict]:
     """Methods declared directly in a class body, with their calls resolved."""
     methods = []
-    for m, b_start, b_end in decls:
+    for m, b_start, b_end, declared_only in decls:
         line = line_of(m.start())
         params = _params(m.group("params"), lang)
         types = dict(fields)
         types.update(params)
         types.update(_locals(blanked[b_start:b_end], lang))
         annos = _annotations(blanked, lits, *_anno_span(blank_lines, line_starts, line), lang)
-        methods.append({
+        entry = {
             "name": m.group("name"),
             "doc": _doc_above(orig_lines, line),
             "line": line, "endLine": line_of(b_end),
@@ -562,7 +593,10 @@ def _members(blanked, lits, orig_lines, blank_lines, line_starts, line_of,
             "calls": _dedupe_calls(_calls(blanked[b_start:b_end], types)),
             "routes": _method_routes(annos, prefix, lang),
             "http": [],
-        })
+        }
+        if declared_only:
+            entry["declaration"] = True   # a signature, not code that runs
+        methods.append(entry)
     return methods
 
 
@@ -600,7 +634,7 @@ def _parse_braced(text: str, blanked: str, lits: dict[int, str], lang: str, line
         # Methods first, so their bodies can be masked out before fields are read:
         # a local `Foo bar = ...` inside a method is not a field of the class.
         decls = _member_decls(body, (b_start, b_end))
-        fields = _class_fields(_mask(body, [(a, b) for _, a, b in decls])[b_start:b_end])
+        fields = _class_fields(_mask(body, [(a, b) for _, a, b, _ in decls])[b_start:b_end])
         methods = _members(body, lits, orig_lines, blank_lines, line_starts, line_of,
                            decls, lang, prefix, fields)
 

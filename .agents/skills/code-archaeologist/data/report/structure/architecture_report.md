@@ -1,6 +1,6 @@
 # Architecture report — graph.json
 
-Generated 2026-09-09 07:41 UTC · 25 nodes · 22 edges
+Generated 2026-09-10 02:20 UTC · 25 nodes · 22 edges
 
 ## Health: **D** (69/100)
 
@@ -15,7 +15,7 @@ Dead-code ratio 12.0% · cycles 0 · layer violations 0 · security findings 4
 
 ## Census
 
-- Source: 22 file(s), 528 lines (py 23.9%, java 19.1%, csharp 17.0%, ts 17.0%, go 12.5%, js 5.3%, tsx 5.1%)
+- Source: 22 file(s), 529 lines (py 23.8%, java 19.3%, csharp 17.0%, ts 17.0%, go 12.5%, js 5.3%, tsx 5.1%)
 - Layers: `client` 2, `controller` 7, `repository` 4, `service` 4, `test` 2, `ui` 3, `unknown` 3
 - Kinds: `class` 17, `component` 2, `module` 6
 - Languages: `csharp` 3, `go` 3, `java` 6, `js` 6, `py` 7
@@ -27,7 +27,7 @@ _None._
 
 ## Size & complexity
 
-- 22 file(s), 528 lines — 343 code, 83 comment, 102 blank (comment ratio 16%)
+- 22 file(s), 529 lines — 343 code, 84 comment, 102 blank (comment ratio 16%)
 - Complexity is McCabe: 1 + every branch. Python nodes only.
 
 ### Longest nodes
@@ -62,8 +62,8 @@ _None._
 | `sample_src/services/orders_cs/InvoiceController.cs` | 28 | 21 |
 | `sample_src/services/orders_java/OrderWorkflow.java` | 28 | 17 |
 | `sample_src/frontend/OrderCard.tsx` | 27 | 20 |
+| `sample_src/services/orders_java/PricingRule.java` | 26 | 14 |
 | `sample_src/backend/tests/test_orders.py` | 25 | 18 |
-| `sample_src/services/orders_java/OrderApiController.java` | 25 | 17 |
 
 ## Smells
 

@@ -1595,3 +1595,74 @@ was missing must never look like a graph of a smaller codebase.
    "a function that returns JSX" has to be re-implemented rather than re-queried.
 
 `check_docs: OK`.
+
+## [48] 2026-09-10 — Phase 1: the interface edge that was never there
+
+**Prompt**
+> read roadmap ion docs then do the first phase
+
+**Response**
+Read `docs/ROADMAP_PLAN.md` and checked the eight commits since it was written — all of them touch
+only `ROADMAP_PLAN.md` and `prompt.md`, so the "not started" status was accurate and this is the
+first implementation turn of the new roadmap.
+
+**Baseline before touching anything.** Built the maps and queried the graph rather than trusting
+the plan's description: `PricingRule.price` absent, `FlatRate.price` / `TieredRate.price` present
+and orphaned, flow 51/31. That matters because 1b's whole claim is "this falls out of 1a", and
+without a measured before there is nothing to attribute the after to.
+
+**1a — declaration-only members.** `MEMBER_RE` required a body brace, so an interface method, an
+`abstract` method and a C# interface member never matched. Rather than copy the pattern, I split
+the shared part into `_MEMBER_HEAD` and built both forms from it (`+ r"\{"` and `+ r";"`), so they
+cannot drift — then asserted the recompiled `MEMBER_RE.pattern` is byte-identical to the original
+before going further. `_member_decls` now returns a 4-tuple with `declared_only`, and a body-less
+member gets an empty body range, which makes its calls and locals come out empty by construction
+rather than by a special case.
+
+Two guards against false positives, both of which I tested rather than reasoned about. A scratch
+fixture with `record Point(int x, int y);`, `delegate int Cmp(int a, int b);`, a signature wrapped
+across two lines ending `throws IOException;`, an `abstract` method, and three statements inside a
+method body (`doThing(a, b);`, `Total(a, b);`, `return count(a);`). Result: the three type
+declarations rejected by a new `DECLARES_A_TYPE` set, the three statements rejected by a
+body-range check, and the wrapped signature correctly spanning lines 8-9.
+
+**1b — no code needed, as predicted.** `_analyze_lang` resolves a call by asking whether the name
+is in `class_methods[declared_type]`. Once `PricingRule` had a method, the edge appeared. This is
+the one part of the phase where the plan's prediction was load-bearing and it held exactly.
+
+I did **not** add the optional `implements` edge. It needs a colour, a `TAXONOMY.md` entry and
+explorer link styling for a traversal nobody has asked for, so `FlatRate.price` and
+`TieredRate.price` stay orphans — documented, not accidental.
+
+**1c — the cheap option.** One node, `signatures` recorded. No node id changed, so none of the
+seven artifacts keyed by id needed re-keying. The note now lists both signatures instead of
+showing whichever overload was scanned last, which was the actual defect: not that the fold
+happened, but that it was invisible.
+
+**Two guards proved non-vacuous, not just present.** The roadmap said to *confirm* rather than
+assume that `duplicates.py` skips these. It did not: a declaration has a perfectly readable range
+(`int price(OrderRequest request);`) and was only saved by being under `MIN_TOKENS`. So the skip is
+now explicit, and I proved it by showing what the range would have read. For `analyze.py` I built a
+two-node fixture with no edges at all: the declaration is excluded from orphans, the ordinary
+method is still reported. A guard that excluded both would have been useless and the sample alone
+would never have caught it, because in the sample `PricingRule.price` has a caller.
+
+**Numbers, all re-derived:** structure unchanged at 25/22 (the phase touches the flow map only, as
+the roadmap required); flow 51/31 -> **52/32**, 24 approx, 16 endpoints, 0 pending; both grades
+unchanged at D(69)/D(68); 529 lines (the javadoc I added below); tests 4/48; duplicates unchanged
+at 1 cluster / 4 lines.
+
+One sample change: the interface method had no javadoc, so the build reported `1 pending`
+description and the committed note said "_No description available._". Every other method in the
+sample is documented, so the gap was in the sample, not the tool — added `/** What this order
+costs, in cents. */`.
+
+**Verified:** compileall, both builds, both reports, `check` (stale false), `brief`, `check_docs`,
+installer self-test, all five documented traces including the new
+`OrderWorkflow.place > PricingRule.price`, and determinism — rebuilt twice and diffed `data/`, with
+**zero** files differing outside `report/`, where only timestamps move.
+
+Docs updated in the same commit: `CLAUDE.md` (expected numbers, the hard-case block rewritten to
+say which case is now resolved and which is not, the `duplicates.py` bullet), `README.md`,
+`SKILL.md` rule 8, `TAXONOMY.md` (`declaration` and `signatures`), `docs/PRESENTATION.html`'s
+limitation entry, and the roadmap status table.

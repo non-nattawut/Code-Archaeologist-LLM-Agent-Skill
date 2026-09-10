@@ -1,15 +1,15 @@
 {
-  "generated": "2026-09-09T07:41:27Z",
+  "generated": "2026-09-10T02:20:19Z",
   "roots": [
     "sample_src"
   ],
   "graph": "data/flow/flow_graph.json",
   "summary": {
     "test_files": 2,
-    "considered": 47,
+    "considered": 48,
     "referenced": 4,
-    "unreferenced": 43,
-    "referenced_pct": 8.5
+    "unreferenced": 44,
+    "referenced_pct": 8.3
   },
   "test_files": [
     "sample_src/backend/tests/test_orders.py",
@@ -56,7 +56,7 @@
     },
     {
       "id": "FlatRate.price",
-      "source": "sample_src/services/orders_java/PricingRule.java:13",
+      "source": "sample_src/services/orders_java/PricingRule.java:14",
       "layer": "unknown",
       "kind": "method"
     },
@@ -205,6 +205,12 @@
       "kind": "method"
     },
     {
+      "id": "PricingRule.price",
+      "source": "sample_src/services/orders_java/PricingRule.java:7",
+      "layer": "unknown",
+      "kind": "method"
+    },
+    {
       "id": "StatusBadge",
       "source": "sample_src/frontend/OrderCard.tsx:6",
       "layer": "ui",
@@ -212,7 +218,7 @@
     },
     {
       "id": "TieredRate.price",
-      "source": "sample_src/services/orders_java/PricingRule.java:22",
+      "source": "sample_src/services/orders_java/PricingRule.java:23",
       "layer": "unknown",
       "kind": "method"
     },

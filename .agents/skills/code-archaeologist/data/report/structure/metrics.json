@@ -1,15 +1,15 @@
 {
-  "generated": "2026-09-09T07:41:27Z",
+  "generated": "2026-09-10T02:20:19Z",
   "roots": [
     "sample_src"
   ],
   "totals": {
     "files": 22,
-    "lines": 528,
+    "lines": 529,
     "code": 343,
-    "comment": 83,
+    "comment": 84,
     "blank": 102,
-    "comment_ratio": 0.157
+    "comment_ratio": 0.159
   },
   "languages": {
     "py": {
@@ -18,7 +18,7 @@
     },
     "java": {
       "files": 4,
-      "lines": 101
+      "lines": 102
     },
     "csharp": {
       "files": 3,
@@ -190,9 +190,9 @@
       "lang": "java"
     },
     "sample_src/services/orders_java/PricingRule.java": {
-      "lines": 25,
+      "lines": 26,
       "code": 14,
-      "comment": 5,
+      "comment": 6,
       "blank": 6,
       "lang": "java"
     }
@@ -495,14 +495,14 @@
       "code": 20
     },
     {
+      "file": "sample_src/services/orders_java/PricingRule.java",
+      "lines": 26,
+      "code": 14
+    },
+    {
       "file": "sample_src/backend/tests/test_orders.py",
       "lines": 25,
       "code": 18
-    },
-    {
-      "file": "sample_src/services/orders_java/OrderApiController.java",
-      "lines": 25,
-      "code": 17
     }
   ],
   "unmeasured_graph_ids": [

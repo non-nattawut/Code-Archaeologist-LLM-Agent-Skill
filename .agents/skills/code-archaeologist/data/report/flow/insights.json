@@ -725,8 +725,8 @@
       "last_commit": "2026-09-08T22:13:49+07:00",
       "first_commit": "2026-09-08T22:13:49+07:00",
       "fan_in": 1,
-      "fan_out": 1,
-      "risk": 3
+      "fan_out": 2,
+      "risk": 4
     },
     "OrdersController.create": {
       "file": "sample_src/api_nest/orders.controller.ts",
@@ -770,6 +770,20 @@
       "fan_in": 1,
       "fan_out": 0,
       "risk": 6
+    },
+    "PricingRule.price": {
+      "file": "sample_src/services/orders_java/PricingRule.java",
+      "commits": 1,
+      "owner": "non-nattawut",
+      "authors": {
+        "non-nattawut": 1
+      },
+      "author_count": 1,
+      "last_commit": "2026-09-08T22:13:49+07:00",
+      "first_commit": "2026-09-08T22:13:49+07:00",
+      "fan_in": 1,
+      "fan_out": 0,
+      "risk": 2
     },
     "StatusBadge": {
       "file": "sample_src/frontend/OrderCard.tsx",
@@ -1255,6 +1269,21 @@
       "risk": 4
     },
     {
+      "node": "OrderWorkflow.place",
+      "file": "sample_src/services/orders_java/OrderWorkflow.java",
+      "commits": 1,
+      "owner": "non-nattawut",
+      "authors": {
+        "non-nattawut": 1
+      },
+      "author_count": 1,
+      "last_commit": "2026-09-08T22:13:49+07:00",
+      "first_commit": "2026-09-08T22:13:49+07:00",
+      "fan_in": 1,
+      "fan_out": 2,
+      "risk": 4
+    },
+    {
       "node": "createInvoice",
       "file": "sample_src/frontend/api_client.ts",
       "commits": 4,
@@ -1317,21 +1346,6 @@
     },
     {
       "node": "OrderWorkflow.find",
-      "file": "sample_src/services/orders_java/OrderWorkflow.java",
-      "commits": 1,
-      "owner": "non-nattawut",
-      "authors": {
-        "non-nattawut": 1
-      },
-      "author_count": 1,
-      "last_commit": "2026-09-08T22:13:49+07:00",
-      "first_commit": "2026-09-08T22:13:49+07:00",
-      "fan_in": 1,
-      "fan_out": 1,
-      "risk": 3
-    },
-    {
-      "node": "OrderWorkflow.place",
       "file": "sample_src/services/orders_java/OrderWorkflow.java",
       "commits": 1,
       "owner": "non-nattawut",
@@ -1583,6 +1597,21 @@
       "first_commit": "2026-09-06T20:05:48+07:00",
       "fan_in": 0,
       "fan_out": 1,
+      "risk": 2
+    },
+    {
+      "node": "PricingRule.price",
+      "file": "sample_src/services/orders_java/PricingRule.java",
+      "commits": 1,
+      "owner": "non-nattawut",
+      "authors": {
+        "non-nattawut": 1
+      },
+      "author_count": 1,
+      "last_commit": "2026-09-08T22:13:49+07:00",
+      "first_commit": "2026-09-08T22:13:49+07:00",
+      "fan_in": 1,
+      "fan_out": 0,
       "risk": 2
     },
     {

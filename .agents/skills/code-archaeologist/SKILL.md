@@ -57,7 +57,10 @@ map and the cross-stack `http` edges.
    `data/report/<map>/architecture_report.md` only for the detail the brief points at.
 8. **Say when a node is approximate.** Java, Go and C# nodes carry `approx: true`: they were read
    textually rather than parsed, and calls that could not be resolved from a declared type
-   (interface dispatch, overloads, lambda handlers) were dropped rather than guessed. So their
+   (overloads, lambda handlers) were dropped rather than guessed. A call through an interface
+   resolves to the interface's own node, which carries `declaration: true` — the trace stops at the
+   declaration and does **not** continue into the implementations, so "what actually runs" is still
+   unanswered there. So their
    edges are a **lower bound** — "nothing calls X" is only "nothing the extractor could resolve
    calls X". Tell the user that when you answer from one, and say it plainly if a whole answer
    (dead code, blast radius, "who calls this") rests on approximate nodes. `context.py` and the

@@ -117,6 +117,8 @@ def node_bodies(roots, graph_path: str) -> list[dict]:
     cache: dict[str, list[str]] = {}
     out = []
     for n in nodes:
+        if n.get("declaration"):
+            continue                       # a signature with no body has no shape
         src = n.get("source") or ""
         key, _, start = src.partition(":")
         end = n.get("end") or 0

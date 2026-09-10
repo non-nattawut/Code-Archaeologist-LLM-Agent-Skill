@@ -186,10 +186,19 @@ node an agent is reading, and the explorer marks it with an `approx` chip.
 
 Approximate does not mean guessed. Comments and string bodies are blanked before anything is
 matched, bodies are found by brace matching rather than regex, and a call is resolved only through
-a *declared* type — a field, a parameter, a `new Foo()`. Interface dispatch, overloads and lambda
-handlers cannot be resolved without a type checker, so those edges are **dropped, not invented**:
-the coupling shown is a lower bound. Constructor injection (Spring, ASP.NET DI, a Go struct
-literal) resolves reliably, because these languages must declare their parameter types.
+a *declared* type — a field, a parameter, a `new Foo()`. Constructor injection (Spring, ASP.NET DI,
+a Go struct literal) resolves reliably, because these languages must declare their parameter types.
+
+A call through an interface **resolves to the interface**, not to its implementations. Declaring
+`PricingRule pricing` and calling `pricing.price()` gives you the edge
+`OrderWorkflow.place → PricingRule.price`, because a body-less member is extracted as a node in its
+own right. Which implementation runs at runtime is a question a type checker cannot answer either,
+so the trace stops there rather than fanning out to every class that implements it — one guess or
+two wrong edges are both worse than an honest stop.
+
+What still cannot be resolved is **dropped, not invented**: overloads collapse to one node (ids
+carry no arity, so the node records every signature that folded into it) and lambda handlers have
+no declared type to resolve through. The coupling shown is a lower bound.
 
 Test files are recognized across all of them (pytest, Jest/Vitest, JUnit/Spring, `*_test.go`,
 `#[test]`, `[Fact]`, RSpec, PHPUnit) and tagged `layer: test` — so **test code is never reported as

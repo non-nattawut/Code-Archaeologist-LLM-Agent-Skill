@@ -59,8 +59,8 @@
       "cls": "FlatRate",
       "signature": "price(request)",
       "doc": "One price, whatever the order says.",
-      "source": "sample_src/services/orders_java/PricingRule.java:13",
-      "end": 15,
+      "source": "sample_src/services/orders_java/PricingRule.java:14",
+      "end": 16,
       "lang": "java",
       "ext": 0,
       "approx": true
@@ -177,7 +177,11 @@
       "end": 38,
       "lang": "csharp",
       "ext": 0,
-      "approx": true
+      "approx": true,
+      "signatures": [
+        "Total(request)",
+        "Total(unitPrice, units)"
+      ]
     },
     {
       "id": "InvoiceStore.Get",
@@ -437,7 +441,7 @@
       "source": "sample_src/services/orders_java/OrderWorkflow.java:16",
       "end": 22,
       "lang": "java",
-      "ext": 1,
+      "ext": 0,
       "approx": true
     },
     {
@@ -489,6 +493,20 @@
       "ext": 1
     },
     {
+      "id": "PricingRule.price",
+      "layer": "unknown",
+      "kind": "method",
+      "cls": "PricingRule",
+      "signature": "price(request)",
+      "doc": "What this order costs, in cents.",
+      "source": "sample_src/services/orders_java/PricingRule.java:7",
+      "end": 7,
+      "lang": "java",
+      "ext": 0,
+      "approx": true,
+      "declaration": true
+    },
+    {
       "id": "StatusBadge",
       "layer": "ui",
       "kind": "component",
@@ -507,8 +525,8 @@
       "cls": "TieredRate",
       "signature": "price(request)",
       "doc": "Cheaper per unit above ten units.",
-      "source": "sample_src/services/orders_java/PricingRule.java:22",
-      "end": 24,
+      "source": "sample_src/services/orders_java/PricingRule.java:23",
+      "end": 25,
       "lang": "java",
       "ext": 1,
       "approx": true
@@ -849,6 +867,11 @@
     {
       "source": "OrderWorkflow.place",
       "target": "OrderArchive.save",
+      "type": "calls"
+    },
+    {
+      "source": "OrderWorkflow.place",
+      "target": "PricingRule.price",
       "type": "calls"
     },
     {

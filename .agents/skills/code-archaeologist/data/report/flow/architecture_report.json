@@ -1,9 +1,9 @@
 {
   "graph": "data/flow/flow_graph.json",
-  "generated": "2026-09-09 07:41 UTC",
+  "generated": "2026-09-10 02:20 UTC",
   "census": {
-    "nodes": 51,
-    "edges": 31,
+    "nodes": 52,
+    "edges": 32,
     "layers": {
       "client": 6,
       "controller": 18,
@@ -11,12 +11,12 @@
       "service": 10,
       "test": 2,
       "ui": 5,
-      "unknown": 2
+      "unknown": 3
     },
     "langs": {
       "csharp": 7,
       "go": 8,
-      "java": 8,
+      "java": 9,
       "js": 15,
       "py": 13
     },
@@ -24,10 +24,10 @@
       "component": 2,
       "endpoint": 16,
       "function": 11,
-      "method": 22
+      "method": 23
     },
     "edge_types": {
-      "calls": 27,
+      "calls": 28,
       "http": 4
     },
     "routes": [
@@ -112,7 +112,7 @@
         "node": "OrderController.get_order"
       }
     ],
-    "approx_nodes": 23
+    "approx_nodes": 24
   },
   "files": {
     "files": {
@@ -201,15 +201,15 @@
         "lang": "java"
       },
       "sample_src/services/orders_java/PricingRule.java": {
-        "lines": 25,
+        "lines": 26,
         "lang": "java"
       }
     },
     "file_count": 22,
-    "loc": 528,
+    "loc": 529,
     "languages": {
       "py": 126,
-      "java": 101,
+      "java": 102,
       "csharp": 90,
       "ts": 90,
       "go": 66,
@@ -217,8 +217,8 @@
       "tsx": 27
     },
     "language_pct": {
-      "py": 23.9,
-      "java": 19.1,
+      "py": 23.8,
+      "java": 19.3,
       "csharp": 17.0,
       "ts": 17.0,
       "go": 12.5,
@@ -244,7 +244,7 @@
     "health": {
       "score": 68,
       "grade": "D",
-      "dead_code_pct": 13.7,
+      "dead_code_pct": 13.5,
       "deductions": {
         "dead_code": 7,
         "cycles": 0,
@@ -255,8 +255,8 @@
       }
     },
     "summary": {
-      "nodes": 51,
-      "edges": 31,
+      "nodes": 52,
+      "edges": 32,
       "cycles": 0,
       "orphans": 7,
       "layer_violations": 0,
@@ -1047,8 +1047,8 @@
         "last_commit": "2026-09-08T22:13:49+07:00",
         "first_commit": "2026-09-08T22:13:49+07:00",
         "fan_in": 1,
-        "fan_out": 1,
-        "risk": 3
+        "fan_out": 2,
+        "risk": 4
       },
       "OrdersController.create": {
         "file": "sample_src/api_nest/orders.controller.ts",
@@ -1092,6 +1092,20 @@
         "fan_in": 1,
         "fan_out": 0,
         "risk": 6
+      },
+      "PricingRule.price": {
+        "file": "sample_src/services/orders_java/PricingRule.java",
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-08T22:13:49+07:00",
+        "first_commit": "2026-09-08T22:13:49+07:00",
+        "fan_in": 1,
+        "fan_out": 0,
+        "risk": 2
       },
       "StatusBadge": {
         "file": "sample_src/frontend/OrderCard.tsx",
@@ -1577,6 +1591,21 @@
         "risk": 4
       },
       {
+        "node": "OrderWorkflow.place",
+        "file": "sample_src/services/orders_java/OrderWorkflow.java",
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-08T22:13:49+07:00",
+        "first_commit": "2026-09-08T22:13:49+07:00",
+        "fan_in": 1,
+        "fan_out": 2,
+        "risk": 4
+      },
+      {
         "node": "createInvoice",
         "file": "sample_src/frontend/api_client.ts",
         "commits": 4,
@@ -1639,21 +1668,6 @@
       },
       {
         "node": "OrderWorkflow.find",
-        "file": "sample_src/services/orders_java/OrderWorkflow.java",
-        "commits": 1,
-        "owner": "non-nattawut",
-        "authors": {
-          "non-nattawut": 1
-        },
-        "author_count": 1,
-        "last_commit": "2026-09-08T22:13:49+07:00",
-        "first_commit": "2026-09-08T22:13:49+07:00",
-        "fan_in": 1,
-        "fan_out": 1,
-        "risk": 3
-      },
-      {
-        "node": "OrderWorkflow.place",
         "file": "sample_src/services/orders_java/OrderWorkflow.java",
         "commits": 1,
         "owner": "non-nattawut",
@@ -1908,6 +1922,21 @@
         "risk": 2
       },
       {
+        "node": "PricingRule.price",
+        "file": "sample_src/services/orders_java/PricingRule.java",
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-08T22:13:49+07:00",
+        "first_commit": "2026-09-08T22:13:49+07:00",
+        "fan_in": 1,
+        "fan_out": 0,
+        "risk": 2
+      },
+      {
         "node": "createOrderHandler",
         "file": "sample_src/api_express/order_router.js",
         "commits": 1,
@@ -2127,17 +2156,17 @@
     }
   },
   "metrics": {
-    "generated": "2026-09-09T07:41:27Z",
+    "generated": "2026-09-10T02:20:19Z",
     "roots": [
       "sample_src"
     ],
     "totals": {
       "files": 22,
-      "lines": 528,
+      "lines": 529,
       "code": 343,
-      "comment": 83,
+      "comment": 84,
       "blank": 102,
-      "comment_ratio": 0.157
+      "comment_ratio": 0.159
     },
     "languages": {
       "py": {
@@ -2146,7 +2175,7 @@
       },
       "java": {
         "files": 4,
-        "lines": 101
+        "lines": 102
       },
       "csharp": {
         "files": 3,
@@ -2318,9 +2347,9 @@
         "lang": "java"
       },
       "sample_src/services/orders_java/PricingRule.java": {
-        "lines": 25,
+        "lines": 26,
         "code": 14,
-        "comment": 5,
+        "comment": 6,
         "blank": 6,
         "lang": "java"
       }
@@ -2693,14 +2722,14 @@
         "code": 20
       },
       {
+        "file": "sample_src/services/orders_java/PricingRule.java",
+        "lines": 26,
+        "code": 14
+      },
+      {
         "file": "sample_src/backend/tests/test_orders.py",
         "lines": 25,
         "code": 18
-      },
-      {
-        "file": "sample_src/services/orders_java/OrderApiController.java",
-        "lines": 25,
-        "code": 17
       }
     ],
     "unmeasured_graph_ids": [
@@ -2728,6 +2757,7 @@
       "OrderWorkflow.place",
       "OrdersController.create",
       "OrdersController.findOne",
+      "PricingRule.price",
       "StatusBadge",
       "TieredRate.price",
       "createInvoice",
@@ -2745,7 +2775,7 @@
     ]
   },
   "debt": {
-    "generated": "2026-09-09T07:41:27Z",
+    "generated": "2026-09-10T02:20:19Z",
     "roots": [
       "sample_src"
     ],
@@ -2757,7 +2787,7 @@
         "TODO": 1
       },
       "dead_nodes": 7,
-      "dead_files": 2
+      "dead_files": 1
     },
     "markers": [
       {
@@ -2778,13 +2808,13 @@
     "dead_nodes": [
       {
         "id": "FlatRate.price",
-        "source": "sample_src/services/orders_java/PricingRule.java:13",
+        "source": "sample_src/services/orders_java/PricingRule.java:14",
         "layer": "unknown",
         "kind": "method"
       },
       {
         "id": "TieredRate.price",
-        "source": "sample_src/services/orders_java/PricingRule.java:22",
+        "source": "sample_src/services/orders_java/PricingRule.java:23",
         "layer": "unknown",
         "kind": "method"
       },
@@ -2820,22 +2850,21 @@
       }
     ],
     "dead_files": [
-      "sample_src/frontend/order_page.ts",
-      "sample_src/services/orders_java/PricingRule.java"
+      "sample_src/frontend/order_page.ts"
     ]
   },
   "tests": {
-    "generated": "2026-09-09T07:41:27Z",
+    "generated": "2026-09-10T02:20:19Z",
     "roots": [
       "sample_src"
     ],
     "graph": "data/flow/flow_graph.json",
     "summary": {
       "test_files": 2,
-      "considered": 47,
+      "considered": 48,
       "referenced": 4,
-      "unreferenced": 43,
-      "referenced_pct": 8.5
+      "unreferenced": 44,
+      "referenced_pct": 8.3
     },
     "test_files": [
       "sample_src/backend/tests/test_orders.py",
@@ -2882,7 +2911,7 @@
       },
       {
         "id": "FlatRate.price",
-        "source": "sample_src/services/orders_java/PricingRule.java:13",
+        "source": "sample_src/services/orders_java/PricingRule.java:14",
         "layer": "unknown",
         "kind": "method"
       },
@@ -3031,6 +3060,12 @@
         "kind": "method"
       },
       {
+        "id": "PricingRule.price",
+        "source": "sample_src/services/orders_java/PricingRule.java:7",
+        "layer": "unknown",
+        "kind": "method"
+      },
+      {
         "id": "StatusBadge",
         "source": "sample_src/frontend/OrderCard.tsx:6",
         "layer": "ui",
@@ -3038,7 +3073,7 @@
       },
       {
         "id": "TieredRate.price",
-        "source": "sample_src/services/orders_java/PricingRule.java:22",
+        "source": "sample_src/services/orders_java/PricingRule.java:23",
         "layer": "unknown",
         "kind": "method"
       },
@@ -3117,7 +3152,7 @@
     ]
   },
   "duplicates": {
-    "generated": "2026-09-09T07:41:27Z",
+    "generated": "2026-09-10T02:20:19Z",
     "roots": [
       "sample_src"
     ],

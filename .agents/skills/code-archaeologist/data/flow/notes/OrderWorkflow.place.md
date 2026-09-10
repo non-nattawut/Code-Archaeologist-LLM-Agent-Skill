@@ -18,6 +18,7 @@ Price the order and store the result.
 
 ## Calls
 - [[OrderArchive.save]]
+- [[PricingRule.price]]
 
 ## Called by
 - [[OrderApiController.create]]

@@ -488,7 +488,7 @@ def _lang_node(nid: str, name: str, cls, layer: str, kind: str, data: dict,
     content = json.dumps({"n": name, "c": sorted(f'{c["type"]}.{c["name"]}' for c in calls),
                           "d": doc}, sort_keys=True)
     params = data.get("params") or {}
-    return {
+    node = {
         "id": nid, "name": name, "cls": cls, "layer": layer, "kind": kind,
         "signature": f'{name}({", ".join(sorted(params))})',
         "doc": doc.splitlines()[0] if doc else "",
@@ -497,6 +497,11 @@ def _lang_node(nid: str, name: str, cls, layer: str, kind: str, data: dict,
         "hash": _hash(content), "code": f"// {rel}\n{name}(...)", "lang": lang,
         "routes": _dedupe_routes(data.get("routes") or []), "approx": True,
     }
+    if data.get("declaration"):
+        # A signature with no body: it exists so calls through the declared type
+        # resolve, but there is no code in it to measure, clone or call dead.
+        node["declaration"] = True
+    return node
 
 
 def _analyze_lang(roots: list[str]):
@@ -526,10 +531,18 @@ def _analyze_lang(roots: list[str]):
                     nid = f'{cls["name"]}.{m["name"]}'
                     class_methods[cls["name"]].add(m["name"])
                     routed = bool(m.get("routes"))
-                    methods[nid] = _lang_node(nid, m["name"], cls["name"],
-                                              "controller" if routed else layer,
-                                              "endpoint" if routed else "method",
-                                              m, rel, lang)
+                    node = _lang_node(nid, m["name"], cls["name"],
+                                      "controller" if routed else layer,
+                                      "endpoint" if routed else "method",
+                                      m, rel, lang)
+                    prev = methods.get(nid)
+                    if prev is not None:
+                        # Overloads share one node id -- the id scheme carries no
+                        # arity. Keep one node, but record every signature that
+                        # folded into it rather than silently showing the last.
+                        node["signatures"] = ((prev.get("signatures") or [prev["signature"]])
+                                              + [node["signature"]])
+                    methods[nid] = node
                     raw_calls.append((nid, m.get("calls", [])))
 
             for fn in res.get("functions", []):
@@ -674,6 +687,11 @@ def write_vault(methods: dict, flow_dir: str) -> None:
         http_md = "".join(f"\n## HTTP calls\n" + "\n".join(f"- `{h['method']} {h['url']}`" for h in http) + "\n"
                           if http else "")
         approx_md = "approx: true\n" if info.get("approx") else ""
+        decl_md = "declaration: true\n" if info.get("declaration") else ""
+        # An overload pair shares one id, so the note lists what folded into it --
+        # otherwise the single signature shown looks like the only one there is.
+        sigs = info.get("signatures") or []
+        sig_md = "\n".join(f"`{s}`" for s in sigs) if sigs else f"`{info['signature']}`"
         page = (
             f"---\n"
             f"entity: {info['id']}\n"
@@ -683,11 +701,12 @@ def write_vault(methods: dict, flow_dir: str) -> None:
             f"source: {info['source']}\n"
             f"lang: {info.get('lang', 'py')}\n"
             f"{approx_md}"
+            f"{decl_md}"
             f"desc_source: {info.get('desc_source', 'auto')}\n"
             f"---\n"
             f"# {info['id']}\n\n"
             f"## What it does\n{info.get('summary', '')}\n\n"
-            f"## Signature\n`{info['signature']}`\n\n"
+            f"## Signature\n{sig_md}\n\n"
             f"## Calls\n{calls_md}\n\n"
             f"## Called by\n{callers_md}\n"
             f"{http_md}"
@@ -710,6 +729,10 @@ def write_graph(methods: dict, edges, graph_path: str) -> None:
             node["routes"] = i["routes"]
         if i.get("approx"):
             node["approx"] = True     # read textually, not parsed -- see lang_extract.py
+        if i.get("declaration"):
+            node["declaration"] = True   # signature only; no body to measure or run
+        if i.get("signatures"):
+            node["signatures"] = i["signatures"]   # overloads folded into one id
         nodes.append(node)
     graph = {"nodes": nodes,
              "edges": [{"source": s, "target": t, "type": ty} for s, t, ty in edges]}

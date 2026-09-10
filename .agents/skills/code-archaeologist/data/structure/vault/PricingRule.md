@@ -18,7 +18,7 @@ _None._
 _None._
 
 ## Methods
-_None._
+- `price()` — What this order costs, in cents.
 
 ## References
 _None._

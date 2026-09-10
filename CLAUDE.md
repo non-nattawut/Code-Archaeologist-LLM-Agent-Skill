@@ -103,7 +103,8 @@ it needs the directory holding `js_extract.js`, not the skill root — and `cons
 - `duplicates.py` is the third such pass: it reduces each node's body to a token shape
   (identifiers -> `ID`, literals -> `LIT`, comments gone) and clusters equal hashes, so a renamed
   copy still matches. It reads ranges from the graph (`source` + `end`), never re-parsing --
-  which is why `build_flow.py` records `end` on every node it builds.
+  which is why `build_flow.py` records `end` on every node it builds. Nodes marked
+  `declaration: true` are skipped: a signature has a readable range but no body to compare.
 - `brief.py` is the fixed-size digest an agent should open a session with — it only reads what the
   other scripts wrote. Anything expensive belongs upstream of it, never inside it.
 - `report.py` joins all of it into `data/report/<map>/architecture_report.{md,json}` plus
@@ -220,7 +221,8 @@ hard cases, so the review path, the test path, the component path, every route s
 
 - structure graph: **25 nodes / 22 edges** -- 7 Python, 6 JS/TS, 12 approximate (6 Java, 3 Go,
   3 C#), of which `OrderCard` and `StatusBadge` are `kind: component` / `layer: ui`
-- flow graph: **51 nodes / 31 edges, 16 endpoints, 0 pending** descriptions; 23 nodes `approx`
+- flow graph: **52 nodes / 32 edges, 16 endpoints, 0 pending** descriptions; 24 nodes `approx`,
+  one of them `declaration: true` (`PricingRule.price`)
 - routes, one per framework shape: FastAPI `OrderController.create_order`; Flask `orders` with
   **two** entries (`GET` + `POST /legacy/orders`) and `order_detail` (`<int:order_id>`); Express
   `createOrderHandler` (named handler) and the endpoint node `GET /orders/:id/status` (inline
@@ -239,11 +241,24 @@ hard cases, so the review path, the test path, the component path, every route s
 - `getOrderStatus -> GET /orders/:id/status` is the **suffix fallback**: the call is
   `/api/orders/:id/status`, the router registers `/orders/:id/status`, and it links because
   exactly one route matches
-- the two deliberate approximate-tier hard cases, both of which must keep producing **no edge**:
-  `OrderWorkflow.place` calls `pricing.price()` through the `PricingRule` interface (two impls, so
-  `FlatRate.price` / `TieredRate.price` stay orphans), and `InvoiceService.Total` is an overload
-  pair collapsing to one node. The structure map *does* show `OrderWorkflow -> PricingRule` --
-  a declared field is a real reference even when the dispatch is not resolvable.
+- the two deliberate approximate-tier hard cases, **one of which is now resolved**:
+  - **interface dispatch — resolved to the declaration.** `OrderWorkflow.place` calls
+    `pricing.price()` through the `PricingRule` interface, and the edge
+    `OrderWorkflow.place -> PricingRule.price` now exists, because a declaration-only member is
+    extracted as a node (`declaration: true`, empty body, `end` at the end of the signature).
+    The edge stops at the interface: **no edge is emitted to `FlatRate.price` or
+    `TieredRate.price`**, which is why those two stay orphans. Picking one impl would be a guess
+    and emitting both would trade the precision guarantee for recall.
+  - **overloads still collapse to one node.** `InvoiceService.Total` is an overload pair sharing
+    one id, because ids carry no arity. It now records `signatures: ["Total(request)",
+    "Total(unitPrice, units)"]` so the fold is visible rather than silent, and the last one
+    scanned no longer just wins the display.
+  - The structure map *does* show `OrderWorkflow -> PricingRule` -- a declared field is a real
+    reference even when the dispatch is not resolvable.
+- a `declaration: true` node is a signature, not code: `duplicates.py` skips it (no body, no token
+  shape) and `analyze.py` never calls it dead code (there is nothing in it to delete). Both guards
+  are load-bearing, not decorative -- an uncalled declaration has no caller and would otherwise be
+  reported as an orphan.
 - grades: structure **D (69)**, flow **D (68)**; 4 risk findings each; 2 debt markers. Structure
   fell from C(71) when the interface impls were added -- that is the hard case being honest, not a
   regression. Flow fell from D(69) when the planted clone below was added: nothing calls it, so it
@@ -252,9 +267,9 @@ hard cases, so the review path, the test path, the component path, every route s
   every identifier renamed, planted in `frontend/api_client.ts` so the clone pass has something to
   find. Renaming a variable in one copy must keep them clustered; changing an operator must split
   them.
-- tests: 2 test files, flow **4/47 nodes named by a test**, and the two test nodes carry
+- tests: 2 test files, flow **4/48 nodes named by a test**, and the two test nodes carry
   `layer: test` with call edges into `OrderService.place_order` / `OrderRepository.get`
-- 528 lines across 22 files (py 126, java 101, csharp 90, ts 90, go 66, js 28, tsx 27)
+- 529 lines across 22 files (py 126, java 102, csharp 90, ts 90, go 66, js 28, tsx 27)
 - `archaeologist.py check --src ./sample_src` -> `stale: false` right after a build
 
 With `node_modules` renamed away the same build must still succeed, print the one

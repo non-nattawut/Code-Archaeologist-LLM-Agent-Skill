@@ -3,7 +3,7 @@ entity: TieredRate.price
 kind: method
 layer: unknown
 class: TieredRate
-source: sample_src/services/orders_java/PricingRule.java:22
+source: sample_src/services/orders_java/PricingRule.java:23
 lang: java
 approx: true
 desc_source: docstring

@@ -27,6 +27,7 @@ sets — change the taxonomy instead).
 | `layer` | same set as above | Role of the owning class/file. |
 | `lang` | `py`, `js`, `java`, `go`, `csharp` | Source language. |
 | `approx` | `true` (present only when true) | The node came from `lang_extract.py`, which reads declarations textually. Unresolvable calls were dropped rather than guessed, so its edges are a lower bound. |
+| `declaration` | `true` (present only when true) | A signature with no body (interface member, `abstract` method). Its **Calls** section is always empty because there is no body to call from — that says nothing about whether the implementations are used. |
 | `desc_source` | `docstring`, `ai`, `auto` | Where "What it does" came from (see hybrid descriptions). |
 | `class` | class name | Owning class (absent for module-level functions). |
 | `source` | `<area>/<path>:<line>` | Location. |
@@ -36,6 +37,8 @@ Graph-only node fields (in `flow_graph.json`, not written into the pages):
 | Field | Allowed values | Meaning |
 | --- | --- | --- |
 | `ext` | integer | Call sites that leave the graph (library/stdlib); the explorer shows `N ext`. |
+| `declaration` | `true` (present only when true) | The node is a signature with no body — a Java interface method, an `abstract` method, a C# interface member. It exists so a call through the declared type has something to resolve to. Because it holds no code, `duplicates.py` skips it and `analyze.py` never reports it as dead code. |
+| `signatures` | list of signature strings | Present only when overloads folded into one node: ids carry no arity, so `InvoiceService.Total` is one node and this records every signature that collapsed into it. |
 | `routes` | list of `{method, path}` | Routes handled by this node (endpoints only). A **list**: one handler often serves several verbs (Flask `methods=["GET", "POST"]`) or carries stacked route decorators. `method` is an HTTP verb, or `ANY` when the framework registers every verb at once (Go's `mux.HandleFunc` without a method in the pattern) — `ANY` matches a frontend call of any verb. |
 | `http` | list of `{method, url}` | Frontend HTTP calls, used for cross-stack `http` edges. |
 

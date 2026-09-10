@@ -1,12 +1,21 @@
 # Graph as many languages as possible
 
-> ## Status: **not started.** Three phases, in order. Phase 3 is a gate, not a feature.
+> ## Status: **phase 1 done.** Three phases, in order. Phase 3 is a gate, not a feature.
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
-> | 1 — Resolve the edges the textual extractor drops | semantics, no new dependency | not started | |
+> | 1 — Resolve the edges the textual extractor drops | semantics, no new dependency | **done** | `PHASE1` |
 > | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | not started | |
 > | 3 — Full regression gate: nothing old may break | verification | not started | |
+>
+> **Phase 1 outcome.** 1a and 1b landed together and 1b needed no code, exactly as predicted: once
+> `PricingRule.price` exists as a node, the existing resolver finds it. Flow map 51/31 -> 52/32,
+> structure unchanged at 25/22, both grades unchanged. 1c took the cheap option — one node, every
+> signature recorded — so no node id changed and no artifact needed re-keying. The optional
+> `implements` edge was **not** added: it needs a colour, a taxonomy entry and explorer work for a
+> traversal nobody has asked for yet, so `FlatRate.price` / `TieredRate.price` stay orphans and
+> stay documented as such. The ~30 lines of throwaway regex the sequencing note predicted came to
+> about 25, and phase 2 deletes them.
 >
 > **Decided (2026-09-09): one production engine, tree-sitter, via the Python binding — no Node at
 > runtime.** `@babel/parser`, `js_extract.js`, `js_bridge.py`, `lang_extract.py` and the skill's own

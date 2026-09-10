@@ -14,6 +14,7 @@ desc_source: docstring
 Total for a quantity at a price. This is an overload: both
 
 ## Signature
+`Total(request)`
 `Total(unitPrice, units)`
 
 ## Calls
