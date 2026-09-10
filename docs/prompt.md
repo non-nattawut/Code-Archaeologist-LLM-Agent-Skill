@@ -1824,3 +1824,38 @@ No code changed — this is a plan edit. Phase 4 itself is **not started**; what
 argument for it, the enumerated surface, and the verification bar it has to clear.
 
 Committed and pushed.
+
+## [52] 2026-09-10 — The log goes in the commit, not after it
+
+**Prompt**
+> edit CLAUDE.md that before commit/push update the prompt.md
+
+**Response**
+Added a fourth bullet to working principle 7: **append the entry before committing, never after**,
+and `git add docs/prompt.md` alongside the rest of the change.
+
+The rule is worth stating because the previous turn is a live example of why the old wording was
+not enough. Principle 7 said "at the end of every turn", which is *when* but not *where* — and the
+session before mine wrote 122 lines of Phase 4 into the roadmap, committed nothing, and logged
+nothing. Under the old wording that is only ambiguously a violation. Under the new one it is
+plainly one.
+
+Two reasons in the bullet, because the second is the one that is easy to miss:
+
+1. A log written after the push is a **second commit that nobody makes.** The turn ends at the
+   push; whatever was going to happen afterwards does not.
+2. Even when it does land, the entry ends up **separated from the diff it explains.** The log's
+   whole value is being the thing git cannot show — splitting it from the commit it describes
+   costs exactly that.
+
+Also kept the trigger honest: a turn with no commit still gets an entry. The trigger is the end of
+the turn; the commit is only where it rides. Without that sentence the new rule could be read as
+"no commit, no log", which would silently drop every discussion turn from the transcript.
+
+Left alone: `docs/ROADMAP_PLAN.md`'s cross-cutting rules restate this as "Append to `prompt.md` at
+the end of every turn (working principle 7)". Still true, just less specific, and it points at the
+principle rather than copying it — so it does not contradict the new wording and did not need
+editing.
+
+`python tools/check_docs.py` → OK. This entry is the first written under the new rule: it is being
+appended now, before the commit, and goes in with it.

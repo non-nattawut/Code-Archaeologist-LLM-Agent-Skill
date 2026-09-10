@@ -456,6 +456,12 @@ Rules that keep the log worth having:
   time; correcting them retroactively destroys the only reason to keep it.
 - **Write it contemporaneously**, at the end of the turn, while the reasoning is still exact. A
   transcript reconstructed later is a summary, and should say so.
+- **Append it before you commit, never after.** The entry is part of the change, so it belongs in
+  the same commit as the work it describes — `git add docs/prompt.md` alongside everything else. A
+  log written after the push is a second commit that nobody makes, which is how turns go
+  unrecorded; and even when it does land, the entry is then separated from the diff it explains.
+  If a turn ends without a commit, the entry is still appended — the trigger is the end of the
+  turn, not the commit.
 - **Record the reasoning and the misses**, not just the diff — why an approach was chosen, what a
   verification actually returned, and anything that turned out wrong. Git already stores the diff;
   the log's value is everything git cannot show.
