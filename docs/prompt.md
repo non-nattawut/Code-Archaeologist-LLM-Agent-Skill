@@ -1921,3 +1921,48 @@ the two that matter more.
 Left the reopen condition on record: only if this skill's own scripts stop being Python.
 
 `python tools/check_docs.py` → OK. Plan-only change, no code touched.
+
+## [54] 2026-09-10 — `--no-cache-dir`, so "leaves nothing behind" is exact
+
+**Prompt**
+> what I just want to know is can we install lib to skill directory of user instead of user
+> machince, since I dont want this skill harm user mcahine
+>
+> [then] if yes, then add this to the plan
+
+**Response**
+Yes, and I checked it rather than answering from the previous turn's reasoning. Installed
+`tree-sitter` + `tree-sitter-go` with `--target` into a scratch directory:
+
+```
+pip list BEFORE: 117 packages
+pip list AFTER:  117 packages
+```
+
+and the target held exactly `tree_sitter/`, `tree_sitter_go/` and their two `dist-info` dirs. The
+user's environment was not touched.
+
+But the check surfaced the gap the earlier turns had missed: **pip writes downloaded wheels to its
+own HTTP cache** (`%LOCALAPPDATA%\pip\cache` here, `~/.cache/pip` elsewhere), which is outside the
+skill folder and therefore survives deleting it. Benign — it is pip's own cache, not an install,
+and nothing the user runs is affected. But it is the difference between "delete the skill folder
+and nothing is left" being *true* and being *nearly true*, and the entire reason for vendoring is
+that the claim is exact. So `--no-cache-dir` goes into the command, not into a footnote. Cost: a
+0.7 MB re-download on reinstall.
+
+Three edits to the plan:
+
+1. The canonical 1b command now reads
+   `pip install --only-binary :all: --no-cache-dir --target <skill>/vendor ...`, with the
+   containment numbers recorded and a paragraph saying why the flag is part of the command rather
+   than an optimisation.
+2. **The on-demand grammar instruction gets the same full command.** It previously said
+   `pip install tree-sitter-ruby` — the short form, which installs to site-packages. That would
+   have put the skill back into the user's environment one language at a time, which is exactly
+   the failure 1b exists to fix, arriving later and through a different door. Worth catching now:
+   the base install being clean is not the property that matters if the incremental one is not.
+3. Added the containment requirement to 1b's list explicitly, phrased as something to verify
+   (`pip list` identical before and after; deleting the folder leaves no trace) rather than
+   something to intend.
+
+`python tools/check_docs.py` → OK. Plan-only; no ledger row moved because no step advanced.

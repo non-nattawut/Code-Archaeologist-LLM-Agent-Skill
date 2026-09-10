@@ -310,7 +310,7 @@ skill already had the right pattern sitting next to it: `@babel/parser` installs
 Python packages can do exactly the same thing:
 
 ```bash
-pip install --only-binary :all: --target <skill>/vendor tree-sitter tree-sitter-java
+pip install --only-binary :all: --no-cache-dir --target <skill>/vendor tree-sitter tree-sitter-java
 ```
 
 then `paths.py` puts `<skill>/vendor` on `sys.path` ahead of site-packages, and `grammars.py`
@@ -318,7 +318,17 @@ imports as it already does.
 
 **Verified, not assumed (2026-09-10):** installed into a scratch `--target` directory, confirmed
 `tree_sitter.__file__` resolves inside it, and parsed a real sample file with `has_error: False`.
-**0.7 MB** for the runtime plus one grammar.
+**0.7 MB** for the runtime plus one grammar. Re-verified for containment the same day: `pip list`
+returned **117 packages before and 117 after**, and the target directory held exactly
+`tree_sitter/`, `tree_sitter_go/` and their two `dist-info` directories. Nothing entered the user's
+environment.
+
+**`--no-cache-dir` is part of the command, not an optimisation.** Without it pip writes the
+downloaded wheels to its own HTTP cache (`%LOCALAPPDATA%\pip\cache` on this machine, `~/.cache/pip`
+elsewhere) — outside the skill folder, and therefore not removed when the skill folder is deleted.
+That cache is pip's own and harms nothing, but it is the difference between "leaves nothing behind"
+being true and being nearly true, and the whole point of installing into the skill is that the
+claim is exact. The cost is re-downloading 0.7 MB on a reinstall. Take it.
 
 Why this is the better shape:
 
@@ -354,6 +364,10 @@ Requirements for 1b:
   does not know which Python will run the skill. `SKILL.md`'s preflight stays the place it happens.
 - `grammars.py` reports **which** path a grammar was loaded from, so "why is this version
   different" is answerable.
+- **Nothing is written outside `<skill>/vendor`.** This is the requirement the whole step exists
+  for, so it is verified rather than assumed: `pip list` before and after must be identical, and
+  deleting the skill folder must leave no trace of the install anywhere. That is what
+  `--no-cache-dir` is for.
 
 #### Grammars are installed on demand, not all up front
 
@@ -365,7 +379,11 @@ Go never pays for Scala.
 Requirements on that instruction, because an agent running `pip install` is a real action on the
 user's machine:
 
-- **Name the exact package** (`pip install tree-sitter-ruby`) and say it is one wheel, no compiler.
+- **Name the exact package**, in the same vendored form as the base install
+  (`pip install --only-binary :all: --no-cache-dir --target <skill>/vendor tree-sitter-ruby`),
+  and say it is one wheel, no compiler. An on-demand grammar must land where the base ones
+  did — a wheel that goes to site-packages because the short command was easier to type puts
+  the skill back in the user's environment one language at a time.
 - **Ask before installing**, or tell the user the command — do not have the agent install silently.
 - **Degrade clearly**: a file whose grammar is absent is *skipped with a named warning*, never
   silently dropped. The build still succeeds, exactly as JS/TS skipping does today.
