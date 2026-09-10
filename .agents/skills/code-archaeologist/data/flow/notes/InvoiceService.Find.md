@@ -5,7 +5,6 @@ layer: service
 class: InvoiceService
 source: sample_src/services/orders_cs/InvoiceService.cs:21
 lang: csharp
-approx: true
 desc_source: docstring
 ---
 # InvoiceService.Find

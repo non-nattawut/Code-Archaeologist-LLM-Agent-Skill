@@ -5,7 +5,6 @@ layer: unknown
 class: FlatRate
 source: sample_src/services/orders_java/PricingRule.java:14
 lang: java
-approx: true
 desc_source: docstring
 ---
 # FlatRate.price

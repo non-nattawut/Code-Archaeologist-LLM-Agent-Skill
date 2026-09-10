@@ -4,7 +4,6 @@ layer: client
 source: sample_src/frontend/api_client.ts
 kind: module
 lang: js
-approx: false
 ---
 # ApiClientModule
 

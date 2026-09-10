@@ -1,6 +1,6 @@
 {
   "graph": "data/flow/flow_graph.json",
-  "generated": "2026-09-10 11:19 UTC",
+  "generated": "2026-09-10 11:58 UTC",
   "census": {
     "nodes": 52,
     "edges": 32,
@@ -112,7 +112,7 @@
         "node": "OrderController.get_order"
       }
     ],
-    "approx_nodes": 24
+    "imprecise_nodes": 17
   },
   "files": {
     "files": {
@@ -2163,7 +2163,7 @@
     }
   },
   "metrics": {
-    "generated": "2026-09-10T11:19:41Z",
+    "generated": "2026-09-10T11:58:22Z",
     "roots": [
       "sample_src"
     ],
@@ -2782,7 +2782,7 @@
     ]
   },
   "debt": {
-    "generated": "2026-09-10T11:19:41Z",
+    "generated": "2026-09-10T11:58:22Z",
     "roots": [
       "sample_src"
     ],
@@ -2861,7 +2861,7 @@
     ]
   },
   "tests": {
-    "generated": "2026-09-10T11:19:41Z",
+    "generated": "2026-09-10T11:58:22Z",
     "roots": [
       "sample_src"
     ],
@@ -3159,7 +3159,7 @@
     ]
   },
   "duplicates": {
-    "generated": "2026-09-10T11:19:41Z",
+    "generated": "2026-09-10T11:58:22Z",
     "roots": [
       "sample_src"
     ],

@@ -5,7 +5,7 @@ layer: service
 class: OrderWorkflow
 source: sample_src/services/orders_java/OrderWorkflow.java:16
 lang: java
-approx: true
+precision: interface-dispatch
 desc_source: docstring
 ---
 # OrderWorkflow.place

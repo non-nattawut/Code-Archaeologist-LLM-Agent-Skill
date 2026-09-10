@@ -4,7 +4,6 @@ layer: repository
 source: sample_src/services/orders_cs/InvoiceStore.cs
 kind: class
 lang: csharp
-approx: true
 ---
 # InvoiceStore
 

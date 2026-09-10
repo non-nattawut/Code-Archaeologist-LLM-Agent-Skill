@@ -92,8 +92,6 @@ def build(vault: str, out_dir: str) -> int:
             "source": meta.get("source", ""),
             "doc": summary or "_No description available._",
         }
-        if meta.get("approx") == "true":
-            nodes[entity]["approx"] = True   # calls via declared types only -- ts_extract.py
         registry[entity] = os.path.relpath(path, DATA_DIR).replace("\\", "/")
 
         # Wikilinks in the body (exclude front-matter) become outgoing edges.

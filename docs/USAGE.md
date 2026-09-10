@@ -59,8 +59,9 @@ python .agents/skills/code-archaeologist/scripts/query/search.py --orphans --for
 python .agents/skills/code-archaeologist/scripts/query/search.py --lang java
 ```
 
-Java, Go and C# nodes carry `approx: true`. They are parsed with tree-sitter, so the declarations
-are exact; what stays approximate is **resolution** — a call is followed only through a declared
+Nodes carry `precision` when a specific loss is known — `interface-dispatch`, `overloads` or
+`name-matched`. Every language is parsed with tree-sitter, so the declarations are exact; what is
+partial everywhere is **resolution** — a call is followed only through a declared
 type, and anything else is dropped rather than guessed, so their edges are a lower bound.
 `context.py` prints the caveat on the node itself, and the report opens with how many nodes it
 covers. To see what the extractor made of those files directly:

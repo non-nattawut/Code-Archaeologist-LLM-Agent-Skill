@@ -10,8 +10,7 @@
       "source": "sample_src/services/orders_go/event_service.go:9",
       "end": 11,
       "lang": "go",
-      "ext": 0,
-      "approx": true
+      "ext": 0
     },
     {
       "id": "EventService.Record",
@@ -23,8 +22,7 @@
       "source": "sample_src/services/orders_go/event_service.go:14",
       "end": 16,
       "lang": "go",
-      "ext": 0,
-      "approx": true
+      "ext": 0
     },
     {
       "id": "EventStore.Append",
@@ -36,8 +34,7 @@
       "source": "sample_src/services/orders_go/event_store.go:14",
       "end": 16,
       "lang": "go",
-      "ext": 1,
-      "approx": true
+      "ext": 1
     },
     {
       "id": "EventStore.List",
@@ -49,8 +46,7 @@
       "source": "sample_src/services/orders_go/event_store.go:9",
       "end": 11,
       "lang": "go",
-      "ext": 0,
-      "approx": true
+      "ext": 0
     },
     {
       "id": "FlatRate.price",
@@ -62,8 +58,7 @@
       "source": "sample_src/services/orders_java/PricingRule.java:14",
       "end": 16,
       "lang": "java",
-      "ext": 0,
-      "approx": true
+      "ext": 0
     },
     {
       "id": "GET /go/healthz",
@@ -81,8 +76,7 @@
           "method": "GET",
           "path": "/go/healthz"
         }
-      ],
-      "approx": true
+      ]
     },
     {
       "id": "GET /orders/:id/status",
@@ -100,6 +94,9 @@
           "method": "GET",
           "path": "/orders/:id/status"
         }
+      ],
+      "precision": [
+        "name-matched"
       ]
     },
     {
@@ -118,8 +115,7 @@
           "method": "POST",
           "path": "/cs/Invoice"
         }
-      ],
-      "approx": true
+      ]
     },
     {
       "id": "InvoiceController.Find",
@@ -137,8 +133,7 @@
           "method": "GET",
           "path": "/cs/Invoice/{id}"
         }
-      ],
-      "approx": true
+      ]
     },
     {
       "id": "InvoiceService.Find",
@@ -150,8 +145,7 @@
       "source": "sample_src/services/orders_cs/InvoiceService.cs:21",
       "end": 24,
       "lang": "csharp",
-      "ext": 0,
-      "approx": true
+      "ext": 0
     },
     {
       "id": "InvoiceService.Issue",
@@ -164,7 +158,9 @@
       "end": 18,
       "lang": "csharp",
       "ext": 0,
-      "approx": true
+      "precision": [
+        "overloads"
+      ]
     },
     {
       "id": "InvoiceService.Total",
@@ -177,7 +173,6 @@
       "end": 38,
       "lang": "csharp",
       "ext": 0,
-      "approx": true,
       "signatures": [
         "Total(request)",
         "Total(unitPrice, units)"
@@ -193,8 +188,7 @@
       "source": "sample_src/services/orders_cs/InvoiceStore.cs:19",
       "end": 22,
       "lang": "csharp",
-      "ext": 1,
-      "approx": true
+      "ext": 1
     },
     {
       "id": "InvoiceStore.Put",
@@ -206,8 +200,7 @@
       "source": "sample_src/services/orders_cs/InvoiceStore.cs:11",
       "end": 16,
       "lang": "csharp",
-      "ext": 0,
-      "approx": true
+      "ext": 0
     },
     {
       "id": "NewRouter",
@@ -219,8 +212,7 @@
       "source": "sample_src/services/orders_go/router.go:10",
       "end": 20,
       "lang": "go",
-      "ext": 3,
-      "approx": true
+      "ext": 3
     },
     {
       "id": "OrderApiController.create",
@@ -238,8 +230,7 @@
           "method": "POST",
           "path": "/java/orders"
         }
-      ],
-      "approx": true
+      ]
     },
     {
       "id": "OrderApiController.findOne",
@@ -257,8 +248,7 @@
           "method": "GET",
           "path": "/java/orders/{id}"
         }
-      ],
-      "approx": true
+      ]
     },
     {
       "id": "OrderArchive.get",
@@ -270,8 +260,7 @@
       "source": "sample_src/services/orders_java/OrderArchive.java:20",
       "end": 22,
       "lang": "java",
-      "ext": 1,
-      "approx": true
+      "ext": 1
     },
     {
       "id": "OrderArchive.save",
@@ -283,8 +272,7 @@
       "source": "sample_src/services/orders_java/OrderArchive.java:13",
       "end": 17,
       "lang": "java",
-      "ext": 3,
-      "approx": true
+      "ext": 3
     },
     {
       "id": "OrderCard",
@@ -296,7 +284,10 @@
       "source": "sample_src/frontend/OrderCard.tsx:11",
       "end": 27,
       "lang": "js",
-      "ext": 3
+      "ext": 3,
+      "precision": [
+        "name-matched"
+      ]
     },
     {
       "id": "OrderController.__init__",
@@ -428,8 +419,7 @@
       "source": "sample_src/services/orders_java/OrderWorkflow.java:25",
       "end": 27,
       "lang": "java",
-      "ext": 0,
-      "approx": true
+      "ext": 0
     },
     {
       "id": "OrderWorkflow.place",
@@ -442,7 +432,9 @@
       "end": 22,
       "lang": "java",
       "ext": 0,
-      "approx": true
+      "precision": [
+        "interface-dispatch"
+      ]
     },
     {
       "id": "OrdersController.create",
@@ -460,6 +452,9 @@
           "method": "POST",
           "path": "/nest/orders"
         }
+      ],
+      "precision": [
+        "name-matched"
       ]
     },
     {
@@ -478,6 +473,9 @@
           "method": "GET",
           "path": "/nest/orders/:id"
         }
+      ],
+      "precision": [
+        "name-matched"
       ]
     },
     {
@@ -503,7 +501,6 @@
       "end": 7,
       "lang": "java",
       "ext": 0,
-      "approx": true,
       "declaration": true
     },
     {
@@ -516,7 +513,10 @@
       "source": "sample_src/frontend/OrderCard.tsx:6",
       "end": 8,
       "lang": "js",
-      "ext": 0
+      "ext": 0,
+      "precision": [
+        "name-matched"
+      ]
     },
     {
       "id": "TieredRate.price",
@@ -528,8 +528,7 @@
       "source": "sample_src/services/orders_java/PricingRule.java:23",
       "end": 25,
       "lang": "java",
-      "ext": 1,
-      "approx": true
+      "ext": 1
     },
     {
       "id": "createInvoice",
@@ -547,6 +546,9 @@
           "method": "POST",
           "url": "/invoices"
         }
+      ],
+      "precision": [
+        "name-matched"
       ]
     },
     {
@@ -565,6 +567,9 @@
           "method": "POST",
           "url": "/orders"
         }
+      ],
+      "precision": [
+        "name-matched"
       ]
     },
     {
@@ -583,6 +588,9 @@
           "method": "POST",
           "path": "/api/orders"
         }
+      ],
+      "precision": [
+        "name-matched"
       ]
     },
     {
@@ -601,6 +609,9 @@
           "method": "GET",
           "url": "/orders/:orderId"
         }
+      ],
+      "precision": [
+        "name-matched"
       ]
     },
     {
@@ -619,6 +630,9 @@
           "method": "GET",
           "url": "/go/orders/:orderId/events"
         }
+      ],
+      "precision": [
+        "name-matched"
       ]
     },
     {
@@ -637,6 +651,9 @@
           "method": "GET",
           "url": "/api/orders/:orderId/status"
         }
+      ],
+      "precision": [
+        "name-matched"
       ]
     },
     {
@@ -655,8 +672,7 @@
           "method": "GET",
           "path": "/go/orders/{id}/events"
         }
-      ],
-      "approx": true
+      ]
     },
     {
       "id": "loadOrder",
@@ -668,7 +684,10 @@
       "source": "sample_src/frontend/order_page.ts:8",
       "end": 13,
       "lang": "js",
-      "ext": 2
+      "ext": 2,
+      "precision": [
+        "name-matched"
+      ]
     },
     {
       "id": "loadOrderHistory",
@@ -680,7 +699,10 @@
       "source": "sample_src/frontend/order_page.ts:16",
       "end": 18,
       "lang": "js",
-      "ext": 0
+      "ext": 0,
+      "precision": [
+        "name-matched"
+      ]
     },
     {
       "id": "order_detail",
@@ -738,8 +760,7 @@
           "method": "POST",
           "path": "/go/orders/{id}/events"
         }
-      ],
-      "approx": true
+      ]
     },
     {
       "id": "saveOrder",
@@ -751,7 +772,10 @@
       "source": "sample_src/api_express/order_router.js:17",
       "end": 19,
       "lang": "js",
-      "ext": 0
+      "ext": 0,
+      "precision": [
+        "name-matched"
+      ]
     },
     {
       "id": "submitOrder",
@@ -763,7 +787,10 @@
       "source": "sample_src/frontend/order_page.ts:4",
       "end": 6,
       "lang": "js",
-      "ext": 0
+      "ext": 0,
+      "precision": [
+        "name-matched"
+      ]
     },
     {
       "id": "test_place_order_charges_and_saves",

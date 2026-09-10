@@ -618,7 +618,7 @@ def extract_file(path: str) -> dict | None:
     root = parser.parse(src).root_node
     classes, functions = _containers(root, src, lang)
     routes = _go_routes(root, src) if lang == "go" else []
-    return {"file": path, "lang": lang, "approx": True,
+    return {"file": path, "lang": lang,
             "imports": _imports(root, src, lang),
             "classes": classes, "functions": functions, "routes": routes}
 

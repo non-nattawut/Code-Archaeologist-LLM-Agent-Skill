@@ -5,6 +5,7 @@ layer: ui
 class: 
 source: sample_src/frontend/order_page.ts:16
 lang: js
+precision: name-matched
 desc_source: docstring
 ---
 # loadOrderHistory

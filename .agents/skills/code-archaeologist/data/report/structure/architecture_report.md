@@ -1,6 +1,6 @@
 # Architecture report — graph.json
 
-Generated 2026-09-10 11:19 UTC · 25 nodes · 22 edges
+Generated 2026-09-10 11:58 UTC · 25 nodes · 22 edges
 
 ## Health: **D** (69/100)
 
@@ -11,7 +11,7 @@ Generated 2026-09-10 11:19 UTC · 25 nodes · 22 edges
 
 Dead-code ratio 12.0% · cycles 0 · layer violations 0 · security findings 4
 
-> **12 of 25 nodes are approximate.** Java, Go and C# resolve calls only through declared types, so this grade rests in part on edges that were inferred from declared types. Unresolvable calls (interface dispatch, overloads, lambdas) were dropped, not guessed — so the real coupling is at least this much.
+> **This grade rests on a lower bound.** Call edges are a lower bound in every language: a call is only drawn when the receiver's type can be read from the source, and anything else is dropped rather than guessed. The real coupling is at least this much, never less.
 
 ## Census
 

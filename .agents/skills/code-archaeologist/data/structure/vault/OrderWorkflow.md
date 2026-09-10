@@ -4,7 +4,6 @@ layer: service
 source: sample_src/services/orders_java/OrderWorkflow.java
 kind: class
 lang: java
-approx: true
 ---
 # OrderWorkflow
 

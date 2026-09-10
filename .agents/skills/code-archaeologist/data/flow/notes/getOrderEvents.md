@@ -5,6 +5,7 @@ layer: client
 class: 
 source: sample_src/frontend/api_client.ts:36
 lang: js
+precision: name-matched
 desc_source: docstring
 ---
 # getOrderEvents

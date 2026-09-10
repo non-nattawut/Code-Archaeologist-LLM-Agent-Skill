@@ -16,10 +16,17 @@ reviews them, and renders one browsable page:
 
 Three producers feed both maps -- Python (`py_extract.py`), JS/TS (`js_ts_extract.py`) and
 Java/Go/C# (`ts_extract.py`) -- and since phase 2 all three are **tree-sitter**. There is one
-parser in the build. Nodes from the third tier carry
-`approx: true` everywhere they surface: graph, vault front-matter, `context.py`, the report's
-health section, `brief.py`, and an `approx` chip in the explorer. Adding a tier means adding an
-`extract_*_entities` in `build_wiki.py` and an `_analyze_*` in `build_flow.py`, nothing else.
+parser in the build.
+
+**Precision is stated once, globally, and named per node where it can be.** Every language's call
+edges are a lower bound -- a call is drawn only when the receiver's type can be read from the
+source -- and that caveat lives in `taxonomy.PRECISION_CAVEAT`, printed by `brief` and the report
+header. What a node carries is `precision`: a list of *named* losses
+(`interface-dispatch`, `overloads`, `name-matched`), computed by `taxonomy.precision_of()` from
+what the node calls, never from its language alone. It replaced a per-node `approx: true` on
+Java/Go/C#, which was honest while those three were read textually and became arbitrary once every
+language moved to tree-sitter. Adding a producer means adding an `extract_*_entities` in
+`build_wiki.py` and an `_analyze_*` in `build_flow.py`, nothing else.
 
 An agent answers architecture questions by **querying the graph, then reading only the notes on the
 returned path** — never by scanning source.
@@ -280,14 +287,19 @@ python .agents/skills/code-archaeologist/scripts/archaeologist.py report --src .
 
 Expected on the current sample (it carries three deliberate smells -- a hardcoded key, interpolated
 SQL, an innerHTML sink -- plus a pytest/unittest file, a `.test.ts`, a `.tsx` with two React
-components, four API frameworks, and three languages from the approximate tier with two deliberate
-hard cases, so the review path, the test path, the component path, every route shape and the
+components, four API frameworks, and Java/Go/C# with two deliberate hard cases, so the review path, the test path, the component path, every route shape and the
 "drop rather than guess" rule all have something to find):
 
-- structure graph: **25 nodes / 22 edges** -- 7 Python, 6 JS/TS, 12 approximate (6 Java, 3 Go,
-  3 C#), of which `OrderCard` and `StatusBadge` are `kind: component` / `layer: ui`
-- flow graph: **52 nodes / 32 edges, 16 endpoints, 0 pending** descriptions; 24 nodes `approx`,
-  one of them `declaration: true` (`PricingRule.price`)
+- structure graph: **25 nodes / 22 edges** -- 7 Python, 6 JS/TS, 12 from Java/Go/C# (6 Java,
+  3 Go, 3 C#), of which `OrderCard` and `StatusBadge` are `kind: component` / `layer: ui`.
+  Structure nodes carry **no** `precision`: their edges are references, and a reference from a
+  declared field is resolved
+- flow graph: **52 nodes / 32 edges, 16 endpoints, 0 pending** descriptions; one node
+  `declaration: true` (`PricingRule.price`); **17 nodes carry `precision`** -- 15 `name-matched`
+  (every JS/TS node), plus exactly one each of the two that are earned by an edge:
+  `OrderWorkflow.place` -> `interface-dispatch` (it calls the declaration) and
+  `InvoiceService.Issue` -> `overloads` (it calls the folded `InvoiceService.Total`). If either of
+  those two moves, a named marker has stopped working
 - routes, one per framework shape: FastAPI `OrderController.create_order`; Flask `orders` with
   **two** entries (`GET` + `POST /legacy/orders`) and `order_detail` (`<int:order_id>`); Express
   `createOrderHandler` (named handler) and the endpoint node `GET /orders/:id/status` (inline
@@ -296,7 +308,7 @@ hard cases, so the review path, the test path, the component path, every route s
   `InvoiceController.{Create,Find}` under `[Route("cs/[controller]")]` -> `/cs/Invoice`; Go
   `handleOrderEvents` / `recordOrderEvent` (named) and `GET /go/healthz` (inline literal)
 - traces: `create_order -> place_order -> {save, charge}`, `get_order -> find_order -> get`, the
-  Flask handler `orders -> place_order -> save`, and one per approximate language --
+  Flask handler `orders -> place_order -> save`, and one per Java/Go/C# language --
   `OrderApiController.create -> OrderWorkflow.place -> OrderArchive.save`,
   `InvoiceController.Create -> InvoiceService.Issue -> InvoiceStore.Put`,
   `handleOrderEvents -> EventService.Events -> EventStore.List`
@@ -306,7 +318,7 @@ hard cases, so the review path, the test path, the component path, every route s
 - `getOrderStatus -> GET /orders/:id/status` is the **suffix fallback**: the call is
   `/api/orders/:id/status`, the router registers `/orders/:id/status`, and it links because
   exactly one route matches
-- the two deliberate approximate-tier hard cases, **one of which is now resolved**:
+- the two deliberate hard cases, **one of which is now resolved**:
   - **interface dispatch — resolved to the declaration.** `OrderWorkflow.place` calls
     `pricing.price()` through the `PricingRule` interface, and the edge
     `OrderWorkflow.place -> PricingRule.price` now exists, because a declaration-only member is

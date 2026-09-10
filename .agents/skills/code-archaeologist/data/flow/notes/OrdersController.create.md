@@ -5,6 +5,7 @@ layer: controller
 class: OrdersController
 source: sample_src/api_nest/orders.controller.ts:10
 lang: js
+precision: name-matched
 desc_source: docstring
 ---
 # OrdersController.create

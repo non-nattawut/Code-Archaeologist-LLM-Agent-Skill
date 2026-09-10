@@ -5,6 +5,7 @@ layer: ui
 class: 
 source: sample_src/frontend/order_page.ts:4
 lang: js
+precision: name-matched
 desc_source: ai
 ---
 # submitOrder

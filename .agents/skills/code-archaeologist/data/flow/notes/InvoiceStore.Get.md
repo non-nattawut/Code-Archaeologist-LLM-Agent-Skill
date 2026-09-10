@@ -5,7 +5,6 @@ layer: repository
 class: InvoiceStore
 source: sample_src/services/orders_cs/InvoiceStore.cs:19
 lang: csharp
-approx: true
 desc_source: docstring
 ---
 # InvoiceStore.Get

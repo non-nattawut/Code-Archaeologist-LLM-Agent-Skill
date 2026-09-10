@@ -14,8 +14,7 @@
       "kind": "class",
       "lang": "go",
       "source": "sample_src/services/orders_go/event_service.go",
-      "doc": "EventService reports what has happened to an order.",
-      "approx": true
+      "doc": "EventService reports what has happened to an order."
     },
     {
       "id": "EventStore",
@@ -23,8 +22,7 @@
       "kind": "class",
       "lang": "go",
       "source": "sample_src/services/orders_go/event_store.go",
-      "doc": "EventStore is the in-memory event log. Stands in for a real database.",
-      "approx": true
+      "doc": "EventStore is the in-memory event log. Stands in for a real database."
     },
     {
       "id": "FlatRate",
@@ -32,8 +30,7 @@
       "kind": "class",
       "lang": "java",
       "source": "sample_src/services/orders_java/PricingRule.java",
-      "doc": "Everything costs the same.",
-      "approx": true
+      "doc": "Everything costs the same."
     },
     {
       "id": "InvoiceController",
@@ -41,8 +38,7 @@
       "kind": "class",
       "lang": "csharp",
       "source": "sample_src/services/orders_cs/InvoiceController.cs",
-      "doc": "HTTP entry point for invoices.",
-      "approx": true
+      "doc": "HTTP entry point for invoices."
     },
     {
       "id": "InvoiceService",
@@ -50,8 +46,7 @@
       "kind": "class",
       "lang": "csharp",
       "source": "sample_src/services/orders_cs/InvoiceService.cs",
-      "doc": "Invoice rules: work out the total, then store it.",
-      "approx": true
+      "doc": "Invoice rules: work out the total, then store it."
     },
     {
       "id": "InvoiceStore",
@@ -59,8 +54,7 @@
       "kind": "class",
       "lang": "csharp",
       "source": "sample_src/services/orders_cs/InvoiceStore.cs",
-      "doc": "Where invoices are kept. Stands in for a database.",
-      "approx": true
+      "doc": "Where invoices are kept. Stands in for a database."
     },
     {
       "id": "OrderApiController",
@@ -68,8 +62,7 @@
       "kind": "class",
       "lang": "java",
       "source": "sample_src/services/orders_java/OrderApiController.java",
-      "doc": "HTTP entry point for the Java side of the order domain.",
-      "approx": true
+      "doc": "HTTP entry point for the Java side of the order domain."
     },
     {
       "id": "OrderArchive",
@@ -77,8 +70,7 @@
       "kind": "class",
       "lang": "java",
       "source": "sample_src/services/orders_java/OrderArchive.java",
-      "doc": "Where Java orders are kept. Stands in for a JPA repository.",
-      "approx": true
+      "doc": "Where Java orders are kept. Stands in for a JPA repository."
     },
     {
       "id": "OrderCard",
@@ -150,8 +142,7 @@
       "kind": "class",
       "lang": "java",
       "source": "sample_src/services/orders_java/OrderWorkflow.java",
-      "doc": "Application service: price an order, then archive it.",
-      "approx": true
+      "doc": "Application service: price an order, then archive it."
     },
     {
       "id": "OrdersController",
@@ -175,8 +166,7 @@
       "kind": "class",
       "lang": "java",
       "source": "sample_src/services/orders_java/PricingRule.java",
-      "doc": "How an order's total is calculated.",
-      "approx": true
+      "doc": "How an order's total is calculated."
     },
     {
       "id": "RouterModule",
@@ -184,8 +174,7 @@
       "kind": "module",
       "lang": "go",
       "source": "sample_src/services/orders_go/router.go",
-      "doc": "_No docstring provided._",
-      "approx": true
+      "doc": "_No docstring provided._"
     },
     {
       "id": "StatusBadge",
@@ -209,8 +198,7 @@
       "kind": "class",
       "lang": "java",
       "source": "sample_src/services/orders_java/PricingRule.java",
-      "doc": "Bulk orders get a discount.",
-      "approx": true
+      "doc": "Bulk orders get a discount."
     }
   ],
   "edges": [

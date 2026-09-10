@@ -4,7 +4,6 @@ layer: client
 source: sample_src/backend/payment_client.py
 kind: class
 lang: py
-approx: false
 ---
 # PaymentClient
 

@@ -5,7 +5,6 @@ layer: unknown
 class: PricingRule
 source: sample_src/services/orders_java/PricingRule.java:7
 lang: java
-approx: true
 declaration: true
 desc_source: docstring
 ---

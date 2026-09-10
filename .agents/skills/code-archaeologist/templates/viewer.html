@@ -415,6 +415,15 @@ const SEV_CLASS = { high: "high", medium: "med", low: "low" };
 // Kept out of FOLDER_COLORS so a normal folder can never be handed the same green.
 const TEST_COLOR = "#57ab5a";
 
+// Why a node's edges are known to be incomplete. Mirrors taxonomy.PRECISION_NOTES
+// -- the explorer must not invent its own wording for a field the graph defines.
+// The general caveat (every language's edges are a lower bound) is stated once in
+// the header, not per node, because it is true of every node.
+const PRECISION_NOTES = {
+  "interface-dispatch": "Calls through an interface stop at its declaration - which implementation runs is not knowable from the source.",
+  "overloads": "An overload set is folded into one node, so which signature is called is ambiguous.",
+  "name-matched": "JS/TS calls are matched by name, so calls through an object were dropped.",
+};
 const LAYER_COLORS = {
   controller: "#f778ba", endpoint: "#f778ba", service: "#6ea8fe", repository: "#3fb950",
   model: "#e3b341", client: "#39c5cf", config: "#a371f7", ui: "#f0883e", test: TEST_COLOR,
@@ -1152,7 +1161,7 @@ function renderFile(node) {
       ${node.layer ? `<span class="chip">${esc(node.layer)}</span>` : ""}
       ${node.cls ? `<span class="chip">${esc(node.cls)}</span>` : ""}
       ${node.lang ? `<span class="chip">${esc(node.lang)}</span>` : ""}
-      ${node.approx ? `<span class="chip" title="Java/Go/C# are parsed with tree-sitter, but calls are resolved only through declared types. Interface dispatch, overloads and lambda handlers are dropped rather than guessed, so this node's edges are a lower bound.">approx</span>` : ""}
+      ${(node.precision || []).map(r => `<span class="chip" title="${PRECISION_NOTES[r] || r}">${r}</span>`).join("")}
     </div>`);
   if (node.doc) parts.push(`<p class="doc">${renderDoc(node.doc)}</p>`);
   if (node.signature) parts.push(`<p class="doc mono" style="color:var(--muted)">${esc(node.signature)}</p>`);

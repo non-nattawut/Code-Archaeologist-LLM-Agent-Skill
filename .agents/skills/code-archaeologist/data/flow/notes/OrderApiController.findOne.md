@@ -5,7 +5,6 @@ layer: controller
 class: OrderApiController
 source: sample_src/services/orders_java/OrderApiController.java:22
 lang: java
-approx: true
 desc_source: docstring
 ---
 # OrderApiController.findOne

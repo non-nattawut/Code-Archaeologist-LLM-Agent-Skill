@@ -30,6 +30,7 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from paths import DATA_DIR, SKILL_ROOT  # noqa: E402  (also puts sibling script dirs on sys.path)
+from taxonomy import PRECISION_CAVEAT, PRECISION_NOTES  # noqa: E402  (one definition of the precision vocabulary)
 DEFAULT_GRAPH = os.path.join(DATA_DIR, "flow", "flow_graph.json")
 DEFAULT_OUT_DIR = os.path.join(DATA_DIR, "report")
 
@@ -87,7 +88,7 @@ def census(graph: dict) -> dict:
         "routes": sorted(routes, key=lambda r: (r["path"], r["method"])),
         # Java/Go/C# resolve calls only through declared types, so a grade computed
         # over them rests on edges that are a lower bound. Counted so readers are told.
-        "approx_nodes": sum(1 for n in nodes if n.get("approx")),
+        "imprecise_nodes": sum(1 for n in nodes if n.get("precision")),
     }
 
 
@@ -130,12 +131,13 @@ def to_markdown(data: dict) -> str:
         f"security findings {security['summary']['total']}",
         "",
     ]
-    if stats.get("approx_nodes"):
+    lines += [f"> **This grade rests on a lower bound.** {PRECISION_CAVEAT} The real coupling is "
+              f"at least this much, never less.", ""]
+    if stats.get("imprecise_nodes"):
         lines += [
-            f"> **{stats['approx_nodes']} of {stats['nodes']} nodes are approximate.** Java, Go and "
-            f"C# resolve calls only through declared types, so this grade rests in part on edges that "
-            f"were inferred from declared types. Unresolvable calls (interface dispatch, overloads, "
-            f"lambdas) were dropped, not guessed — so the real coupling is at least this much.",
+            f"> **{stats['imprecise_nodes']} of {stats['nodes']} nodes lose precision in a way that "
+            f"can be named** — see each node's `precision` field: "
+            + "; ".join(f"`{k}` ({v})" for k, v in PRECISION_NOTES.items()) + ".",
             "",
         ]
     lines += [

@@ -5,7 +5,6 @@ layer: repository
 class: OrderArchive
 source: sample_src/services/orders_java/OrderArchive.java:13
 lang: java
-approx: true
 desc_source: docstring
 ---
 # OrderArchive.save

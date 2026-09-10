@@ -59,7 +59,7 @@ def _map_summary(name: str) -> dict:
     return {
         "nodes": len(graph.get("nodes", [])),
         "edges": len(graph.get("edges", [])),
-        "approx": sum(1 for n in graph.get("nodes", []) if n.get("approx")),
+        "imprecise": sum(1 for n in graph.get("nodes", []) if n.get("precision")),
         "grade": health.get("grade"),
         "score": health.get("score"),
         "reported": rep.get("generated"),
@@ -96,7 +96,7 @@ def collect(src=None, focus: str = "flow", top: int = 5) -> dict:
 
     roots = src or size.get("roots")
     digest = {
-        "maps": {k: {x: v[x] for x in ("nodes", "edges", "approx", "grade", "score", "reported")} for k, v in maps.items()},
+        "maps": {k: {x: v[x] for x in ("nodes", "edges", "imprecise", "grade", "score", "reported")} for k, v in maps.items()},
         "focus": focus,
         "freshness": _freshness(roots),
         # A language present in the source but missing its grammar contributes
@@ -124,8 +124,8 @@ def to_text(d: dict) -> str:
     out.append("MAPS")
     for name, m in d["maps"].items():
         grade = f"grade {m['grade']} ({m['score']}/100)" if m.get("grade") else "no report yet"
-        approx = f"  ({m['approx']} approximate)" if m.get("approx") else ""
-        out.append(f"  {name:<10} {m['nodes']:>4} node(s) {m['edges']:>4} edge(s)  {grade}{approx}")
+        loss = f"  ({m['imprecise']} with a named precision loss)" if m.get("imprecise") else ""
+        out.append(f"  {name:<10} {m['nodes']:>4} node(s) {m['edges']:>4} edge(s)  {grade}{loss}")
     fresh = d["freshness"]
     if fresh:
         state = "STALE" if fresh.get("stale") else "up to date"
@@ -138,11 +138,16 @@ def to_text(d: dict) -> str:
         out.append(f"  freshness  {state}" + (f" ({detail})" if detail and fresh.get("stale") else ""))
     if not any(m.get("grade") for m in d["maps"].values()):
         out.append("  (run `archaeologist.py report --src <roots>` for grades, risks and hotspots)")
-    if any(m.get("approx") for m in d["maps"].values()):
-        out.append("  approximate = Java/Go/C#. Parsed exactly, but receivers resolve only")
-        out.append("               through declared types, so interface dispatch, overloads and")
-        out.append("               lambda handlers drop rather than guess: coupling is a lower")
-        out.append("               bound. Say so when you answer from those files.")
+    # Stated on every brief, not only when some language looks suspect: it is true
+    # of every language, and printing it conditionally is what made three of them
+    # look uniquely unreliable.
+    out.append("  edges      a LOWER BOUND in every language. A call is drawn only when the")
+    out.append("             receiver's type can be read from the source; anything else is")
+    out.append("             dropped rather than guessed. Say so when you answer from them.")
+    if any(m.get("imprecise") for m in d["maps"].values()):
+        out.append("             Nodes with a NAMED loss carry `precision`: interface-dispatch")
+        out.append("             (stops at an interface), overloads (signatures folded into one")
+        out.append("             node), name-matched (JS/TS calls through an object dropped).")
     if d.get("skipped_langs"):
         langs = ", ".join(d["skipped_langs"])
         out.append(f"  SKIPPED    {langs}: no tree-sitter grammar installed, so these files")

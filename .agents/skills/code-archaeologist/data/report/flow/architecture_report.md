@@ -1,6 +1,6 @@
 # Architecture report — flow_graph.json
 
-Generated 2026-09-10 11:19 UTC · 52 nodes · 32 edges
+Generated 2026-09-10 11:58 UTC · 52 nodes · 32 edges
 
 ## Health: **D** (68/100)
 
@@ -11,7 +11,9 @@ Generated 2026-09-10 11:19 UTC · 52 nodes · 32 edges
 
 Dead-code ratio 13.5% · cycles 0 · layer violations 0 · security findings 4
 
-> **24 of 52 nodes are approximate.** Java, Go and C# resolve calls only through declared types, so this grade rests in part on edges that were inferred from declared types. Unresolvable calls (interface dispatch, overloads, lambdas) were dropped, not guessed — so the real coupling is at least this much.
+> **This grade rests on a lower bound.** Call edges are a lower bound in every language: a call is only drawn when the receiver's type can be read from the source, and anything else is dropped rather than guessed. The real coupling is at least this much, never less.
+
+> **17 of 52 nodes lose precision in a way that can be named** — see each node's `precision` field: `interface-dispatch` (calls through an interface stop at its declaration -- which implementation runs is not knowable from the source); `overloads` (an overload set is folded into one node, so which signature is called is ambiguous); `name-matched` (JS/TS calls are matched by name, so calls through an object were dropped).
 
 ## Census
 

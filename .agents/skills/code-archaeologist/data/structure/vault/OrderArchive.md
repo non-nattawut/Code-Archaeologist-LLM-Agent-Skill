@@ -4,7 +4,6 @@ layer: repository
 source: sample_src/services/orders_java/OrderArchive.java
 kind: class
 lang: java
-approx: true
 ---
 # OrderArchive
 

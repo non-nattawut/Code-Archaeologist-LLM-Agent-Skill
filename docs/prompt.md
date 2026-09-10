@@ -2363,3 +2363,60 @@ are exact.
 No code changed — the measurement and the corrected recommendation are recorded in
 *Found while implementing* #2, so neither gets re-derived. Waiting on the call before touching the
 24 nodes.
+
+## [62] 2026-09-10 — 2d, built as (c) plus two named markers
+
+**Prompt**
+> ok use option c plus the two named markers
+
+**Response**
+Done. `approx` is gone from both maps; the lower-bound caveat is stated once for every language,
+and nodes carry `precision` — a list of losses that can be *named*.
+
+**The vocabulary lives in `taxonomy.py`**, which owns field values: `PRECISION_CAVEAT` (the global
+sentence), `PRECISION_REASONS` (the closed set, whose order makes the field deterministic),
+`PRECISION_NOTES` (one sentence each), and `precision_of(node, targets)`. Two of the three reasons
+are computed from **what a node calls**, not from its language, so `precision` is filled in after
+the edges exist rather than at extraction:
+
+- `interface-dispatch` — an outgoing edge lands on a `declaration: true` node
+- `overloads` — an outgoing edge lands on a node whose `signatures` has more than one entry
+- `name-matched` — the node's lang is js/ts/jsx/tsx, whose extractor matches names rather than
+  resolving receivers
+
+**On the sample: 17 of 52 nodes, and the right 17.** 15 `name-matched` — every JS/TS node, which
+previously carried **no warning at all** — plus exactly one each of the two earned by an edge:
+`OrderWorkflow.place` → `interface-dispatch`, `InvoiceService.Issue` → `overloads`. The two nodes
+the sample exists to demonstrate are now named individually instead of being 2 of 24 identical
+flags. The count of warned nodes fell from 24 to 17 while the information in each rose.
+
+`context.py` shows the difference best. It used to print a generic paragraph on 24 nodes; it now
+prints, on this node only:
+
+> **interface-dispatch** -- calls through an interface stop at its declaration -- which
+> implementation runs is not knowable from the source.
+
+**Structure nodes carry no `precision`** and lost `approx` outright: their edges are *references*,
+and a reference from a declared field is resolved. The global caveat still covers them.
+
+All six surfaces moved together, as CLAUDE.md requires: the graph, the vault front-matter
+(`{{approx}}` removed from `wiki_page_template.md`), the flow note front-matter, `context.py`,
+`report.py`, `brief.py`, and the explorer chip — which now renders one chip per reason with the
+matching tooltip from a `PRECISION_NOTES` table mirroring taxonomy's, rather than inventing its own
+wording. `brief`'s caveat is now printed **unconditionally**; printing it only when some language
+looked suspect is what made three of them look uniquely unreliable.
+
+**Checked that it is not vacuous**, directly: `precision_of` returns `['interface-dispatch']` for a
+declaration target, `['overloads']` for a folded target, `['name-matched']` for a ts node, `[]` for
+a clean java node, and all three in declared order when all three apply.
+
+**Verified:** 25/22 and 52/32 with 0 pending; D(69)/D(68) unchanged; `check_docs`, `check_langs`
+(6 languages) and `check_py_oracle` (0 disagreements) all green; `check` → stale: false; installer
+self-test OK; `viewer.html`'s inline script re-parsed as a **classic** script after editing.
+
+Docs in the same commit: `TAXONOMY.md` gains a *Precision* section with the derivation table,
+`CLAUDE.md` (including the expected-numbers block, which now pins the two named markers by node id
+so a regression in either is visible), `SKILL.md` operating principle 8, `README.md`,
+`docs/USAGE.md`, `docs/PRESENTATION.html`. The plan's finding #2 is marked resolved.
+
+**Phase 2 is complete.** What remains of the roadmap is phases 3 and 4, both verification.

@@ -5,7 +5,6 @@ layer: controller
 class: InvoiceController
 source: sample_src/services/orders_cs/InvoiceController.cs:17
 lang: csharp
-approx: true
 desc_source: docstring
 ---
 # InvoiceController.Create

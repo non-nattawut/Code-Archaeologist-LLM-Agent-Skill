@@ -5,7 +5,6 @@ layer: unknown
 class: TieredRate
 source: sample_src/services/orders_java/PricingRule.java:23
 lang: java
-approx: true
 desc_source: docstring
 ---
 # TieredRate.price

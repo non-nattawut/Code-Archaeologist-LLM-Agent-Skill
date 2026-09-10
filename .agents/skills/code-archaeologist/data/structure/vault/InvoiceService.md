@@ -4,7 +4,6 @@ layer: service
 source: sample_src/services/orders_cs/InvoiceService.cs
 kind: class
 lang: csharp
-approx: true
 ---
 # InvoiceService
 

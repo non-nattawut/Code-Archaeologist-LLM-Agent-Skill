@@ -5,7 +5,6 @@ layer: repository
 class: EventStore
 source: sample_src/services/orders_go/event_store.go:14
 lang: go
-approx: true
 desc_source: docstring
 ---
 # EventStore.Append

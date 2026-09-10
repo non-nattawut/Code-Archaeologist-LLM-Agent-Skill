@@ -75,7 +75,7 @@ def extract_entities(roots: list[str]) -> list[dict]:
 
     Ordering is the collision rule: if two producers want the same name, the
     earlier one keeps it (see `build`). Python and JS/TS come from real parsers,
-    so they win over the approximate Java/Go/C# tier. Within that, the order is
+    so they win over the Java/Go/C# extractor. Within that, the order is
     arbitrary but fixed, which is what constraint 2 actually needs.
     """
     return extract_py_entities(roots) + extract_js_entities(roots) + extract_lang_entities(roots)
@@ -325,7 +325,7 @@ def extract_js_entities(roots: list[str]) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Extraction: Java / Go / C# (approximate tier)
+# Extraction: Java / Go / C#
 # ---------------------------------------------------------------------------
 def extract_lang_entities(roots: list[str]) -> list[dict]:
     """Java/C# classes, Go structs, and Go module function-groups.
@@ -348,7 +348,7 @@ def extract_lang_entities(roots: list[str]) -> list[dict]:
                     refs.update(c["type"] for c in m.get("calls", []) if c["type"] not in ("", "?"))
                 entities.append({
                     "name": cls["name"], "kind": "class", "source": rel,
-                    "lang": res["lang"], "approx": True,
+                    "lang": res["lang"],
                     "bases": cls.get("bases", []), "decorators": cls.get("decorators", []),
                     "doc": cls.get("doc", ""),
                     "methods": [{"name": m["name"], "doc": m.get("doc", "")}
@@ -364,7 +364,7 @@ def extract_lang_entities(roots: list[str]) -> list[dict]:
                     refs.update(c["type"] for c in fn.get("calls", []) if c["type"] not in ("", "?"))
                 entities.append({
                     "name": _module_entity_name(stem), "kind": "module", "source": rel,
-                    "lang": res["lang"], "approx": True,
+                    "lang": res["lang"],
                     "bases": [], "decorators": [], "doc": "",
                     "methods": [{"name": f["name"], "doc": f.get("doc", "")} for f in funcs],
                     "imports": sorted(refs),
@@ -424,7 +424,6 @@ def render_entity(ent: dict, known: set[str], template: str) -> str:
     out = out.replace("{{source}}", ent["source"])
     out = out.replace("{{kind}}", ent["kind"])
     out = out.replace("{{lang}}", ent.get("lang", "py"))
-    out = out.replace("{{approx}}", "true" if ent.get("approx") else "false")
     out = out.replace("{{summary}}", summary)
     out = out.replace("{{bases}}", "\n".join(bases_md) if bases_md else "_None._")
     out = out.replace("{{decorators}}", "\n".join(decorators_md) if decorators_md else "_None._")

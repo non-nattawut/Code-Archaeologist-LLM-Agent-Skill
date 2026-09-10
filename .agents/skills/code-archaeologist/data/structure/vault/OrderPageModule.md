@@ -4,7 +4,6 @@ layer: ui
 source: sample_src/frontend/order_page.ts
 kind: module
 lang: js
-approx: false
 ---
 # OrderPageModule
 

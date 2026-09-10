@@ -1,11 +1,11 @@
 # Graph as many languages as possible
 
-> ## Status: **phase 1 done; phase 2 complete except 2d, which is deliberately unapplied.** Phases 3 and 4 are verification, not features.
+> ## Status: **phase 1 and phase 2 are complete.** Phases 3 and 4 are verification, not features.
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
 > | 1 — Resolve the edges the textual extractor drops | semantics, no new dependency | **done** | `e8464f8` |
-> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **all 6 deletion steps + 2g done**; 2d needs a decision | `8974c27`, `67d4df4`, `e7bfb09`, `fd9c7d8`, `df5fb0b`, `7283cf4`, `7f40370` |
+> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **done** — 6 deletion steps, 2d and 2g | `8974c27`, `67d4df4`, `e7bfb09`, `fd9c7d8`, `df5fb0b`, `7283cf4`, `7f40370`, this commit |
 > | 3 — Full regression gate: nothing old may break | does it still run | not started | |
 > | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | not started | |
 >
@@ -61,8 +61,12 @@
 > `source` (`path:line`), so **every filename-based test convention silently failed** and only a
 > `tests/` directory could mark a node as test code.
 >
+> **2d is done**, though not as written — see *Found while implementing* #2. The `exact`/`sparse`
+> table was rejected on measurement and replaced by option (c) plus two named markers: the
+> lower-bound caveat is now stated once for every language, and `precision` names the losses that
+> can be named.
+>
 > **Not done, and not started** — none of this is blocked, it simply has not been reached:
-> **2d**, deliberately (see *Found while implementing* #2 — the port changed its answer);
 > 2b's supplementary query for TypeScript (its shipped `TAGS_QUERY` yields zero captures on real
 > implementation files) — now moot for JS/TS; 2c beyond the ported languages; **2d's `approx` -> `exact`/`sparse`
 > tier rename**, deliberately deferred so step 1 could be verified by equivalence; 2f; and **2g's
@@ -491,8 +495,8 @@ Two tiers no longer describe reality. After the port there are three kinds of no
 Two values, not three: the `textual` tier dies with `lang_extract.py` (2f). Replace the boolean
 `approx` with this field, owned by `taxonomy.py`.
 
-> **Not applied — the port changed the answer. Recorded 2026-09-10; see *Found while implementing*
-> #2 below.** This table was written before steps 3 and 5. It puts Java, Go and C# in `exact`,
+> **Not applied as written — the port changed the answer, and the replacement shipped instead.
+> Recorded 2026-09-10; see *Found while implementing* #2 below.** This table was written before steps 3 and 5. It puts Java, Go and C# in `exact`,
 > which would delete the `approx` marker from exactly the three languages whose limitations
 > `sample_src` was built to demonstrate, while `sparse` would be empty because no dynamically
 > typed language is graphed yet. Applying it as written removes an honesty marker and adds
@@ -1031,6 +1035,19 @@ globally — the fixtures proved it is true of every language, so singling out t
 and keep a per-node marker only where the specific loss can be *named*, which is the two cases
 above. That is strictly more informative than `approx: true` and it stops claiming the other
 languages are exact.
+
+#### Resolved — shipped 2026-09-10
+
+Chosen and built. `approx` is gone; `taxonomy.PRECISION_CAVEAT` states the lower bound once, and
+`taxonomy.precision_of()` computes a `precision` list per node from what it calls. On `sample_src`
+that is **17 of 52** nodes: 15 `name-matched` (every JS/TS node, which previously carried no
+warning at all), plus exactly one each of the two earned by an edge — `OrderWorkflow.place` →
+`interface-dispatch` and `InvoiceService.Issue` → `overloads`. The two nodes the sample was built
+to demonstrate are now named individually instead of being 2 of 24 identical flags, and the count
+of warned nodes fell from 24 to 17 while the information in each rose.
+
+Structure nodes carry no `precision`: their edges are references, and a reference from a declared
+field is resolved. The global caveat still applies to them.
 
 ---
 

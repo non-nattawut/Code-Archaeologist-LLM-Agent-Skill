@@ -82,16 +82,21 @@ visible.
 7. For review questions ("is this healthy?", "where is the risk?", "what to refactor first?"), run
    the report (Command 14), read the **brief** (Command 1), and open
    `data/report/<map>/architecture_report.md` only for the detail the brief points at.
-8. **Say when a node is approximate.** Java, Go and C# nodes carry `approx: true`. They are parsed
-   exactly — tree-sitter, not regex — so the declarations are trustworthy; what is approximate is
+8. **Say that edges are a lower bound, and name the loss when the node names it.** This is true
+   in *every* language: a call is drawn only when the receiver's type can be read from the source,
+   and anything else is dropped rather than guessed. Where a specific loss is known the node
+   carries `precision` — `interface-dispatch` (the call stops at an interface), `overloads`
+   (signatures folded into one node), `name-matched` (JS/TS calls through an object dropped). What
+   is trustworthy everywhere is the declarations; what is partial is
    **resolution**. A call is followed only through a *declared* type, and anything else (overloads,
    lambda handlers) is dropped rather than guessed. A call through an interface resolves to the
    interface's own node, which carries `declaration: true`: the trace stops at the declaration and
    does **not** continue into the implementations, so "what actually runs" is still unanswered
    there. So their edges are a **lower bound** — "nothing calls X" is only "nothing the extractor
    could resolve calls X". Tell the user that when you answer from one, and say it plainly if a
-   whole answer (dead code, blast radius, "who calls this") rests on approximate nodes.
-   `context.py` and the report both flag it for you; do not quietly drop the caveat.
+   whole answer (dead code, blast radius, "who calls this") rests on edges that were resolved
+   rather than declared. `context.py` and the report both carry the caveat for you, and name the
+   specific loss where a node has one; do not quietly drop it.
 
 ## Available Tool Commands
 

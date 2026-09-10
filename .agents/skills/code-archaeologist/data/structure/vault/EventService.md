@@ -4,7 +4,6 @@ layer: service
 source: sample_src/services/orders_go/event_service.go
 kind: class
 lang: go
-approx: true
 ---
 # EventService
 

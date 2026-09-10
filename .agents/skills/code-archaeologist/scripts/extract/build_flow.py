@@ -60,7 +60,7 @@ def _save_json(path: str, obj) -> None:
         json.dump(obj, fh, indent=2)
         fh.write("\n")
 
-from taxonomy import infer_layer, is_test_path, ROUTE_DECORATOR_RE  # noqa: E402
+from taxonomy import infer_layer, is_test_path, precision_of, ROUTE_DECORATOR_RE  # noqa: E402
 import py_extract as px  # noqa: E402  (Python, via tree-sitter)
 from js_ts_extract import find_js_files, extract_js_files, frontend_degraded   # noqa: E402
 from ts_extract import find_lang_files, extract_lang_files  # noqa: E402  (Java/Go/C#, via tree-sitter)
@@ -359,7 +359,7 @@ def analyze(roots: list[str]):
         if s in methods and t in methods and s != t:
             edges.add((s, t, "calls"))
 
-    # --- Java / Go / C#: the approximate tier, same graph, marked as approximate ---
+    # --- Java / Go / C#: same graph, same shape ---
     lang_methods, lang_edges = _analyze_lang(roots)
     methods.update(lang_methods)
     for s, t in lang_edges:
@@ -376,12 +376,19 @@ def analyze(roots: list[str]):
     for s, t in _api_edges(methods):
         edges.add((s, t, "http"))
 
+    # `precision` needs the edges, so it is computed here rather than at extraction:
+    # two of its three reasons are properties of what a node *calls*, not of the
+    # node itself.
     for src_id, dst_id, _type in edges:
         methods[src_id]["calls"].append(dst_id)
         methods[dst_id]["callers"].append(src_id)
     for info in methods.values():
         info["calls"] = sorted(set(info["calls"]))
         info["callers"] = sorted(set(info["callers"]))
+    for info in methods.values():
+        reasons = precision_of(info, [methods[c] for c in info["calls"] if c in methods])
+        if reasons:
+            info["precision"] = reasons
 
     return methods, sorted(edges)
 
@@ -475,7 +482,14 @@ def _analyze_js(roots: list[str]):
 
 def _lang_node(nid: str, name: str, cls, layer: str, kind: str, data: dict,
                rel: str, lang: str) -> dict:
-    """A flow node from the approximate tier. Same shape as `_js_node`, plus `approx`."""
+    """A Java/Go/C# flow node. Same shape as `_js_node`.
+
+    It used to carry `approx: True`, which was honest while these three were read
+    textually and became arbitrary once every language moved to tree-sitter --
+    Python and JS/TS resolve no more completely. The caveat is now stated once for
+    every language (`taxonomy.PRECISION_CAVEAT`) and what survives per node is
+    `precision`, a list of losses that can actually be named.
+    """
     doc = (data.get("doc") or "").strip()
     calls = data.get("calls") or []
     content = json.dumps({"n": name, "c": sorted(f'{c["type"]}.{c["name"]}' for c in calls),
@@ -488,7 +502,7 @@ def _lang_node(nid: str, name: str, cls, layer: str, kind: str, data: dict,
         "source": f'{rel}:{data.get("line", 0)}', "end": data.get("endLine", 0),
         "calls": [], "callers": [],
         "hash": _hash(content), "code": f"// {rel}\n{name}(...)", "lang": lang,
-        "routes": _dedupe_routes(data.get("routes") or []), "approx": True,
+        "routes": _dedupe_routes(data.get("routes") or []),
     }
     if data.get("declaration"):
         # A signature with no body: it exists so calls through the declared type
@@ -498,7 +512,7 @@ def _lang_node(nid: str, name: str, cls, layer: str, kind: str, data: dict,
 
 
 def _analyze_lang(roots: list[str]):
-    """Java/Go/C# nodes and call edges — the approximate tier.
+    """Java/Go/C# nodes and call edges.
 
     Two passes for the same reason the Python analyzer needs two: a call can only
     be resolved once every class and its method names are known. `ts_extract`
@@ -684,7 +698,8 @@ def write_vault(methods: dict, flow_dir: str) -> None:
         http = info.get("http") or []
         http_md = "".join(f"\n## HTTP calls\n" + "\n".join(f"- `{h['method']} {h['url']}`" for h in http) + "\n"
                           if http else "")
-        approx_md = "approx: true\n" if info.get("approx") else ""
+        prec = info.get("precision") or []
+        prec_md = f"precision: {', '.join(prec)}\n" if prec else ""
         decl_md = "declaration: true\n" if info.get("declaration") else ""
         # An overload pair shares one id, so the note lists what folded into it --
         # otherwise the single signature shown looks like the only one there is.
@@ -698,7 +713,7 @@ def write_vault(methods: dict, flow_dir: str) -> None:
             f"class: {info['cls'] or ''}\n"
             f"source: {info['source']}\n"
             f"lang: {info.get('lang', 'py')}\n"
-            f"{approx_md}"
+            f"{prec_md}"
             f"{decl_md}"
             f"desc_source: {info.get('desc_source', 'auto')}\n"
             f"---\n"
@@ -725,8 +740,10 @@ def write_graph(methods: dict, edges, graph_path: str) -> None:
             node["http"] = i["http"]
         if i.get("routes"):
             node["routes"] = i["routes"]
-        if i.get("approx"):
-            node["approx"] = True     # calls resolved only via declared types -- ts_extract.py
+        if i.get("precision"):
+            # Named precision losses. Absent means nothing *nameable* was lost --
+            # never that the edges are complete, which PRECISION_CAVEAT says.
+            node["precision"] = i["precision"]
         if i.get("declaration"):
             node["declaration"] = True   # signature only; no body to measure or run
         if i.get("signatures"):

@@ -4,7 +4,6 @@ layer: controller
 source: sample_src/services/orders_go/router.go
 kind: module
 lang: go
-approx: true
 ---
 # RouterModule
 

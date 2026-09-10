@@ -4,7 +4,6 @@ layer: controller
 source: sample_src/services/orders_cs/InvoiceController.cs
 kind: class
 lang: csharp
-approx: true
 ---
 # InvoiceController
 

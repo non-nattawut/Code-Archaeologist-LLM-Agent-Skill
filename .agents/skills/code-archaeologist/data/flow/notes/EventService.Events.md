@@ -5,7 +5,6 @@ layer: service
 class: EventService
 source: sample_src/services/orders_go/event_service.go:9
 lang: go
-approx: true
 desc_source: docstring
 ---
 # EventService.Events

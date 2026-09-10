@@ -187,12 +187,17 @@ Node is not needed at all. `ast` is kept as a test oracle — every Python file 
 in CI and any disagreement fails.
 
 Parsing is not resolution, though, and the difference is visible in the output rather than buried
-in a caveat. Java/Go/C# nodes still carry `approx: true`, and it now means one specific thing:
-**a call is resolved only through a *declared* type** — a field, a parameter, a `new Foo()`.
-Constructor injection (Spring, ASP.NET DI, a Go struct literal) resolves reliably, because these
-languages must declare their parameter types; anything needing real type inference does not. The
-report opens with how many nodes it applies to, `context.py` repeats it on the node an agent is
-reading, and the explorer marks it with an `approx` chip.
+in a caveat. **In every language, a call is drawn only when the receiver's type can be read from
+the source** — a field, a parameter, a `new Foo()`, a Python annotation. Constructor injection
+(Spring, ASP.NET DI, a Go struct literal) resolves reliably, because those languages must declare
+their parameter types; anything needing real type inference does not. So **every** call graph here
+is a lower bound, and the report says so in its opening line rather than pinning it on three
+languages.
+
+Where a loss can be *named*, the node says which: `interface-dispatch`, `overloads`, or
+`name-matched` (JS/TS resolve calls by name, so a call through an object is dropped — measured at
+0 of 3 edges in the TypeScript fixture, against 3 of 3 for the typed languages). `context.py`
+repeats the reason on the node an agent is reading, and the explorer shows it as a chip.
 
 A call through an interface **resolves to the interface**, not to its implementations. Declaring
 `PricingRule pricing` and calling `pricing.price()` gives you the edge
@@ -317,7 +322,7 @@ tools/                     check_docs.py · check_langs.py · check_py_oracle.py
 ## What's next
 
 Everything the earlier roadmap listed has shipped: frontend entities in the structure map,
-route coverage across four frameworks, an approximate graph tier for Java/Go/C#, a fully offline
+route coverage across four frameworks, a graph tier for Java/Go/C#, a fully offline
 viewer, and duplicate-code clusters. What is still open:
 
 - **Django URL-table routes.** Routes are read from decorators today, so a `urlpatterns` table is

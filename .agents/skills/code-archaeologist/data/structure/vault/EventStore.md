@@ -4,7 +4,6 @@ layer: repository
 source: sample_src/services/orders_go/event_store.go
 kind: class
 lang: go
-approx: true
 ---
 # EventStore
 

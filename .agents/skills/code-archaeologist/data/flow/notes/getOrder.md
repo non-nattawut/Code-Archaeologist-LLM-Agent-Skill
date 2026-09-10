@@ -5,6 +5,7 @@ layer: client
 class: 
 source: sample_src/frontend/api_client.ts:21
 lang: js
+precision: name-matched
 desc_source: ai
 ---
 # getOrder

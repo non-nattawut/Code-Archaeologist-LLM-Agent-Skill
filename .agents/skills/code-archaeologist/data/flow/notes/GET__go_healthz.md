@@ -5,7 +5,6 @@ layer: controller
 class: 
 source: sample_src/services/orders_go/router.go:16
 lang: go
-approx: true
 desc_source: docstring
 ---
 # GET /go/healthz

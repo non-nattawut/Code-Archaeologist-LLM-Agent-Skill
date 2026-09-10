@@ -32,6 +32,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from paths import DATA_DIR, SKILL_ROOT  # noqa: E402  (also puts sibling script dirs on sys.path)
+from taxonomy import PRECISION_NOTES  # noqa: E402  (one definition of the precision vocabulary)
 REPORT_DIR = os.path.join(DATA_DIR, "report")
 DEFAULT_GRAPH = os.path.join(DATA_DIR, "flow", "flow_graph.json")
 
@@ -116,7 +117,7 @@ def build(graph_path: str, node_ids: list[str], depth: int = 1, cap: int = NEIGH
             "kind": node.get("kind"),
             "layer": node.get("layer"),
             "lang": node.get("lang"),
-            "approx": bool(node.get("approx")),
+            "precision": node.get("precision") or [],
             "source": node.get("source"),
             "signature": node.get("signature"),
             "routes": node.get("routes"),
@@ -148,13 +149,12 @@ def to_markdown(pack: dict) -> str:
             facts.append(f"{m.get('loc')} LOC, cx {m.get('complexity')}, depth {m.get('depth')}")
         if c:
             facts.append(f"{c.get('commits')} commit(s)" + (f", {c['owner']}" if c.get("owner") else ""))
-        if n.get("approx"):
-            facts.append("approximate")
+        if n.get("precision"):
+            facts.append("+".join(n["precision"]))
         lines += [f"# {n['id']}", "", " | ".join(str(f) for f in facts), ""]
-        if n.get("approx"):
-            lines += ["> Parsed exactly, but resolved approximately: calls that could not be",
-                      "> traced through a declared type were dropped rather than guessed, so",
-                      "> the edges below are a lower bound. Say so when you answer from this node.", ""]
+        for reason in n.get("precision") or []:
+            lines += [f"> **{reason}** -- {PRECISION_NOTES.get(reason, '')}. The edges below are"
+                      " incomplete for that reason; say so when you answer from this node.", ""]
         if n.get("signature"):
             lines += [f"`{n['signature']}`", ""]
         lines += [n["doc"] or "_No description._", ""]

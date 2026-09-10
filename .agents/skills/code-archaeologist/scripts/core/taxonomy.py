@@ -129,6 +129,64 @@ def is_test_file(path: str, full_path: str | None = None) -> bool:
     """Convention first (free); only sniff the contents when a real path is given."""
     return is_test_path(path) or (bool(full_path) and has_test_markers(full_path))
 
+# --- precision -----------------------------------------------------------------
+# Every language this skill graphs resolves calls only as far as the source lets
+# it, so **every** node's outgoing edges are a lower bound. That caveat is stated
+# once, globally, by `PRECISION_CAVEAT` -- it used to be a per-node `approx: true`
+# on Java/Go/C# alone, which was true when those three were read textually and
+# became arbitrary once every language moved to tree-sitter.
+#
+# What survives per node is narrower and more useful: the cases where a specific
+# loss can be *named*. `PRECISION_REASONS` is the closed set, and each one is
+# derived from data already in the graph rather than from the language:
+#
+#   interface-dispatch  an outgoing edge stops at a `declaration: true` node, so
+#                       which implementation actually runs is not knowable here
+#   overloads           an outgoing edge lands on a node that folds several
+#                       signatures into one id, so which one is called is ambiguous
+#   name-matched        this node's language resolves calls by name only, so calls
+#                       through an object were dropped (measured: the TypeScript
+#                       fixture resolves 0 of 3 edges where the typed languages
+#                       resolve 3 of 3)
+PRECISION_REASONS = ("interface-dispatch", "overloads", "name-matched")
+
+# Languages whose extractor matches call *names* rather than resolving a receiver.
+NAME_MATCHED_LANGS = {"js", "ts", "jsx", "tsx"}
+
+PRECISION_CAVEAT = (
+    "Call edges are a lower bound in every language: a call is only drawn when the "
+    "receiver's type can be read from the source, and anything else is dropped "
+    "rather than guessed."
+)
+
+PRECISION_NOTES = {
+    "interface-dispatch": ("calls through an interface stop at its declaration -- "
+                           "which implementation runs is not knowable from the source"),
+    "overloads": ("an overload set is folded into one node, so which signature is "
+                  "called is ambiguous"),
+    "name-matched": ("JS/TS calls are matched by name, so calls through an object "
+                     "were dropped"),
+}
+
+
+def precision_of(node: dict, targets: list[dict]) -> list[str]:
+    """Named precision losses for one node, given the nodes its edges point at.
+
+    Order follows `PRECISION_REASONS` so the field is deterministic (constraint 2).
+    An empty list means nothing *nameable* was lost -- never that the edges are
+    complete, which is what `PRECISION_CAVEAT` exists to say.
+    """
+    reasons = set()
+    if node.get("lang") in NAME_MATCHED_LANGS:
+        reasons.add("name-matched")
+    for t in targets:
+        if t.get("declaration"):
+            reasons.add("interface-dispatch")
+        if len(t.get("signatures") or ()) > 1:
+            reasons.add("overloads")
+    return [r for r in PRECISION_REASONS if r in reasons]
+
+
 # Decorators / patterns that mark a route handler (HTTP endpoint).
 ROUTE_DECORATOR_RE = re.compile(r"route|get|post|put|patch|delete|mapping|endpoint", re.I)
 

@@ -5,7 +5,6 @@ layer: controller
 class: 
 source: sample_src/services/orders_go/router.go:10
 lang: go
-approx: true
 desc_source: docstring
 ---
 # NewRouter

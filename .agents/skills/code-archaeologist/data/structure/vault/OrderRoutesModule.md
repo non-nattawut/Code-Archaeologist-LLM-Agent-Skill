@@ -4,7 +4,6 @@ layer: controller
 source: sample_src/api_flask/order_routes.py
 kind: module
 lang: py
-approx: false
 ---
 # OrderRoutesModule
 

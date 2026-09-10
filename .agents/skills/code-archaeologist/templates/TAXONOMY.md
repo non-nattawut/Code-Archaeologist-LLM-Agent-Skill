@@ -13,7 +13,6 @@ sets — change the taxonomy instead).
 | `{{kind}}` | `class`, `component`, `module` | What the entity is. `component` is a JS/TS function that returns JSX. |
 | `{{layer}}` | `controller`, `service`, `repository`, `model`, `client`, `config`, `ui`, `test`, `function`, `module`, `unknown` | Architectural role (inferred from name/decorators; `test` wins for anything in a test file, and a `component` is always `ui`). |
 | `{{lang}}` | `py`, `js`, `java`, `go`, `csharp` | Source language. `js` covers `.js/.jsx/.ts/.tsx`. |
-| `{{approx}}` | `true`, `false` | `true` when the entity's *calls* were resolved only through declared types (`java`, `go`, `csharp`). The source is parsed exactly; the resolution is the approximate part. Only `true` reaches the graph, as `approx: true`. |
 | `{{source}}` | `<area>/<path>` | Source file, prefixed with its root area (e.g. `backend/order_service.py`). |
 | `{{summary}}` | free text | Docstring / description. |
 | `{{bases}}`, `{{decorators}}`, `{{methods}}`, `{{references}}` | lists | `[[wikilinks]]` where the target is a known entity, else inline code. |
@@ -26,7 +25,7 @@ sets — change the taxonomy instead).
 | `kind` | `method`, `function`, `endpoint`, `component`, `test` | `endpoint` = a route handler (flow root); `component` = a function that returns JSX. Both are entry points: something outside the graph calls them, so neither counts as dead code. |
 | `layer` | same set as above | Role of the owning class/file. |
 | `lang` | `py`, `js`, `java`, `go`, `csharp` | Source language. |
-| `approx` | `true` (present only when true) | The node came from `ts_extract.py` (Java/Go/C#, parsed with tree-sitter). Its declarations are exact; its calls are followed only through declared types, and anything else was dropped rather than guessed, so its edges are a lower bound. |
+| `precision` | a list of `interface-dispatch`, `overloads`, `name-matched` (present only when non-empty) | **Named** precision losses for this node's outgoing edges. Absent means nothing *nameable* was lost — never that the edges are complete. See *Precision* below. |
 | `declaration` | `true` (present only when true) | A signature with no body (interface member, `abstract` method). Its **Calls** section is always empty because there is no body to call from — that says nothing about whether the implementations are used. |
 | `desc_source` | `docstring`, `ai`, `auto` | Where "What it does" came from (see hybrid descriptions). |
 | `class` | class name | Owning class (absent for module-level functions). |
@@ -41,6 +40,28 @@ Graph-only node fields (in `flow_graph.json`, not written into the pages):
 | `signatures` | list of signature strings | Present only when overloads folded into one node: ids carry no arity, so `InvoiceService.Total` is one node and this records every signature that collapsed into it. |
 | `routes` | list of `{method, path}` | Routes handled by this node (endpoints only). A **list**: one handler often serves several verbs (Flask `methods=["GET", "POST"]`) or carries stacked route decorators. `method` is an HTTP verb, or `ANY` when the framework registers every verb at once (Go's `mux.HandleFunc` without a method in the pattern) — `ANY` matches a frontend call of any verb. |
 | `http` | list of `{method, url}` | Frontend HTTP calls, used for cross-stack `http` edges. |
+
+## Precision
+
+**Every language's call edges are a lower bound.** A call is drawn only when the receiver's type
+can be read from the source; anything else is dropped rather than guessed, because a wrong edge is
+worse than a missing one. That is stated once — in `brief`, in the report header, and in
+`taxonomy.PRECISION_CAVEAT` — and it applies to every node in both maps.
+
+It used to be a per-node `approx: true` on Java, Go and C#. That was honest while those three were
+read textually, and became arbitrary once every language moved to tree-sitter: Python and JS/TS
+resolve no more completely, they simply had no marker.
+
+What survives per node is narrower and more useful — the losses that can be *named*. Each is
+derived from what is already in the graph, never from the language alone:
+
+| `precision` value | Set when | Why it matters |
+| --- | --- | --- |
+| `interface-dispatch` | an outgoing edge lands on a node with `declaration: true` | The call stops at an interface; which implementation runs is not knowable from the source. Emitting an edge to every implementor would trade precision for recall. |
+| `overloads` | an outgoing edge lands on a node whose `signatures` has more than one entry | Ids carry no arity, so an overload set folds into one node and which signature is called is ambiguous. |
+| `name-matched` | the node's `lang` is `js`, `ts`, `jsx` or `tsx` | Those extractors match call *names* rather than resolving a receiver, so calls through an object are dropped entirely. Measured: the TypeScript fixture resolves **0 of 3** edges where the typed languages resolve 3 of 3. |
+
+Order follows `taxonomy.PRECISION_REASONS`, so the field is deterministic (constraint 2).
 
 ## Edge `type` (in graph.json / flow_graph.json)
 
