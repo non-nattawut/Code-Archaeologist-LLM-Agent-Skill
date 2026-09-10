@@ -1,12 +1,13 @@
 # Graph as many languages as possible
 
-> ## Status: **phase 1 done; phase 2 at step 1 of 6.** Phase 3 is a gate, not a feature.
+> ## Status: **phase 1 done; phase 2 at step 1 of 6.** Phases 3 and 4 are verification, not features.
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
 > | 1 — Resolve the edges the textual extractor drops | semantics, no new dependency | **done** | `e8464f8` |
 > | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **step 1 of 6 done** | `8974c27` |
-> | 3 — Full regression gate: nothing old may break | verification | not started | |
+> | 3 — Full regression gate: nothing old may break | does it still run | not started | |
+> | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | not started | |
 >
 > ### Where phase 2 actually stands
 >
@@ -709,6 +710,128 @@ section needs the new three-tier story and a corrected per-language claim.
 Every command in the block at the bottom of this file, plus a written note in `prompt.md` of
 anything that broke and how it was fixed. A regression found and fixed is the point of this phase;
 a regression found and left is a failure of it.
+
+---
+
+## Phase 4 — Audit every graph and node feature for silent wrongness
+
+**Phase 3 asks whether everything still runs. This asks whether what it produced is right.** They
+are different questions and the second one has never been asked systematically. A command that
+exits 0 and writes a graph proves nothing about whether that graph is true.
+
+### Why this is its own phase, and not a spot check
+
+Every bug worth recording in this project so far had the same shape: **the build succeeded.** No
+crash, no traceback, no error line. The graph was quietly smaller, or quietly wrong, and the only
+symptom was a number nobody was checking.
+
+| Found | Silent failure | How it was caught |
+| --- | --- | --- |
+| phase 2 | Go's receiver was passed to a helper expecting a declaration -- **every Go method became a free function** | diffing the port against the old extractor |
+| phase 2 | C# field types read as `InvoiceStore _store` (type *and* name), so every receiver through a field failed to resolve | same diff |
+| phase 2 | `map[string]string` collapsed to a type named `mapstringstring`; the "is it an identifier" guard **passed it**, because stripping brackets is what made it identifier-shaped | same diff |
+| phase 2 | the old extractor missed a real `append(...)` call for the graph's whole life | same diff |
+| phase 1 | `duplicates.py` did not skip body-less declarations; it was saved only by a token minimum, i.e. by luck | asking the question the roadmap told me to ask |
+| phase 1 | `analyze.py`'s orphan guard could not be tested by the sample at all -- the one declaration node in it has a caller | building a fixture the sample cannot produce |
+| the spike | `@app.route` handlers are wrapped in `decorated_definition`, so **every Flask route** was missing from the tree-sitter query | the `ast` differential oracle, on its first run |
+| earlier | deleting a sibling skill removed the only `@babel/parser`; the flow graph dropped 15 -> 11 nodes and overwrote the committed data | a number contradicting CLAUDE.md |
+| earlier | reports embedded absolute machine paths, so the same source produced different bytes elsewhere | reading a committed diff |
+| earlier | `brief` reported a confident **false** STALE in the one command an agent is told to trust | two commands disagreeing |
+
+Ten failures, ten silent. Not one was found by running the thing and watching it work. That is the
+case for this phase: **the skill's own promise is that an agent can trust the graph instead of
+reading the source, and nothing currently checks that the graph deserves it.**
+
+### The method: name the silent failure, then write what catches it
+
+For every node field, every edge kind and every derived feature, answer three questions in this
+order. The second is the one that is usually skipped.
+
+1. What does it claim?
+2. **What would it look like if it were wrong?** If the answer is "the same, but with a smaller
+   number", it needs an assertion, not an eyeball.
+3. What assertion fails when that happens?
+
+An assertion that cannot fail is worse than none, because it converts an unknown into a false
+assurance. **Every check written here must be shown to fail on a deliberately broken input before
+it is trusted** -- the negative test that proved the phase-1 guards were not vacuous is the
+pattern, and it is cheap.
+
+### Surface to cover
+
+Enumerable, so there is no "did we get everything". Node fields, from `TAXONOMY.md`: `id`, `layer`,
+`kind`, `cls`, `signature`, `signatures`, `doc`, `source`, `end`, `lang`, `ext`, `approx`,
+`declaration`, `routes`, `http`. Edge kinds: `references`, `calls`, `http`.
+
+Per-field questions worth stating outright, because each has a plausible silent failure:
+
+- **`source` / `end`** -- do they point at the real declaration? An off-by-one here silently
+  mis-attributes every security finding, churn number and clone range that lands on that node.
+  Assert by reading the range back out of the file and checking the name occurs in it.
+- **`id` uniqueness** -- collisions are last-wins and invisible (open concern 2). Assert no two
+  source locations map to one id, and report it as a finding rather than a crash.
+- **`routes`** -- a framework whose shape stops matching yields *fewer* routes, never an error.
+  Assert the count per framework in the sample, per language.
+- **`ext`** -- currently unverifiable by eye. It is the one field whose wrongness has already been
+  proven twice (the missing `append`, and the bare-call path).
+- **`approx` / `declaration`** -- assert they appear on exactly the nodes that should carry them,
+  not merely that they appear somewhere.
+- **edges** -- the precision promise ("every edge shown is real") is asserted nowhere. Sample it:
+  for a set of edges, confirm the call text actually occurs in the caller's source range.
+
+Derived features, each with its own silent mode: cycle detection (a missed back-edge just reports
+zero), orphans, layer violations, hubs, god objects, the health score, per-node metrics, security
+attribution, churn/ownership, debt markers, test mapping, clone clusters, BFS paths, blast radius,
+`--impact-of-diff`, context packs under budget, and every explorer view that derives from the graph
+rather than displaying it.
+
+### `tools/check_graph.py` -- the invariants, as a script
+
+Working principle 5: this must not be a checklist a human re-walks. One script, runnable against
+**any** built graph, asserting the structural invariants that do not depend on a particular repo:
+
+- every edge endpoint exists as a node; no dangling references
+- no duplicate node ids; `source` unique per id
+- `end >= source` line, and the range is inside the file's length
+- every `kind` / `layer` / `lang` value is one `taxonomy.py` knows
+- `declaration` nodes have no calls; `approx` nodes are only from approximate-tier languages
+- `routes` entries have a method and a path; `http` edges join a caller to a routed node
+- counts in the report agree with the graph they were computed from
+
+Repo-specific expectations stay in 2g's per-language fixture table. This script is for the
+invariants that must hold everywhere, which is what makes it useful on a user's codebase and not
+only on `sample_src`.
+
+### Use the techniques that actually worked
+
+Not a new methodology -- the three that have already caught real bugs here, applied deliberately:
+
+- **Differential oracle.** Two independent implementations, diffed. Found the Flask decorator bug
+  on its first execution. Python has `ast` for free; JS/TS has `js_extract.js` until step 4 deletes
+  it, so **the diff must be captured before then** (see 2e step 3).
+- **Equivalence diffing.** Port behind an unchanged contract, then diff the output. Found three
+  bugs in step 1 that no test suite existed to catch.
+- **Negative testing.** Break the input on purpose, confirm the check fails. The only way to know
+  an assertion is load-bearing.
+
+### Fix, do not catalogue
+
+Anything found here is fixed here. A phase that produces a list of known-wrong behaviours and ships
+them is worse than not having looked, because the list becomes the excuse. Where a fix is genuinely
+out of scope, it goes in the README's *What's next* and the honest-limitations section in the same
+commit -- visible to a user, not only to whoever reads this file.
+
+### Verify
+
+- `tools/check_graph.py` passes on both maps of `sample_src`, and **is shown to fail** on a graph
+  broken on purpose (a dangling edge, a duplicate id, an out-of-range `end`).
+- Every check in it has a recorded negative test. No exceptions -- an unfalsifiable check is a bug.
+- The `ast` oracle reports 0 disagreements on `sample_src`, and the JS/TS diff against
+  `js_extract.js` is recorded before step 4 deletes the reference.
+- Every silent failure in the table above has a regression case, so none of them can return
+  unnoticed.
+- Every fix is named in the commit message with what it was producing before, and appended to
+  `docs/prompt.md`. A silent bug that is fixed silently teaches nobody anything.
 
 ---
 

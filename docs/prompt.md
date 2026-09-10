@@ -1773,3 +1773,54 @@ Amended the dated 2026-09-09 decision block with a one-line pointer so it does n
 new section on where the wheels land.
 
 Committed and pushed.
+
+## [51] 2026-09-10 — Phase 4 finished off: the audit phase, and the status table that forgot it
+
+**Prompt**
+> and you have mention about silent bug add it to last phase or new phase of the plan that you will
+> verify all of graph/node feature and fix it if bug
+>
+>
+> Phase 3 asks "does it still run". What you're describing is different — "is what it produced
+> actually right". That deserves its own phase, so I'm adding Phase 4 rather than burying it in the
+> gate:
+>
+> Diff
+>
+>
+> this is what another cluade do check if he finished yet if not continue then commit and push
+
+**Response**
+It had not finished. The working tree held one uncommitted file — `docs/ROADMAP_PLAN.md`, +122
+lines — containing the whole Phase 4 body and nothing else. Three things were missing:
+
+1. **The status block at the top still listed three phases.** Line 3 read "Phase 3 is a gate, not a
+   feature" and the phase table ended at row 3. A plan whose headline contradicts its own body is
+   exactly the drift `CLAUDE.md` principle 6 exists to stop, and it is the failure mode this file
+   has already had once (the pipeline diagram that lost `brief`).
+2. **No `docs/prompt.md` entry.** The last one was [50], about the previous turn.
+3. **Nothing committed or pushed.**
+
+What I did:
+
+- Rewrote the status headline to "Phases 3 and 4 are verification, not features", and added the
+  phase-4 row. Gave rows 3 and 4 contrasting one-line descriptions rather than both saying
+  "verification", since the entire argument for splitting them is that they ask different
+  questions: **3 = does it still run, 4 = is what it produced right.**
+- Spot-checked two of the ten rows in the phase-4 silent-failure table against the actual code
+  rather than trusting the prose, because a table of claimed past bugs is worthless if it is
+  itself wrong. Both hold: `duplicates.py:120` skips `declaration` nodes and `MIN_TOKENS = 30` at
+  line 60 is the accidental guard that was covering for its absence; `analyze.py:154` carries the
+  orphan exclusion with a comment saying why a body-less declaration is a different case.
+- `python tools/check_docs.py` → OK. `tools/check_graph.py` is named in the new phase but does not
+  exist yet, which the checker correctly does not flag — it only asserts `scripts/...` paths
+  quoted in docs exist, and this is a planned `tools/` script.
+
+Left alone deliberately: Phase 4's prose uses `--` where the rest of the file uses an em dash. The
+file already mixed both before this change, and normalising it would be editing adjacent text that
+is not what was asked for (principle 3).
+
+No code changed — this is a plan edit. Phase 4 itself is **not started**; what exists is the
+argument for it, the enumerated surface, and the verification bar it has to clear.
+
+Committed and pushed.
