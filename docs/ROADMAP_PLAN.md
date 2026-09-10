@@ -64,14 +64,16 @@
 
 ## The goal
 
-**Turn a project into a graph for as many languages as possible.** Today six languages get a
-graph (Python, JS and TS parsed exactly; Java, Go and C# read textually) and eleven get the review
-passes only — lines, complexity by file, risk scan, debt markers, test detection — but no nodes and
-no edges.
+**Turn a project into a graph for as many languages as possible.** Six languages get a graph
+(Python via `ast`, JS/TS via `@babel/parser`, and — since phase 2 step 1 — Java, Go and C# via
+tree-sitter) and eleven get the review passes only — lines, complexity by file, risk scan, debt
+markers, test detection — but no nodes and no edges.
 
-Hand-writing an extractor per language does not reach that goal: `lang_extract.py` is 754 lines for
-three languages, and each new one costs roughly the same again. tree-sitter is the one parser that
-covers them all, so phase 2 replaces "another extractor" with "another query file".
+Hand-writing an extractor per language does not reach that goal: `lang_extract.py` was 754 lines
+for three languages, and each new one cost roughly the same again. tree-sitter is the one parser
+that covers them all, so phase 2 replaces "another extractor" with "another table row". Step 1
+proved the shape: the three ported languages now share one consumer, and what differs per language
+is a `SPEC` entry plus its receiver rule.
 
 ### What tree-sitter does and does not buy
 
