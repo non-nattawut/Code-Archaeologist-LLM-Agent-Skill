@@ -1,11 +1,11 @@
 # Graph as many languages as possible
 
-> ## Status: **phase 1 done; phase 2 at step 4 of 6 — Node is out of the runtime.** Phases 3 and 4 are verification, not features.
+> ## Status: **phase 1 done; phase 2's deletion order is complete — one engine, six of six steps.** Phases 3 and 4 are verification, not features.
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
 > | 1 — Resolve the edges the textual extractor drops | semantics, no new dependency | **done** | `e8464f8` |
-> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **steps 1, 1b, 2, 3 and 4 of 6 done** | `8974c27`, `67d4df4`, `e7bfb09`, `fd9c7d8`, this commit |
+> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **all 6 deletion steps done**; 2d and 2g remain | `8974c27`, `67d4df4`, `e7bfb09`, `fd9c7d8`, `df5fb0b`, this commit |
 > | 3 — Full regression gate: nothing old may break | does it still run | not started | |
 > | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | not started | |
 >
@@ -21,8 +21,8 @@
 > | 2 | delete `lang_extract.py` | **done** — `e7bfb09` |
 > | 3 | JS/TS ported, diffed against `js_extract.js` | **done** — `fd9c7d8`; the diff is `tools/diff_js_extractors.py`, reporting **identical output** on all 6 files |
 > | 4 | delete `@babel/parser`, `js_extract.js`, `js_bridge.py`, the skill's `package.json` | **done** — this commit; `node_modules/`, `package-lock.json` and `tools/diff_js_extractors.py` went with them |
-> | 5 | Python ported; `ast` oracle reports 0 disagreements | **next** |
-> | 6 | drop `ast` from the build path (it stays forever as the oracle) | not started |
+> | 5 | Python ported; `ast` oracle reports 0 disagreements | **done** — this commit; `tools/check_py_oracle.py` reports **0 disagreements** over 34 files |
+> | 6 | drop `ast` from the build path (it stays forever as the oracle) | **done** — with step 5; no shipped script imports `ast`, only `tools/check_py_oracle.py` does |
 >
 > **Also done, outside the step list** (step 1 pulled these in because a per-language grammar is a
 > new way for a graph to be quietly wrong): `core/grammars.py`; the installed grammar set recorded
@@ -41,6 +41,12 @@
 > **1b did not** change `bin/cli.js` (the wheels are interpreter-specific and the installer does
 > not know which Python will run the skill — decided in 1b's requirements), and did not vendor
 > anything for JS/TS, which already had this shape.
+>
+> **What steps 5 and 6 shipped:** `extract/py_extract.py` (the `ast` helpers translated
+> node-for-node), `build_flow.py`, `build_wiki.py` and `metrics.py` moved onto it, and
+> `tools/check_py_oracle.py` as the permanent second opinion. Both graphs came out
+> **byte-identical**, and every metric -- complexity, depth, params, LOC -- unchanged. `ast` is off
+> the build path entirely, which is step 6, so the two landed together.
 >
 > **What step 3 shipped:** `extract/js_ts_extract.py` (JS/JSX/TS/TSX on tree-sitter) behind the
 > Node extractor's exact contract, `tools/diff_js_extractors.py` as the equivalence check, and
@@ -920,7 +926,29 @@ Things noticed while building a step that were **not** obviously fixable — eac
 so each waits for review rather than being settled mid-flight (working principle 7). Anything that
 *was* obviously fixable is not here; it was fixed in the commit that found it.
 
-### 1. Report artifacts are not byte-reproducible — found in step 1b
+### 1. A fresh install now parses nothing until grammars are added — found in step 5
+
+**What.** Python used to need nothing installed. Since step 5 it needs `tree-sitter-python` like
+any other language, so `bin/cli.js --self-test` on a clean target now builds **12 nodes / 9 edges**
+instead of 25 / 22, with two warnings naming the wheels to install. The self-test passes and the
+messages are exact -- this is honest degradation, not a bug -- but the demo that exists to show
+what the tool does now shows a third of it.
+
+**Why it is not just a fix.** The obvious answer is to have `--self-test` install the grammars
+first, and for that path it is defensible: the installer has *already resolved an interpreter* (it
+prints `Python 3.14 found`), so the objection recorded in 1b -- "the installer does not know which
+Python will run the skill" -- does not hold for `--self-test` specifically. But that reverses a
+decision this plan took deliberately, and an installer that silently pip-installs is a bigger
+change than it looks.
+
+**Options, in the order I would try them:** (a) `--self-test` installs the grammars with the
+interpreter it just found, and says so; (b) it prints one line up front saying the demo will be
+partial and gives the command; (c) leave it. Doing nothing is the only one that leaves a new user
+looking at a graph that misrepresents the tool.
+
+---
+
+### 2. Report artifacts are not byte-reproducible — found in step 1b
 
 **What.** Constraint 2 says "same source in, same bytes out". The graphs honour it exactly: two
 builds of identical source produce byte-identical `graph.json` and `flow_graph.json`. The

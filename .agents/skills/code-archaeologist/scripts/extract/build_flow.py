@@ -25,7 +25,6 @@ Unresolved (external/stdlib) calls are dropped to keep the graph readable.
 from __future__ import annotations
 
 import argparse
-import ast
 import hashlib
 import json
 import os
@@ -62,6 +61,7 @@ def _save_json(path: str, obj) -> None:
         fh.write("\n")
 
 from taxonomy import infer_layer, is_test_path, ROUTE_DECORATOR_RE  # noqa: E402
+import py_extract as px  # noqa: E402  (Python, via tree-sitter)
 from js_ts_extract import find_js_files, extract_js_files, frontend_degraded   # noqa: E402
 from ts_extract import find_lang_files, extract_lang_files  # noqa: E402  (Java/Go/C#, via tree-sitter)
 
@@ -76,78 +76,59 @@ def iter_py_files(src: str):
                 yield os.path.join(root, fn)
 
 
-def _name_of(node) -> str:
-    if isinstance(node, ast.Name):
-        return node.id
-    if isinstance(node, ast.Attribute):
-        return node.attr
-    if isinstance(node, ast.Call):
-        return _name_of(node.func)
-    return ""
+def _base_nodes(cls):
+    """Base-class expressions of a class definition (`ast`'s `cls.bases`)."""
+    args = px.field(cls, "superclasses")
+    if args is None:
+        return []
+    return [c for c in args.named_children if c.type != "keyword_argument"]
 
 
-def _annotation_type(ann) -> str:
-    """Return a bare class name from a type annotation, if simple."""
-    if ann is None:
-        return ""
-    if isinstance(ann, ast.Name):
-        return ann.id
-    if isinstance(ann, ast.Attribute):
-        return ann.attr
-    if isinstance(ann, ast.Subscript):  # e.g. Optional[Foo], List[Foo]
-        return _annotation_type(ann.slice)
-    return ""
-
-
-def _signature(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
-    try:
-        return f"{fn.name}({ast.unparse(fn.args)})"
-    except Exception:
-        return f"{fn.name}(...)"
-
-
-def _self_attr_types(cls: ast.ClassDef) -> dict[str, str]:
+def _self_attr_types(cls) -> dict[str, str]:
     """Map self.<attr> -> ClassName using __init__ annotations/assignments and
     class-level annotated attributes."""
     types: dict[str, str] = {}
-
-    # Class-level annotated attributes:  service: OrderService
-    for item in cls.body:
-        if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
-            t = _annotation_type(item.annotation)
-            if t:
-                types[item.target.id] = t
-
-    init = next((n for n in cls.body
-                 if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == "__init__"), None)
-    if not init:
+    body = px.body_of(cls)
+    if body is None:
         return types
 
-    param_types = {a.arg: _annotation_type(a.annotation) for a in init.args.args if a.annotation}
-
-    for node in ast.walk(init):
-        # self.attr: OrderService = ...
-        if isinstance(node, ast.AnnAssign) and _is_self_attr(node.target):
-            t = _annotation_type(node.annotation)
+    # Class-level annotated attributes:  service: OrderService
+    for targets, _value, annotation in px.assignments(body):
+        if annotation is None:
+            continue
+        target = targets[0] if targets else None
+        if target is not None and target.type == "identifier":
+            t = px.annotation_type(annotation)
             if t:
-                types[node.target.attr] = t
-        # self.attr = param  /  self.attr = SomeClass()
-        elif isinstance(node, ast.Assign):
-            for tgt in node.targets:
-                if _is_self_attr(tgt):
-                    attr = tgt.attr
-                    val = node.value
-                    if isinstance(val, ast.Name) and val.id in param_types and param_types[val.id]:
-                        types[attr] = param_types[val.id]
-                    elif isinstance(val, ast.Call):
-                        ctor = _name_of(val.func)
-                        if ctor and ctor[:1].isupper():
-                            types[attr] = ctor
+                types[px.text(target)] = t
+
+    init = next((m for _decs, m in px.defs_in(body) if px.def_name(m) == "__init__"), None)
+    if init is None:
+        return types
+
+    param_types = px.param_annotations(init)
+
+    for targets, value, annotation in px.assignments(init):
+        for tgt in targets:
+            attr = px.self_attr_name(tgt)
+            if not attr:
+                continue
+            # self.attr: OrderService = ...
+            if annotation is not None:
+                t = px.annotation_type(annotation)
+                if t:
+                    types[attr] = t
+                continue
+            # self.attr = param  /  self.attr = SomeClass()
+            if value is None:
+                continue
+            if value.type == "identifier" and param_types.get(px.text(value)):
+                types[attr] = param_types[px.text(value)]
+            elif value.type == "call":
+                ctor = px.name_of(px.field(value, "function"))
+                if ctor and ctor[:1].isupper():
+                    types[attr] = ctor
     return types
-
-
-def _is_self_attr(node) -> bool:
-    return isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "self"
 
 
 HTTP_VERBS = {"get", "post", "put", "patch", "delete"}
@@ -164,28 +145,27 @@ def _route_of(decorators: list) -> list[dict]:
     """
     routes: list[dict] = []
     for d in decorators:
-        if not isinstance(d, ast.Call):
+        call = d.named_children[0] if d.named_children else None
+        if call is None or call.type != "call":
             continue
         # @router.post(...) as well as a bare `@get(...)` imported from the framework.
-        if isinstance(d.func, ast.Attribute):
-            verb = d.func.attr.lower()
-        elif isinstance(d.func, ast.Name):
-            verb = d.func.id.lower()
+        func = px.field(call, "function")
+        if func is None:
+            continue
+        if func.type == "attribute":
+            verb = px.text(px.field(func, "attribute")).lower()
+        elif func.type == "identifier":
+            verb = px.text(func).lower()
         else:
             continue
-        path = None
-        if d.args and isinstance(d.args[0], ast.Constant) and isinstance(d.args[0].value, str):
-            path = d.args[0].value
+        args = px.call_args(call)
+        path = px.string_value(args[0]) if args else ""
         if not path:
             continue
         if verb in HTTP_VERBS:
             routes.append({"method": verb.upper(), "path": path})
         elif verb in ("route", "add_url_rule"):
-            methods = []
-            for kw in d.keywords:
-                if kw.arg == "methods" and isinstance(kw.value, (ast.List, ast.Tuple)):
-                    methods = [str(e.value).upper() for e in kw.value.elts
-                               if isinstance(e, ast.Constant)]
+            methods = [m.upper() for m in px.sequence_strings(px.call_keywords(call).get("methods"))]
             for method in (methods or ["GET"]):
                 routes.append({"method": method, "path": path})
     return _dedupe_routes(routes)
@@ -289,66 +269,79 @@ def analyze(roots: list[str]):
     methods: dict[str, dict] = {}          # node_id -> info
     class_methods: dict[str, set[str]] = {}  # ClassName -> {method names}
     func_nodes: dict[str, str] = {}         # module function name -> node_id
-    # Deferred call sites, resolved in pass 2:  (caller_id, class_ctx, fn_ast)
-    pending: list[tuple[str, str | None, dict, ast.AST]] = []
+    # Deferred call sites, resolved in pass 2:  (caller_id, class_ctx, ctx, node)
+    pending: list[tuple[str, str | None, dict, object]] = []
 
     for path, root in _iter_sources(roots):
         try:
-            with open(path, "r", encoding="utf-8") as fh:
-                src_text = fh.read()
-            tree = ast.parse(src_text, filename=path)
-        except (SyntaxError, UnicodeDecodeError) as exc:
+            raw = px.read_source(path)
+        except OSError as exc:
             print(f"  ! skipped {path}: {exc}", file=sys.stderr)
             continue
+        tree = px.parse(raw)
+        if tree is None:
+            px.warn_missing()
+            continue
         rel = _rel_source(path, root)
+        root_node = tree.root_node
 
-        for cls in [n for n in tree.body if isinstance(n, ast.ClassDef)]:
-            cls_decos = [_name_of(d) for d in cls.decorator_list]
-            cls_bases = [_name_of(b) for b in cls.bases]
-            layer = infer_layer(cls.name, cls_decos, cls_bases)
+        for cls_decos_nodes, cls in px.defs_in(root_node, ("class_definition",)):
+            cls_name = px.def_name(cls)
+            cls_decos = [px.name_of(d.named_children[0]) if d.named_children else ""
+                         for d in cls_decos_nodes]
+            cls_bases = [px.name_of(b) for b in _base_nodes(cls)]
+            layer = infer_layer(cls_name, cls_decos, cls_bases)
             attr_types = _self_attr_types(cls)
-            class_methods.setdefault(cls.name, set())
+            class_methods.setdefault(cls_name, set())
 
-            for m in [n for n in cls.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]:
-                node_id = f"{cls.name}.{m.name}"
-                class_methods[cls.name].add(m.name)
-                decos = [_name_of(d) for d in m.decorator_list]
-                routes = _route_of(m.decorator_list)
+            for m_decos, m in px.defs_in(px.body_of(cls)):
+                m_name = px.def_name(m)
+                node_id = f"{cls_name}.{m_name}"
+                class_methods[cls_name].add(m_name)
+                decos = [px.name_of(d.named_children[0]) if d.named_children else ""
+                         for d in m_decos]
+                routes = _route_of(m_decos)
                 is_endpoint = bool(routes) or layer == "controller" or any(ROUTE_DECORATOR_RE.search(d) for d in decos)
-                doc = ast.get_docstring(m) or ""
-                code = ast.get_source_segment(src_text, m) or ""
+                doc = px.docstring_of(m)
+                code = px.text(m)
+                # `ast` walked decorators as part of the function but reported the
+                # source segment from `def` onward. Both are kept: `outer` for the
+                # walk, `m` for the text, so `ext` counts and hashes both match.
+                outer = m.parent if m_decos else m
                 methods[node_id] = {
-                    "id": node_id, "name": m.name, "cls": cls.name, "layer": layer,
+                    "id": node_id, "name": m_name, "cls": cls_name, "layer": layer,
                     "kind": "endpoint" if is_endpoint else "method",
-                    "signature": _signature(m),
+                    "signature": px.signature(m),
                     "doc": doc.strip().splitlines()[0] if doc.strip() else "",
-                    "source": f"{rel}:{m.lineno}", "end": getattr(m, "end_lineno", 0) or m.lineno,
+                    "source": f"{rel}:{px.line(m)}", "end": px.end_line(m),
                     "calls": [], "callers": [],
                     "hash": _hash(code), "code": code, "routes": routes,
                 }
-                local_types = _local_types(m, attr_types)
-                pending.append((node_id, cls.name, {"attr_types": attr_types, "local_types": local_types}, m))
+                local_types = _local_types(outer, attr_types, decl=m)
+                pending.append((node_id, cls_name, {"attr_types": attr_types, "local_types": local_types}, outer))
 
-        for fn in [n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]:
-            node_id = fn.name
-            func_nodes[fn.name] = node_id
-            doc = ast.get_docstring(fn) or ""
-            code = ast.get_source_segment(src_text, fn) or ""
+        for fn_decos, fn in px.defs_in(root_node):
+            fn_name = px.def_name(fn)
+            node_id = fn_name
+            func_nodes[fn_name] = node_id
+            doc = px.docstring_of(fn)
+            code = px.text(fn)
             # Flask's normal shape is @app.route on a module-level def, not on a
             # class method -- so a whole framework was invisible until this loop
             # asked the same question the class loop already asked.
-            routes = _route_of(fn.decorator_list)
+            routes = _route_of(fn_decos)
+            outer = fn.parent if fn_decos else fn
             methods[node_id] = {
-                "id": node_id, "name": fn.name, "cls": None,
+                "id": node_id, "name": fn_name, "cls": None,
                 "layer": "controller" if routes else "function",
-                "kind": "endpoint" if routes else "function", "signature": _signature(fn),
+                "kind": "endpoint" if routes else "function", "signature": px.signature(fn),
                 "doc": doc.strip().splitlines()[0] if doc.strip() else "",
-                "source": f"{rel}:{fn.lineno}", "end": getattr(fn, "end_lineno", 0) or fn.lineno,
+                "source": f"{rel}:{px.line(fn)}", "end": px.end_line(fn),
                 "calls": [], "callers": [],
                 "hash": _hash(code), "code": code, "routes": routes,
             }
-            local_types = _local_types(fn, {})
-            pending.append((node_id, None, {"attr_types": {}, "local_types": local_types}, fn))
+            local_types = _local_types(outer, {}, decl=fn)
+            pending.append((node_id, None, {"attr_types": {}, "local_types": local_types}, outer))
 
     # --- Pass 2: resolve Python call edges ---  (edges carry a type)
     edges: set[tuple[str, str, str]] = set()
@@ -581,20 +574,24 @@ def _analyze_lang(roots: list[str]):
     return methods, edges
 
 
-def _local_types(fn, seed: dict[str, str]) -> dict[str, str]:
-    """Local variable -> ClassName from param annotations and `x = SomeClass()`."""
+def _local_types(fn, seed: dict[str, str], decl=None) -> dict[str, str]:
+    """Local variable -> ClassName from param annotations and `x = SomeClass()`.
+
+    `fn` is the node to walk and `decl` the definition whose parameters to read.
+    They differ for a decorated function: `ast` folded decorators into the node it
+    walked, so the walk has to start at the wrapper to count the same call sites,
+    while the parameters only exist on the definition inside it.
+    """
     types = dict(seed)
-    for a in getattr(fn.args, "args", []):
-        t = _annotation_type(a.annotation)
-        if t:
-            types[a.arg] = t
-    for node in ast.walk(fn):
-        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
-            ctor = _name_of(node.value.func)
-            if ctor and ctor[:1].isupper():
-                for tgt in node.targets:
-                    if isinstance(tgt, ast.Name):
-                        types[tgt.id] = ctor
+    types.update({k: v for k, v in px.param_annotations(decl if decl is not None else fn).items() if v})
+    for targets, value, _annotation in px.assignments(fn):
+        if value is None or value.type != "call":
+            continue
+        ctor = px.name_of(px.field(value, "function"))
+        if ctor and ctor[:1].isupper():
+            for tgt in targets:
+                if tgt.type == "identifier":
+                    types[px.text(tgt)] = ctor
     return types
 
 
@@ -607,32 +604,33 @@ def _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes) -> tupl
     def exists(cls_name, method):
         return cls_name in class_methods and method in class_methods[cls_name]
 
-    for node in ast.walk(fn):
-        if not isinstance(node, ast.Call):
-            continue
+    for node in px.calls_in(fn):
         target = None
-        func = node.func
-        if isinstance(func, ast.Attribute):
-            method = func.attr
-            base = func.value
+        func = px.field(node, "function")
+        if func is None:
+            continue
+        if func.type == "attribute":
+            method = px.text(px.field(func, "attribute"))
+            base = px.field(func, "object")
+            base_name = px.text(base) if base is not None and base.type == "identifier" else ""
             # self.attr.method()
-            if _is_self_attr(base):
-                cls_name = attr_types.get(base.attr)
+            if px.is_self_attr(base):
+                cls_name = attr_types.get(px.self_attr_name(base))
                 if cls_name and exists(cls_name, method):
                     target = f"{cls_name}.{method}"
             # self.method()
-            elif isinstance(base, ast.Name) and base.id == "self" and cls_ctx:
+            elif base_name == "self" and cls_ctx:
                 if exists(cls_ctx, method):
                     target = f"{cls_ctx}.{method}"
             # <var>.method()  where var is a typed param/local
-            elif isinstance(base, ast.Name) and base.id in local_types:
-                cls_name = local_types[base.id]
+            elif base_name in local_types:
+                cls_name = local_types[base_name]
                 if exists(cls_name, method):
                     target = f"{cls_name}.{method}"
-        elif isinstance(func, ast.Name):
+        elif func.type == "identifier":
             # bare function call to a known module function
-            if func.id in func_nodes:
-                target = func_nodes[func.id]
+            if px.text(func) in func_nodes:
+                target = func_nodes[px.text(func)]
         if target:
             found.add(target)
         else:

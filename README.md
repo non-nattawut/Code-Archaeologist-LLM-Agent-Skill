@@ -135,9 +135,8 @@ needs no arguments — a build records the roots it scanned, and `check` and `br
 
 The pieces that make it cheap and repeatable:
 
-- **Deterministic extraction.** Python via the stdlib `ast` module; every other language via
-  tree-sitter. Both are real parsers and both are deterministic — the same input always yields the
-  same graph. A parser that is not installed is named in the output
+- **Deterministic extraction.** One real parser for every language: tree-sitter, Python included.
+  It is deterministic — the same input always yields the same graph. A parser that is not installed is named in the output
   and its files are skipped, so a smaller graph never passes for a smaller codebase (see [Language
   support](#language-support)).
 - **Call resolution without a type checker.** `self.<dep>.method()` is resolved through `__init__`
@@ -178,13 +177,14 @@ re-runs it from scratch — along with the current selection and filter.
 
 | Capability | Languages |
 | --- | --- |
-| **Graphs, exact** (parsed) | Python (`ast`), JavaScript/TypeScript/JSX/TSX, Java, Go, C# (tree-sitter) |
+| **Graphs, exact** (parsed) | Python, JavaScript/TypeScript/JSX/TSX, Java, Go, C# — all tree-sitter |
 | **Lines, complexity, risk scan, debt markers, test detection** | + Kotlin, Rust, Ruby, PHP, Swift, Scala, Groovy, Dart, Elixir, C/C++ |
 
-Every language with a graph is **parsed**, and all but Python by one engine: Java, Go and C#
-moved off a hand-written textual scan, and JS/TS off `@babel/parser`, so declarations, bodies,
-parameter types and doc comments all come from a real syntax tree. Graphing JS/TS no longer needs
-Node installed at all.
+Every language with a graph is **parsed by the same engine**: Java, Go and C# moved off a
+hand-written textual scan, JS/TS off `@babel/parser`, and Python off the standard library's `ast`,
+so declarations, bodies, parameter types and doc comments all come from one kind of syntax tree.
+Node is not needed at all. `ast` is kept as a test oracle — every Python file is parsed both ways
+in CI and any disagreement fails.
 
 Parsing is not resolution, though, and the difference is visible in the output rather than buried
 in a caveat. Java/Go/C# nodes still carry `approx: true`, and it now means one specific thing:
@@ -215,8 +215,8 @@ dead code** and its calls never count as coupling.
 
 | | |
 | --- | --- |
-| **Python 3.10+** | required — the Python graph is stdlib `ast`, no install |
-| **`tree-sitter` + a grammar wheel** | for Java/Go/C# — `pip install --only-binary :all: --no-cache-dir --target vendor tree-sitter tree-sitter-java` (etc), run inside the skill folder. Wheels, no compiler; install only the languages you have. Lands in `<skill>/vendor`, **not** in your Python — delete the skill folder and it is gone |
+| **Python 3.10+** | required — it runs the pipeline |
+| **`tree-sitter` + a grammar wheel per language** | for **every** language including Python — `pip install --only-binary :all: --no-cache-dir --target vendor tree-sitter tree-sitter-python` (etc), run inside the skill folder. Wheels, no compiler; install only the languages you have. Lands in `<skill>/vendor`, **not** in your Python — delete the skill folder and it is gone |
 | **git** | optional — only for churn / ownership / hotspots |
 | **A browser** | to open the explorer — no network needed |
 
@@ -277,6 +277,7 @@ It has no npm dependencies of its own.
 │   │   ├── build_wiki.py
 │   │   ├── build_graph.py
 │   │   ├── build_flow.py
+│   │   ├── py_extract.py   Python, parsed with tree-sitter (ast is kept as the oracle)
 │   │   ├── js_ts_extract.py JS/JSX/TS/TSX, parsed with tree-sitter
 │   │   ├── ts_extract.py   Java/Go/C#, parsed with tree-sitter
 │   │   └── apply_descriptions.py

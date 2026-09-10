@@ -25,7 +25,6 @@ Zero external dependencies. Python 3.10+.
 from __future__ import annotations
 
 import argparse
-import ast
 import json
 import os
 import sys
@@ -40,6 +39,7 @@ import manifest  # noqa: E402
 import console          # noqa: E402  (stdout must survive a non-UTF-8 console)
 import scan_security    # noqa: E402  (iter_source_files: one definition of "a source file")
 from taxonomy import lang_of  # noqa: E402  (one definition of "what language is this file")
+import py_extract as px  # noqa: E402  (Python, via tree-sitter)
 
 # Languages whose line comment is # rather than //.
 HASH_COMMENT = {"py", "ruby", "elixir"}
@@ -47,13 +47,17 @@ HASH_PREFIXES = ("#",)
 DEFAULT_COMMENTS = ("//", "/*", "*")
 
 # Decision points: each is a place execution can go two ways, so each adds 1 to
-# the McCabe count of the function containing it.
-DECISIONS = (ast.If, ast.For, ast.AsyncFor, ast.While, ast.ExceptHandler,
-             ast.With, ast.AsyncWith, ast.Assert, ast.IfExp, ast.match_case)
+# the McCabe count of the function containing it. tree-sitter spellings, chosen
+# to name the same constructs `ast` did -- `for_statement` covers `async for`,
+# which had its own class in `ast`, and `elif_clause` / `else_clause` are separate
+# nodes here where `ast` nested another `If`.
+DECISIONS = {"if_statement", "elif_clause", "for_statement", "while_statement",
+             "except_clause", "with_statement", "assert_statement",
+             "conditional_expression", "case_clause"}
 # Statements that indent their body: the depth measurement follows these.
-BLOCKS = (ast.If, ast.For, ast.AsyncFor, ast.While, ast.With, ast.AsyncWith,
-          ast.Try, ast.Match, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
-DEFS = (ast.FunctionDef, ast.AsyncFunctionDef)
+BLOCKS = {"if_statement", "for_statement", "while_statement", "with_statement",
+          "try_statement", "match_statement", "function_definition", "class_definition"}
+DEFS = ("function_definition",)
 
 
 def line_metrics(full: str, lang: str) -> dict:
@@ -75,45 +79,54 @@ def line_metrics(full: str, lang: str) -> dict:
             "blank": blank, "lang": lang}
 
 
-def complexity(node: ast.AST) -> int:
-    """1 + every branch inside `node` (whole subtree, nested defs included)."""
+def complexity(node) -> int:
+    """1 + every branch inside `node` (whole subtree, nested defs included).
+
+    `ast` counted a chained `a and b and c` as two branches by reading `BoolOp`'s
+    operand list; tree-sitter nests `boolean_operator`, so each nesting level is
+    one node and counting the nodes gives the same total. A comprehension's `if`
+    clauses are `if_clause` nodes rather than a list hanging off `comprehension`.
+    """
     score = 1
-    for child in ast.walk(node):
-        if isinstance(child, DECISIONS):
+    for child in px.walk(node):
+        if child.type in DECISIONS:
             score += 1
-        elif isinstance(child, ast.BoolOp):
-            score += len(child.values) - 1        # `a and b and c` is two branches
-        elif isinstance(child, ast.comprehension):
-            score += len(child.ifs)
+        elif child.type == "boolean_operator":
+            op = px.field(child, "operator")
+            if op is not None and px.text(op) in ("and", "or"):
+                score += 1
+        elif child.type == "if_clause":
+            score += 1
     return score
 
 
-def depth(node: ast.AST, level: int = 0) -> int:
+def depth(node, level: int = 0) -> int:
     """Deepest nesting of block statements below `node` (0 when the body is flat)."""
     deepest = level
-    for child in ast.iter_child_nodes(node):
-        step = level + 1 if isinstance(child, BLOCKS) else level
+    for child in node.named_children:
+        step = level + 1 if child.type in BLOCKS else level
         deepest = max(deepest, depth(child, step))
     return deepest
 
 
-def params(node: ast.AST) -> int:
-    if not isinstance(node, DEFS):
+def params(node) -> int:
+    """Declared parameters, `self` included -- the count `ast` produced."""
+    if node.type not in DEFS:
         return 0
-    a = node.args
-    return (len(a.posonlyargs) + len(a.args) + len(a.kwonlyargs)
-            + (1 if a.vararg else 0) + (1 if a.kwarg else 0))
+    plist = px.params_of(node)
+    if plist is None:
+        return 0
+    return len([c for c in plist.named_children if c.type != "comment"])
 
 
-def _entry(node: ast.AST, key: str) -> dict:
-    end = getattr(node, "end_lineno", None) or node.lineno
+def _entry(node, key: str) -> dict:
     return {
-        "loc": end - node.lineno + 1,
+        "loc": px.end_line(node) - px.line(node) + 1,
         "complexity": complexity(node),
         "depth": depth(node),
         "params": params(node),
         "file": key,
-        "line": node.lineno,
+        "line": px.line(node),
         "lang": "py",
     }
 
@@ -124,20 +137,19 @@ def node_metrics(full: str, key: str) -> dict:
     Only the levels the graphs model: module functions, classes, and their direct
     methods. A closure inside a function is measured as part of that function.
     """
-    try:                                    # errors="replace": a latin-1 source still parses,
-        with open(full, "r", encoding="utf-8", errors="replace") as fh:   # and we only read
-            tree = ast.parse(fh.read())     # names and line numbers off the tree
-    except (OSError, SyntaxError, ValueError):
+    try:
+        tree = px.parse(px.read_source(full))
+    except OSError:
+        return {}
+    if tree is None:                        # no Python grammar: the build already said so
         return {}
     out: dict[str, dict] = {}
-    for node in tree.body:
-        if isinstance(node, DEFS):
-            out[node.name] = _entry(node, key)
-        elif isinstance(node, ast.ClassDef):
-            out[node.name] = _entry(node, key)
-            for member in node.body:
-                if isinstance(member, DEFS):
-                    out[f"{node.name}.{member.name}"] = _entry(member, key)
+    for _decs, node in px.defs_in(tree.root_node, ("class_definition", "function_definition")):
+        name = px.def_name(node)
+        out[name] = _entry(node, key)
+        if node.type == "class_definition":
+            for _m_decs, member in px.defs_in(px.body_of(node)):
+                out[f"{name}.{px.def_name(member)}"] = _entry(member, key)
     return out
 
 

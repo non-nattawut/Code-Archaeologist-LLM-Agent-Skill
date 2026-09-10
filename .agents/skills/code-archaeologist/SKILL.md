@@ -29,18 +29,20 @@ python --version        # or python3; needs 3.10+
 ```
 Older or missing: stop and tell the user, the skill cannot run.
 
-**2. tree-sitter — for every language except Python.** Grammars are installed per language, so
+**2. tree-sitter — for every language, Python included.** Grammars are installed per language, so
 install only what the repo actually contains. **Do this yourself — don't ask the user to.**
 ```bash
 cd .agents/skills/code-archaeologist && python -c "import tree_sitter; print('runtime ok')"
-cd .agents/skills/code-archaeologist && pip install --only-binary :all: --no-cache-dir --target vendor tree-sitter tree-sitter-javascript tree-sitter-typescript tree-sitter-java tree-sitter-go tree-sitter-c-sharp
+cd .agents/skills/code-archaeologist && pip install --only-binary :all: --no-cache-dir --target vendor tree-sitter tree-sitter-python tree-sitter-javascript tree-sitter-typescript tree-sitter-java tree-sitter-go tree-sitter-c-sharp
 ```
 These are wheels — no compiler, grammar bundled, one package per language. Pick the languages the
 repo actually has; the runtime (`tree-sitter`) is needed for any of them. Two mappings are worth
 knowing: **`tree-sitter-javascript` covers `.js` and `.jsx`**, and **`tree-sitter-typescript`
 covers both `.ts` and `.tsx`** (one wheel, two grammars — `.tsx` genuinely needs the second one).
 
-Python needs nothing installed: it is read with the standard library's own parser.
+**`tree-sitter-python` is not optional if the repo has any Python.** It used to be read with the
+standard library, so it needed nothing; it is now read the same way as everything else, and without
+that wheel a Python repo produces an almost empty graph — with a warning saying so.
 
 **Install it yourself — this does not touch the user's Python.** `--target vendor` puts the wheels
 in `<skill>/vendor`, which the skill's `.gitignore` excludes: nothing enters the environment the
@@ -122,8 +124,8 @@ python .agents/skills/code-archaeologist/scripts/archaeologist.py both --src ./s
 python .agents/skills/code-archaeologist/scripts/archaeologist.py flow --src ./backend ./frontend
 ```
 `--src` takes several roots, so a monorepo lands in one graph (node `source` keeps its root
-prefix: `backend/…`, `frontend/…`). Python is parsed by the stdlib AST, every other language by
-tree-sitter (grammar missing → those files skipped with a warning). Frontend `fetch`/`axios`
+prefix: `backend/…`, `frontend/…`). Every language is parsed by tree-sitter (grammar missing →
+those files skipped with a warning). Frontend `fetch`/`axios`
 calls are matched to backend route handlers by HTTP method + path, giving cross-stack `http`
 edges — so one trace can run frontend → API → service → repository.
 
@@ -320,8 +322,8 @@ keeps the cache intact — those nodes are missing, not gone). **0 pending** mea
   lines/complexity, risk scan, debt markers, test detection — also read Java, Kotlin, Go, Rust,
   C#, Ruby, PHP, Swift, Scala, Dart, Elixir and C/C++, so a polyglot repo still gets size, risk
   and debt answers even where there is no call graph.
-- Python pipeline: the standard library plus tree-sitter, whose wheels install into
-  `<skill>/vendor` and never into the user's Python. Node is not used at all.
+- One parser for every language: tree-sitter, whose wheels install into `<skill>/vendor` and never
+  into the user's Python. Node is not used at all.
   The generated HTML needs no network: the graph library is vendored and inlined, so the explorer
   opens from `file://` offline.
 - Field values (`kind`, `layer`, `lang`, `desc_source`, and the review `severity`/`rule`/`grade`

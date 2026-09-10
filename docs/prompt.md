@@ -2177,3 +2177,72 @@ byte-identical.
 **Verified:** 25/22 and 52/32 with the graphs byte-identical to the committed ones; `check_docs.py`
 OK; `compileall` OK; installer self-test OK with the explorer confirmed offline and the installed
 skill containing exactly `SKILL.md data scripts templates`.
+
+## [59] 2026-09-10 — Steps 5 and 6: Python onto tree-sitter, `ast` demoted to oracle
+
+**Prompt**
+> continue all step in phase 2
+
+**Response**
+The last engine. `build_flow.py`, `build_wiki.py` and `metrics.py` all read Python through
+tree-sitter now, via a new `extract/py_extract.py`. **The skill ships one parser.**
+
+**Built the oracle before the port, not after.** `tools/check_py_oracle.py` parses every `.py` file
+with `ast` *and* with the new reader and compares what each says was declared — names, lines,
+signatures, docstrings, decorators. On `sample_src` it was green immediately, which was suspicious
+for six files, so I ran it against the skill's own 26: **23 disagreements**, every one of them a
+signature. Two kinds:
+
+- `ast.unparse` prints `x: int=5` where the source says `x: int = 5`, and rewrites `"a"` as `'a'`.
+  Cosmetic.
+- **`_lang_node` and four others came back with newlines inside `signature`** — because
+  tree-sitter hands back exactly what was typed, and those parameter lists wrap across lines. That
+  is not cosmetic: `signature` gets rendered into a vault page, a context pack and a node label. A
+  real bug the 6-file sample could not have shown.
+
+Fixed by collapsing whitespace runs in `signature()`, and the oracle now compares signatures modulo
+spacing and quote style — narrowly, documented, and only because a check that is permanently red on
+any normal codebase is a check nobody reads. **0 disagreements across 34 files** in three corpora.
+
+**The second bug the port surfaced was worse, and the build found it.** After porting `build_flow`,
+one node went pending for an AI summary. `ast` had been handed text through universal-newline
+translation; tree-sitter is handed raw bytes, so on the one CRLF sample file every node's `code`
+— and therefore its hash — changed. Since the description cache is keyed by that hash, **every
+cached summary on a CRLF checkout would have silently missed.** Fixed in `px.read_source()`, which
+normalises at the read exactly as `ast` did. Line numbers are unaffected; hashes, clone token
+shapes and signatures now agree on every platform.
+
+**The gate: both graphs came out byte-identical.** `git diff` on `graph.json` and `flow_graph.json`
+is empty after all three ports. The reports differ only in their `generated` timestamps — every
+complexity, depth, param count and LOC figure is unchanged, which is the check that mattered for
+`metrics.py`, where I had to re-derive McCabe counting on a CST (`elif_clause` is its own node
+where `ast` nested another `If`; chained `and` nests instead of listing operands).
+
+**Step 6 landed with step 5**, not after it: no shipped script imports `ast` any more. The only
+thing in the repo that does is the oracle — which is exactly the end state 2e specified.
+
+**One flaw of mine, caught by testing the degraded path:** I put the "no Python grammar" warning in
+both builders with a flag each, so a `both` run printed the same sentence twice and read like two
+faults. Moved into `py_extract` — one module, one flag, one message, the same reason
+`js_ts_extract` only warns once.
+
+**Recorded rather than decided** (principle 7), as *Found while implementing* #1: a fresh
+`--self-test` now builds **12 nodes instead of 25**, because a clean install has no grammars at all
+and Python no longer parses for free. The warnings are exact and the self-test passes, so this is
+honest degradation — but the demo that exists to show what the tool does now shows a third of it.
+Worth noting that 1b's objection to installing from `bin/cli.js` ("the installer does not know
+which Python will run the skill") **does not hold for `--self-test`**, which has already resolved
+an interpreter and prints its version. Three options written down; my order is (a) install with the
+interpreter it just found, (b) warn up front, (c) leave it.
+
+**Verified:** 25/22 and 52/32 with 0 pending; both graphs byte-identical; reports identical but for
+timestamps; oracle 0 disagreements on 34 files; `check` → stale: false; `check_docs.py` OK;
+`compileall` OK; self-test OK with the explorer offline; and each grammar removed in turn degrades
+to one named warning — Python to 18/12 and 39/21, JS/TS to 19/19 and 37/23.
+
+Docs moved with it: `CLAUDE.md` (three producers now all tree-sitter, `py_extract.py` in the
+layout, constraint 1 saying Python no longer parses out of the box, and a degradation table
+replacing the prose), `SKILL.md`, `README.md`, `docs/USAGE.md`, `docs/PRESENTATION.html`.
+
+Phase 2's deletion order is complete. **2d** (the `approx` → `exact`/`sparse` rename) and **2g**
+(per-language fixtures + `tools/check_langs.py`) are what remain of the phase.

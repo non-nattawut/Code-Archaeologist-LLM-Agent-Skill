@@ -49,6 +49,7 @@ GRAMMAR_MODULES = {
     "java": "tree_sitter_java",
     "go": "tree_sitter_go",
     "csharp": "tree_sitter_c_sharp",
+    "python": "tree_sitter_python",
     "javascript": "tree_sitter_javascript",
     "typescript": "tree_sitter_typescript",
     "tsx": "tree_sitter_typescript",
@@ -59,6 +60,7 @@ PIP_NAMES = {
     "tree_sitter_java": "tree-sitter-java",
     "tree_sitter_go": "tree-sitter-go",
     "tree_sitter_c_sharp": "tree-sitter-c-sharp",
+    "tree_sitter_python": "tree-sitter-python",
     "tree_sitter_javascript": "tree-sitter-javascript",
     "tree_sitter_typescript": "tree-sitter-typescript",
 }

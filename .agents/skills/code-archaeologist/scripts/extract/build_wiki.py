@@ -16,7 +16,6 @@ Zero external Python dependencies. Python 3.10+.
 from __future__ import annotations
 
 import argparse
-import ast
 import os
 import re
 import sys
@@ -32,6 +31,7 @@ TEMPLATE_PATH = os.path.join(TEMPLATES_DIR, "wiki_page_template.md")
 from taxonomy import infer_layer, is_test_path  # noqa: E402
 import console  # noqa: E402  (stdout must survive a non-UTF-8 console)
 from js_ts_extract import find_js_files, extract_js_files, frontend_degraded  # noqa: E402  (frontend, degrades to a no-op)
+import py_extract as px  # noqa: E402  (Python, via tree-sitter)
 from ts_extract import find_lang_files, extract_lang_files  # noqa: E402  (Java/Go/C#, via tree-sitter)
 
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data"}
@@ -40,20 +40,21 @@ SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "d
 # ---------------------------------------------------------------------------
 # Extraction
 # ---------------------------------------------------------------------------
-def _name_of(node: ast.expr) -> str:
+def _name_of(node) -> str:
     """Best-effort dotted name for a decorator/base expression."""
-    if isinstance(node, ast.Name):
-        return node.id
-    if isinstance(node, ast.Attribute):
-        return node.attr
-    if isinstance(node, ast.Call):
-        return _name_of(node.func)
-    if isinstance(node, ast.Subscript):
-        return _name_of(node.value)
-    try:
-        return ast.unparse(node)
-    except Exception:
+    if node is None:
         return ""
+    if node.type == "identifier":
+        return px.text(node)
+    if node.type == "attribute":
+        return px.text(px.field(node, "attribute"))
+    if node.type == "call":
+        return _name_of(px.field(node, "function"))
+    if node.type == "subscript":
+        return _name_of(px.field(node, "value"))
+    if node.type == "decorator":
+        return _name_of(node.named_children[0]) if node.named_children else ""
+    return px.text(node)
 
 
 def iter_py_files(src: str):
@@ -86,37 +87,73 @@ def extract_py_entities(roots: list[str]) -> list[dict]:
     for root in roots:
         for path in iter_py_files(root):
             try:
-                with open(path, "r", encoding="utf-8") as fh:
-                    source = fh.read()
-                tree = ast.parse(source, filename=path)
-            except (SyntaxError, UnicodeDecodeError) as exc:
+                raw = px.read_source(path)
+            except OSError as exc:
                 print(f"  ! skipped {path}: {exc}", file=sys.stderr)
+                continue
+            tree = px.parse(raw)
+            if tree is None:
+                px.warn_missing()
                 continue
 
             rel = _rel_source(path, root)
-            _extract_from_tree(tree, source, rel, entities)
+            _extract_from_tree(tree.root_node, raw, rel, entities)
     return entities
 
 
-def _extract_from_tree(tree, source, rel, entities):
+def _imported_names(root) -> set[str]:
+    """Every name an `import` / `from ... import` binds in this module.
+
+    `ast` gave `Import` and `ImportFrom` with a tidy `names` list. tree-sitter
+    gives `import_statement` and `import_from_statement` whose children are the
+    dotted names and aliases themselves, so the alias-wins rule is applied here
+    instead of being read off an attribute.
+    """
+    names: set[str] = set()
+    for node in px.walk(root):
+        plain = node.type == "import_statement"
+        if not plain and node.type != "import_from_statement":
+            continue
+        for child in node.named_children:
+            if child.type == "dotted_name" and child == px.field(node, "module_name"):
+                continue                      # the module in `from X import y`
+            if child.type == "aliased_import":
+                alias = px.field(child, "alias")
+                if alias is not None:
+                    names.add(px.text(alias))
+            elif child.type == "dotted_name":
+                # `import a.b.c` binds `a`; `from m import a.b` cannot occur.
+                names.add(px.text(child).split(".")[0] if plain else px.text(child))
+            elif child.type == "identifier":
+                names.add(px.text(child))
+    return names
+
+
+def _module_docstring(root) -> str:
+    """The module's own docstring: its first statement, when that is a string."""
+    if not root.named_children:
+        return ""
+    first = root.named_children[0]
+    if first.type != "expression_statement" or not first.named_children:
+        return ""
+    literal = first.named_children[0]
+    if literal.type != "string":
+        return ""
+    return "".join(px.text(c) for c in literal.children if c.type == "string_content")
+
+
+def _extract_from_tree(root, source, rel, entities):
     # Module-level imported names (for reference resolution).
-    imports: set[str] = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            for a in node.names:
-                imports.add((a.asname or a.name).split(".")[0])
-        elif isinstance(node, ast.ImportFrom):
-            for a in node.names:
-                imports.add(a.asname or a.name)
+    imports = _imported_names(root)
 
     module_funcs: list[dict] = []
-    for node in tree.body:
-        if isinstance(node, ast.ClassDef):
-            entities.append(_class_entity(node, rel, imports, source))
-        elif isinstance(node, ast.FunctionDef) or isinstance(node, ast.AsyncFunctionDef):
+    for decorators, node in px.defs_in(root, ("class_definition", "function_definition")):
+        if node.type == "class_definition":
+            entities.append(_class_entity(node, decorators, rel, imports, source))
+        else:
             module_funcs.append({
-                "name": node.name,
-                "doc": (ast.get_docstring(node) or "").strip().splitlines()[0:1],
+                "name": px.def_name(node),
+                "doc": px.docstring_of(node).strip().splitlines()[0:1],
             })
 
     if module_funcs:
@@ -127,12 +164,20 @@ def _extract_from_tree(tree, source, rel, entities):
             "source": rel,
             "bases": [],
             "decorators": [],
-            "doc": (ast.get_docstring(tree) or "").strip(),
+            "doc": _module_docstring(root).strip(),
             "methods": [{"name": f["name"], "doc": (f["doc"][0] if f["doc"] else "")}
                         for f in module_funcs],
             "imports": sorted(imports),
             "lang": "py",
         })
+
+
+def _base_nodes(cls):
+    """Base-class expressions of a class definition (`ast`'s `cls.bases`)."""
+    args = px.field(cls, "superclasses")
+    if args is None:
+        return []
+    return [c for c in args.named_children if c.type != "keyword_argument"]
 
 
 def _module_entity_name(mod: str) -> str:
@@ -142,22 +187,21 @@ def _module_entity_name(mod: str) -> str:
     return "".join(part[:1].upper() + part[1:] for part in mod.split("_")) + "Module"
 
 
-def _class_entity(node: ast.ClassDef, rel: str, imports: set[str], source: str) -> dict:
-    bases = [_name_of(b) for b in node.bases if _name_of(b)]
-    decorators = [_name_of(d) for d in node.decorator_list if _name_of(d)]
+def _class_entity(node, decorator_nodes, rel: str, imports: set[str], source: str) -> dict:
+    bases = [_name_of(b) for b in _base_nodes(node) if _name_of(b)]
+    decorators = [_name_of(d) for d in decorator_nodes if _name_of(d)]
     methods = []
-    for item in node.body:
-        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            doc = ast.get_docstring(item) or ""
-            first = doc.strip().splitlines()[0] if doc.strip() else ""
-            methods.append({"name": item.name, "doc": first})
+    for _decs, item in px.defs_in(px.body_of(node)):
+        doc = px.docstring_of(item)
+        first = doc.strip().splitlines()[0] if doc.strip() else ""
+        methods.append({"name": px.def_name(item), "doc": first})
     return {
-        "name": node.name,
+        "name": px.def_name(node),
         "kind": "class",
         "source": rel,
         "bases": bases,
         "decorators": decorators,
-        "doc": (ast.get_docstring(node) or "").strip(),
+        "doc": px.docstring_of(node).strip(),
         "methods": methods,
         "imports": sorted(imports),
         "lang": "py",
