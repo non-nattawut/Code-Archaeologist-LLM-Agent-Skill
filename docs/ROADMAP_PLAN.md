@@ -5,8 +5,42 @@
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
 > | 1 — Resolve the edges the textual extractor drops | semantics, no new dependency | **done** | `e8464f8` |
-> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **step 1 done** | `8974c27` |
+> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **step 1 of 6 done** | `8974c27` |
 > | 3 — Full regression gate: nothing old may break | verification | not started | |
+>
+> ### Where phase 2 actually stands
+>
+> The deletion order in 2e has six steps. **Nothing has been deleted yet**, which is correct — each
+> old engine is the reference its replacement is checked against.
+>
+> | Step | What | State |
+> | --- | --- | --- |
+> | 1 | Java/Go/C# ported to tree-sitter, matching the phase-1 numbers | **done** — `8974c27` |
+> | 1b | Move the install into `<skill>/vendor/` instead of the user's Python | **next** — decided below, not built |
+> | 2 | delete `lang_extract.py` | not started |
+> | 3 | JS/TS ported, diffed against `js_extract.js` | not started |
+> | 4 | delete `@babel/parser`, `js_extract.js`, `js_bridge.py`, the skill's `package.json` | not started |
+> | 5 | Python ported; `ast` oracle reports 0 disagreements | not started |
+> | 6 | drop `ast` from the build path (it stays forever as the oracle) | not started |
+>
+> **Also done, outside the step list** (step 1 pulled these in because a per-language grammar is a
+> new way for a graph to be quietly wrong): `core/grammars.py`; the installed grammar set recorded
+> in the manifest; `check` reporting a grammar change as staleness; a `SKIPPED` block in `brief`;
+> the exact install command in every message; and hard constraint 1 rewritten, since "zero external
+> Python dependencies" stopped being true.
+>
+> **Not done, and not started** — none of this is blocked, it simply has not been reached:
+> 2b's supplementary query for TypeScript (its shipped `TAGS_QUERY` yields zero captures on real
+> implementation files); 2c beyond the three ported languages; **2d's `approx` -> `exact`/`sparse`
+> tier rename**, deliberately deferred so step 1 could be verified by equivalence; 2f; and **2g's
+> per-language fixtures and `tools/check_langs.py`, which no language yet has**. Every one of the
+> eight open concerns below is still open — resolution parity for Python (concern 1) is the one
+> that gates step 5, and node id collisions (concern 2) is the one that gets more expensive the
+> longer it is left.
+>
+> Languages added since the port began: **none.** Step 1 was a like-for-like port of the three that
+> already had graphs, which is what made it checkable; the goal of graphing *more* languages is not
+> advanced until 2g's fixtures exist to keep the supported list honest.
 >
 > **Phase 2, step 1 outcome — Java/Go/C# ported, nothing deleted.** `ts_extract.py` replaced
 > `lang_extract.py` behind the *same* `find_lang_files` / `extract_lang_files` contract, so both
@@ -34,6 +68,13 @@
 > verifiable. The wording everywhere was corrected from "read textually" to "parsed exactly,
 > resolved approximately", which is now what `approx: true` means.
 >
+> **One thing step 1 got wrong**, corrected in the plan and scheduled as step 1b: it told the agent
+> to `pip install` into the user's own Python environment. It should install into
+> `<skill>/vendor/`, exactly as `@babel/parser` installs into `<skill>/node_modules`. See
+> "Install into the skill directory" under 2a. The packages installed during step 1 are on the
+> system Python and stay working either way -- 1b prefers a vendor directory and falls back to
+> site-packages.
+>
 > **Phase 1 outcome.** 1a and 1b landed together and 1b needed no code, exactly as predicted: once
 > `PricingRule.price` exists as a node, the existing resolver finds it. Flow map 51/31 -> 52/32,
 > structure unchanged at 25/22, both grades unchanged. 1c took the cheap option — one node, every
@@ -49,6 +90,7 @@
 > survives solely as the `npx` installer (`bin/cli.js`). The accepted cost is
 > `pip install tree-sitter tree-sitter-<lang>` — wheels, no compiler, grammar bundled per language,
 > ~9.4 MB for five — where the skill previously needed nothing. See 2a and 2e.
+> *(Amended 2026-09-10: those wheels go into `<skill>/vendor/`, not the user's environment.)*
 >
 > **Nothing is deleted before the port that replaces it is verified against it** — the old engine
 > is what proves the new one correct, so the deletion order in 2e is structural, not cautious.
@@ -257,6 +299,58 @@ exist and they have nothing to do with each other:
 
 So `npx github:...` still installs the skill; the skill itself never shells out to Node again.
 `bin/cli.js --self-test` stays and gets simpler: no `npm install` step, no degraded-backend path.
+
+#### Install into the skill directory, not the user's Python — decided 2026-09-10
+
+**Step 1 shipped this wrong and it is step 1b's job to fix.** It told the agent to
+`pip install tree-sitter …`, which mutates the environment the user runs everything else in. The
+skill already had the right pattern sitting next to it: `@babel/parser` installs into
+`<skill>/node_modules`, git-ignored, and deleting the skill folder removes every trace of it.
+Python packages can do exactly the same thing:
+
+```bash
+pip install --only-binary :all: --target <skill>/vendor tree-sitter tree-sitter-java
+```
+
+then `paths.py` puts `<skill>/vendor` on `sys.path` ahead of site-packages, and `grammars.py`
+imports as it already does.
+
+**Verified, not assumed (2026-09-10):** installed into a scratch `--target` directory, confirmed
+`tree_sitter.__file__` resolves inside it, and parsed a real sample file with `has_error: False`.
+**0.7 MB** for the runtime plus one grammar.
+
+Why this is the better shape:
+
+| | `pip install` (step 1, wrong) | `--target <skill>/vendor` |
+| --- | --- | --- |
+| Touches the user's environment | **yes** | no |
+| Uninstall | `pip uninstall`, remembered by nobody | delete the skill folder |
+| Version conflict with the user's project | possible | **impossible** — separate path |
+| Matches how JS/TS already works | no | **yes**, exactly |
+| Agent may install without asking | no — it is their environment | **yes**, like `npm install` |
+
+That last row is the practical win: `SKILL.md` currently has to say "ask the user before running
+`pip install`", which puts a prompt in the middle of a build. Installing into the skill's own
+folder is the skill managing its own dependencies, so the agent can just do it.
+
+**The one real cost, and it is not hypothetical.** The `tree-sitter` runtime wheel is
+version-locked to the interpreter (`tree_sitter-0.26.0-cp314-cp314-win_amd64.whl`); the grammar
+wheels are `abi3` and far more portable (`cp39-abi3`, `cp310-abi3`). So a vendored runtime breaks
+if the user switches Python minor versions — the same failure `node_modules` has when the platform
+changes, and it needs the same treatment: catch the `ImportError` and print *"vendored tree-sitter
+was built for a different Python; re-run the install"*, never a raw traceback.
+
+Requirements for 1b:
+
+- `<skill>/vendor/` added to the skill's `.gitignore`, next to `node_modules/`. It must **never**
+  be committed — it is platform- and interpreter-specific binary code.
+- `paths.py` prepends it to `sys.path` if it exists, so this is one place, not one per script.
+- Prefer vendored over site-packages, but **fall back to site-packages** if no vendor dir exists —
+  someone who already ran a plain `pip install` (as step 1 told them to) keeps working.
+- `bin/cli.js` should not do the install: the wheels are interpreter-specific and the installer
+  does not know which Python will run the skill. `SKILL.md`'s preflight stays the place it happens.
+- `grammars.py` reports **which** path a grammar was loaded from, so "why is this version
+  different" is answerable.
 
 #### Grammars are installed on demand, not all up front
 

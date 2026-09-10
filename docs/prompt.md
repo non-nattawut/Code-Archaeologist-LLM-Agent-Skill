@@ -1731,3 +1731,45 @@ dependencies" headline and the deck's "0 Python deps" tile went with it.
 
 `lang_extract.py` stays on disk, imported by nothing, as the reference this port was checked
 against. It is deleted at step 2.
+
+## [50] 2026-09-10 — Vendor the wheels into the skill, and a done/not-done ledger
+
+**Prompt**
+> could we handle install it in skill directory and point script to that instead?
+>
+> if yes update it in the plan, if not tell me why concisely
+>
+> also update the plan where you done and not done yet then commit and push due to you almost approch the limit
+
+**Response**
+Yes, and it is a better shape than what step 1 shipped. Verified rather than assumed: installed
+into a scratch `--target` directory, confirmed `tree_sitter.__file__` resolved inside it, parsed a
+real sample file with `has_error: False`. **0.7 MB** for the runtime plus one grammar.
+
+The skill already had the right pattern next to it -- `@babel/parser` installs into
+`<skill>/node_modules`, git-ignored, and deleting the skill folder removes every trace. Step 1
+telling the agent to `pip install` into the user's own environment was simply inconsistent with
+that, and it forced `SKILL.md` to say "ask the user first", which puts a prompt in the middle of a
+build. A skill managing its own dependencies does not need to ask.
+
+Recorded in the plan as **step 1b**, with the comparison table, the requirements (`vendor/` in the
+skill's `.gitignore`, `sys.path` prepend in `paths.py` so it is one place, prefer vendored but fall
+back to site-packages so anyone who already ran the plain install keeps working, `bin/cli.js` stays
+out of it because the wheels are interpreter-specific), and **the one real cost**: the
+`tree-sitter` runtime wheel is version-locked to the interpreter (`cp314-cp314-win_amd64`) while
+the grammars are `abi3` and portable. So a vendored runtime breaks when the user changes Python
+minor version -- the same failure `node_modules` has across platforms, needing the same treatment:
+catch the `ImportError` and say what happened, never a raw traceback.
+
+Also added a **done/not-done ledger** to the status block, because "phase 2 in progress" was hiding
+how little of it is finished: a six-step table with 1 done and 1b next, an explicit list of what
+step 1 pulled in outside the step list, and an explicit list of what has *not* been reached --
+2b's TypeScript supplementary query, 2c beyond three languages, 2d's tier rename, 2f, and 2g's
+fixtures, which **no language has yet**. Plus the honest headline: languages added since the port
+began is **none**, because step 1 was a like-for-like port and the "graph more languages" goal does
+not advance until fixtures exist to keep the supported list true.
+
+Amended the dated 2026-09-09 decision block with a one-line pointer so it does not contradict the
+new section on where the wheels land.
+
+Committed and pushed.
