@@ -5,7 +5,7 @@
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
 > | 1 — Resolve the edges the textual extractor drops | semantics, no new dependency | **done** | `e8464f8` |
-> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **done** — 6 deletion steps, 2d and 2g | `8974c27`, `67d4df4`, `e7bfb09`, `fd9c7d8`, `df5fb0b`, `7283cf4`, `7f40370`, this commit |
+> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **done** — 6 deletion steps, 2d and 2g | `8974c27`, `67d4df4`, `e7bfb09`, `fd9c7d8`, `df5fb0b`, `7283cf4`, `7f40370`, `fd67e49` |
 > | 3 — Full regression gate: nothing old may break | does it still run | not started | |
 > | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | not started | |
 >
