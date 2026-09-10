@@ -5,7 +5,7 @@
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
 > | 1 — Resolve the edges the textual extractor drops | semantics, no new dependency | **done** | `e8464f8` |
-> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **steps 1 and 1b of 6 done** | `8974c27`, `b394fdf`+ |
+> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **steps 1 and 1b of 6 done** | `8974c27`, `67d4df4` |
 > | 3 — Full regression gate: nothing old may break | does it still run | not started | |
 > | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | not started | |
 >
@@ -17,7 +17,7 @@
 > | Step | What | State |
 > | --- | --- | --- |
 > | 1 | Java/Go/C# ported to tree-sitter, matching the phase-1 numbers | **done** — `8974c27` |
-> | 1b | Move the install into `<skill>/vendor/` instead of the user's Python | **done** — this commit |
+> | 1b | Move the install into `<skill>/vendor/` instead of the user's Python | **done** — `67d4df4` |
 > | 2 | delete `lang_extract.py` | **next** |
 > | 3 | JS/TS ported, diffed against `js_extract.js` | not started |
 > | 4 | delete `@babel/parser`, `js_extract.js`, `js_bridge.py`, the skill's `package.json` | not started |
