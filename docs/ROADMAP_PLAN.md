@@ -5,7 +5,7 @@
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
 > | 1 — Resolve the edges the textual extractor drops | semantics, no new dependency | **done** | `e8464f8` |
-> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **all 6 deletion steps done**; 2d and 2g remain | `8974c27`, `67d4df4`, `e7bfb09`, `fd9c7d8`, `df5fb0b`, this commit |
+> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **all 6 deletion steps done**; 2d and 2g remain | `8974c27`, `67d4df4`, `e7bfb09`, `fd9c7d8`, `df5fb0b`, `7283cf4` |
 > | 3 — Full regression gate: nothing old may break | does it still run | not started | |
 > | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | not started | |
 >
@@ -21,7 +21,7 @@
 > | 2 | delete `lang_extract.py` | **done** — `e7bfb09` |
 > | 3 | JS/TS ported, diffed against `js_extract.js` | **done** — `fd9c7d8`; the diff is `tools/diff_js_extractors.py`, reporting **identical output** on all 6 files |
 > | 4 | delete `@babel/parser`, `js_extract.js`, `js_bridge.py`, the skill's `package.json` | **done** — this commit; `node_modules/`, `package-lock.json` and `tools/diff_js_extractors.py` went with them |
-> | 5 | Python ported; `ast` oracle reports 0 disagreements | **done** — this commit; `tools/check_py_oracle.py` reports **0 disagreements** over 34 files |
+> | 5 | Python ported; `ast` oracle reports 0 disagreements | **done** — `7283cf4`; `tools/check_py_oracle.py` reports **0 disagreements** over 34 files |
 > | 6 | drop `ast` from the build path (it stays forever as the oracle) | **done** — with step 5; no shipped script imports `ast`, only `tools/check_py_oracle.py` does |
 >
 > **Also done, outside the step list** (step 1 pulled these in because a per-language grammar is a
