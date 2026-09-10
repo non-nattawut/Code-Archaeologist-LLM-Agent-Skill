@@ -2321,3 +2321,45 @@ assign by resolution strategy.
 and grades unchanged at D(69)/D(68); installer self-test OK. Docs: `CLAUDE.md` (verification
 commands + the fixture table), `README.md` (repo-only tree), `docs/USAGE.md` (a "check the skill
 itself" section), and the fixtures' own README explaining why they are not in `sample_src/`.
+
+## [61] 2026-09-10 — Option (b) measured, and it fails
+
+**Prompt**
+> use option b for 2d since it it exact right?
+
+**Response**
+No — and I had recommended it, so this corrects my own advice from last turn. I checked before
+implementing, and the numbers say (b) is close to the reverse of what is wanted.
+
+**`ext` does not mean "we lost an edge". It means "this call left the graph"** — the ordinary case
+for any code that uses a library.
+
+| Node | What it is | `ext` | (b) would say |
+| --- | --- | --- | --- |
+| `OrderWorkflow.place` | the interface-dispatch hard case | **0** | exact |
+| `InvoiceService.Total` | the collapsed overload pair | **0** | exact |
+| `createOrder` (js) | calls `fetch`/`stringify`/`json` — nothing lost | **3** | imprecise |
+| `orders` (py) | Flask handler calling `jsonify` — nothing lost | **4** | imprecise |
+
+Across the sample: 25 of 52 nodes have `ext > 0`, 24 carry `approx`, and the sets barely overlap —
+**16 of the 24 approximate nodes have `ext == 0`**, both hard cases among them. (b) would clear
+exactly the nodes the sample exists to warn about, and flag ordinary library calls instead.
+
+**Why I got it wrong the first time:** I reasoned from the field's *description* ("call sites that
+stayed external") without looking at its distribution. The description is accurate; the inference
+from it was not. Two minutes of counting settled what an hour of reasoning would not have.
+
+**Revised recommendation, recorded in the plan: (c) plus two named markers.** State the
+lower-bound caveat once, globally — the fixtures proved it holds for every language, so singling
+out three is arbitrary — and keep a per-node marker only where the specific loss can be *named*.
+Two of the three kinds are already in the graph: an edge landing on a `declaration: true` node is
+interface dispatch, and a target whose `signatures` has more than one entry is a folded overload.
+The third, JS/TS dropping method calls, is a property of the extractor rather than of a node
+(measured: 0 of 3 edges in the TypeScript fixture).
+
+That is strictly more informative than `approx: true`, and it stops claiming the other languages
+are exact.
+
+No code changed — the measurement and the corrected recommendation are recorded in
+*Found while implementing* #2, so neither gets re-derived. Waiting on the call before touching the
+24 nodes.

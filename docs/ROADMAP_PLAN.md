@@ -995,11 +995,42 @@ about its own precision, and I am not confident enough in any single reading to 
 
 **Options.** (a) Assign the tier by *resolution strategy* as measured above — JS/TS becomes
 `sparse`, Java/Go/C# becomes `exact`; honest, but it drops the interface-dispatch warning where the
-sample proves it is needed. (b) Keep a per-node marker but derive it from data already collected:
-`build_flow` records `ext`, the count of call sites that did not resolve, so a node with dropped
-sites could be marked regardless of language — this is the only option that would mark Python
-honestly too. (c) Drop the per-node tier and state the lower-bound caveat **once, globally**, since
-after the port it is true of every language. My order is (b), (c), (a).
+sample proves it is needed. (b) Keep a per-node marker but derive it from `ext`, the per-node count
+of call sites that did not resolve, which `build_flow` already collects. (c) Drop the per-node tier
+and state the lower-bound caveat **once, globally**, since after the port it is true of every
+language.
+
+#### (b) was measured and **fails** — recorded 2026-09-10
+
+It was my recommendation until the numbers were checked, and they say it is close to the reverse of
+what is wanted. **`ext` does not mean "we lost an edge"; it means "this call left the graph"**,
+which is the ordinary case for any code that uses a library.
+
+| Node | What it is | `ext` | (b) would say |
+| --- | --- | --- | --- |
+| `OrderWorkflow.place` | **the interface-dispatch hard case** — which implementation runs is unknowable | **0** | exact |
+| `InvoiceService.Total` | **the collapsed overload pair** — two signatures, one node | **0** | exact |
+| `createOrder` (js) | calls `fetch`, `JSON.stringify`, `res.json` — nothing lost | **3** | imprecise |
+| `orders` (py) | a Flask handler calling `jsonify` — nothing lost | **4** | imprecise |
+
+Across the sample: 25 of 52 nodes have `ext > 0`, 24 carry `approx`, and the two sets barely
+overlap — **16 of the 24 approximate nodes have `ext == 0`**, including both deliberate hard cases.
+So (b) would clear exactly the nodes the sample exists to warn about and flag ordinary library
+calls instead.
+
+**What the measurement points at instead.** Precision loss is detectable *where it happens*, and
+two of the three kinds are already recorded in the graph:
+
+- **interface dispatch** — the edge lands on a node with `declaration: true`;
+- **overloads** — the target node's `signatures` has more than one entry;
+- **name-matched languages** — JS/TS drop method calls entirely (measured: 0 of 3 edges in the
+  TypeScript fixture), which is a property of the language's extractor, not of a node.
+
+**Revised recommendation: (c) plus the two named markers.** State the lower-bound caveat once,
+globally — the fixtures proved it is true of every language, so singling out three is arbitrary —
+and keep a per-node marker only where the specific loss can be *named*, which is the two cases
+above. That is strictly more informative than `approx: true` and it stops claiming the other
+languages are exact.
 
 ---
 
