@@ -4,7 +4,7 @@
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
-> | 1 — Resolve the edges the textual extractor drops | semantics, no new dependency | **done** | `PHASE1` |
+> | 1 — Resolve the edges the textual extractor drops | semantics, no new dependency | **done** | `e8464f8` |
 > | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | not started | |
 > | 3 — Full regression gate: nothing old may break | verification | not started | |
 >
