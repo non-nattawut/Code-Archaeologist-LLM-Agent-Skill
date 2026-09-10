@@ -87,6 +87,25 @@ missing is named in the build output with the exact command, those files produce
 `vendor/` is built for the Python that installed it. If a build reports *"runtime found but not
 loadable"*, you changed Python version — re-run the command above.
 
+## Check the skill itself
+
+Repo tools, not part of the installed skill -- they need files (`README.md`, `CLAUDE.md`,
+`tests/fixtures/`) that no installed copy has:
+
+```bash
+python tools/check_docs.py            # every script is documented, every quoted path exists
+python tools/check_langs.py           # every graphed language still produces its nodes and edges
+python tools/check_py_oracle.py       # Python read by tree-sitter agrees with the stdlib `ast`
+```
+
+`check_langs.py` takes language names to narrow it (`python tools/check_langs.py go java`) and
+`--update` to re-record expectations from what the extractors currently do -- useful, and dangerous
+for the same reason, so read the diff it writes.
+
+`check_py_oracle.py` takes a source root (default `./sample_src`); point it at a large Python
+codebase to get a far better test than the sample can give -- that is how the wrapped-signature bug
+was found.
+
 ## Query the graphs
 
 Trace paths or impact on either graph (structure is the default; add `--graph` for flow). These print compact text - `A > B > C` for a path, a heading plus one node per line for an impact set; add `--format json` for the full envelope:

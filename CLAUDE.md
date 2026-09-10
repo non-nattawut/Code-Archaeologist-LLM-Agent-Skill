@@ -362,8 +362,35 @@ Other checks worth running when you touch the relevant part:
 ```bash
 python -m compileall -q .agents/skills/code-archaeologist/scripts     # syntax
 python tools/check_docs.py                                            # docs vs code
+python tools/check_langs.py                                           # every language still graphs
+python tools/check_py_oracle.py                                       # ast vs tree-sitter on Python
 node bin/cli.js --harness claude --target <tmpdir> --self-test        # installer
 ```
+
+`tools/check_langs.py` is the one to run after touching **any** extractor. Each supported language
+has a fixture under `tests/fixtures/langs/<lang>/` — a store, a service calling it *through a
+declared field*, a route, and a test file — and a row of expectations in `expected.json`. The
+**edges** are the assertion that matters: nodes alone only prove the grammar loaded, an edge proves
+receiver resolution worked. `--update` rewrites the expectations from reality, which is how they
+were recorded in the first place, and will just as happily bless a regression — read its diff.
+
+Fixtures live outside `sample_src/` on purpose: that directory ships to users and its numbers are
+pinned by the prose block above, so every language added there means rewriting all of it by hand.
+A fixture costs one directory and one row. Current expectations, all asserted:
+
+| Language | Nodes | Edges | Routes | Test node |
+| --- | --- | --- | --- | --- |
+| python | 6 | 3 | 1 | yes |
+| java | 4 | 3 | 1 | yes |
+| csharp | 4 | 3 | 1 | yes |
+| go | 5 | 3 | 1 | yes |
+| javascript | 4 | 3 | 1 | yes |
+| typescript | 4 | **0** | 1 | yes |
+
+That TypeScript zero is not a broken fixture, it is the honest number: JS/TS call edges are matched
+by **name**, so bare function calls link (JavaScript's 3) and method calls on an object do not
+(TypeScript's fixture calls `store.save()` through a class). Recorded so it cannot quietly become
+something else.
 
 For `templates/viewer.html`, extract the inline `<script>` and parse it as a **classic script**
 (`new vm.Script(code)`) — `node --check` wraps input in a CommonJS function, so it accepts top-level

@@ -1,11 +1,11 @@
 # Graph as many languages as possible
 
-> ## Status: **phase 1 done; phase 2's deletion order is complete — one engine, six of six steps.** Phases 3 and 4 are verification, not features.
+> ## Status: **phase 1 done; phase 2 complete except 2d, which is deliberately unapplied.** Phases 3 and 4 are verification, not features.
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
 > | 1 — Resolve the edges the textual extractor drops | semantics, no new dependency | **done** | `e8464f8` |
-> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **all 6 deletion steps done**; 2d and 2g remain | `8974c27`, `67d4df4`, `e7bfb09`, `fd9c7d8`, `df5fb0b`, `7283cf4` |
+> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **all 6 deletion steps + 2g done**; 2d needs a decision | `8974c27`, `67d4df4`, `e7bfb09`, `fd9c7d8`, `df5fb0b`, `7283cf4`, this commit |
 > | 3 — Full regression gate: nothing old may break | does it still run | not started | |
 > | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | not started | |
 >
@@ -55,9 +55,16 @@
 > Note it did **not** need 2b's `TAGS_QUERY` route: the extractor walks the tree directly, the same
 > way `ts_extract.py` does, so the thin-tags problem never arose.
 >
+> **2g is done** — `tests/fixtures/langs/<lang>/` for all six graphed languages, expectations in
+> `expected.json`, asserted by `tools/check_langs.py` and shown to fail on a deliberately broken
+> fixture. It found a real bug on its first run: `is_test_path` was being handed a node's
+> `source` (`path:line`), so **every filename-based test convention silently failed** and only a
+> `tests/` directory could mark a node as test code.
+>
 > **Not done, and not started** — none of this is blocked, it simply has not been reached:
+> **2d**, deliberately (see *Found while implementing* #2 — the port changed its answer);
 > 2b's supplementary query for TypeScript (its shipped `TAGS_QUERY` yields zero captures on real
-> implementation files) — now moot for JS/TS, see above; 2c beyond the ported languages; **2d's `approx` -> `exact`/`sparse`
+> implementation files) — now moot for JS/TS; 2c beyond the ported languages; **2d's `approx` -> `exact`/`sparse`
 > tier rename**, deliberately deferred so step 1 could be verified by equivalence; 2f; and **2g's
 > per-language fixtures and `tools/check_langs.py`, which no language yet has**. Every one of the
 > eight open concerns below is still open — resolution parity for Python (concern 1) is the one
@@ -483,6 +490,14 @@ Two tiers no longer describe reality. After the port there are three kinds of no
 
 Two values, not three: the `textual` tier dies with `lang_extract.py` (2f). Replace the boolean
 `approx` with this field, owned by `taxonomy.py`.
+
+> **Not applied — the port changed the answer. Recorded 2026-09-10; see *Found while implementing*
+> #2 below.** This table was written before steps 3 and 5. It puts Java, Go and C# in `exact`,
+> which would delete the `approx` marker from exactly the three languages whose limitations
+> `sample_src` was built to demonstrate, while `sparse` would be empty because no dynamically
+> typed language is graphed yet. Applying it as written removes an honesty marker and adds
+> nothing. The fixtures now measure what each language actually resolves, and that measurement
+> points somewhere different.
 
 #### What the README may and may not claim
 
@@ -948,7 +963,47 @@ looking at a graph that misrepresents the tool.
 
 ---
 
-### 2. Report artifacts are not byte-reproducible — found in step 1b
+### 2. The `exact` / `sparse` tiering in 2d no longer matches what the extractors do — found in 2g
+
+**What.** 2d replaces the boolean `approx` with a two-value `tier`, and assigns it per *language*:
+`exact` for languages that carry types, `sparse` for those that do not. That table was written
+before the JS/TS and Python ports. Applying it now would mean:
+
+- Java, Go and C# become `exact`, **losing** the "edges are a lower bound" marker — on the three
+  languages whose interface-dispatch and overload limits `sample_src` exists to demonstrate.
+- `sparse` would have **no members at all**, since Ruby/PHP/Elixir/Lua are not graphed.
+
+So the change deletes a warning and adds nothing. That is the opposite of what 2d is for.
+
+**What the fixtures actually measured** (`tools/check_langs.py`, identical fixture shape per
+language — a service calling a store through a declared field):
+
+| Language | Edges | How a call is resolved |
+| --- | --- | --- |
+| python, java, go, csharp | 3 of 3 | receiver typed through a declared field/param/annotation |
+| javascript | 3 of 3 | **by name** — the fixture's calls are bare functions |
+| typescript | **0 of 3** | by name — its calls go through a class, so nothing matches |
+
+The real split is not "does the language have types", it is **"does our extractor resolve a
+receiver, or match a name"**. By that measure JS/TS is the sparse tier and Java/Go/C# is not,
+which is the reverse of what the `approx` flag says today.
+
+**Why this needs a decision rather than a fix.** Whichever way it goes, `approx` moves on 24 of
+the 52 sample flow nodes and the caveat text changes in six places (graph, vault front-matter,
+`context.py`, `report.py`, `brief.py`, the explorer chip). That is a change to what the tool claims
+about its own precision, and I am not confident enough in any single reading to make it silently.
+
+**Options.** (a) Assign the tier by *resolution strategy* as measured above — JS/TS becomes
+`sparse`, Java/Go/C# becomes `exact`; honest, but it drops the interface-dispatch warning where the
+sample proves it is needed. (b) Keep a per-node marker but derive it from data already collected:
+`build_flow` records `ext`, the count of call sites that did not resolve, so a node with dropped
+sites could be marked regardless of language — this is the only option that would mark Python
+honestly too. (c) Drop the per-node tier and state the lower-bound caveat **once, globally**, since
+after the port it is true of every language. My order is (b), (c), (a).
+
+---
+
+### 3. Report artifacts are not byte-reproducible — found in step 1b
 
 **What.** Constraint 2 says "same source in, same bytes out". The graphs honour it exactly: two
 builds of identical source produce byte-identical `graph.json` and `flow_graph.json`. The

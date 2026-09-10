@@ -86,12 +86,31 @@ TEST_CONTENT_RE = re.compile(
     r"|\bfunc\s+Test[A-Z]\w*\s*\(\s*\w+\s+\*testing\.T"             # Go
     r"|\bunittest\.TestCase\b|^\s*import\s+pytest\b", re.M)         # Python
 TEST_CONTENT_BYTES = 8192
+# A graph node's `source` is "<path>:<line>"; the line is not part of the filename.
+TEST_LINE_SUFFIX_RE = re.compile(r":\d+$")
 
 
 def is_test_path(path: str) -> bool:
-    """True when a path follows any language's test-file convention."""
+    """True when a path follows any language's test-file convention.
+
+    Accepts a bare path *or* a graph node's `source`, which carries a `:line`
+    suffix. That tolerance is not politeness, it is a bug fix: every flow node is
+    keyed by `path:line`, so `is_test_path("api/user_test.go:12")` used to answer
+    False and only a `tests/` **directory** could mark a node as test code. Every
+    project that names its test files by convention instead -- `user_test.go`,
+    `test_user.py`, `UserTest.java` -- had its tests silently classified as
+    application code, which means `analyze.py` reported them as dead and
+    `scan_security.py` scanned them.
+
+    One caller already stripped the suffix by hand (`tests_map.py`) and another
+    did not (`build_flow.py`), which is exactly the drift `taxonomy` exists to
+    prevent: every pass must ask the same question and get the same answer.
+    Found by the per-language fixtures, whose test files sit next to the code
+    they test rather than in a `tests/` directory -- the shape the sample never
+    had.
+    """
     parts = path.replace("\\", "/").split("/")
-    name = parts[-1]
+    name = TEST_LINE_SUFFIX_RE.sub("", parts[-1])
     if TEST_DIRS.intersection(p.lower() for p in parts[:-1]):
         return True
     return bool(TEST_SUFFIX_RE.search(name) or TEST_FILE_RE.search(name))

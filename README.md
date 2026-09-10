@@ -305,6 +305,13 @@ It has no npm dependencies of its own.
     ├── structure/  flow/  report/  cache/
 ```
 
+Alongside the skill, in the repo but never installed:
+
+```
+tests/fixtures/langs/      one small fixture per graphed language + expected.json
+tools/                     check_docs.py · check_langs.py · check_py_oracle.py
+```
+
 ---
 
 ## What's next

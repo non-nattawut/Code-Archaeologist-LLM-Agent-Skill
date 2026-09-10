@@ -2246,3 +2246,78 @@ replacing the prose), `SKILL.md`, `README.md`, `docs/USAGE.md`, `docs/PRESENTATI
 
 Phase 2's deletion order is complete. **2d** (the `approx` → `exact`/`sparse` rename) and **2g**
 (per-language fixtures + `tools/check_langs.py`) are what remain of the phase.
+
+## [60] 2026-09-10 — 2g: a fixture per language, which found a silent bug on its first run
+
+**Prompt**
+> ok continue
+
+**Response**
+Built **2g** and deliberately did **not** build 2d. Both decisions are below.
+
+### 2g — `tests/fixtures/langs/` + `tools/check_langs.py`
+
+Six fixtures, one per graphed language, all the same four things so they are comparable and a new
+language is a copy-and-translate: a store with a method, a service that calls it **through a
+declared field**, a controller with a route, and a test file. Expectations live in `expected.json`;
+`tools/check_langs.py` asserts them, takes language names to narrow, and has `--update` to record
+from reality — which is how the table was written, with its own warning to read the diff.
+
+**And the diff is where the value was.** The first `--update` showed `test_nodes: []` for **every
+language**. `is_test_path("python/test_widgets.py")` returns True, but flow nodes are keyed
+`path:line`, and `is_test_path("python/test_widgets.py:4")` returns **False** — the `:4` lands
+inside the filename, so `test_*.py`, `*_test.go`, `*Test.java`, `*.test.ts` never matched. Only a
+`tests/` **directory** could mark a node as test code.
+
+Consequences of that, all silent: `analyze.py` reports those nodes as dead code, `scan_security.py`
+scans them, and `app_edges()` counts their calls as coupling. Any project that names test files by
+convention instead of foldering them had this.
+
+`tests_map.py` already stripped the suffix by hand; `build_flow.py` did not — precisely the drift
+`taxonomy.py` exists to prevent. Fixed in `is_test_path` itself, since it is the shared definition
+and two of its five callers pass the `path:line` form. Negative-checked: `order_service.py:9` still
+returns False.
+
+**The sample could never have caught this** — its one Python test file lives in `backend/tests/`,
+so the directory branch always fired. The fixtures put test files next to the code they test, which
+is the shape that exposes it. Rebuilt `sample_src`: both graphs byte-identical, so the fix changes
+nothing there.
+
+Also **proved the checker is not vacuous**: changed Java's `private final WidgetStore store` to
+`Object store` and it failed with exactly `edges missing [['WidgetService.place',
+'WidgetStore.save']]` — the nodes and route still matched, which is the fixture design working as
+intended (edges are the load-bearing assertion, nodes only prove the grammar loaded).
+
+One recorded number is a known gap, not a pass: **typescript has 0 edges** where every other
+language has 3. JS/TS call edges are matched by *name*, so JavaScript's bare function calls link
+and TypeScript's method-call-through-a-class does not. Written into `CLAUDE.md`'s table with the
+reason, so it cannot quietly become something else.
+
+### 2d — measured, then deliberately left unapplied
+
+2d says: replace the boolean `approx` with a `tier` of `exact` / `sparse`, assigned per language.
+That table was written before steps 3 and 5, and the ports changed its answer. Applying it as
+written would:
+
+- make Java, Go and C# `exact`, **deleting** the lower-bound marker from the three languages whose
+  interface-dispatch and overload limits `sample_src` was purpose-built to demonstrate, and
+- leave `sparse` with **no members at all**, since no dynamically typed language is graphed.
+
+It deletes a warning and adds nothing. The fixtures measured what actually happens: python, java,
+go and csharp resolve 3 of 3 edges through a declared field; javascript resolves 3 of 3 **by name**;
+typescript resolves **0 of 3**. So the real axis is not "does the language have types" but "does
+our extractor resolve a receiver or match a name" — by which JS/TS is the sparse tier and
+Java/Go/C# is not, the reverse of what `approx` says today.
+
+Since either answer moves `approx` on 24 of 52 sample nodes and rewrites the caveat in six places,
+this is a claim about the tool's own precision and not mine to change silently (principle 7).
+Recorded as *Found while implementing* #2 with three options; my order is **(b)** derive it from
+`ext`, the per-node count of unresolved call sites that `build_flow` already collects — the only
+option that would also mark Python honestly — then (c) state the caveat once globally, then (a)
+assign by resolution strategy.
+
+**Verified:** `check_langs` green on all six with a demonstrated failure mode; `check_py_oracle`
+0 disagreements; `check_docs` OK; `compileall` OK; sample 25/22 and 52/32 with graphs byte-identical
+and grades unchanged at D(69)/D(68); installer self-test OK. Docs: `CLAUDE.md` (verification
+commands + the fixture table), `README.md` (repo-only tree), `docs/USAGE.md` (a "check the skill
+itself" section), and the fixtures' own README explaining why they are not in `sample_src/`.
