@@ -48,8 +48,10 @@ python .claude/skills/code-archaeologist/scripts/archaeologist.py report --src .
 
 Then open `data/explorer.html` — one self-contained page, both maps, works offline from `file://`.
 
-> Scanning JS/TS? Run `cd .claude/skills/code-archaeologist && npm install` first (installs
-> `@babel/parser`). Skip it and the frontend is left out — the build says so loudly.
+> Scanning anything but Python? Install that language's grammar first, into the skill rather
+> than your Python: `cd .claude/skills/code-archaeologist && pip install --only-binary :all:
+> --no-cache-dir --target vendor tree-sitter tree-sitter-javascript tree-sitter-typescript`. Skip
+> it and those files are left out — the build says so loudly, and names the wheel.
 
 ---
 
@@ -123,8 +125,8 @@ needs no arguments — a build records the roots it scanned, and `check` and `br
 ```
    your source                         two graphs                    one page
   ┌───────────┐                     ┌──────────────┐   analysis   ┌──────────────┐
-  │ .py .ts   │  ast / @babel /     │ structure    │ ───────────▶ │ explorer.html│
-  │ .jsx .tsx │  declaration scan   │ flow         │   + report   │ (both maps)  │
+  │ .py .ts   │  ast / tree-sitter  │ structure    │ ───────────▶ │ explorer.html│
+  │ .jsx .tsx │                     │ flow         │   + report   │ (both maps)  │
   │ .java .go │ ─────────────────▶  └──────────────┘              └──────────────┘
   │ .cs       │      extract              │
   └───────────┘                           ▼  one Markdown note per node
@@ -133,9 +135,9 @@ needs no arguments — a build records the roots it scanned, and `check` and `br
 
 The pieces that make it cheap and repeatable:
 
-- **Deterministic extraction.** Python via the stdlib `ast` module; JS/TS via `@babel/parser`;
-  Java, Go and C# via tree-sitter. All three are real parsers and all three are deterministic — the
-  same input always yields the same graph. A parser that is not installed is named in the output
+- **Deterministic extraction.** Python via the stdlib `ast` module; every other language via
+  tree-sitter. Both are real parsers and both are deterministic — the same input always yields the
+  same graph. A parser that is not installed is named in the output
   and its files are skipped, so a smaller graph never passes for a smaller codebase (see [Language
   support](#language-support)).
 - **Call resolution without a type checker.** `self.<dep>.method()` is resolved through `__init__`
@@ -176,12 +178,13 @@ re-runs it from scratch — along with the current selection and filter.
 
 | Capability | Languages |
 | --- | --- |
-| **Graphs, exact** (parsed) | Python (`ast`), JavaScript/TypeScript (`@babel/parser`), Java, Go, C# (tree-sitter) |
+| **Graphs, exact** (parsed) | Python (`ast`), JavaScript/TypeScript/JSX/TSX, Java, Go, C# (tree-sitter) |
 | **Lines, complexity, risk scan, debt markers, test detection** | + Kotlin, Rust, Ruby, PHP, Swift, Scala, Groovy, Dart, Elixir, C/C++ |
 
-Every language with a graph is now **parsed** — Java, Go and C# moved from a hand-written textual
-scan to tree-sitter, so declarations, bodies, parameter types and doc comments come from a real
-syntax tree rather than from regex.
+Every language with a graph is **parsed**, and all but Python by one engine: Java, Go and C#
+moved off a hand-written textual scan, and JS/TS off `@babel/parser`, so declarations, bodies,
+parameter types and doc comments all come from a real syntax tree. Graphing JS/TS no longer needs
+Node installed at all.
 
 Parsing is not resolution, though, and the difference is visible in the output rather than buried
 in a caveat. Java/Go/C# nodes still carry `approx: true`, and it now means one specific thing:
@@ -214,7 +217,6 @@ dead code** and its calls never count as coupling.
 | --- | --- |
 | **Python 3.10+** | required — the Python graph is stdlib `ast`, no install |
 | **`tree-sitter` + a grammar wheel** | for Java/Go/C# — `pip install --only-binary :all: --no-cache-dir --target vendor tree-sitter tree-sitter-java` (etc), run inside the skill folder. Wheels, no compiler; install only the languages you have. Lands in `<skill>/vendor`, **not** in your Python — delete the skill folder and it is gone |
-| **Node + `@babel/parser`** | only for JS/TS parsing (`npm install` in the skill folder) |
 | **git** | optional — only for churn / ownership / hotspots |
 | **A browser** | to open the explorer — no network needed |
 
@@ -275,9 +277,10 @@ It has no npm dependencies of its own.
 │   │   ├── build_wiki.py
 │   │   ├── build_graph.py
 │   │   ├── build_flow.py
-│   │   ├── js_extract.js   (Node/@babel)
-│   │   ├── js_bridge.py
+│   │   ├── js_ts_extract.py JS/JSX/TS/TSX, parsed with tree-sitter
 │   │   ├── ts_extract.py   Java/Go/C#, parsed with tree-sitter
+│   │   ├── js_extract.js   the Node/@babel extractor js_ts_extract.py replaced (reference only)
+│   │   ├── js_bridge.py    its Python side (reference only)
 │   │   └── apply_descriptions.py
 │   │
 │   ├── review/           graphs -> findings

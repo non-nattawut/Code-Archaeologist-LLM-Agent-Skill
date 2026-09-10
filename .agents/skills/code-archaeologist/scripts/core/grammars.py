@@ -49,6 +49,9 @@ GRAMMAR_MODULES = {
     "java": "tree_sitter_java",
     "go": "tree_sitter_go",
     "csharp": "tree_sitter_c_sharp",
+    "javascript": "tree_sitter_javascript",
+    "typescript": "tree_sitter_typescript",
+    "tsx": "tree_sitter_typescript",
 }
 
 # `pip install` name per module, for the message a user is asked to run.
@@ -56,6 +59,17 @@ PIP_NAMES = {
     "tree_sitter_java": "tree-sitter-java",
     "tree_sitter_go": "tree-sitter-go",
     "tree_sitter_c_sharp": "tree-sitter-c-sharp",
+    "tree_sitter_javascript": "tree-sitter-javascript",
+    "tree_sitter_typescript": "tree-sitter-typescript",
+}
+
+# The factory to call on the module, when it is not the usual `language()`.
+# `tree-sitter-typescript` ships two grammars in one wheel, and they are not
+# interchangeable: `.tsx` will not parse under `language_typescript` (`<` is
+# ambiguous between a type argument and a JSX tag) and vice versa.
+LANGUAGE_FACTORY = {
+    "typescript": "language_typescript",
+    "tsx": "language_tsx",
 }
 
 _parsers: dict[str, object] = {}
@@ -184,7 +198,14 @@ def install_hint(langs) -> str:
     skill folder -- which is the difference between "delete the skill and nothing
     is left" being true and being nearly true.
     """
-    pkgs = [PIP_NAMES[GRAMMAR_MODULES[l]] for l in sorted(set(langs)) if l in GRAMMAR_MODULES]
+    # Deduplicated by *package*, not by language: one wheel can provide several
+    # (`tree-sitter-typescript` ships both `typescript` and `tsx`), and naming it
+    # twice in a command the user is meant to paste looks like a mistake.
+    pkgs: list[str] = []
+    for lang in sorted(set(langs)):
+        pkg = PIP_NAMES.get(GRAMMAR_MODULES.get(lang, ""), "")
+        if pkg and pkg not in pkgs:
+            pkgs.append(pkg)
     if not pkgs:
         return ""
     if not runtime_available():
@@ -217,14 +238,17 @@ def parser_for(lang: str):
     if ts is None:
         _parsers[lang] = None
         return None
-    grammar = importlib.import_module(GRAMMAR_MODULES[lang])
-    language = ts.Language(grammar.language())
-    _parsers[lang] = ts.Parser(language)
+    _parsers[lang] = ts.Parser(_language(ts, lang))
     return _parsers[lang]
+
+
+def _language(ts, lang):
+    """The `tree_sitter.Language` for `lang`, whichever factory its wheel uses."""
+    grammar = importlib.import_module(GRAMMAR_MODULES[lang])
+    return ts.Language(getattr(grammar, LANGUAGE_FACTORY.get(lang, "language"))())
 
 
 def query(lang: str, source: str):
     """Compile a query string against `lang`'s grammar."""
     ts = runtime()
-    grammar = importlib.import_module(GRAMMAR_MODULES[lang])
-    return ts.Query(ts.Language(grammar.language()), source)
+    return ts.Query(_language(ts, lang), source)

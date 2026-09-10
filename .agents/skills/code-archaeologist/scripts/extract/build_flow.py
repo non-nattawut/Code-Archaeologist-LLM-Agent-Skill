@@ -62,7 +62,7 @@ def _save_json(path: str, obj) -> None:
         fh.write("\n")
 
 from taxonomy import infer_layer, is_test_path, ROUTE_DECORATOR_RE  # noqa: E402
-from js_bridge import find_js_files, extract_js_files, frontend_degraded   # noqa: E402
+from js_ts_extract import find_js_files, extract_js_files, frontend_degraded   # noqa: E402
 from ts_extract import find_lang_files, extract_lang_files  # noqa: E402  (Java/Go/C#, via tree-sitter)
 
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data"}

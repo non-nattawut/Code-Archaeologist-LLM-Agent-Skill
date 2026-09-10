@@ -2072,3 +2072,70 @@ the explorer confirmed offline. `viewer.html` changed, so its inline script was 
 have accepted a top-level `return` a browser rejects.
 
 Step 3 (JS/TS ported, diffed against `js_extract.js`) is next.
+
+## [57] 2026-09-10 — Step 3: JS/TS onto tree-sitter, and the graphs came out byte-identical
+
+**Prompt**
+> continue step 3
+
+**Response**
+Ported JS/JSX/TS/TSX off `@babel/parser` onto tree-sitter. New `extract/js_ts_extract.py` (about
+450 lines) keeping the Node extractor's exact contract — `find_js_files` / `extract_js_files` /
+`frontend_degraded` — which is the whole reason the port could be *proved* rather than argued.
+
+**Method: capture the oracle first, then diff.** Ran `js_extract.js` over the six sample files and
+kept its JSON before writing a line of the port. `tools/diff_js_extractors.py` runs both extractors
+over the same files and reports every leaf difference. First run: **2 differences**, both the same
+bug — the Nest methods' docs were empty.
+
+That one was worth the trouble. Babel folds a decorator into the decorated node's range, so
+`@Post()` on line 10 makes the method *start* at 10 and the comment on line 9 is adjacent. My
+`_doc_above` anchored on the `method_definition` at line 11, found the decorator as its previous
+sibling, and returned "". Fixed with `_doc_for`, which anchors on the first decorator. Second run:
+**identical output** on all six files.
+
+Then the real gate. Switched `build_wiki.py` and `build_flow.py` to the new module and rebuilt:
+`git diff` on `graph.json` and `flow_graph.json` is **empty**. Not "the same node count" — the same
+bytes. Nothing under `data/` changed at all.
+
+**Four bugs found while doing it, all fixed here under principle 7:**
+
+1. `grammars.install_hint()` returned **`""`** for JS/TS — the languages were not in
+   `GRAMMAR_MODULES`. The first diff run printed ``Run `` to enable JS/TS parsing``, an empty
+   command. Registered `javascript` / `typescript` / `tsx`, with `LANGUAGE_FACTORY` because
+   `tree-sitter-typescript` ships two grammars in one wheel and `.tsx` genuinely will not parse
+   under the TypeScript one (measured: `has_error` True under `javascript` and `typescript`, False
+   only under `tsx`).
+2. The missing-grammar warning named only **one** wheel — whichever file failed first — so a user
+   would install `tree-sitter-javascript`, rebuild, and meet the same warning again for TypeScript.
+   Now names every missing JS/TS wheel.
+3. Fixing (2) exposed a third: `install_hint` deduplicates by *language*, so `typescript` and `tsx`
+   put **`tree-sitter-typescript` twice** in a command meant to be pasted. Now deduplicates by
+   package.
+4. `bin/cli.js` still told users to `npm install` for JS/TS, and its fallback `.gitignore` had no
+   `vendor/`. Both corrected.
+
+**And one bug I caused and the self-test caught**, which is the useful kind. I added `"vendor"` to
+the installer's `SKIP_COPY` so a developer's wheels could not ride along into someone else's
+project — correct intent, matched by *basename*, and `templates/vendor/` is the inlined
+`force-graph` library. The self-test failed with a missing `force-graph.min.js`, i.e. hard
+constraint 4 broken. Now matched by full path, with a comment saying why. Reading the diff would
+not have caught this; running the installer did.
+
+**Docs, all in this commit:** `CLAUDE.md` (producer list, pipeline diagram, script layout, a
+`js_ts_extract.py` entry, `js_bridge`/`js_extract.js` marked reference-only, constraint 1 rewritten
+— **Node is no longer used to build a graph**, and the `node_modules`-renamed-away test replaced by
+a grammar-absent one), `SKILL.md` (preflight steps 2 and 3 collapsed into one tree-sitter step),
+`README.md`, `docs/USAGE.md`, `docs/PRESENTATION.html`. Two stale claims fell out on the way:
+PRESENTATION still said Java/Go/C# "need nothing installed at all", false since step 1, and the
+README requirements table still listed Node as a dependency.
+
+**Verified:** diff identical; `both` → 25/22 and 52/32, 16 endpoints, 0 pending; `report` → D(69) /
+D(68), 4 risk findings each, 1 duplicate cluster / 4 lines, 4/48 named by a test; `check` →
+stale: false; graphs byte-identical to the committed ones; `check_docs.py` OK; installer self-test
+OK with the explorer confirmed offline; degradation with both grammars removed → one named warning
+listing both wheels, build succeeds at 19/19 and 37/23.
+
+Step 4 (delete `@babel/parser`, `js_extract.js`, `js_bridge.py`, `package.json`) is next, and
+nothing in the build imports them any more. Note `tools/diff_js_extractors.py` dies with them — it
+is the last chance to re-run that comparison.

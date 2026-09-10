@@ -142,14 +142,20 @@ function findPython() {
 }
 
 // Build junk from running the skill in place (bytecode caches, an installed
-// node_modules) must not ride along into someone else's project.
+// node_modules or vendor/) must not ride along into someone else's project.
+// The skill's own vendor/ especially: those wheels are built for one interpreter
+// version and one OS, so copying them installs a dependency that may not load.
+// It is matched by full path, not by name -- templates/vendor/ is the inlined
+// force-graph library and must always be copied (hard constraint 4).
 const SKIP_COPY = new Set(["__pycache__", "node_modules", ".pytest_cache"]);
+const SKIP_COPY_PATHS = new Set([path.join(SKILL_SRC, "vendor")]);
 
 function copyDir(src, dest) {
   fs.mkdirSync(dest, { recursive: true });
   fs.cpSync(src, dest, {
     recursive: true,
-    filter: (from) => !SKIP_COPY.has(path.basename(from)) && !from.endsWith(".pyc"),
+    filter: (from) => !SKIP_COPY.has(path.basename(from))
+      && !SKIP_COPY_PATHS.has(from) && !from.endsWith(".pyc"),
   });
 }
 
@@ -166,9 +172,9 @@ function writeSkillMd(dest, relPosix) {
   fs.writeFileSync(path.join(dest, "SKILL.md"), out);
 }
 
-// The skill folder gets a node_modules/ of its own once the frontend parser is
-// installed, so it ships a .gitignore for the project it lands in. Copy the real
-// one when it is there; fall back to the essentials if the package dropped it.
+// The skill folder gets a vendor/ of its own once grammars are installed, so it
+// ships a .gitignore for the project it lands in. Copy the real one when it is
+// there; fall back to the essentials if the package dropped it.
 function writeGitignore(dest) {
   const src = path.join(SKILL_SRC, ".gitignore");
   const target = path.join(dest, ".gitignore");
@@ -177,6 +183,7 @@ function writeGitignore(dest) {
     return;
   }
   fs.writeFileSync(target, [
+    "vendor/",
     "node_modules/",
     "__pycache__/",
     "*.py[cod]",
@@ -275,8 +282,10 @@ async function main() {
   console.log(`  ${py.exe} ${relPosix}/scripts/archaeologist.py report --src ./src   # grade, risks, hotspots`);
   console.log(`  ${py.exe} ${relPosix}/scripts/archaeologist.py brief  --src ./src   # the whole thing in ~35 lines`);
   console.log(`  open ${relPosix}/data/explorer.html`);
-  console.log("\nBackend (Python) needs no dependencies. To also parse frontend (JS/TS), run:");
-  console.log(`  cd ${relPosix} && npm install`);
+  console.log("\nPython needs no dependencies. Every other language is one tree-sitter wheel,");
+  console.log("installed into the skill folder rather than into your Python:");
+  console.log(`  cd ${relPosix} && pip install --only-binary :all: --no-cache-dir --target vendor \\`);
+  console.log("      tree-sitter tree-sitter-javascript tree-sitter-typescript   # add java/go/c-sharp as needed");
   console.log("Tip: add --self-test to build the bundled demo now.");
   return 0;
 }

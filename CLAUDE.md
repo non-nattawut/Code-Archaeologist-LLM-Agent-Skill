@@ -14,8 +14,8 @@ reviews them, and renders one browsable page:
 | **Structure** | classes / React components / module groups | `build_wiki.py` → `build_graph.py` | `data/structure/{graph.json, registry.json, vault/*.md}` |
 | **Flow** | methods/functions | `build_flow.py` | `data/flow/{flow_graph.json, notes/*.md}` |
 
-Three producers feed both maps: Python (stdlib `ast`), JS/TS (`@babel/parser`) and Java/Go/C#
-(`ts_extract.py`, parsed with tree-sitter). Nodes from the third tier carry
+Three producers feed both maps: Python (stdlib `ast`), JS/TS (`js_ts_extract.py`) and
+Java/Go/C# (`ts_extract.py`) -- the last two both on tree-sitter. Nodes from the third tier carry
 `approx: true` everywhere they surface: graph, vault front-matter, `context.py`, the report's
 health section, `brief.py`, and an `approx` chip in the explorer. Adding a tier means adding an
 `extract_*_entities` in `build_wiki.py` and an `_analyze_*` in `build_flow.py`, nothing else.
@@ -29,8 +29,8 @@ returned path** — never by scanning source.
 archaeologist.py  project | flow | both | check | report | brief   <- the only entrypoint
   project  -> build_wiki -> build_graph ------------------\
   flow     -> build_flow ---------------------------------+--> render_explorer()
-      both extract through: js_bridge -> js_extract.js  (JS/TS, exact)
-                            ts_extract.py               (Java/Go/C#, tree-sitter)
+      both extract through: js_ts_extract.py  (JS/TS/JSX/TSX, tree-sitter)
+                            ts_extract.py     (Java/Go/C#,    tree-sitter)
   report   -> report.py (scan_security + git_insights + analyze + metrics + debt + tests_map
                          + duplicates)
                                                                     -> data/report/<map>/
@@ -49,8 +49,8 @@ scripts/
   archaeologist.py   the entrypoint
   paths.py           SKILL_ROOT / DATA_DIR / TEMPLATES_DIR, and the sys.path bootstrap
   core/     taxonomy.py  manifest.py  console.py  grammars.py
-  extract/  build_wiki.py  build_graph.py  build_flow.py  js_bridge.py  js_extract.js
-            ts_extract.py  apply_descriptions.py
+  extract/  build_wiki.py  build_graph.py  build_flow.py  js_ts_extract.py
+            ts_extract.py  apply_descriptions.py  js_bridge.py  js_extract.js
   review/   analyze.py  scan_security.py  git_insights.py  metrics.py  debt.py
             tests_map.py  duplicates.py  report.py  brief.py
   query/    trace_path.py  context.py  search.py  build_html.py
@@ -96,6 +96,17 @@ delete. Nothing else in `core/` may import a skill module.
   they disagree exactly when the wheels were built for another Python, so a caller reporting a
   skip must ask `runtime_error()` first — telling someone a grammar is missing when it is sitting
   right there sends them to reinstall what they already have.
+- `js_ts_extract.py` reads JS/JSX/TS/TSX from a tree-sitter parse: classes, functions, imports,
+  Express and Nest routes, `fetch`/axios calls, and the JSX rule that makes a function a
+  `kind: component`. It replaced the Node extractor behind that extractor's exact output contract
+  (`find_js_files` / `extract_js_files` / `frontend_degraded`), which is why the port could be
+  proved by diffing JSON rather than by reading code -- `tools/diff_js_extractors.py` reports
+  **identical output** on the sample. Four extensions, three grammars: `.tsx` will not parse under
+  the TypeScript language and needs `tsx`.
+- `js_bridge.py` and `js_extract.js` are the Node/`@babel/parser` extractor that `js_ts_extract.py`
+  replaced. Nothing in the build imports them; they are kept **only** as the reference the port is
+  diffed against, and are deleted at step 4 of the roadmap's deletion order along with
+  `package.json` and `node_modules/`.
 - `ts_extract.py` reads Java/Go/C# from a real parse tree, and keeps the same
   `find_lang_files` / `extract_lang_files` contract the textual extractor before it had -- which is
   what let the port be verified by diffing the graph instead of by reading code. That extractor
@@ -115,8 +126,8 @@ delete. Nothing else in `core/` may import a skill module.
   line. `git_insights.py` is one `git log --numstat` pass → churn, owners, hotspot risk.
 - `metrics.py` is line counts per file plus LOC / cyclomatic complexity / nesting depth /
   parameter count per node, keyed like the graph nodes (per-node figures are Python only:
-  `js_extract.js` and `ts_extract.py` both record `endLine`, but `metrics.py` does not read it
-  yet). `report.py` derives `file_census` from it, so line counts have one definition.
+  `js_ts_extract.py` and `ts_extract.py` both record `endLine`, but `metrics.py` does not read
+  it yet). `report.py` derives `file_census` from it, so line counts have one definition.
 - `search.py` is the "which nodes are these" filter over one graph (name/doc/layer/kind/lang/file
   plus `--calls` / `--called-by` / `--orphans`). It exists so neither the agent nor a human greps
   source to find a starting node.
@@ -211,10 +222,12 @@ scrolls.
 ## Hard constraints
 
 1. **One parser per language, and every one of them degrades.** Python 3.10+.
-   Python is stdlib `ast` and needs nothing installed. JS/TS needs Node + `@babel/parser` in the
-   skill folder. Java/Go/C# needs the `tree-sitter` runtime plus the wheel for that language
-   (`tree-sitter-java`, `tree-sitter-go`, `tree-sitter-c-sharp`) — wheels, no compiler, grammar
-   bundled. **Grammars are installed on demand, not shipped**: a repo with no Go pays nothing for
+   Python is stdlib `ast` and needs nothing installed. **Every other language is tree-sitter**:
+   the runtime plus the wheel for that language (`tree-sitter-javascript` for `.js`/`.jsx`,
+   `tree-sitter-typescript` for `.ts` *and* `.tsx`, `tree-sitter-java`, `tree-sitter-go`,
+   `tree-sitter-c-sharp`) — wheels, no compiler, grammar bundled. **Node is no longer used to
+   build a graph**; `js_bridge.py` / `js_extract.js` / `node_modules/` survive only as the
+   reference the JS/TS port is diffed against, until step 4 deletes them. **Grammars are installed on demand, not shipped**: a repo with no Go pays nothing for
    Go.
    **Every dependency installs inside the skill folder, never into the user's environment.**
    `npm install` → `<skill>/node_modules`; `pip install --only-binary :all: --no-cache-dir --target
@@ -316,8 +329,17 @@ hard cases, so the review path, the test path, the component path, every route s
 - 529 lines across 22 files (py 126, java 102, csharp 90, ts 90, go 66, js 28, tsx 27)
 - `archaeologist.py check --src ./sample_src` -> `stale: false` right after a build
 
-With `node_modules` renamed away the same build must still succeed, print the one
-`frontend skipped` warning, and fall back to a Python-only graph.
+With the JS/TS grammars renamed out of `vendor/` the same build must still succeed, print the
+one `frontend skipped` warning naming **both** wheels, and fall back to 19 nodes / 19 edges
+(structure) and 37 / 23 (flow) -- the backend-only graph. Deleting `node_modules` changes nothing
+any more: no build path reads it.
+
+The JS/TS port is verified by diffing against the extractor it replaced, which is only possible
+while that extractor still exists (step 4 deletes it):
+
+```bash
+python tools/diff_js_extractors.py            # must print: OK   identical output
+```
 
 Other checks worth running when you touch the relevant part:
 

@@ -73,11 +73,13 @@ Needs the tree-sitter runtime plus the wheel per language, installed **into the 
 rather than into your Python:
 
 ```bash
-cd .agents/skills/code-archaeologist && pip install --only-binary :all: --no-cache-dir --target vendor tree-sitter tree-sitter-java tree-sitter-go tree-sitter-c-sharp
+cd .agents/skills/code-archaeologist && pip install --only-binary :all: --no-cache-dir --target vendor tree-sitter tree-sitter-javascript tree-sitter-typescript tree-sitter-java tree-sitter-go tree-sitter-c-sharp
 ```
 
 They land in `<skill>/vendor`, which is git-ignored: your own environment is untouched, nothing can
-collide with your projects' versions, and removing the skill removes them. Any grammar that is
+collide with your projects' versions, and removing the skill removes them. `tree-sitter-javascript`
+covers `.js`/`.jsx` and `tree-sitter-typescript` covers `.ts` *and* `.tsx` — Python is the only
+language needing nothing installed. Any grammar that is
 missing is named in the build output with the exact command, those files produce no nodes, and
 `brief` prints a `SKIPPED` block — the graph is smaller than the codebase and says so.
 

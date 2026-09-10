@@ -22,33 +22,25 @@ Zero-RAG codebase navigation from local graphs and Markdown notes. **Two maps:**
 
 Once per machine/checkout, before the first `project` / `flow` / `both` build.
 
-**1. Python 3.10+ — required.** The pipeline is stdlib; parsers for non-Python languages are
-checked in steps 2 and 3.
+**1. Python 3.10+ — required.** The pipeline is stdlib apart from tree-sitter, which step 2
+covers.
 ```bash
 python --version        # or python3; needs 3.10+
 ```
 Older or missing: stop and tell the user, the skill cannot run.
 
-**2. `@babel/parser` — only if the project has `.js/.jsx/.ts/.tsx`.** Check, and install if the
-check fails. **Do this yourself — don't ask the user to.**
-```bash
-cd .agents/skills/code-archaeologist && node -e "require('@babel/parser'); console.log('parser ok')"
-cd .agents/skills/code-archaeologist && npm install
-```
-It installs one dependency into `<skill>/node_modules`, which the skill's `.gitignore` excludes.
-
-If **Node itself** is missing, do not stop — build anyway. Frontend files are skipped with a
-warning and the backend graph still builds; tell the user Node would add the frontend half of the
-map and the cross-stack `http` edges.
-
-**3. tree-sitter — only if the project has `.java`, `.go` or `.cs`.** Grammars are installed per
-language, so install only what the repo actually contains:
+**2. tree-sitter — for every language except Python.** Grammars are installed per language, so
+install only what the repo actually contains. **Do this yourself — don't ask the user to.**
 ```bash
 cd .agents/skills/code-archaeologist && python -c "import tree_sitter; print('runtime ok')"
-cd .agents/skills/code-archaeologist && pip install --only-binary :all: --no-cache-dir --target vendor tree-sitter tree-sitter-java tree-sitter-go tree-sitter-c-sharp
+cd .agents/skills/code-archaeologist && pip install --only-binary :all: --no-cache-dir --target vendor tree-sitter tree-sitter-javascript tree-sitter-typescript tree-sitter-java tree-sitter-go tree-sitter-c-sharp
 ```
 These are wheels — no compiler, grammar bundled, one package per language. Pick the languages the
-repo actually has; the runtime (`tree-sitter`) is needed for any of them.
+repo actually has; the runtime (`tree-sitter`) is needed for any of them. Two mappings are worth
+knowing: **`tree-sitter-javascript` covers `.js` and `.jsx`**, and **`tree-sitter-typescript`
+covers both `.ts` and `.tsx`** (one wheel, two grammars — `.tsx` genuinely needs the second one).
+
+Python needs nothing installed: it is read with the standard library's own parser.
 
 **Install it yourself — this does not touch the user's Python.** `--target vendor` puts the wheels
 in `<skill>/vendor`, which the skill's `.gitignore` excludes, exactly like `npm install` and

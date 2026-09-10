@@ -7,9 +7,9 @@ reference to another discovered entity is written using strict Obsidian wikilink
 syntax: [[EntityName]].
 
 Two producers feed the same entity shape: Python via the stdlib `ast` module, and
-JS/TS via the same Node extractor the flow map uses (`js_bridge` ->
-`js_extract.js`). Renderers below care only about that shape, so a third producer
-is a new `extract_*_entities` and nothing else.
+JS/TS via the same tree-sitter extractor the flow map uses (`js_ts_extract`).
+Renderers below care only about that shape, so a third producer is a new
+`extract_*_entities` and nothing else.
 
 Zero external Python dependencies. Python 3.10+.
 """
@@ -31,7 +31,7 @@ TEMPLATE_PATH = os.path.join(TEMPLATES_DIR, "wiki_page_template.md")
 
 from taxonomy import infer_layer, is_test_path  # noqa: E402
 import console  # noqa: E402  (stdout must survive a non-UTF-8 console)
-from js_bridge import find_js_files, extract_js_files, frontend_degraded  # noqa: E402  (frontend, degrades to a no-op)
+from js_ts_extract import find_js_files, extract_js_files, frontend_degraded  # noqa: E402  (frontend, degrades to a no-op)
 from ts_extract import find_lang_files, extract_lang_files  # noqa: E402  (Java/Go/C#, via tree-sitter)
 
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data"}
@@ -248,8 +248,8 @@ def extract_js_entities(roots: list[str]) -> list[dict]:
     *file*, so `import ... from "./api_client"` becomes an edge to that file's
     entities even when no name matches.
 
-    With no Node or no @babel/parser this returns [] and `js_bridge` prints the
-    one warning -- the Python vault still builds (hard constraint 1).
+    With no JS/TS grammar installed this returns [] and `js_ts_extract` prints
+    the one warning -- the Python vault still builds (hard constraint 1).
     """
     files: list[tuple[str, list[dict], dict]] = []
     defs: dict[str, list[str]] = {}

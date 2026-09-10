@@ -1,6 +1,6 @@
 {
   "graph": "data/flow/flow_graph.json",
-  "generated": "2026-09-10 06:41 UTC",
+  "generated": "2026-09-10 08:42 UTC",
   "census": {
     "nodes": 52,
     "edges": 32,
@@ -2163,7 +2163,7 @@
     }
   },
   "metrics": {
-    "generated": "2026-09-10T06:41:23Z",
+    "generated": "2026-09-10T08:42:46Z",
     "roots": [
       "sample_src"
     ],
@@ -2782,7 +2782,7 @@
     ]
   },
   "debt": {
-    "generated": "2026-09-10T06:41:23Z",
+    "generated": "2026-09-10T08:42:46Z",
     "roots": [
       "sample_src"
     ],
@@ -2861,7 +2861,7 @@
     ]
   },
   "tests": {
-    "generated": "2026-09-10T06:41:23Z",
+    "generated": "2026-09-10T08:42:46Z",
     "roots": [
       "sample_src"
     ],
@@ -3159,7 +3159,7 @@
     ]
   },
   "duplicates": {
-    "generated": "2026-09-10T06:41:23Z",
+    "generated": "2026-09-10T08:42:46Z",
     "roots": [
       "sample_src"
     ],

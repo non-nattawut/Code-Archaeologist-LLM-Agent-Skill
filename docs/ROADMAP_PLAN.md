@@ -1,11 +1,11 @@
 # Graph as many languages as possible
 
-> ## Status: **phase 1 done; phase 2 at step 2 of 6.** Phases 3 and 4 are verification, not features.
+> ## Status: **phase 1 done; phase 2 at step 3 of 6.** Phases 3 and 4 are verification, not features.
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
 > | 1 — Resolve the edges the textual extractor drops | semantics, no new dependency | **done** | `e8464f8` |
-> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **steps 1, 1b and 2 of 6 done** | `8974c27`, `67d4df4`, `e7bfb09` |
+> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **steps 1, 1b, 2 and 3 of 6 done** | `8974c27`, `67d4df4`, `e7bfb09`, this commit |
 > | 3 — Full regression gate: nothing old may break | does it still run | not started | |
 > | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | not started | |
 >
@@ -19,8 +19,8 @@
 > | 1 | Java/Go/C# ported to tree-sitter, matching the phase-1 numbers | **done** — `8974c27` |
 > | 1b | Move the install into `<skill>/vendor/` instead of the user's Python | **done** — `67d4df4` |
 > | 2 | delete `lang_extract.py` | **done** — `e7bfb09` |
-> | 3 | JS/TS ported, diffed against `js_extract.js` | **next** |
-> | 4 | delete `@babel/parser`, `js_extract.js`, `js_bridge.py`, the skill's `package.json` | not started |
+> | 3 | JS/TS ported, diffed against `js_extract.js` | **done** — this commit; the diff is `tools/diff_js_extractors.py`, reporting **identical output** on all 6 files |
+> | 4 | delete `@babel/parser`, `js_extract.js`, `js_bridge.py`, the skill's `package.json` | **next** — nothing in the build imports them any more |
 > | 5 | Python ported; `ast` oracle reports 0 disagreements | not started |
 > | 6 | drop `ast` from the build path (it stays forever as the oracle) | not started |
 >
@@ -42,9 +42,16 @@
 > not know which Python will run the skill — decided in 1b's requirements), and did not vendor
 > anything for JS/TS, which already had this shape.
 >
+> **What step 3 shipped:** `extract/js_ts_extract.py` (JS/JSX/TS/TSX on tree-sitter) behind the
+> Node extractor's exact contract, `tools/diff_js_extractors.py` as the equivalence check, and
+> `javascript` / `typescript` / `tsx` registered in `grammars.py`. The graphs came out
+> **byte-identical** to the ones Babel produced, which is the strongest form the gate could take.
+> Note it did **not** need 2b's `TAGS_QUERY` route: the extractor walks the tree directly, the same
+> way `ts_extract.py` does, so the thin-tags problem never arose.
+>
 > **Not done, and not started** — none of this is blocked, it simply has not been reached:
 > 2b's supplementary query for TypeScript (its shipped `TAGS_QUERY` yields zero captures on real
-> implementation files); 2c beyond the three ported languages; **2d's `approx` -> `exact`/`sparse`
+> implementation files) — now moot for JS/TS, see above; 2c beyond the ported languages; **2d's `approx` -> `exact`/`sparse`
 > tier rename**, deliberately deferred so step 1 could be verified by equivalence; 2f; and **2g's
 > per-language fixtures and `tools/check_langs.py`, which no language yet has**. Every one of the
 > eight open concerns below is still open — resolution parity for Python (concern 1) is the one
