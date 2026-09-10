@@ -152,9 +152,9 @@ def to_markdown(pack: dict) -> str:
             facts.append("approximate")
         lines += [f"# {n['id']}", "", " | ".join(str(f) for f in facts), ""]
         if n.get("approx"):
-            lines += ["> Read textually, not parsed: calls that could not be resolved from",
-                      "> declared types were dropped rather than guessed, so the edges below",
-                      "> are a lower bound. Say so when you answer from this node.", ""]
+            lines += ["> Parsed exactly, but resolved approximately: calls that could not be",
+                      "> traced through a declared type were dropped rather than guessed, so",
+                      "> the edges below are a lower bound. Say so when you answer from this node.", ""]
         if n.get("signature"):
             lines += [f"`{n['signature']}`", ""]
         lines += [n["doc"] or "_No description._", ""]

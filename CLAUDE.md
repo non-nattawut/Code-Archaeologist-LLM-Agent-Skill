@@ -14,8 +14,8 @@ reviews them, and renders one browsable page:
 | **Structure** | classes / React components / module groups | `build_wiki.py` → `build_graph.py` | `data/structure/{graph.json, registry.json, vault/*.md}` |
 | **Flow** | methods/functions | `build_flow.py` | `data/flow/{flow_graph.json, notes/*.md}` |
 
-Three producers feed both maps: Python (stdlib `ast`), JS/TS (`@babel/parser`) and -- approximate
--- Java/Go/C# (`lang_extract.py`, declarations read textually). Nodes from the third tier carry
+Three producers feed both maps: Python (stdlib `ast`), JS/TS (`@babel/parser`) and Java/Go/C#
+(`ts_extract.py`, parsed with tree-sitter). Nodes from the third tier carry
 `approx: true` everywhere they surface: graph, vault front-matter, `context.py`, the report's
 health section, `brief.py`, and an `approx` chip in the explorer. Adding a tier means adding an
 `extract_*_entities` in `build_wiki.py` and an `_analyze_*` in `build_flow.py`, nothing else.
@@ -30,7 +30,7 @@ archaeologist.py  project | flow | both | check | report | brief   <- the only e
   project  -> build_wiki -> build_graph ------------------\
   flow     -> build_flow ---------------------------------+--> render_explorer()
       both extract through: js_bridge -> js_extract.js  (JS/TS, exact)
-                            lang_extract.py             (Java/Go/C#, approximate)
+                            ts_extract.py               (Java/Go/C#, tree-sitter)
   report   -> report.py (scan_security + git_insights + analyze + metrics + debt + tests_map
                          + duplicates)
                                                                     -> data/report/<map>/
@@ -48,9 +48,9 @@ the only entrypoint:
 scripts/
   archaeologist.py   the entrypoint
   paths.py           SKILL_ROOT / DATA_DIR / TEMPLATES_DIR, and the sys.path bootstrap
-  core/     taxonomy.py  manifest.py  console.py
+  core/     taxonomy.py  manifest.py  console.py  grammars.py
   extract/  build_wiki.py  build_graph.py  build_flow.py  js_bridge.py  js_extract.js
-            lang_extract.py  apply_descriptions.py
+            ts_extract.py  lang_extract.py  apply_descriptions.py
   review/   analyze.py  scan_security.py  git_insights.py  metrics.py  debt.py
             tests_map.py  duplicates.py  report.py  brief.py
   query/    trace_path.py  context.py  search.py  build_html.py
@@ -75,11 +75,24 @@ it needs the directory holding `js_extract.js`, not the skill root — and `cons
 
 - `taxonomy.py` owns every `kind`/`layer` value (mirrored in `templates/TAXONOMY.md`). Add values
   there, never inline. It also owns `LANG_BY_EXT` / `lang_of()` -- one answer to "what language is
-  this file", read by `metrics.py` and `lang_extract.py`. And it owns **what counts as a test
+  this file", read by `metrics.py` and `ts_extract.py`. And it owns **what counts as a test
   file** (`is_test_path` / `is_test_file`): path and filename conventions plus framework markers
   (`@Test`, `@SpringBootTest`, `[Fact]`, `#[test]`, `func TestX(t *testing.T)`). Nodes in test
   files get `layer: test`, which is why `analyze.py` never calls them dead code and
   `scan_security.py` skips them. Every pass must ask taxonomy, never re-implement the check.
+- `grammars.py` owns "can this machine parse language X" -- the wheel table, lazy cached parsers,
+  the exact `pip install` for anything missing, and the installed versions for the manifest. It
+  lives in `core/` because `manifest.py` needs it, and `core/` may not import `extract/`.
+- `ts_extract.py` reads Java/Go/C# from a real parse tree, and keeps the same
+  `find_lang_files` / `extract_lang_files` contract the textual extractor had -- which is what let
+  the port be verified by diffing the graph instead of by reading code. One shared consumer works
+  in tree-sitter *field* names (`name`, `body`, `parameters`, `type`); only the `SPEC` table knows
+  node-type spellings. Adding a language is a row there plus its receiver rule. tree-sitter gives
+  declarations, bodies, param types and doc attachment; it does **not** give resolution, so
+  `_calls` still answers `""` / `"Type"` / `"?"` exactly as before.
+- `lang_extract.py` is the textual extractor `ts_extract.py` replaced. It is still here **only** as
+  the reference the port is checked against, and is deleted at step 2 of the roadmap's deletion
+  order. Nothing imports it.
 - `trace_path.py` is the query tool: `--from/--to` (BFS path), `--impact-of` (blast radius),
   `--impact-of-diff` (map a git diff to nodes, union their impact). Works on either graph.
 - `analyze.py` is graph-only: cycles, orphans, layer violations, hubs, god objects, name-based
@@ -90,7 +103,7 @@ it needs the directory holding `js_extract.js`, not the skill root — and `cons
   line. `git_insights.py` is one `git log --numstat` pass → churn, owners, hotspot risk.
 - `metrics.py` is line counts per file plus LOC / cyclomatic complexity / nesting depth /
   parameter count per node, keyed like the graph nodes (per-node figures are Python only:
-  `js_extract.js` and `lang_extract.py` both record `endLine`, but `metrics.py` does not read it
+  `js_extract.js` and `ts_extract.py` both record `endLine`, but `metrics.py` does not read it
   yet). `report.py` derives `file_census` from it, so line counts have one definition.
 - `search.py` is the "which nodes are these" filter over one graph (name/doc/layer/kind/lang/file
   plus `--calls` / `--called-by` / `--orphans`). It exists so neither the agent nor a human greps
@@ -185,9 +198,20 @@ scrolls.
 
 ## Hard constraints
 
-1. **Zero external Python dependencies.** stdlib only, Python 3.10+. The *single* exception is
-   frontend parsing (Node + `@babel/parser`, installed into the skill folder, git-ignored), and it
-   must degrade gracefully: no Node → warn, skip JS/TS, still build the Python graph.
+1. **One parser per language, and every one of them degrades.** Python 3.10+.
+   Python is stdlib `ast` and needs nothing installed. JS/TS needs Node + `@babel/parser` in the
+   skill folder. Java/Go/C# needs `pip install tree-sitter` plus the wheel for that language
+   (`tree-sitter-java`, `tree-sitter-go`, `tree-sitter-c-sharp`) — wheels, no compiler, grammar
+   bundled. **Grammars are installed on demand, not shipped**: a repo with no Go pays nothing for
+   Go.
+   Every one of those is optional at runtime and must fail the same way: **warn by name, skip
+   those files, still build the rest.** A missing parser may never be silent, because a graph that
+   is smaller for want of a wheel is indistinguishable from a graph of a smaller codebase — which
+   is why `manifest.py` records the installed grammar set and `check` reports a change to it as
+   staleness, and why `brief` prints a `SKIPPED` block naming the exact `pip install`.
+   This is a *narrowing* promise, tracked in `docs/ROADMAP_PLAN.md`: the end state is one engine
+   (tree-sitter) with `ast` kept only as a test oracle and Node gone from the runtime entirely.
+   Until then, do not add a fourth engine.
 2. **Deterministic.** Same source in, same bytes out. AI text enters only through
    `apply_descriptions.py` (cached by source hash, docstring wins first, deterministic fallback
    last).

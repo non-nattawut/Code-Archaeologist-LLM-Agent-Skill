@@ -155,8 +155,8 @@
     <h1>Code Archaeologist</h1>
     <p>A codebase map an AI agent can <strong>query</strong> instead of reading your whole repo.
        It scans your code once, builds two graphs plus one note per class and method, then answers
-       architecture questions by walking those graphs — deterministically, with zero Python
-       dependencies and no vector database.</p>
+       architecture questions by walking those graphs — deterministically, with real parsers and
+       no vector database.</p>
 
     <div class="demo">
 <span class="dim">?</span> <span class="q">"How does a request reach the database?"</span>
@@ -177,7 +177,7 @@
       <div class="stat"><div class="v">25</div><div class="l">Scripts</div></div>
       <div class="stat"><div class="v">7</div><div class="l">Explorer views</div></div>
       <div class="stat"><div class="v">17</div><div class="l">Languages scanned</div></div>
-      <div class="stat"><div class="v">0</div><div class="l">Python deps</div></div>
+      <div class="stat"><div class="v">1+n</div><div class="l">Python deps</div></div>
       <div class="stat"><div class="v">1</div><div class="l">HTML file out</div></div>
     </div>
     <p class="hint">Python 3.10+ standard library only. Node + <code>@babel/parser</code> is the single
@@ -361,13 +361,14 @@ const FEATURES = [
   },
   {
     id:"frontend", cat:"extract", title:"Frontend extraction",
-    d:"JavaScript and TypeScript parsed properly, Java/Go/C# read textually and labelled as such, and degrading loudly when it cannot.",
-    how:"Python shells out to a small Node script that parses with <code>@babel/parser</code> and returns JSON. If Node or the parser is missing, the run prints one clear warning, skips frontend files and still builds the Python graph — and the summary is labelled <code>(BACKEND ONLY)</code> so a partial map is never mistaken for a complete one.",
-    tech:["@babel/parser","Subprocess JSON bridge","Explicit degraded state"],
-    cmd:"cd .agents/skills/code-archaeologist && npm install",
+    d:"Every language with a graph is parsed by a real parser - and any parser that is missing is named, not silently skipped.",
+    how:"Three parsers, one per language family: stdlib <code>ast</code> for Python, <code>@babel/parser</code> for JS/TS through a small Node bridge, and tree-sitter for Java, Go and C#. Each is optional and each degrades the same way — one named warning, those files skipped, the rest of the graph still built. Because a missing parser makes the graph smaller without making it look wrong, the installed grammar set is recorded in the manifest, <code>check</code> reports a change to it as staleness, and <code>brief</code> prints a <code>SKIPPED</code> block with the exact install command.",
+    tech:["tree-sitter","@babel/parser","stdlib ast","Grammar set in the manifest","Explicit degraded state"],
+    cmd:"pip install tree-sitter tree-sitter-java   # plus npm install for JS/TS",
     qa:[
-      ["Why is this the one dependency?","Writing a correct TypeScript parser is not a side quest. Everything else is standard library; this one place buys real accuracy on JSX and TS syntax."],
-      ["What if a teammate forgets to install it?","The build still succeeds but says so in the summary and warns that the graph is incomplete and should not be committed as the project's map."]
+      ["Why not write the parsers yourself?","It was tried. The hand-written Java/Go/C# extractor was 754 lines for three languages, and each new one cost roughly the same again. tree-sitter makes a language a small table of node types plus its receiver rules, so the cost stops scaling with the language count."],
+      ["What if a teammate forgets to install one?","The build still succeeds and says exactly what is missing and how to fix it. That matters more than it sounds: a graph that is smaller because a parser was absent looks identical to a graph of a smaller codebase, so the grammar set is recorded in the manifest and a change to it is reported as staleness."],
+      ["Why per-language grammar wheels rather than one bundle?","The obvious bundle, <code>tree-sitter-language-pack</code>, downloads grammars over the network on first use - which would put a network call in a tool whose whole promise is offline determinism. The individual wheels ship their grammar inside the wheel: about 9.4 MB for five languages, no compiler, nothing fetched at runtime."]
     ]
   },
   {
@@ -622,7 +623,7 @@ const LIMITS = [
   ["Call resolution is heuristic, not type inference",
    "Dynamic dispatch, duck typing, dependency injection by string key and monkey-patching are invisible to it. It chooses precision over recall: every edge shown is real, but some real edges are missing. Say this before someone finds it."],
   ["Java, Go and C# graphs are approximate",
-   "Python and JS/TS are parsed, so their graphs are exact. Java, Go and C# are read textually — comments and strings blanked, bodies brace-matched, receivers resolved only through declared types — so every node they produce is marked <code>approx: true</code> everywhere it surfaces: the graph, the vault note's front-matter, the context pack, the report, the session brief and a chip in the explorer. A call through an interface resolves to the interface's own declaration node and <em>stops there</em>: which implementation runs is not knowable without a type checker, so the trace does not fan out to every implementing class. Overloads and lambda handlers still cannot be resolved at all, so those edges are dropped rather than invented: the coupling shown is a lower bound. The remaining eleven of the seventeen languages get the review passes, not a graph."],
+   "All six graphed languages are now parsed — Python by <code>ast</code>, JS/TS by <code>@babel/parser</code>, Java/Go/C# by tree-sitter. What stays approximate for the last three is <em>resolution</em>, not parsing: receivers are followed only through declared types, so every node they produce is marked <code>approx: true</code> everywhere it surfaces: the graph, the vault note's front-matter, the context pack, the report, the session brief and a chip in the explorer. A call through an interface resolves to the interface's own declaration node and <em>stops there</em>: which implementation runs is not knowable without a type checker, so the trace does not fan out to every implementing class. Overloads and lambda handlers still cannot be resolved at all, so those edges are dropped rather than invented: the coupling shown is a lower bound. The remaining eleven of the seventeen languages get the review passes, not a graph."],
   ["Test coverage is name-based, not instrumented",
    "It reports which nodes the test suite <em>mentions</em>. A test that names a method but asserts nothing counts as covered. It complements a real coverage tool; it does not replace one."],
   ["The risk scan is regex, not dataflow",

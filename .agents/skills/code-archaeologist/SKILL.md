@@ -22,7 +22,8 @@ Zero-RAG codebase navigation from local graphs and Markdown notes. **Two maps:**
 
 Once per machine/checkout, before the first `project` / `flow` / `both` build.
 
-**1. Python 3.10+ — required, nothing to install** (the pipeline is stdlib):
+**1. Python 3.10+ — required.** The pipeline is stdlib; parsers for non-Python languages are
+checked in steps 2 and 3.
 ```bash
 python --version        # or python3; needs 3.10+
 ```
@@ -40,6 +41,28 @@ If **Node itself** is missing, do not stop — build anyway. Frontend files are 
 warning and the backend graph still builds; tell the user Node would add the frontend half of the
 map and the cross-stack `http` edges.
 
+**3. tree-sitter — only if the project has `.java`, `.go` or `.cs`.** Grammars are installed per
+language, so install only what the repo actually contains:
+```bash
+python -c "import tree_sitter; print('runtime ok')"
+pip install tree-sitter tree-sitter-java tree-sitter-go tree-sitter-c-sharp   # pick the ones you need
+```
+These are wheels — no compiler, grammar bundled, one package per language.
+
+**Ask the user before running `pip install`, or give them the command.** Unlike `npm install` into
+the skill folder, this touches their Python environment, so it is their call. The build tells you
+exactly what is missing and the exact command:
+
+```
+! csharp skipped: no tree-sitter grammar installed. Run `pip install tree-sitter-c-sharp` to enable it.
+```
+
+If a grammar is missing, the build still succeeds and those files simply produce **no nodes**.
+`brief` prints a `SKIPPED` block naming the language and the fix. **Never answer a "what calls X",
+"is this dead code" or "how big is this codebase" question while a language is skipped without
+saying so** — the graph is smaller than the codebase, and nothing else in the output makes that
+visible.
+
 ## Operating Principles
 1. NEVER read raw source for architecture, flow or review questions.
 2. Pick the map: **structure** for "how is this organized / who uses X"; **flow** for "how does a
@@ -55,16 +78,16 @@ map and the cross-stack `http` edges.
 7. For review questions ("is this healthy?", "where is the risk?", "what to refactor first?"), run
    the report (Command 14), read the **brief** (Command 1), and open
    `data/report/<map>/architecture_report.md` only for the detail the brief points at.
-8. **Say when a node is approximate.** Java, Go and C# nodes carry `approx: true`: they were read
-   textually rather than parsed, and calls that could not be resolved from a declared type
-   (overloads, lambda handlers) were dropped rather than guessed. A call through an interface
-   resolves to the interface's own node, which carries `declaration: true` — the trace stops at the
-   declaration and does **not** continue into the implementations, so "what actually runs" is still
-   unanswered there. So their
-   edges are a **lower bound** — "nothing calls X" is only "nothing the extractor could resolve
-   calls X". Tell the user that when you answer from one, and say it plainly if a whole answer
-   (dead code, blast radius, "who calls this") rests on approximate nodes. `context.py` and the
-   report both flag it for you; do not quietly drop the caveat.
+8. **Say when a node is approximate.** Java, Go and C# nodes carry `approx: true`. They are parsed
+   exactly — tree-sitter, not regex — so the declarations are trustworthy; what is approximate is
+   **resolution**. A call is followed only through a *declared* type, and anything else (overloads,
+   lambda handlers) is dropped rather than guessed. A call through an interface resolves to the
+   interface's own node, which carries `declaration: true`: the trace stops at the declaration and
+   does **not** continue into the implementations, so "what actually runs" is still unanswered
+   there. So their edges are a **lower bound** — "nothing calls X" is only "nothing the extractor
+   could resolve calls X". Tell the user that when you answer from one, and say it plainly if a
+   whole answer (dead code, blast radius, "who calls this") rests on approximate nodes.
+   `context.py` and the report both flag it for you; do not quietly drop the caveat.
 
 ## Available Tool Commands
 

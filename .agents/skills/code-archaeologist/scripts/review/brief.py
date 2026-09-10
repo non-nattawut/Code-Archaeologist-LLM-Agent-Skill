@@ -35,6 +35,7 @@ GRAPHS = {
 }
 
 import console     # noqa: E402  (stdout must survive a non-UTF-8 console)
+import grammars
 import manifest    # noqa: E402
 
 SEV_ORDER = {"high": 0, "medium": 1, "low": 2}
@@ -98,6 +99,10 @@ def collect(src=None, focus: str = "flow", top: int = 5) -> dict:
         "maps": {k: {x: v[x] for x in ("nodes", "edges", "approx", "grade", "score", "reported")} for k, v in maps.items()},
         "focus": focus,
         "freshness": _freshness(roots),
+        # A language present in the source but missing its grammar contributes
+        # no nodes at all -- that has to be said, not inferred from a small graph.
+        "skipped_langs": grammars.missing(size.get("languages") or {}),
+        "skipped_hint": grammars.install_hint(grammars.missing(size.get("languages") or {})),
         "size": size.get("totals") or {},
         "languages": size.get("languages") or {},
         "routes": census.get("routes", [])[:top],
@@ -134,9 +139,15 @@ def to_text(d: dict) -> str:
     if not any(m.get("grade") for m in d["maps"].values()):
         out.append("  (run `archaeologist.py report --src <roots>` for grades, risks and hotspots)")
     if any(m.get("approx") for m in d["maps"].values()):
-        out.append("  approximate = Java/Go/C#, read textually rather than parsed. Unresolvable")
-        out.append("               calls were dropped, so their coupling is a lower bound. Say so")
-        out.append("               when you answer a question about those files.")
+        out.append("  approximate = Java/Go/C#. Parsed exactly, but receivers resolve only")
+        out.append("               through declared types, so interface dispatch, overloads and")
+        out.append("               lambda handlers drop rather than guess: coupling is a lower")
+        out.append("               bound. Say so when you answer from those files.")
+    if d.get("skipped_langs"):
+        langs = ", ".join(d["skipped_langs"])
+        out.append(f"  SKIPPED    {langs}: no tree-sitter grammar installed, so these files")
+        out.append("             produced no nodes. The graph is smaller than the codebase.")
+        out.append(f"             Fix with: {d.get('skipped_hint', '')}")
 
     t = d["size"]
     if t:

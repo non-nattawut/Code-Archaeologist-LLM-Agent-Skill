@@ -1666,3 +1666,68 @@ Docs updated in the same commit: `CLAUDE.md` (expected numbers, the hard-case bl
 say which case is now resolved and which is not, the `duplicates.py` bullet), `README.md`,
 `SKILL.md` rule 8, `TAXONOMY.md` (`declaration` and `signatures`), `docs/PRESENTATION.html`'s
 limitation entry, and the roadmap status table.
+
+## [49] 2026-09-10 — Phase 2 step 1: Java/Go/C# onto tree-sitter, nothing deleted
+
+**Prompt**
+> continue next phase
+
+**Response**
+Phase 2 is seven parts with a forced deletion order. Its own rule is "one commit per phase unless
+it splits into independently verifiable pieces", and 2e's step table *is* that split, so I worked
+step 1: port Java/Go/C#, delete nothing.
+
+**Prerequisite check first.** Nothing was installed — the spike's environment is gone. Installed
+`tree-sitter` 0.26.0 plus java 0.23.5 / go 0.25.0 / c-sharp 0.23.5, wheels only, no compiler, which
+confirms 2a's measurement first-hand rather than on the plan's say-so.
+
+**The design decision that made the step verifiable.** `ts_extract.py` keeps the *exact* contract
+`lang_extract.py` had (`find_lang_files` / `extract_lang_files`), so both graph builders changed by
+one import line and the port could be checked by diffing the built graph instead of by reading
+code. I captured the old extractor's full output first, as a reference, before writing anything.
+
+Architecture: one shared consumer working in tree-sitter **field names** (`name`, `body`,
+`parameters`, `type`) — the grammar's own semantic labels — with a per-language `SPEC` table of
+node-type spellings. Adding a language is a row plus its receiver rule.
+
+**Result: identical node ids and identical edges on both maps.** 25/22 and 52/32, same grades
+D(69)/D(68), all five documented traces, `stale: false`, deterministic (rebuilt twice, zero files
+differing outside `report/`). Four field differences, all the new engine being more correct:
+`EventStore.Append.ext` 0 -> 1 (a real `append(...)` builtin the regex missed) and three docs that
+are now the whole comment block instead of only its first line.
+
+**Three bugs in my own port that the diff caught, none of which would have failed loudly:**
+- Go's receiver is a `parameter_list`, and I passed it to a helper that expected a *declaration*
+  and looked up its `parameters` field. Every Go method silently became a free function.
+- C# field types read as `InvoiceStore _store` — type *and* name — because a field wraps both in a
+  `variable_declaration` while a property states them directly.
+- `map[string]string` became a type called `mapstringstring`. This one is worth remembering: I had
+  already added an "is the result an identifier" guard, and it *passed*, because stripping the
+  brackets is what turned a constructed type into something identifier-shaped. The fix is to strip
+  only a trailing `[]` (Java arrays) and reject anything still holding a bracket.
+
+Also in this step, because a per-language grammar is a new way for a graph to be quietly wrong:
+`core/grammars.py` (in `core/` because `manifest.py` needs it and `core/` may not import
+`extract/`); the installed grammar set recorded in the manifest; `check` reporting a grammar change
+as staleness — tested by doctoring the manifest, which printed `lost ruby; gained csharp`; a
+`SKIPPED` block in `brief`; and the exact `pip install` in every message. I tested the degradation
+end to end by actually uninstalling `tree-sitter-c-sharp`: the build warned by name with the fix,
+succeeded, dropped to 22/20 and 45/27, and `brief` said so. Then reinstalled and re-verified.
+
+**Deliberately not done:** the `approx` -> `exact`/`sparse` tier rename (2d). It touches six
+surfaces and would have destroyed the equivalence property that made this step checkable. But
+"read textually" is now false everywhere it appeared, so I corrected the *wording* in all nine
+places — CLAUDE.md, README, SKILL.md, TAXONOMY.md, USAGE.md, the deck, `context.py`, `report.py`,
+`build_graph.py`, `build_flow.py` — to say what `approx: true` actually means now: parsed exactly,
+resolved approximately.
+
+Hard constraint 1 was rewritten. "Zero external Python dependencies, stdlib only" is no longer
+true, and the honest replacement is "one parser per language, and every one of them degrades" —
+with the requirement that a missing parser is never silent, because a graph that is smaller for
+want of a wheel is indistinguishable from a graph of a smaller codebase. README's "zero
+dependencies" headline and the deck's "0 Python deps" tile went with it.
+
+`check_docs` caught both new scripts as undocumented, which is exactly its job.
+
+`lang_extract.py` stays on disk, imported by nothing, as the reference this port was checked
+against. It is deleted at step 2.

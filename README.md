@@ -4,8 +4,9 @@
 
 It scans your code once, builds two graphs plus one note per class/method, and answers
 architecture questions by walking those graphs — not by grepping source. Everything is
-deterministic (`ast` + graph traversal, no embeddings, no vector DB) and the Python side has
-**zero dependencies**.
+deterministic — real parsers plus graph traversal, no embeddings, no vector DB. Python needs
+nothing installed; other languages each need one parser, and any that is missing is **named and
+skipped**, never silently dropped.
 
 ```
 "How does a request reach the database?"
@@ -133,10 +134,10 @@ needs no arguments — a build records the roots it scanned, and `check` and `br
 The pieces that make it cheap and repeatable:
 
 - **Deterministic extraction.** Python via the stdlib `ast` module; JS/TS via `@babel/parser`;
-  Java, Go and C# by reading declarations textually. The first two tiers are parsed and exact; the
-  third is approximate and says so on every node it produces (see [Language
-  support](#language-support)). All three are deterministic — the same input always yields the same
-  graph.
+  Java, Go and C# via tree-sitter. All three are real parsers and all three are deterministic — the
+  same input always yields the same graph. A parser that is not installed is named in the output
+  and its files are skipped, so a smaller graph never passes for a smaller codebase (see [Language
+  support](#language-support)).
 - **Call resolution without a type checker.** `self.<dep>.method()` is resolved through `__init__`
   type hints and assignments, typed params/locals, and same-class `self.method()` calls.
   Unresolvable external calls are dropped rather than guessed.
@@ -175,19 +176,20 @@ re-runs it from scratch — along with the current selection and filter.
 
 | Capability | Languages |
 | --- | --- |
-| **Graphs, exact** (parsed) | Python, JavaScript/TypeScript |
-| **Graphs, approximate** (read textually) | Java, Go, C# |
+| **Graphs, exact** (parsed) | Python (`ast`), JavaScript/TypeScript (`@babel/parser`), Java, Go, C# (tree-sitter) |
 | **Lines, complexity, risk scan, debt markers, test detection** | + Kotlin, Rust, Ruby, PHP, Swift, Scala, Groovy, Dart, Elixir, C/C++ |
 
-The two graph tiers differ in how the source is read, and the difference is visible in the output
-rather than buried in a caveat: every node and edge from the approximate tier carries
-`approx: true`, the report opens with how many nodes it applies to, `context.py` repeats it on the
-node an agent is reading, and the explorer marks it with an `approx` chip.
+Every language with a graph is now **parsed** — Java, Go and C# moved from a hand-written textual
+scan to tree-sitter, so declarations, bodies, parameter types and doc comments come from a real
+syntax tree rather than from regex.
 
-Approximate does not mean guessed. Comments and string bodies are blanked before anything is
-matched, bodies are found by brace matching rather than regex, and a call is resolved only through
-a *declared* type — a field, a parameter, a `new Foo()`. Constructor injection (Spring, ASP.NET DI,
-a Go struct literal) resolves reliably, because these languages must declare their parameter types.
+Parsing is not resolution, though, and the difference is visible in the output rather than buried
+in a caveat. Java/Go/C# nodes still carry `approx: true`, and it now means one specific thing:
+**a call is resolved only through a *declared* type** — a field, a parameter, a `new Foo()`.
+Constructor injection (Spring, ASP.NET DI, a Go struct literal) resolves reliably, because these
+languages must declare their parameter types; anything needing real type inference does not. The
+report opens with how many nodes it applies to, `context.py` repeats it on the node an agent is
+reading, and the explorer marks it with an `approx` chip.
 
 A call through an interface **resolves to the interface**, not to its implementations. Declaring
 `PricingRule pricing` and calling `pricing.price()` gives you the edge
@@ -210,7 +212,8 @@ dead code** and its calls never count as coupling.
 
 | | |
 | --- | --- |
-| **Python 3.10+** | required — stdlib only, no `pip install` |
+| **Python 3.10+** | required — the Python graph is stdlib `ast`, no install |
+| **`tree-sitter` + a grammar wheel** | for Java/Go/C# — `pip install tree-sitter tree-sitter-java` (etc). Wheels, no compiler; install only the languages you have |
 | **Node + `@babel/parser`** | only for JS/TS parsing (`npm install` in the skill folder) |
 | **git** | optional — only for churn / ownership / hotspots |
 | **A browser** | to open the explorer — no network needed |
@@ -265,6 +268,7 @@ It has no npm dependencies of its own.
 │   ├── core/             vocabulary every other script shares
 │   │   ├── taxonomy.py     the one source of truth for kind/layer values
 │   │   ├── manifest.py     what counts as a source file + freshness hashes
+│   │   ├── grammars.py     which tree-sitter grammars are installed, and a parser for each
 │   │   └── console.py      stdout that survives a non-UTF-8 console
 │   │
 │   ├── extract/          source -> graphs + notes
@@ -273,7 +277,8 @@ It has no npm dependencies of its own.
 │   │   ├── build_flow.py
 │   │   ├── js_extract.js   (Node/@babel)
 │   │   ├── js_bridge.py
-│   │   ├── lang_extract.py Java/Go/C#, read textually and marked approx
+│   │   ├── ts_extract.py   Java/Go/C#, parsed with tree-sitter
+│   │   ├── lang_extract.py the textual extractor ts_extract.py replaced (reference only)
 │   │   └── apply_descriptions.py
 │   │
 │   ├── review/           graphs -> findings

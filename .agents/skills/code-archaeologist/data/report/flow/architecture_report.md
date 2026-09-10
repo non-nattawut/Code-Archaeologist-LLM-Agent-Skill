@@ -1,6 +1,6 @@
 # Architecture report — flow_graph.json
 
-Generated 2026-09-10 02:20 UTC · 52 nodes · 32 edges
+Generated 2026-09-10 02:57 UTC · 52 nodes · 32 edges
 
 ## Health: **D** (68/100)
 
@@ -11,7 +11,7 @@ Generated 2026-09-10 02:20 UTC · 52 nodes · 32 edges
 
 Dead-code ratio 13.5% · cycles 0 · layer violations 0 · security findings 4
 
-> **24 of 52 nodes are approximate.** Java, Go and C# are read textually rather than parsed, so this grade rests in part on edges that were inferred from declared types. Unresolvable calls (interface dispatch, overloads, lambdas) were dropped, not guessed — so the real coupling is at least this much.
+> **24 of 52 nodes are approximate.** Java, Go and C# resolve calls only through declared types, so this grade rests in part on edges that were inferred from declared types. Unresolvable calls (interface dispatch, overloads, lambdas) were dropped, not guessed — so the real coupling is at least this much.
 
 ## Census
 

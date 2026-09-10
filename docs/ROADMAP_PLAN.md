@@ -1,12 +1,38 @@
 # Graph as many languages as possible
 
-> ## Status: **phase 1 done.** Three phases, in order. Phase 3 is a gate, not a feature.
+> ## Status: **phase 1 done; phase 2 at step 1 of 6.** Phase 3 is a gate, not a feature.
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
 > | 1 — Resolve the edges the textual extractor drops | semantics, no new dependency | **done** | `e8464f8` |
-> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | not started | |
+> | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **step 1 done** | `PHASE2S1` |
 > | 3 — Full regression gate: nothing old may break | verification | not started | |
+>
+> **Phase 2, step 1 outcome — Java/Go/C# ported, nothing deleted.** `ts_extract.py` replaced
+> `lang_extract.py` behind the *same* `find_lang_files` / `extract_lang_files` contract, so both
+> graph builders were a one-line import change and the port could be verified by diffing the graph
+> rather than by reading code. Result: **identical node ids and identical edges** on both maps
+> (25/22 and 52/32), same grades, same traces, deterministic.
+>
+> Four differences, all of them the new engine being more correct, none of them structural:
+> `EventStore.Append.ext` 0 -> 1 (a real `append(...)` builtin call the regex missed), and three
+> docs that are now the *whole* comment block instead of its first line.
+>
+> Bugs the diff caught in my own port, worth recording because none would have failed loudly:
+> Go's receiver `parameter_list` was fed to a helper expecting a declaration (methods silently
+> became free functions); C#'s field type was read as `InvoiceStore _store` (type *and* name);
+> and `map[string]string` was being squeezed into a type called `mapstringstring` — a bracket
+> strip turns a constructed type into something that *looks* like an identifier, so the obvious
+> "is it an identifier" guard passed it.
+>
+> Also landed here, because a per-language grammar is a new way for a graph to be quietly wrong:
+> `core/grammars.py`, the grammar set recorded in the manifest, `check` reporting a grammar change
+> as staleness, a `SKIPPED` block in `brief`, and the exact `pip install` in every message.
+>
+> Deliberately **not** done in this step: the `approx` -> `exact`/`sparse` tier rename (2d). It
+> touches six surfaces and would have destroyed the equivalence property that made this step
+> verifiable. The wording everywhere was corrected from "read textually" to "parsed exactly,
+> resolved approximately", which is now what `approx: true` means.
 >
 > **Phase 1 outcome.** 1a and 1b landed together and 1b needed no code, exactly as predicted: once
 > `PricingRule.price` exists as a node, the existing resolver finds it. Flow map 51/31 -> 52/32,

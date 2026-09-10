@@ -21,7 +21,7 @@ _None._
 - `Issue()` — Issue an invoice and store it.
 - `Find()` — Read one invoice back.
 - `Total()` — Total for a whole request.
-- `Total()` — Total for a quantity at a price. This is an overload: both
+- `Total()` — Total for a quantity at a price. This is an overload: both signatures share one node id, which is one of the reasons this tier is marked approximate.
 
 ## References
 - [[InvoiceStore]]

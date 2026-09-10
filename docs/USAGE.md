@@ -59,14 +59,20 @@ python .agents/skills/code-archaeologist/scripts/query/search.py --orphans --for
 python .agents/skills/code-archaeologist/scripts/query/search.py --lang java
 ```
 
-Java, Go and C# nodes carry `approx: true`. They were read textually rather than parsed, so calls
-that could not be resolved from a declared type were dropped, not guessed — their edges are a
-lower bound. `context.py` prints the caveat on the node itself, and the report opens with how many
-nodes it covers. To see what the extractor made of those files directly:
+Java, Go and C# nodes carry `approx: true`. They are parsed with tree-sitter, so the declarations
+are exact; what stays approximate is **resolution** — a call is followed only through a declared
+type, and anything else is dropped rather than guessed, so their edges are a lower bound.
+`context.py` prints the caveat on the node itself, and the report opens with how many nodes it
+covers. To see what the extractor made of those files directly:
 
 ```bash
-python .agents/skills/code-archaeologist/scripts/extract/lang_extract.py --src ./src
+python .agents/skills/code-archaeologist/scripts/extract/ts_extract.py --src ./src
 ```
+
+Needs `pip install tree-sitter` plus the wheel per language (`tree-sitter-java`, `tree-sitter-go`,
+`tree-sitter-c-sharp`). Any that is missing is named in the build output with the exact command,
+those files produce no nodes, and `brief` prints a `SKIPPED` block — the graph is smaller than the
+codebase and says so.
 
 ## Query the graphs
 

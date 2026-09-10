@@ -63,7 +63,7 @@ def _save_json(path: str, obj) -> None:
 
 from taxonomy import infer_layer, is_test_path, ROUTE_DECORATOR_RE  # noqa: E402
 from js_bridge import find_js_files, extract_js_files, frontend_degraded   # noqa: E402
-from lang_extract import find_lang_files, extract_lang_files  # noqa: E402  (Java/Go/C#, approximate)
+from ts_extract import find_lang_files, extract_lang_files  # noqa: E402  (Java/Go/C#, via tree-sitter)
 
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data"}
 
@@ -508,7 +508,7 @@ def _analyze_lang(roots: list[str]):
     """Java/Go/C# nodes and call edges — the approximate tier.
 
     Two passes for the same reason the Python analyzer needs two: a call can only
-    be resolved once every class and its method names are known. `lang_extract`
+    be resolved once every class and its method names are known. `ts_extract`
     has already turned each receiver into a declared type; this decides whether
     that type is actually in the graph, and drops the call when it is not.
     """
@@ -728,7 +728,7 @@ def write_graph(methods: dict, edges, graph_path: str) -> None:
         if i.get("routes"):
             node["routes"] = i["routes"]
         if i.get("approx"):
-            node["approx"] = True     # read textually, not parsed -- see lang_extract.py
+            node["approx"] = True     # calls resolved only via declared types -- ts_extract.py
         if i.get("declaration"):
             node["declaration"] = True   # signature only; no body to measure or run
         if i.get("signatures"):

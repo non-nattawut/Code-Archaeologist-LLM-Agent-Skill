@@ -11,7 +11,7 @@ desc_source: docstring
 # GET /go/healthz
 
 ## What it does
-Liveness probe. No handler function to attach to, so the registration
+Liveness probe. No handler function to attach to, so the registration itself becomes the endpoint node.
 
 ## Signature
 `GET /go/healthz`

@@ -280,15 +280,16 @@
       "owner": "non-nattawut"
     },
     "sample_src/services/orders_java/PricingRule.java": {
-      "commits": 1,
-      "insertions": 25,
+      "commits": 2,
+      "insertions": 26,
       "deletions": 0,
       "authors": {
+        "Nattawut Rodthong": 1,
         "non-nattawut": 1
       },
-      "last_commit": "2026-09-08T22:13:49+07:00",
+      "last_commit": "2026-09-10T09:21:00+07:00",
       "first_commit": "2026-09-08T22:13:49+07:00",
-      "owner": "non-nattawut"
+      "owner": "Nattawut Rodthong"
     }
   },
   "nodes": {
@@ -337,17 +338,18 @@
     },
     "FlatRate": {
       "file": "sample_src/services/orders_java/PricingRule.java",
-      "commits": 1,
-      "owner": "non-nattawut",
+      "commits": 2,
+      "owner": "Nattawut Rodthong",
       "authors": {
+        "Nattawut Rodthong": 1,
         "non-nattawut": 1
       },
-      "author_count": 1,
-      "last_commit": "2026-09-08T22:13:49+07:00",
+      "author_count": 2,
+      "last_commit": "2026-09-10T09:21:00+07:00",
       "first_commit": "2026-09-08T22:13:49+07:00",
       "fan_in": 0,
       "fan_out": 1,
-      "risk": 2
+      "risk": 4
     },
     "InvoiceController": {
       "file": "sample_src/services/orders_cs/InvoiceController.cs",
@@ -578,17 +580,18 @@
     },
     "PricingRule": {
       "file": "sample_src/services/orders_java/PricingRule.java",
-      "commits": 1,
-      "owner": "non-nattawut",
+      "commits": 2,
+      "owner": "Nattawut Rodthong",
       "authors": {
+        "Nattawut Rodthong": 1,
         "non-nattawut": 1
       },
-      "author_count": 1,
-      "last_commit": "2026-09-08T22:13:49+07:00",
+      "author_count": 2,
+      "last_commit": "2026-09-10T09:21:00+07:00",
       "first_commit": "2026-09-08T22:13:49+07:00",
       "fan_in": 3,
       "fan_out": 0,
-      "risk": 4
+      "risk": 8
     },
     "RouterModule": {
       "file": "sample_src/services/orders_go/router.go",
@@ -634,17 +637,18 @@
     },
     "TieredRate": {
       "file": "sample_src/services/orders_java/PricingRule.java",
-      "commits": 1,
-      "owner": "non-nattawut",
+      "commits": 2,
+      "owner": "Nattawut Rodthong",
       "authors": {
+        "Nattawut Rodthong": 1,
         "non-nattawut": 1
       },
-      "author_count": 1,
-      "last_commit": "2026-09-08T22:13:49+07:00",
+      "author_count": 2,
+      "last_commit": "2026-09-10T09:21:00+07:00",
       "first_commit": "2026-09-08T22:13:49+07:00",
       "fan_in": 0,
       "fan_out": 1,
-      "risk": 2
+      "risk": 4
     }
   },
   "hotspots": [
@@ -697,6 +701,22 @@
       "risk": 12
     },
     {
+      "node": "PricingRule",
+      "file": "sample_src/services/orders_java/PricingRule.java",
+      "commits": 2,
+      "owner": "Nattawut Rodthong",
+      "authors": {
+        "Nattawut Rodthong": 1,
+        "non-nattawut": 1
+      },
+      "author_count": 2,
+      "last_commit": "2026-09-10T09:21:00+07:00",
+      "first_commit": "2026-09-08T22:13:49+07:00",
+      "fan_in": 3,
+      "fan_out": 0,
+      "risk": 8
+    },
+    {
       "node": "OrderService",
       "file": "sample_src/backend/order_service.py",
       "commits": 1,
@@ -726,6 +746,22 @@
       "fan_in": 0,
       "fan_out": 1,
       "risk": 6
+    },
+    {
+      "node": "FlatRate",
+      "file": "sample_src/services/orders_java/PricingRule.java",
+      "commits": 2,
+      "owner": "Nattawut Rodthong",
+      "authors": {
+        "Nattawut Rodthong": 1,
+        "non-nattawut": 1
+      },
+      "author_count": 2,
+      "last_commit": "2026-09-10T09:21:00+07:00",
+      "first_commit": "2026-09-08T22:13:49+07:00",
+      "fan_in": 0,
+      "fan_out": 1,
+      "risk": 4
     },
     {
       "node": "OrderController",
@@ -773,21 +809,6 @@
       "risk": 4
     },
     {
-      "node": "PricingRule",
-      "file": "sample_src/services/orders_java/PricingRule.java",
-      "commits": 1,
-      "owner": "non-nattawut",
-      "authors": {
-        "non-nattawut": 1
-      },
-      "author_count": 1,
-      "last_commit": "2026-09-08T22:13:49+07:00",
-      "first_commit": "2026-09-08T22:13:49+07:00",
-      "fan_in": 3,
-      "fan_out": 0,
-      "risk": 4
-    },
-    {
       "node": "TestOrdersModule",
       "file": "sample_src/backend/tests/test_orders.py",
       "commits": 1,
@@ -800,6 +821,22 @@
       "first_commit": "2026-09-06T20:05:48+07:00",
       "fan_in": 0,
       "fan_out": 3,
+      "risk": 4
+    },
+    {
+      "node": "TieredRate",
+      "file": "sample_src/services/orders_java/PricingRule.java",
+      "commits": 2,
+      "owner": "Nattawut Rodthong",
+      "authors": {
+        "Nattawut Rodthong": 1,
+        "non-nattawut": 1
+      },
+      "author_count": 2,
+      "last_commit": "2026-09-10T09:21:00+07:00",
+      "first_commit": "2026-09-08T22:13:49+07:00",
+      "fan_in": 0,
+      "fan_out": 1,
       "risk": 4
     },
     {
@@ -860,21 +897,6 @@
       "first_commit": "2026-09-08T22:13:49+07:00",
       "fan_in": 1,
       "fan_out": 0,
-      "risk": 2
-    },
-    {
-      "node": "FlatRate",
-      "file": "sample_src/services/orders_java/PricingRule.java",
-      "commits": 1,
-      "owner": "non-nattawut",
-      "authors": {
-        "non-nattawut": 1
-      },
-      "author_count": 1,
-      "last_commit": "2026-09-08T22:13:49+07:00",
-      "first_commit": "2026-09-08T22:13:49+07:00",
-      "fan_in": 0,
-      "fan_out": 1,
       "risk": 2
     },
     {
@@ -983,21 +1005,6 @@
       "risk": 2
     },
     {
-      "node": "TieredRate",
-      "file": "sample_src/services/orders_java/PricingRule.java",
-      "commits": 1,
-      "owner": "non-nattawut",
-      "authors": {
-        "non-nattawut": 1
-      },
-      "author_count": 1,
-      "last_commit": "2026-09-08T22:13:49+07:00",
-      "first_commit": "2026-09-08T22:13:49+07:00",
-      "fan_in": 0,
-      "fan_out": 1,
-      "risk": 2
-    },
-    {
       "node": "OrderRouterModule",
       "file": "sample_src/api_express/order_router.js",
       "commits": 1,
@@ -1030,7 +1037,7 @@
   ],
   "summary": {
     "files_with_history": 26,
-    "commits_counted": 40,
+    "commits_counted": 41,
     "authors": 2,
     "graph": "graph.json",
     "note": null

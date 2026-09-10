@@ -11,7 +11,7 @@ desc_source: docstring
 # InvoiceService.Total
 
 ## What it does
-Total for a quantity at a price. This is an overload: both
+Total for a quantity at a price. This is an overload: both signatures share one node id, which is one of the reasons this tier is marked approximate.
 
 ## Signature
 `Total(request)`

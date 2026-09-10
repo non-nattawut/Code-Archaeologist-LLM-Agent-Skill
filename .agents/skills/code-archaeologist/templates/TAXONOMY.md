@@ -13,7 +13,7 @@ sets — change the taxonomy instead).
 | `{{kind}}` | `class`, `component`, `module` | What the entity is. `component` is a JS/TS function that returns JSX. |
 | `{{layer}}` | `controller`, `service`, `repository`, `model`, `client`, `config`, `ui`, `test`, `function`, `module`, `unknown` | Architectural role (inferred from name/decorators; `test` wins for anything in a test file, and a `component` is always `ui`). |
 | `{{lang}}` | `py`, `js`, `java`, `go`, `csharp` | Source language. `js` covers `.js/.jsx/.ts/.tsx`. |
-| `{{approx}}` | `true`, `false` | `true` when the entity was read textually rather than parsed (`java`, `go`, `csharp`). Only `true` reaches the graph, as `approx: true`. |
+| `{{approx}}` | `true`, `false` | `true` when the entity's *calls* were resolved only through declared types (`java`, `go`, `csharp`). The source is parsed exactly; the resolution is the approximate part. Only `true` reaches the graph, as `approx: true`. |
 | `{{source}}` | `<area>/<path>` | Source file, prefixed with its root area (e.g. `backend/order_service.py`). |
 | `{{summary}}` | free text | Docstring / description. |
 | `{{bases}}`, `{{decorators}}`, `{{methods}}`, `{{references}}` | lists | `[[wikilinks]]` where the target is a known entity, else inline code. |
@@ -26,7 +26,7 @@ sets — change the taxonomy instead).
 | `kind` | `method`, `function`, `endpoint`, `component`, `test` | `endpoint` = a route handler (flow root); `component` = a function that returns JSX. Both are entry points: something outside the graph calls them, so neither counts as dead code. |
 | `layer` | same set as above | Role of the owning class/file. |
 | `lang` | `py`, `js`, `java`, `go`, `csharp` | Source language. |
-| `approx` | `true` (present only when true) | The node came from `lang_extract.py`, which reads declarations textually. Unresolvable calls were dropped rather than guessed, so its edges are a lower bound. |
+| `approx` | `true` (present only when true) | The node came from `ts_extract.py` (Java/Go/C#, parsed with tree-sitter). Its declarations are exact; its calls are followed only through declared types, and anything else was dropped rather than guessed, so its edges are a lower bound. |
 | `declaration` | `true` (present only when true) | A signature with no body (interface member, `abstract` method). Its **Calls** section is always empty because there is no body to call from — that says nothing about whether the implementations are used. |
 | `desc_source` | `docstring`, `ai`, `auto` | Where "What it does" came from (see hybrid descriptions). |
 | `class` | class name | Owning class (absent for module-level functions). |

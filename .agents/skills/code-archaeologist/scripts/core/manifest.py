@@ -26,6 +26,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from paths import DATA_DIR  # noqa: E402  (also puts sibling script dirs on sys.path)
+
+import grammars  # noqa: E402  (which languages this machine can parse)
 DEFAULT_MANIFEST = os.path.join(DATA_DIR, "cache", "manifest.json")
 
 # Files the skill looks at. The graph builders parse only .py and .js/.ts, but the
@@ -85,7 +87,8 @@ def snapshot(roots) -> dict[str, str]:
 def write(roots, path: str = DEFAULT_MANIFEST) -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
-        json.dump({"roots": rel_roots(roots), "files": snapshot(roots)},
+        json.dump({"roots": rel_roots(roots), "grammars": grammars.versions(),
+                   "files": snapshot(roots)},
                   fh, indent=2, sort_keys=True)
         fh.write("\n")
 
@@ -130,10 +133,36 @@ def compare(roots=None, path: str = DEFAULT_MANIFEST) -> dict:
     deleted = sorted(k for k in recorded if k not in current)
     changed = sorted(k for k in current if k in recorded and current[k] != recorded[k])
     stale = bool(added or deleted or changed)
+
+    # The source can be untouched and the graph still wrong: extraction depends on
+    # which tree-sitter grammars are installed, so the same repo on two machines
+    # yields different graphs. A graph that is smaller because a wheel is missing
+    # must not be mistakable for a graph of a smaller codebase.
+    was = data.get("grammars") or {}
+    now = grammars.versions()
+    grammar_note = ""
+    if was != now:
+        gone = sorted(set(was) - set(now))
+        new = sorted(set(now) - set(was))
+        moved = sorted(k for k in set(was) & set(now) if was[k] != now[k])
+        bits = ([f"lost {', '.join(gone)}"] if gone else []) + \
+               ([f"gained {', '.join(new)}"] if new else []) + \
+               ([f"upgraded {', '.join(moved)}"] if moved else [])
+        grammar_note = "grammars changed since last build (" + "; ".join(bits) + ")"
+        stale = True
+
+    if not stale:
+        reason = "up to date"
+    elif grammar_note and not (added or deleted or changed):
+        reason = grammar_note
+    elif grammar_note:
+        reason = f"source changed since last build; {grammar_note}"
+    else:
+        reason = "source changed since last build"
     return {
-        "stale": stale,
-        "reason": "up to date" if not stale else "source changed since last build",
+        "stale": stale, "reason": reason,
         "changed": changed, "added": added, "deleted": deleted,
+        "grammars": now,
     }
 
 

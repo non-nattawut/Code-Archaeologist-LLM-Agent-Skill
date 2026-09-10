@@ -1,6 +1,6 @@
 # Architecture report — graph.json
 
-Generated 2026-09-10 02:20 UTC · 25 nodes · 22 edges
+Generated 2026-09-10 02:57 UTC · 25 nodes · 22 edges
 
 ## Health: **D** (69/100)
 
@@ -11,7 +11,7 @@ Generated 2026-09-10 02:20 UTC · 25 nodes · 22 edges
 
 Dead-code ratio 12.0% · cycles 0 · layer violations 0 · security findings 4
 
-> **12 of 25 nodes are approximate.** Java, Go and C# are read textually rather than parsed, so this grade rests in part on edges that were inferred from declared types. Unresolvable calls (interface dispatch, overloads, lambdas) were dropped, not guessed — so the real coupling is at least this much.
+> **12 of 25 nodes are approximate.** Java, Go and C# resolve calls only through declared types, so this grade rests in part on edges that were inferred from declared types. Unresolvable calls (interface dispatch, overloads, lambdas) were dropped, not guessed — so the real coupling is at least this much.
 
 ## Census
 
@@ -113,13 +113,13 @@ _None._
 | `ApiClientModule` | 4 | 2 | 0 | 12 | Nattawut Rodthong |
 | `OrderRepository` | 3 | 3 | 0 | 12 | non-nattawut |
 | `PaymentClient` | 3 | 3 | 0 | 12 | non-nattawut |
+| `PricingRule` | 2 | 3 | 0 | 8 | Nattawut Rodthong |
 | `OrderService` | 1 | 4 | 2 | 7 | Nattawut Rodthong |
 | `OrderPageModule` | 3 | 0 | 1 | 6 | non-nattawut |
+| `FlatRate` | 2 | 0 | 1 | 4 | Nattawut Rodthong |
 | `OrderController` | 2 | 0 | 1 | 4 | Nattawut Rodthong |
 | `OrderRepositoryTest` | 1 | 0 | 3 | 4 | non-nattawut |
 | `OrderWorkflow` | 1 | 1 | 2 | 4 | non-nattawut |
-| `PricingRule` | 1 | 3 | 0 | 4 | non-nattawut |
-| `TestOrdersModule` | 1 | 0 | 3 | 4 | non-nattawut |
 
 ## Debt — 2 marker(s) (FIXME 1, TODO 1), 3 dead node(s)
 

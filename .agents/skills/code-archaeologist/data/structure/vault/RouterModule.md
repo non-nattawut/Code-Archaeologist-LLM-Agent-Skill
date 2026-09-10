@@ -18,7 +18,7 @@ _None._
 _None._
 
 ## Methods
-- `NewRouter()` — NewRouter wires the Go order-event endpoints.
+- `NewRouter()` — NewRouter wires the Go order-event endpoints. Two registration shapes, deliberately: a named handler, whose route attaches to that function's own node, and an inline literal, which has no node to attach to and so becomes an endpoint of its own.
 - `handleOrderEvents()` — handleOrderEvents writes one order's event history.
 - `recordOrderEvent()` — recordOrderEvent appends one event to an order's history.
 
