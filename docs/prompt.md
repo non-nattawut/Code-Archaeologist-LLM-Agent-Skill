@@ -3298,3 +3298,21 @@ route base in `build_flow`/`js_ts_extract` comments, `r32`'s test data, the hist
 this entry, a factory name, and three method names in finding #8 -- against the standing rule
 that only aggregate figures from that repository are recorded. All were replaced with generic
 equivalents (`/orders`, "a factory", "a one-line overload ...") and a grep confirmed none remain.
+
+## [74] 2026-09-11 — Is anything left?
+
+**Prompt**
+> ok now we dont have anything to do more right?
+
+**Response**
+Checked before answering: a read-only extension census of the user's three other local projects.
+None adds a language that is graphed but untested on real code -- one is almost entirely GDScript
+(`.gd`, not a supported language), one is Java + TSX (already validated), one is a small Python
+project. Answer given: the features are complete and nothing is broken that I know of; three
+things remain, none urgent. (1) *Found while implementing* #8 (an overload set's node carries one
+overload's range) is open and waits on the user's choice -- recommended option (a), a per-overload
+`ranges` list. (2) Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir and the four
+route tables have still only met fixtures; closing that needs public repositories, which needs
+their permission to download -- the local projects cannot help. (3) The explorer's walk-through on
+a real-repository page could not be done, because the preview pane refuses pages over ~0.3 MB;
+the user can open one in their own browser. No code changed.
