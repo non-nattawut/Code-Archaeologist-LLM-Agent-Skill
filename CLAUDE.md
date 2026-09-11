@@ -50,6 +50,7 @@ archaeologist.py  project | flow | both | check | report | brief   <- the only e
       both extract through: py_extract.py     (Python,        tree-sitter)
                             js_ts_extract.py  (JS/TS/JSX/TSX, tree-sitter)
                             ts_extract.py     (13 languages,  tree-sitter)
+           flow also reads: route_tables.py   (Django/Rails/Laravel/Phoenix tables -> handler nodes)
   report   -> report.py (scan_security + git_insights + analyze + metrics + debt + tests_map
                          + duplicates)
                                                                     -> data/report/<map>/
@@ -70,7 +71,7 @@ scripts/
                      long_path() -- every per-node file goes through it (MAX_PATH, phase 6d)
   core/     taxonomy.py  manifest.py  console.py  grammars.py  ids.py
   extract/  build_wiki.py  build_graph.py  build_flow.py  py_extract.py
-            js_ts_extract.py  ts_extract.py  apply_descriptions.py
+            js_ts_extract.py  ts_extract.py  route_tables.py  apply_descriptions.py
   review/   analyze.py  scan_security.py  git_insights.py  metrics.py  debt.py
             tests_map.py  duplicates.py  report.py  brief.py
   query/    trace_path.py  context.py  search.py  build_html.py
@@ -160,6 +161,14 @@ delete. Nothing else in `core/` may import a skill module.
   lean on: a receiver that is itself a type name (`WidgetStore.save` in Elixir, `Widget::new` in
   Rust) resolves to that type. Java, Go and C# keep their own branches untouched -- the sample's
   graphs were byte-identical before and after.
+- `route_tables.py` reads routes declared **away from their handlers** (phase 8): Django
+  `urlpatterns` (with `include()` prefixes, regex paths and class-based views -> one route per HTTP
+  method the class defines), Rails `routes.rb` (`resources`, `namespace`, `scope`, `member`),
+  Laravel `routes/*.php` (both handler forms, `prefix()->group`, `resource`), Phoenix routers
+  (nested `scope` aliases, `resources`). It only *reads*; `build_flow._attach_table_routes` attaches
+  each route to the one node its `(class, method)` reference names -- a Django function view is also
+  pinned to the file its import points at -- before the cross-stack pass. A reference naming no
+  node, or two, is dropped and counted in one stderr line, never guessed.
 - `trace_path.py` is the query tool: `--from/--to` (BFS path), `--impact-of` (blast radius),
   `--impact-of-diff` (map a git diff to nodes, union their impact). Works on either graph.
 - `analyze.py` is graph-only: cycles, orphans, layer violations, hubs, god objects, name-based
@@ -484,6 +493,10 @@ A fixture costs one directory and one row. Current expectations, all asserted:
 | ruby | 7 | 2 | 0 | yes |
 | php | 6 | 2 | 0 | yes |
 | elixir | 5 | 2 | 0 | yes |
+| django *(route table)* | 6 | 1 | **5** | no |
+| rails *(route table)* | 5 | 1 | **5** | no |
+| laravel *(route table)* | 5 | 1 | **5** | no |
+| phoenix *(route table)* | 5 | 1 | **5** | no |
 
 The eleven phase-7 rows have no controller where the language's route shape is read elsewhere
 (Ruby, PHP, Elixir route *tables* are phase 8) or not at all (Swift, Scala, Dart, C, C++ -- a

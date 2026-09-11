@@ -69,7 +69,13 @@ covers. To see what the extractor made of those files directly:
 
 ```bash
 python .agents/skills/code-archaeologist/scripts/extract/ts_extract.py --src ./src
+python .agents/skills/code-archaeologist/scripts/extract/route_tables.py ./src   # every route a table declares
 ```
+
+A route declared in a **table** — Django `urlpatterns`, Rails `config/routes.rb`, Laravel
+`routes/*.php`, a Phoenix router — is attached to the handler it names. A reference that names no
+node, or names two (the same controller in two files), is not attached, and the build prints one
+line counting them.
 
 Needs the tree-sitter runtime plus the wheel per language, installed **into the skill folder**
 rather than into your Python:

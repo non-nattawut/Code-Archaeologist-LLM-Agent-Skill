@@ -269,6 +269,78 @@
       "placesThroughTheStore"
     ]
   },
+  "django": {
+    "docs": {
+      "OrderView.get": "Show one order.",
+      "OrderView.post": "Update one order.",
+      "api_status": "Health of the API.",
+      "fetch_orders": "Every order.",
+      "legacy_order": "The old slug URL.",
+      "order_list": "List orders."
+    },
+    "edges": [
+      [
+        "order_list",
+        "fetch_orders"
+      ]
+    ],
+    "lines": {
+      "OrderView.get": 7,
+      "OrderView.post": 11,
+      "api_status": 26,
+      "fetch_orders": 31,
+      "legacy_order": 21,
+      "order_list": 16
+    },
+    "metrics": {
+      "OrderView.get": [
+        1,
+        0,
+        3
+      ],
+      "OrderView.post": [
+        1,
+        0,
+        3
+      ],
+      "api_status": [
+        1,
+        0,
+        1
+      ],
+      "fetch_orders": [
+        1,
+        0,
+        0
+      ],
+      "legacy_order": [
+        1,
+        0,
+        2
+      ],
+      "order_list": [
+        1,
+        0,
+        1
+      ]
+    },
+    "nodes": [
+      "OrderView.get",
+      "OrderView.post",
+      "api_status",
+      "fetch_orders",
+      "legacy_order",
+      "order_list"
+    ],
+    "routes": [
+      "ANY /api/status/",
+      "ANY /legacy/<slug>/",
+      "ANY /orders/",
+      "GET /orders/<int:order_id>/",
+      "POST /orders/<int:order_id>/"
+    ],
+    "test_nodes": []
+  },
   "elixir": {
     "docs": {
       "WidgetService.grade": "Hand-counted: complexity 6 (1 + for, if, and, if, if), depth 2, 2 params.",
@@ -717,6 +789,134 @@
       "WidgetServiceTest.placesThroughTheStore"
     ]
   },
+  "laravel": {
+    "docs": {
+      "InvoiceController.index": "List invoices.",
+      "InvoiceController.show": "Show one invoice.",
+      "OrderController.index": "List orders.",
+      "OrderController.store": "Store an order.",
+      "ReportController.summary": "The summary report."
+    },
+    "edges": [
+      [
+        "OrderController.store",
+        "OrderController.index"
+      ]
+    ],
+    "lines": {
+      "InvoiceController.index": 7,
+      "InvoiceController.show": 13,
+      "OrderController.index": 7,
+      "OrderController.store": 13,
+      "ReportController.summary": 7
+    },
+    "metrics": {
+      "InvoiceController.index": [
+        1,
+        0,
+        0
+      ],
+      "InvoiceController.show": [
+        1,
+        0,
+        1
+      ],
+      "OrderController.index": [
+        1,
+        0,
+        0
+      ],
+      "OrderController.store": [
+        1,
+        0,
+        0
+      ],
+      "ReportController.summary": [
+        1,
+        0,
+        0
+      ]
+    },
+    "nodes": [
+      "InvoiceController.index",
+      "InvoiceController.show",
+      "OrderController.index",
+      "OrderController.store",
+      "ReportController.summary"
+    ],
+    "routes": [
+      "GET /admin/reports",
+      "GET /invoices",
+      "GET /invoices/{invoice}",
+      "GET /orders",
+      "POST /orders"
+    ],
+    "test_nodes": []
+  },
+  "phoenix": {
+    "docs": {
+      "ShopWeb.Admin.ReportController.summary": "The summary report.",
+      "ShopWeb.InvoiceController.index": "List invoices.",
+      "ShopWeb.InvoiceController.show": "Show one invoice.",
+      "ShopWeb.OrderController.create": "Create an order.",
+      "ShopWeb.OrderController.index": "List orders."
+    },
+    "edges": [
+      [
+        "ShopWeb.OrderController.create",
+        "ShopWeb.OrderController.index"
+      ]
+    ],
+    "lines": {
+      "ShopWeb.Admin.ReportController.summary": 5,
+      "ShopWeb.InvoiceController.index": 5,
+      "ShopWeb.InvoiceController.show": 10,
+      "ShopWeb.OrderController.create": 10,
+      "ShopWeb.OrderController.index": 5
+    },
+    "metrics": {
+      "ShopWeb.Admin.ReportController.summary": [
+        1,
+        0,
+        2
+      ],
+      "ShopWeb.InvoiceController.index": [
+        1,
+        0,
+        2
+      ],
+      "ShopWeb.InvoiceController.show": [
+        1,
+        0,
+        2
+      ],
+      "ShopWeb.OrderController.create": [
+        1,
+        0,
+        2
+      ],
+      "ShopWeb.OrderController.index": [
+        1,
+        0,
+        2
+      ]
+    },
+    "nodes": [
+      "ShopWeb.Admin.ReportController.summary",
+      "ShopWeb.InvoiceController.index",
+      "ShopWeb.InvoiceController.show",
+      "ShopWeb.OrderController.create",
+      "ShopWeb.OrderController.index"
+    ],
+    "routes": [
+      "GET /api/admin/reports",
+      "GET /api/invoices",
+      "GET /api/invoices/:id",
+      "GET /api/orders",
+      "POST /api/orders"
+    ],
+    "test_nodes": []
+  },
   "php": {
     "docs": {
       "WidgetService.__construct": "",
@@ -882,6 +1082,70 @@
     "test_nodes": [
       "test_place"
     ]
+  },
+  "rails": {
+    "docs": {
+      "InvoicesController.index": "List invoices.",
+      "InvoicesController.show": "Show one invoice.",
+      "OrdersController.create": "Create an order.",
+      "OrdersController.index": "List orders.",
+      "ReportsController.summary": "The summary report."
+    },
+    "edges": [
+      [
+        "OrdersController.create",
+        "OrdersController.index"
+      ]
+    ],
+    "lines": {
+      "InvoicesController.index": 4,
+      "InvoicesController.show": 9,
+      "OrdersController.create": 9,
+      "OrdersController.index": 4,
+      "ReportsController.summary": 5
+    },
+    "metrics": {
+      "InvoicesController.index": [
+        1,
+        0,
+        0
+      ],
+      "InvoicesController.show": [
+        1,
+        0,
+        0
+      ],
+      "OrdersController.create": [
+        1,
+        0,
+        0
+      ],
+      "OrdersController.index": [
+        1,
+        0,
+        0
+      ],
+      "ReportsController.summary": [
+        1,
+        0,
+        0
+      ]
+    },
+    "nodes": [
+      "InvoicesController.index",
+      "InvoicesController.show",
+      "OrdersController.create",
+      "OrdersController.index",
+      "ReportsController.summary"
+    ],
+    "routes": [
+      "GET /admin/reports",
+      "GET /invoices",
+      "GET /invoices/:id",
+      "GET /orders",
+      "POST /orders"
+    ],
+    "test_nodes": []
   },
   "ruby": {
     "docs": {

@@ -145,8 +145,11 @@ calls are matched to backend route handlers by HTTP method + path, giving cross-
 edges — so one trace can run frontend → API → service → repository.
 
 Route handlers are recognised in FastAPI, Flask (including `@app.route` on a module-level `def`
-and `methods=["GET", "POST"]`), Express (named handler or inline arrow) and Nest (`@Controller`
-prefix + `@Get`/`@Post` suffix). A node's `routes` is a **list** — say all of them when asked what
+and `methods=["GET", "POST"]`), Express (named handler or inline arrow), Nest (`@Controller`
+prefix + `@Get`/`@Post` suffix), Spring (Java and Kotlin), ASP.NET, Go routers and actix-web /
+Rocket — and, from a **route table** away from the handler, Django `urlpatterns`, Rails
+`routes.rb`, Laravel `routes/*.php` and Phoenix routers. A table route whose handler names no
+single node is not attached (the build says how many). A node's `routes` is a **list** — say all of them when asked what
 a handler serves. When a call's path does not match a route exactly, the link falls back to a
 route whose path is a suffix of it, and only when exactly one route matches; an ambiguous path is
 left unlinked rather than guessed, so a missing `http` edge means "could not tell", not "no

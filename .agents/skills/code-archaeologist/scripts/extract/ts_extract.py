@@ -895,6 +895,8 @@ def _gcalls(body, src: bytes, lang: str) -> list[tuple[str, str]]:
     """(receiver, name) for every call site in a body."""
     if body is None:
         return []
+    if lang == "ruby":
+        return [_grecv(call, src, lang) for call in _walk(body, _G_CALLS[lang])] + _rb_bare_calls(body, src)
     if lang != "dart":
         return [_grecv(call, src, lang) for call in _walk(body, _G_CALLS[lang])]
     # Dart has no call node: `store.save(x)` is `identifier, selector(.save),
@@ -917,6 +919,40 @@ def _gcalls(body, src: bytes, lang: str) -> list[tuple[str, str]]:
             elif prev.type == "identifier" and (i == 1 or kids[i - 2].type != "selector"):
                 out.append(("", _text(prev, src)))     # a bare call: nothing chained before it
         stack.extend(kids)
+    return out
+
+
+def _rb_bare_calls(body, src: bytes) -> list[tuple[str, str]]:
+    """Ruby's argument-less calls: `index`, with no parentheses, parses as an identifier.
+
+    In Ruby a bare name that is not a parameter or a local *is* a method call (or a
+    NameError), so reading it as one is the language's own rule, not a guess. Found
+    by the Rails fixture, where `def create; index; end` produced no edge at all.
+    """
+    method = body.parent
+    local = {_text(p, src) for p in _walk(_field(method, "parameters"), {"identifier"})} \
+        if method is not None and _field(method, "parameters") is not None else set()
+    for node in _walk(body, {"assignment", "operator_assignment"}):
+        left = _field(node, "left")
+        if left is not None and left.type == "identifier":
+            local.add(_text(left, src))
+    for node in _walk(body, {"for", "block_parameters", "lambda_parameters"}):
+        target = _field(node, "pattern") if node.type == "for" else node
+        if target is not None:
+            local |= {_text(i, src) for i in ([target] if target.type == "identifier"
+                                               else _walk(target, {"identifier"}))}
+    out = []
+    for ident in _walk(body, {"identifier"}):
+        parent = ident.parent
+        if parent is not None and parent.type == "call" and ident == _field(parent, "method"):
+            continue                                  # a call's own name: already read
+        if parent is not None and parent.type in ("assignment", "operator_assignment") \
+                and ident == _field(parent, "left"):
+            continue
+        if parent is not None and parent.type in ("for", "block_parameters", "lambda_parameters"):
+            continue
+        if _text(ident, src) not in local:
+            out.append(("", _text(ident, src)))
     return out
 
 

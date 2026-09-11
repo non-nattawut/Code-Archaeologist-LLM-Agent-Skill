@@ -397,6 +397,41 @@ def r23_long_node_paths():
         return f"the long-named entity is missing from the graph: {sorted(ids)}"
 
 
+def r24_route_table_handlers():
+    """phase 8: a route declared in a table (Django urlpatterns, routes.rb, ...) reached no
+    node at all; now it must reach exactly one -- and never guess between two."""
+    import contextlib
+    import io
+    d = tempfile.mkdtemp()
+    for name in ("a", "b"):                       # OrdersController.index, defined twice
+        os.makedirs(os.path.join(d, name))
+        open(os.path.join(d, name, "orders_controller.rb"), "w", encoding="utf-8").write(
+            "class OrdersController\n  def index\n    1\n  end\nend\n")
+    os.makedirs(os.path.join(d, "config"))
+    open(os.path.join(d, "config", "routes.rb"), "w", encoding="utf-8").write(
+        'Rails.application.routes.draw do\n  get "/orders", to: "orders#index"\nend\n')
+    os.makedirs(os.path.join(d, "shop"))
+    open(os.path.join(d, "shop", "urls.py"), "w", encoding="utf-8").write(
+        "from django.urls import path\nfrom . import views\n\n"
+        "urlpatterns = [path('api/items/', views.item_list)]\n")
+    open(os.path.join(d, "shop", "views.py"), "w", encoding="utf-8").write(
+        "def item_list(request):\n    return []\n")
+    open(os.path.join(d, "client.js"), "w", encoding="utf-8").write(
+        "export function loadItems() {\n  return fetch('/api/items/');\n}\n")
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        methods, edges = build_flow.analyze([d])
+    attached = [n for n, i in methods.items() if "OrdersController" in n and i.get("routes")]
+    if attached:
+        return f"a route to a handler two files define was attached to {attached} -- a guess"
+    if "route-table route(s) name no single handler" not in err.getvalue():
+        return "the ambiguous table route was dropped silently"
+    if not (methods.get("item_list") or {}).get("routes"):
+        return "the Django table route did not reach its view"
+    if ("loadItems", "item_list", "http") not in set(edges):
+        return "a frontend fetch did not link to a handler routed only by a table"
+
+
 CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_append,
          r05_duplicates_declarations, r06_orphan_guard, r07_flask_routes,
          r08_missing_parser_is_visible, r09_no_absolute_paths, r10_brief_agrees_with_check,
@@ -404,7 +439,7 @@ CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_app
          r14_context_budget, r15_moved_root_reason, r16_install_hint,
          r17_owner_respects_end, r18_same_name_in_two_files, r19_reports_are_reproducible,
          r20_structure_shared_names, r21_grammars_are_pinned, r22_metrics_by_graph_id,
-         r23_long_node_paths]
+         r23_long_node_paths, r24_route_table_handlers]
 
 
 def main() -> int:

@@ -180,7 +180,7 @@ re-runs it from scratch — along with the current selection and filter.
 | --- | --- |
 | **Graphs** — nodes, call edges, structure, per-node metrics, tests | Python, JavaScript/TypeScript/JSX/TSX, Java, Go, C#, Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir — all tree-sitter, each with its own fixture |
 | **Lines, risk scan, debt markers, test detection** | all of the above |
-| **Routes read** | FastAPI, Flask, Express, NestJS, Spring (Java and Kotlin), ASP.NET, Go `net/http`, actix-web / Rocket |
+| **Routes read** | *on the handler:* FastAPI, Flask, Express, NestJS, Spring (Java and Kotlin), ASP.NET, Go `net/http`, actix-web / Rocket — *from a route table:* Django `urlpatterns` (with `include()` and class-based views), Rails `routes.rb`, Laravel `routes/*.php`, Phoenix routers |
 
 Seventeen languages, one engine: each is a pinned grammar wheel plus a row of node types
 (`ts_extract.SHAPES`), never a new parser. The graph's precision follows the *type system*, not
@@ -303,6 +303,7 @@ It has no npm dependencies of its own.
 │   │   ├── py_extract.py   Python, parsed with tree-sitter (ast is kept as the oracle)
 │   │   ├── js_ts_extract.py JS/JSX/TS/TSX, parsed with tree-sitter
 │   │   ├── ts_extract.py   Java/Go/C# and eleven more languages, parsed with tree-sitter
+│   │   ├── route_tables.py Django / Rails / Laravel / Phoenix route tables, read into routes
 │   │   └── apply_descriptions.py
 │   │
 │   ├── review/           graphs -> findings

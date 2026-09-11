@@ -3054,3 +3054,45 @@ eleven extractors. Groovy takes Java's branch, and Java, Go and C# keep theirs u
 - **SKILL.md:** the language list, the precision rule, and the Notes paragraph. That paragraph was
   already wrong before today: it said graphs cover "Python and JS/TS".
 - **Also updated:** USAGE, TAXONOMY, the fixtures README, and the presentation.
+
+### 8 — route tables: Django, Rails, Laravel, Phoenix (sixth commit)
+
+Same discipline as phase 7. I wrote one fixture per framework first, each covering the hard
+cases:
+
+- a prefix: `include()`, `namespace`, `prefix()->group` and nested `scope`;
+- a resource cut down with `only:`;
+- a class-based or namespaced handler;
+- one route naming a handler that exists nowhere.
+
+Then I dumped the four tables' parse trees before writing a line of the reader.
+
+**Design.** `extract/route_tables.py` only reads tables into (method, path, handler reference).
+`build_flow._attach_table_routes` attaches each route to the single node its `(class, method)`
+names — a Django function view is also pinned to the file its import points at — before the
+cross-stack pass, so HTTP linking needed no change. Zero or several matches means the route is
+dropped and counted, never guessed.
+
+**All four came out as designed on the first run.** Each attached 5 routes, and `missing` was the
+only route dropped in every framework:
+
+- **Django:** the class-based view split into `GET` + `POST`, the `include` prefix was applied, and
+  the regex route reads as `/legacy/<slug>/`.
+- **Rails:** `resources … only:` and `namespace`.
+- **Laravel:** both handler forms, `prefix()->group` and `resource()->only()`.
+- **Phoenix:** nested scope aliases and `resources`.
+
+**What the fixtures found.** The Rails row had 0 edges where the other three had 1. Ruby parses an
+argument-less call without parentheses (`index`) as an *identifier*, so `create → index` was
+silently lost. That gap dates from phase 7. By Ruby's own semantics such a name is a call unless it
+is a parameter or a local, so I fixed it in the Ruby reader. Re-recording showed that only the
+Rails row changed; the phase-7 Ruby row is unchanged.
+
+**New r24:** an ambiguous table handler attaches to neither and says so; a Django table route
+reaches its view; a frontend `fetch()` links to a table-routed handler.
+
+**Verified:** sample byte-identical, `check_langs` 21/21, regressions 24/24, `check_graph` clean,
+`check_docs` OK.
+
+**Docs:** CLAUDE.md (layout, pipeline, a `route_tables` bullet, four fixture rows), README (tree,
+routes row), USAGE (command form and the drop rule), the fixtures README, and the plan.

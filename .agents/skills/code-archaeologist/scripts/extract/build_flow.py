@@ -67,6 +67,7 @@ import py_extract as px  # noqa: E402  (Python, via tree-sitter)
 from ids import SharedNames as FlowIds  # noqa: E402  (one id rule for both maps)
 from js_ts_extract import find_js_files, extract_js_files, frontend_degraded   # noqa: E402
 from ts_extract import find_lang_files, extract_lang_files  # noqa: E402  (Java/Go/C#, via tree-sitter)
+import route_tables  # noqa: E402  (Django / Rails / Laravel / Phoenix route tables)
 
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data"}
 
@@ -452,6 +453,11 @@ def analyze(roots: list[str]):
         if s in methods and t in methods and s != t:
             edges.add((s, t, "calls"))
 
+    # --- Route tables (Django, Rails, Laravel, Phoenix): a route declared away from
+    # its handler, attached exactly as a decorator route is -- before the cross-stack
+    # pass below, which is what reads routes.
+    _attach_table_routes(route_tables.read(roots), methods)
+
     # Test code gets its own layer, in one pass so both extractors agree. It is not
     # application code, and analyze.py must not count it as dead: a runner calls it.
     for info in methods.values():
@@ -523,6 +529,46 @@ def _attach_routes(routes: list[dict], methods: dict, raw_calls: list, make_node
             node["signature"] = label  # the route is the signature; `nid()` reads as nonsense
             _claim(methods, nid, node)
             raw_calls.append((nid, r.get("calls", []), rel))
+
+
+def _attach_table_routes(table_routes: list[dict], methods: dict) -> None:
+    """Each route-table route -> the one node its handler reference names, or nothing.
+
+    A reference is a (class, method) pair -- `orders#index`, `[OrderController::class,
+    'index']`, `OrderController, :index` -- or, for a Django function view, a name
+    pinned to the file its import points at. It must name exactly one node: none
+    means the handler is not in the graph (a typo, a generated controller, code
+    outside --src), and more than one means two files define it and the table cannot
+    say which. Both are dropped and counted -- never guessed.
+    """
+    by_member: dict[tuple, list[str]] = {}
+    for nid, info in methods.items():
+        by_member.setdefault((info.get("cls"), info.get("name")), []).append(nid)
+    dropped: list[str] = []
+    for r in table_routes:
+        if r.get("verbs"):              # a Django class-based view: one route per method it defines
+            hits = [(nid, name.upper()) for name in route_tables.HTTP_METHOD_NAMES
+                    for nid in by_member.get((r["cls"], name), [])]
+        else:
+            hits = [(nid, r["method"]) for nid in by_member.get((r.get("cls"), r.get("name")), [])]
+        if r.get("module"):
+            rel = _rel_source(r["module"], r["root"])
+            hits = [(nid, m) for nid, m in hits if _file_of(methods[nid]) == rel]
+        per_verb: dict[str, set[str]] = {}
+        for nid, m in hits:
+            per_verb.setdefault(m, set()).add(nid)
+        if not hits or any(len(v) > 1 for v in per_verb.values()):
+            dropped.append(f'{r["method"]} {r["path"]}')
+            continue
+        for nid, m in hits:
+            node = methods[nid]
+            node["routes"] = _dedupe_routes((node.get("routes") or []) + [{"method": m, "path": r["path"]}])
+            node["kind"] = "endpoint"
+            node["layer"] = "controller"
+    if dropped:
+        shown = ", ".join(dropped[:5]) + (f" (+{len(dropped) - 5} more)" if len(dropped) > 5 else "")
+        print(f"  ! {len(dropped)} route-table route(s) name no single handler in the graph, so they"
+              f" are not attached: {shown}.", file=sys.stderr)
 
 
 def _analyze_js(js_files: list, ids: "FlowIds"):

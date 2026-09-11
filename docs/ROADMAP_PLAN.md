@@ -1,6 +1,6 @@
 # Graph as many languages as possible
 
-> ## Status: **phases 1–7 are complete; phases 8–9 remain. The goal in the title is reached: seventeen languages have a graph.**
+> ## Status: **phases 1–8 are complete; phase 9 remains. The goal in the title is reached: seventeen languages have a graph.**
 > Every planning concern is closed. One recorded finding awaits review: *Found while implementing*
 > #6 (a decorated TS method's `source` line), found in 6b after the phase-6 decisions were made.
 >
@@ -12,8 +12,8 @@
 > | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | **done** — 3 bugs fixed, 1 recorded (#5); 29 checks + 18 regression cases | `b44b909` |
 > | 5 — The two limits phase 4 left: structure-map shared names, the narrow toolbar | close the known gaps | **done** — both closed; toolbar floor ~1270 → ~987px | `cc4d0af` |
 > | 6 — Close the open concerns: pinned grammars, non-ASCII, per-language metrics, timing | make adding a language safe | **done** — 6c, 6b (recorded #6), 6a, 6d (found and fixed the MAX_PATH crash) | `16b6f62`, `6553498`, `bf588e7`, `758e522` |
-> | 7 — A graph for every review-only language (Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir) | the title goal | **done** — 17 languages graphed; 2 defects found by the fixtures and fixed | this commit |
-> | 8 — Route tables: Django `urlpatterns`, Rails, Laravel, Phoenix | cross-stack links for table-routed apps | **planned, not started** | — |
+> | 7 — A graph for every review-only language (Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir) | the title goal | **done** — 17 languages graphed; 2 defects found by the fixtures and fixed | `9be5825` |
+> | 8 — Route tables: Django `urlpatterns`, Rails, Laravel, Phoenix | cross-stack links for table-routed apps | **done** — 4 tables read; 1 Ruby gap found and fixed | this commit |
 > | 9 — Duplicates below function granularity | copied blocks, not only copied functions | **planned, not started** | — |
 >
 > ### Where phase 2 actually stands
@@ -1374,6 +1374,33 @@ and Phoenix.
 **Verify.** A fixture per framework covering the hard parts above (a prefix via `include` /
 `namespace` / `group` / `scope`, one resource expansion, one unresolvable reference that must
 produce no edge), asserted in `expected.json`. `sample_src` unchanged.
+
+**Result — shipped 2026-09-11.** `extract/route_tables.py` reads the four tables; it only *reads*.
+`build_flow._attach_table_routes` attaches each route to the one node its `(class, method)`
+reference names — a Django function view is also pinned to the file its import points at — before
+the cross-stack pass, so linking needed no change. A reference naming no node, or two, is dropped
+and counted in one stderr line.
+
+- **Read against real trees:** the four tables were parsed and dumped before a line of the reader
+  was written, the same discipline as phase 7.
+- **All four fixtures came out as designed on the first run:** 5 routes attached each, the
+  `missing` route the only one dropped, in every framework. Django: a class-based view split into
+  `GET` + `POST` (one route per HTTP method the class defines), `include()` carrying its `api/`
+  prefix, a regex route read as `/legacy/<slug>/`, `path()` recorded as `ANY` (it names no verb).
+  Rails: `resources … only:`, `namespace`. Laravel: both handler forms, `prefix()->group`,
+  `resource()->only()`. Phoenix: nested `scope` aliases (`ShopWeb.Admin.ReportController`),
+  `resources … only:`.
+- **An included Django table is read only through its `include`**, so its routes never also appear
+  unprefixed.
+- **Found by the Rails fixture and fixed — a phase-7 gap:** Ruby parses an argument-less call
+  without parentheses (`index`) as an *identifier*, so `def create; index; end` produced no edge.
+  By Ruby's own rule a bare name that is not a parameter or a local is a method call, so the Ruby
+  reader now reads it as one. Only the Rails row changed (0 → 1 edge); the phase-7 Ruby row is
+  unchanged.
+- **New regression case r24:** a table route whose handler two files define must attach to
+  *neither* (and say so), a Django table route must reach its view, and a frontend `fetch()` must
+  link across the stack to a handler routed only by a table.
+- `sample_src` byte-identical; `check_langs` 21 rows; regressions 24/24; `check_graph` clean.
 
 ---
 

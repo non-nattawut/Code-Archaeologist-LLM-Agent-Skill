@@ -70,4 +70,12 @@ Seventeen languages have a fixture since phase 7. Two cannot carry a non-ASCII *
 identifiers are ASCII-only, so its fixture keeps the multi-byte text in the comment, the string and
 the doc. Routes are asserted where the phase that added the language reads them: Kotlin (Spring
 annotations, Java's rule) and Rust (actix / Rocket attributes); Ruby, PHP and Elixir routes live in
-route tables, which phase 8 reads.
+route tables, which have fixtures of their own.
+
+## Route-table fixtures
+
+`django/`, `rails/`, `laravel/` and `phoenix/` are rows of the same table, for one framework each
+rather than one language (phase 8). Each covers what makes its table hard — a prefix (`include`,
+`namespace`, `prefix()->group`, `scope`), a resource cut down with `only:`, a class-based or
+namespaced handler — and **one route naming a handler that exists nowhere**, which must produce no
+route. The rows assert five routes each; the sixth, `missing`, is the one that must never appear.
