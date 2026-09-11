@@ -3334,3 +3334,16 @@ the overloads do different things; the sample's pair happens not to trip c13. Th
 recommended: store one range per overload (`ranges`) and teach the range readers to use it.
 Only languages with method overloading are affected: Java, C#, Kotlin, Scala, Swift and C++ (not
 Python, JS/TS, Go, Rust, C, Dart, Ruby, PHP or Elixir). No code changed.
+
+## [76] 2026-09-11 — Confirming the scope of finding #8
+
+**Prompt**
+> so it is problem witrh lanuage that have method overloading
+
+**Response**
+Confirmed: yes, only languages with method overloading (Java, C#, Kotlin, Scala, Swift, C++), and
+only when a class actually has overloads that do different things. A language without
+overloading cannot define two same-named methods in one class, so every node there has exactly
+one body and one range. Added one nuance: in a language *without* overloading, a second
+same-named definition in the same scope simply replaces the first at runtime (Python), so one
+node is correct there. No code changed.
