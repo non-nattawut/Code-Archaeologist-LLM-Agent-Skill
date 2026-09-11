@@ -5,6 +5,9 @@
 > resolved, and so is #8, found afterwards on a real repository (every overload its own node) — #6
 > (every range starts at its first decorator) and #7 (copied blocks grouped by shape) were decided
 > by the user on 2026-09-11 and shipped the same day.
+> **One item is open:** #9 (2026-09-12) — a multi-line `//` comment describes a JS/TS node with its
+> *last* line only, so the `doc` reads as a sentence fragment. It needs a decision because the fix
+> changes the visible description of every such node.
 >
 > **After the plan (2026-09-11): real-repository validation.** The finished skill was run,
 > read-only, on a Next.js + NestJS + Python repository and re-run on the Java + Next.js one used
@@ -1803,6 +1806,44 @@ only for two definitions that still cannot be told apart. `check_graph` c18 asse
 found the pinned Kotlin grammar puts `value_arguments` directly under the call. The sample moved by
 exactly that: 52/32 → 53/33, and `Issue` no longer carries `overloads` because both of its `Total`
 calls now pick their overload. Option (a)'s `ranges` became unnecessary: each node has one body.
+
+---
+
+### 9. A multi-line `//` comment describes a node with its *last* line only — found 2026-09-12
+
+**What.** `js_ts_extract.py` attaches a preceding line-comment block to a node, but the `doc` that
+reaches the graph is only its final line. A one-line comment therefore reads correctly
+(`createOrderHandler` -> "Create an order and return it."), while a three-line one reads as a
+sentence fragment. Three nodes in `sample_src` show it today:
+
+| Node | `doc` as extracted |
+| --- | --- |
+| `getOrderStatus` | "to its mount point - so this only links via the unique-suffix fallback." |
+| `getOrderEvents` | "match rather than the unique-suffix fallback that getOrderStatus needs." |
+| `createInvoice` | "token shapes are identical, so the two must cluster despite the new names." |
+
+It was found while correcting two stale comments in `sample_src` (the `approx` tier, which no
+longer exists): rewriting the comment changed the fragment, which is what made the rule visible.
+Nothing is *wrong* in the graph -- the text really is in the source -- but the field an agent reads
+as "what this does" is a tail, and `context.py` and every note repeat it.
+
+**Why it is not just a fix.** It changes the `desc_source: docstring` text of every JS/TS node that
+has a multi-line comment, so it moves bytes in `flow_graph.json`, in the vault, and in the
+description cache -- entries keyed by source hash stay valid, but the docstring branch wins before
+the cache is consulted, so the visible text changes for nodes nobody edited. It is also not obvious
+what the right answer *is*: a comment block is not a docstring, and its first line is not reliably
+a summary either (`createInvoice`'s block opens with "Deliberate copy-paste, so the duplicate pass
+has something to find" -- accurate about the fixture, not about the function).
+
+**Options.** (a) Join the block into one string and let it be the doc -- faithful, but long and
+often about the code's *context* rather than the function. (b) Take the **first** line rather than
+the last -- one-line comments are unaffected, and a block's first line is usually the topic
+sentence; `createInvoice` shows it can still be off-topic. (c) Take the first *sentence* of the
+joined block, which is (b) plus a sentence split. (d) Leave it, and treat a line-comment block as
+no doc at all unless it is a single line, falling back to the deterministic summary.
+**Recommendation: (b)** -- smallest change, fixes all three cases in the sample, and keeps the
+one-line behaviour that already reads well. The fixture comments that are about the fixture rather
+than the function are a `sample_src` wording problem, not an extractor one.
 
 ---
 

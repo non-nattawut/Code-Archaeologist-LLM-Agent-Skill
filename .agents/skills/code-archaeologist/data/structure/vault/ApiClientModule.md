@@ -22,7 +22,7 @@ _None._
 - `createInvoice()` — token shapes are identical, so the two must cluster despite the new names.
 - `getOrder()`
 - `getOrderStatus()` — to its mount point - so this only links via the unique-suffix fallback.
-- `getOrderEvents()` — than through the suffix fallback.
+- `getOrderEvents()` — match rather than the unique-suffix fallback that getOrderStatus needs.
 
 ## References
 _None._

@@ -11,7 +11,7 @@ desc_source: docstring
 # getOrderEvents
 
 ## What it does
-than through the suffix fallback.
+match rather than the unique-suffix fallback that getOrderStatus needs.
 
 ## Signature
 `getOrderEvents()`

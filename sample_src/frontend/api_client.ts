@@ -31,8 +31,8 @@ export async function getOrderStatus(orderId: string) {
 }
 
 // Reads an order's event history from the Go service. The Go router registers
-// this path exactly, so it links to the approximate tier by exact match rather
-// than through the suffix fallback.
+// this path exactly, so the cross-stack edge comes from an exact (METHOD, path)
+// match rather than the unique-suffix fallback that getOrderStatus needs.
 export async function getOrderEvents(orderId: string) {
   const res = await api.get(`/go/orders/${orderId}/events`);
   return res.data;

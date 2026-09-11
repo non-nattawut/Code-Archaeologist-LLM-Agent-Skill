@@ -29,9 +29,9 @@ public class InvoiceService
         return Total(request.Units, request.UnitPrice);
     }
 
-    /// <summary>Total for a quantity at a price. This is an overload: both
-    /// signatures share one node id, which is one of the reasons this tier is
-    /// marked approximate.</summary>
+    /// <summary>Total for a quantity at a price. This is an overload: each
+    /// signature is its own node, and a call picks one by argument count and
+    /// then by any argument type the source states.</summary>
     public int Total(int units, int unitPrice)
     {
         return units * unitPrice;

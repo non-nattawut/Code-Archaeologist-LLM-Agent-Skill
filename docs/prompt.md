@@ -3699,3 +3699,53 @@ Finding #8 gave every overload its own node and the `approx` flag is gone, so th
 describes behaviour that no longer exists. It is a shipped example file and its doc comment becomes
 a node's `doc`, so fixing it means regenerating the committed artifacts — told the user rather than
 doing it unasked.
+
+## [86] 2026-09-12 — The stale `approx` comments in sample_src, fixed
+
+**Prompt**
+> fix it and push
+
+**Response**
+"It" = the stale comment flagged at the end of [85]. Grepped `sample_src/` for the whole class of
+claim rather than fixing only the one I had named, and found **two**, not one:
+
+- `services/orders_cs/InvoiceService.cs:32-34` — "both signatures share one node id, which is one
+  of the reasons this tier is marked approximate". Finding #8 gave every overload its own node and
+  `approx` was replaced by `precision`, so both halves were false.
+- `frontend/api_client.ts:33-34` — "it links to the approximate tier by exact match". There is no
+  approximate tier since phase 2; Go is read by the same parser as everything else.
+
+Rewrote both **keeping the line count identical** (3 lines → 3 lines each), deliberately: the
+census in CLAUDE.md's expected block pins `529 lines across 22 files (… csharp 90, ts 90 …)`, and
+a comment one line longer would have meant re-pinning prose that has no reason to move. Confirmed
+after the rebuild: 529 / 22 / csharp 90 / ts 90, unchanged.
+
+Regenerated the committed example data in the same commit, as CLAUDE.md requires for any
+`sample_src/` change. The diff is exactly what it should be — **12 insertions, 12 deletions** — and
+the graph diff is two `doc` strings and nothing else:
+
+    - "doc": "Total for a quantity at a price. This is an overload: both signatures share one node id, …"
+    + "doc": "Total for a quantity at a price. This is an overload: each signature is its own node, …"
+
+`structure/graph.json` did not move at all (the class docs did not change, only a method's), and
+neither did any report. Every pinned number still holds: structure 25/22 D(69), flow 53/33 D(68),
+16 precision nodes, freshness `stale: false`. Checks: 27 × 2 graph invariants, 33/33 regressions,
+21/21 languages, oracle 0 disagreements, `check_docs` OK.
+
+**What the rewrite surfaced, and why it is recorded rather than fixed.** `getOrderEvents`'s `doc`
+was `"than through the suffix fallback."` — the *last line* of its comment. Checking every JS node
+confirmed the rule: `js_ts_extract.py` keeps only the final line of a preceding `//` block, so
+one-line comments read correctly and multi-line ones read as fragments. Three sample nodes show it
+(`getOrderStatus`, `getOrderEvents`, `createInvoice`).
+
+I did not quietly fix it, and I also declined to contort the comments so the last line happens to
+be a sentence — that is working around the extractor in the wrong file. It changes the visible
+description of every JS/TS node with a multi-line comment, and the right rule is not obvious
+(`createInvoice`'s block opens "Deliberate copy-paste, so the duplicate pass has something to
+find", which is about the fixture, not the function). So it is **Found while implementing #9** in
+`docs/ROADMAP_PLAN.md` with four options and a recommendation (take the *first* line: smallest
+change, fixes all three, leaves one-line comments alone).
+
+That made the roadmap's own status header stale — it claimed every found item was resolved — so
+the header now names #9 as the one open item. The doc that records open questions must not be the
+doc that hides one.

@@ -10,7 +10,7 @@ desc_source: docstring
 # InvoiceService.Total(int,int)
 
 ## What it does
-Total for a quantity at a price. This is an overload: both signatures share one node id, which is one of the reasons this tier is marked approximate.
+Total for a quantity at a price. This is an overload: each signature is its own node, and a call picks one by argument count and then by any argument type the source states.
 
 ## Signature
 `Total(unitPrice, units)`
