@@ -46,6 +46,17 @@ handler *is*, so a finding on one of those lines belongs to the handler (finding
 be the name line in Python/Java/C# and the decorator line in JS/TS; `tests/fixtures/langs`'
 `lines` column pins it now.
 
+**Every method is its own node, overloads included** -- in the languages that have them (Java,
+C#, Kotlin, Scala, Swift, C++, and Groovy through Java's tree; `ts_extract.OVERLOADING`). A name a
+class defines twice gets its parameter types in its id -- `InvoiceService.Total(InvoiceRequest)`,
+`InvoiceService.Total(int,int)` -- and every other id stays bare (`build_flow._local_names`). A
+call picks its overload by argument count, then by every argument type the source states -- a
+literal, `new X(...)`, or a name with a declared type (`build_flow._pick_overload`); what that
+leaves ambiguous is dropped, and the caller records the set in `ambiguous` and carries
+`precision: overloads`. Until finding #8 an overload set was one node holding every overload's
+calls but one overload's range; `signatures` now appears only when two definitions still cannot
+be told apart. Anything that looks a node's name up in source asks `ids.bare(id)`.
+
 An agent answers architecture questions by **querying the graph, then reading only the notes on the
 returned path** — never by scanning source.
 
@@ -385,12 +396,12 @@ components, four API frameworks, and Java/Go/C# with two deliberate hard cases, 
   3 Go, 3 C#), of which `OrderCard` and `StatusBadge` are `kind: component` / `layer: ui`.
   Structure nodes carry **no** `precision`: their edges are references, and a reference from a
   declared field is resolved
-- flow graph: **52 nodes / 32 edges, 16 endpoints, 0 pending** descriptions; one node
-  `declaration: true` (`PricingRule.price`); **17 nodes carry `precision`** -- 15 `name-matched`
-  (every JS/TS node), plus exactly one each of the two that are earned by an edge:
-  `OrderWorkflow.place` -> `interface-dispatch` (it calls the declaration) and
-  `InvoiceService.Issue` -> `overloads` (it calls the folded `InvoiceService.Total`). If either of
-  those two moves, a named marker has stopped working
+- flow graph: **53 nodes / 33 edges, 16 endpoints, 0 pending** descriptions; one node
+  `declaration: true` (`PricingRule.price`); **16 nodes carry `precision`** -- 15 `name-matched`
+  (every JS/TS node), plus exactly one earned by an edge: `OrderWorkflow.place` ->
+  `interface-dispatch` (it calls the declaration). If it moves, a named marker has stopped
+  working. `overloads` marks no node in the sample -- both calls to `Total` pick their overload
+  -- so `tools/check_regressions.py` r33 is where that marker is asserted
 - routes, one per framework shape: FastAPI `OrderController.create_order`; Flask `orders` with
   **two** entries (`GET` + `POST /legacy/orders`) and `order_detail` (`<int:order_id>`); Express
   `createOrderHandler` (named handler) and the endpoint node `GET /orders/:id/status` (inline
@@ -409,7 +420,7 @@ components, four API frameworks, and Java/Go/C# with two deliberate hard cases, 
 - `getOrderStatus -> GET /orders/:id/status` is the **suffix fallback**: the call is
   `/api/orders/:id/status`, the router registers `/orders/:id/status`, and it links because
   exactly one route matches
-- the two deliberate hard cases, **one of which is now resolved**:
+- the two deliberate hard cases, **both now resolved**:
   - **interface dispatch — resolved to the declaration.** `OrderWorkflow.place` calls
     `pricing.price()` through the `PricingRule` interface, and the edge
     `OrderWorkflow.place -> PricingRule.price` now exists, because a declaration-only member is
@@ -417,10 +428,11 @@ components, four API frameworks, and Java/Go/C# with two deliberate hard cases, 
     The edge stops at the interface: **no edge is emitted to `FlatRate.price` or
     `TieredRate.price`**, which is why those two stay orphans. Picking one impl would be a guess
     and emitting both would trade the precision guarantee for recall.
-  - **overloads still collapse to one node.** `InvoiceService.Total` is an overload pair sharing
-    one id, because ids carry no arity. It now records `signatures: ["Total(request)",
-    "Total(unitPrice, units)"]` so the fold is visible rather than silent, and the last one
-    scanned no longer just wins the display.
+  - **overloads — every overload is its own node** (finding #8).
+    `InvoiceService.Total(InvoiceRequest)` and `InvoiceService.Total(int,int)` each have their own
+    range; `Issue`'s `Total(request)` picks the first by argument count, and the first's
+    `Total(request.Units, request.UnitPrice)` picks the second -- one edge more than when the pair
+    was one node, which carried both bodies' calls but only one body's range.
   - The structure map *does* show `OrderWorkflow -> PricingRule` -- a declared field is a real
     reference even when the dispatch is not resolvable.
 - a `declaration: true` node is a signature, not code: `duplicates.py` skips it (no body, no token
@@ -436,9 +448,9 @@ components, four API frameworks, and Java/Go/C# with two deliberate hard cases, 
   every identifier renamed, planted in `frontend/api_client.ts` so the clone pass has something to
   find. Renaming a variable in one copy must keep them clustered; changing an operator must split
   them.
-- tests: 2 test files, flow **4/48 nodes named by a test**, and the two test nodes carry
+- tests: 2 test files, flow **4/49 nodes named by a test**, and the two test nodes carry
   `layer: test` with call edges into `OrderService.place_order` / `OrderRepository.get`
-- metrics: **51 of 52** flow nodes and **19 of 25** structure nodes measured, across every
+- metrics: **52 of 53** flow nodes and **19 of 25** structure nodes measured, across every
   language; the unmeasured are exactly the declaration `PricingRule.price` and the six
   `*Module` groups, which have no range
 - 529 lines across 22 files (py 126, java 102, csharp 90, ts 90, go 66, js 28, tsx 27)
@@ -482,7 +494,8 @@ node bin/cli.js --harness claude --target <tmpdir> --self-test        # installe
 edge lands on a node, ids are unique, each node's range really contains its own name, each call
 edge's callee is really named inside its caller, `precision` is what the edges imply, the report's
 counts are the graph's, and every security finding lies inside the node it is attributed to, and no two nodes'
-notes are one file on a case-insensitive filesystem (c17). Its
+notes are one file on a case-insensitive filesystem (c17), and every call dropped as ambiguous
+names a real overload set (c18). Its
 `D` checks test the analysis *metamorphically* — inject a cycle, an orphan, a hub, a god object or
 a layer violation into a copy of the real graph and require it to be reported — because a detector
 that returns nothing looks exactly like a clean codebase. `--self-test` breaks the input (or swaps

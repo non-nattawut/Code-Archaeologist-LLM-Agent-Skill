@@ -95,11 +95,12 @@ visible.
    in *every* language: a call is drawn only when the receiver's type can be read from the source,
    and anything else is dropped rather than guessed. Where a specific loss is known the node
    carries `precision` — `interface-dispatch` (the call stops at an interface), `overloads`
-   (signatures folded into one node), `name-matched` (JS/TS, Ruby, PHP, Elixir, Groovy: a call
+   (the arguments did not say which overload was meant; every overload is its own node, and that
+   call was dropped), `name-matched` (JS/TS, Ruby, PHP, Elixir, Groovy: a call
    through an object with no declared type dropped). What
    is trustworthy everywhere is the declarations; what is partial is
-   **resolution**. A call is followed only through a *declared* type, and anything else (overloads,
-   lambda handlers) is dropped rather than guessed. A call through an interface resolves to the
+   **resolution**. A call is followed only through a *declared* type, and anything else (an overload
+   the arguments cannot pick, lambda handlers) is dropped rather than guessed. A call through an interface resolves to the
    interface's own node, which carries `declaration: true`: the trace stops at the declaration and
    does **not** continue into the implementations, so "what actually runs" is still unanswered
    there. So their edges are a **lower bound** — "nothing calls X" is only "nothing the extractor

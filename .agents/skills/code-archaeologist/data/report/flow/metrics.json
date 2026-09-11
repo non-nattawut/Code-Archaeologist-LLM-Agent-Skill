@@ -296,7 +296,16 @@
       "line": 14,
       "lang": "csharp"
     },
-    "InvoiceService.Total": {
+    "InvoiceService.Total(InvoiceRequest)": {
+      "loc": 4,
+      "complexity": 1,
+      "depth": 0,
+      "params": 1,
+      "file": "sample_src/services/orders_cs/InvoiceService.cs",
+      "line": 27,
+      "lang": "csharp"
+    },
+    "InvoiceService.Total(int,int)": {
       "loc": 4,
       "complexity": 1,
       "depth": 0,

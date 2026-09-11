@@ -21,7 +21,7 @@ sets — change the taxonomy instead).
 
 | Field | Allowed values | Meaning |
 | --- | --- | --- |
-| `entity` | `Class.method` or `function` | The method/function node id. |
+| `entity` | `Class.method` or `function` | The method/function node id. An overloaded method's id carries its parameter types — `InvoiceService.Total(int,int)` — so every overload is its own node. |
 | `kind` | `method`, `function`, `endpoint`, `component`, `test` | `endpoint` = a route handler (flow root); `component` = a function that returns JSX. Both are entry points: something outside the graph calls them, so neither counts as dead code. |
 | `layer` | same set as above | Role of the owning class/file. |
 | `lang` | same set as `{{lang}}` above | Source language. |
@@ -37,7 +37,8 @@ Graph-only node fields (in `flow_graph.json`, not written into the pages):
 | --- | --- | --- |
 | `ext` | integer | Call sites that leave the graph (library/stdlib); the explorer shows `N ext`. |
 | `declaration` | `true` (present only when true) | The node is a signature with no body — a Java interface method, an `abstract` method, a C# interface member. It exists so a call through the declared type has something to resolve to. Because it holds no code, `duplicates.py` skips it and `analyze.py` never reports it as dead code. |
-| `signatures` | list of signature strings | Present only when overloads folded into one node: ids carry no arity, so `InvoiceService.Total` is one node and this records every signature that collapsed into it. |
+| `signatures` | list of signature strings | Present only when two definitions still share one id: overloads whose parameter types could not be read apart, or a language without overloading defining a name twice (Rust's two `impl` blocks). Overloads whose types can be read are separate nodes. |
+| `ambiguous` | list of overload-set names (`Class.method`) | Present only when a call here names an overload set and no single overload fits the arguments the source states — `render(report, pick())` against `render(Report,int)` and `render(Report,String)`. The call is dropped, not guessed, and the node carries `precision: overloads`. |
 | `routes` | list of `{method, path}` | Routes handled by this node (endpoints only). A **list**: one handler often serves several verbs (Flask `methods=["GET", "POST"]`) or carries stacked route decorators. `method` is an HTTP verb, or `ANY` when the framework registers every verb at once (Go's `mux.HandleFunc` without a method in the pattern) — `ANY` matches a frontend call of any verb. |
 | `http` | list of `{method, url}` | Frontend HTTP calls, used for cross-stack `http` edges. |
 
@@ -58,7 +59,7 @@ derived from what is already in the graph, never from the language alone:
 | `precision` value | Set when | Why it matters |
 | --- | --- | --- |
 | `interface-dispatch` | an outgoing edge lands on a node with `declaration: true` | The call stops at an interface; which implementation runs is not knowable from the source. Emitting an edge to every implementor would trade precision for recall. |
-| `overloads` | an outgoing edge lands on a node whose `signatures` has more than one entry | Ids carry no arity, so an overload set folds into one node and which signature is called is ambiguous. |
+| `overloads` | the node has `ambiguous`, or an outgoing edge lands on a node whose `signatures` has more than one entry | Every overload is its own node, and a call picks one by argument count and the argument types the source states. When that does not settle it, the call is dropped rather than guessed. |
 | `name-matched` | the node's `lang` is `js`, `ts`, `jsx`, `tsx`, `ruby`, `php`, `elixir` or `groovy` | These languages' source usually names no receiver type, so a call through an object is dropped unless its type is written down (a PHP typed property, a Groovy typed field, an Elixir module name). Measured: the TypeScript fixture resolves **0 of 3** edges where the typed languages resolve 3 of 3, and the Ruby fixture drops `@store.save` while keeping the same-class `validate` call. |
 
 Order follows `taxonomy.PRECISION_REASONS`, so the field is deterministic (constraint 2).

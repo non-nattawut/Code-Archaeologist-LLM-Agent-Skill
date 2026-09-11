@@ -157,13 +157,22 @@
       "source": "sample_src/services/orders_cs/InvoiceService.cs:14",
       "end": 18,
       "lang": "csharp",
-      "ext": 0,
-      "precision": [
-        "overloads"
-      ]
+      "ext": 0
     },
     {
-      "id": "InvoiceService.Total",
+      "id": "InvoiceService.Total(InvoiceRequest)",
+      "layer": "service",
+      "kind": "method",
+      "cls": "InvoiceService",
+      "signature": "Total(request)",
+      "doc": "Total for a whole request.",
+      "source": "sample_src/services/orders_cs/InvoiceService.cs:27",
+      "end": 30,
+      "lang": "csharp",
+      "ext": 0
+    },
+    {
+      "id": "InvoiceService.Total(int,int)",
       "layer": "service",
       "kind": "method",
       "cls": "InvoiceService",
@@ -172,11 +181,7 @@
       "source": "sample_src/services/orders_cs/InvoiceService.cs:35",
       "end": 38,
       "lang": "csharp",
-      "ext": 0,
-      "signatures": [
-        "Total(request)",
-        "Total(unitPrice, units)"
-      ]
+      "ext": 0
     },
     {
       "id": "InvoiceStore.Get",
@@ -833,12 +838,17 @@
     },
     {
       "source": "InvoiceService.Issue",
-      "target": "InvoiceService.Total",
+      "target": "InvoiceService.Total(InvoiceRequest)",
       "type": "calls"
     },
     {
       "source": "InvoiceService.Issue",
       "target": "InvoiceStore.Put",
+      "type": "calls"
+    },
+    {
+      "source": "InvoiceService.Total(InvoiceRequest)",
+      "target": "InvoiceService.Total(int,int)",
       "type": "calls"
     },
     {

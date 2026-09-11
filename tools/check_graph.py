@@ -51,6 +51,7 @@ import analyze  # noqa: E402
 import console  # noqa: E402
 import context  # noqa: E402
 import duplicates  # noqa: E402
+import ids  # noqa: E402
 import manifest  # noqa: E402
 import scan_security  # noqa: E402
 import taxonomy  # noqa: E402
@@ -110,7 +111,7 @@ def split_source(src):
 
 
 def short(nid: str) -> str:
-    return nid.rsplit(".", 1)[-1]
+    return ids.bare(nid)       # an overload's id carries its parameter types; the source does not
 
 
 def synthetic(nid: str) -> bool:
@@ -358,10 +359,29 @@ def c17_note_names(c):
     return out
 
 
+def c18_ambiguous(c):
+    """A call dropped as ambiguous was ambiguous between real overloads.
+
+    `ambiguous` names the overload set a call could not pick from; it must name two or
+    more nodes of this graph, or the drop -- and the `overloads` marker -- is invented.
+    """
+    if c.kind != "flow":
+        return []
+    out = []
+    for n in c.nodes:
+        for base in n.get("ambiguous") or []:
+            cls, _, name = base.rpartition(".")
+            members = [m for m in c.nodes if m["id"].endswith(")") and short(m["id"]) == name
+                       and (m.get("cls") or "") == cls]
+            if len(members) < 2:
+                out.append(f"{n['id']}: ambiguous {base!r} is not an overload set in this graph")
+    return out
+
+
 STRUCTURAL = [c01_dangling, c02_duplicate_ids, c03_edge_types, c04_taxonomy, c05_source,
               c06_end_range, c07_name_at_source, c08_declaration_calls, c09_precision,
               c10_signatures, c11_routes, c12_http_edges, c13_call_text, c14_ext,
-              c15_report_counts, c16_security_owner, c17_note_names]
+              c15_report_counts, c16_security_owner, c17_note_names, c18_ambiguous]
 
 
 # --- D: derived features, tested by injecting a known defect -------------------
@@ -610,6 +630,8 @@ def _mutations():
          lambda g, r: r["security"]["findings"][0].__setitem__("line", 10 ** 6)),
         ("c17_note_names", "flow", "two ids that differ only in case",
          lambda g, r: g["nodes"].append(dict(g["nodes"][0], id=g["nodes"][0]["id"].swapcase()))),
+        ("c18_ambiguous", "flow", "a call dropped as ambiguous between overloads that do not exist",
+         lambda g, r: g["nodes"][0].__setitem__("ambiguous", ["Nowhere.nothing"])),
     ]
 
 

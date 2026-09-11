@@ -3420,3 +3420,45 @@ Costs stated: the biggest change of the options (per-language argument typing in
 node ids change for every overloaded method (notes and cached descriptions re-keyed), and the
 sample's numbers move -- `InvoiceService.Total` becomes two nodes, so the flow graph's counts and
 the pinned CLAUDE.md block change. Asked for confirmation before starting. No code changed.
+
+## [80] 2026-09-11 — Every overload its own node (finding #8 resolved)
+
+**Prompt**
+> ok do it, split every overload into its own node, since in flow graph we make all method a node right? so keep node each method style
+
+**Response**
+Implemented as planned in [79], with one design point settled on reading the code: a dropped
+ambiguous call leaves no edge, so `precision: overloads` can no longer be derived from edges, and
+`check_graph` c09 recomputes precision from the graph -- so the caller records the overload set in
+a new graph field, `ambiguous`, and `taxonomy.precision_of` reads it.
+
+- `ts_extract`: for the overloading grammars (`OVERLOADING`: java, groovy, csharp, kotlin, scala,
+  swift, cpp) each method records `sig` (filename-safe parameter types, `_sig_type`) and `kinds`
+  (`_kind_of_type`: primitive families `#int/#float/#string/#bool/#char`, a plain type name, or
+  `*` for anything constructed or unreadable, which rules nothing out), and each call its argument
+  kinds (`_arg_kinds`: literals, `new X(...)`, names with a declared type). `_dedupe_calls` keeps
+  its old key, so other languages' call lists are unchanged, and merges argument lists per name.
+- `build_flow`: `_local_names` gives a name its types only when its scope defines it twice (so
+  every other id is untouched); `_pick_overload` matches count, then stated types (an int literal
+  also fits a float parameter), and returns one or none; a none drops the call into `ambiguous`.
+  The old fold stays only for definitions whose ids still coincide.
+- `ids.bare()` -- the one way to turn an id back into the name the source spells; `tests_map` and
+  `check_graph.short` use it. `check_graph` c18: every `ambiguous` must name a real overload set
+  (self-test now 31/31).
+- Regression r33: overloads in Java, C#, Kotlin, Scala, Swift and C++ -- each call must land on its
+  overload; the Java part also checks a type-picked call, an ambiguous one (dropped + marked),
+  that one overload no longer carries another's call, and three distinct ranges. It **failed on
+  Kotlin** first: the pinned Kotlin grammar puts `value_arguments` straight under `call_expression`
+  (Swift wraps them in `call_suffix`), so every Kotlin call read as zero arguments. Fixed. r33
+  fails on the old code (stash check). r18's last assertion expected the old fold and was
+  rewritten to the new truth (two unqualified nodes).
+
+Results: sample 52/32 -> **53/33** (`Total(InvoiceRequest)` -> `Total(int,int)` is the new edge),
+precision 17 -> 16 nodes (`Issue`'s call now resolves), tests 4/49, metrics 52/53, grades and
+everything else unchanged. On the Java repository: `check_graph` c13 is clean -- 22 overload nodes
+in 10 sets, 18 callers with a call dropped as ambiguous (and marked), 0 folded; both maps pass all
+27 checks. The explorer handles the parenthesised ids (selected both overloads, all seven views, no
+errors). Verified: 33/33 regressions, `check_graph` + self-test 31/31, oracle 0 on both sets, 21/21
+`check_langs`, `compileall`, `check_docs`, `check` fresh. Docs: CLAUDE.md (new paragraph, sample
+block, c18), TAXONOMY (`entity`, `signatures`, new `ambiguous`, `overloads`), README, SKILL.md,
+`brief.py`, PRESENTATION, roadmap #8 resolved, PROJECT_HISTORY subsection.

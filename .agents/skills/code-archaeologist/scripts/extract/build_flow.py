@@ -362,14 +362,44 @@ def _py_defs(py_files):
             yield px.def_name(fn), rel
 
 
+def _local_names(members: list[dict]) -> list[str]:
+    """Each member's name within its scope: bare, or `name(T1,T2)` when the scope overloads it.
+
+    Every method is its own node, overloads included. Ids used to carry no parameter
+    types, so an overload set was ONE node carrying every overload's calls but only
+    one overload's range (finding #8). Only a name the scope defines twice changes;
+    `sig` exists only for the languages with overloading (`ts_extract.OVERLOADING`).
+    """
+    counts: dict[str, int] = {}
+    for m in members:
+        counts[m["name"]] = counts.get(m["name"], 0) + 1
+    return [f'{m["name"]}({m["sig"]})' if counts[m["name"]] > 1 and "sig" in m else m["name"]
+            for m in members]
+
+
+def _pick_overload(cands: list, args: list[str], rel: str) -> str | None:
+    """The one overload a call with these argument kinds can mean, or None.
+
+    Argument count first, then every argument whose type the source states; an
+    unstated argument, or a parameter whose type is not a plain name, rules nothing
+    out. Two survivors is an ambiguous call, and it is dropped rather than guessed.
+    """
+    if len({r for _, _, r in cands}) > 1:
+        cands = [c for c in cands if c[2] == rel]    # as with a shared name: the caller's file
+    fits = {pid for pid, kinds, _ in cands if len(kinds) == len(args) and all(
+        p == "*" or not a or a == p or (a == "#int" and p == "#float") for a, p in zip(args, kinds))}
+    return fits.pop() if len(fits) == 1 else None
+
+
 def _extracted_defs(files):
     """Provisional ids from JS/TS or Java/Go/C# extraction results: (rel, res) pairs."""
     for rel, res in files:
-        for fn in res.get("functions", []):
-            yield fn["name"], rel
+        functions = res.get("functions", [])
+        for local in _local_names(functions):
+            yield local, rel
         for cls in res.get("classes", []):
-            for m in cls.get("methods", []):
-                yield f'{cls["name"]}.{m["name"]}', rel
+            for local in _local_names(cls.get("methods", [])):
+                yield f'{cls["name"]}.{local}', rel
         for r in res.get("routes", []):
             if not r.get("handler"):                     # an inline handler is its own node
                 yield f'{r["method"]} {r["path"]}', rel
@@ -693,6 +723,8 @@ def _analyze_lang(lang_files: list, ids: "FlowIds"):
     class_methods: dict[str, set[str]] = {}
     func_nodes: dict[str, str] = {}
     raw_calls: list[tuple[str, list[dict], str]] = []
+    # "Class.name" / "name" -> its overloads: (provisional id, parameter kinds, file)
+    overloads: dict[str, list[tuple[str, list[str], str]]] = {}
 
     for rel, res in lang_files:
         if True:
@@ -703,9 +735,13 @@ def _analyze_lang(lang_files: list, ids: "FlowIds"):
                 layer = infer_layer(f'{cls["name"]} {stem}', cls.get("decorators", []),
                                     cls.get("bases", []))
                 class_methods.setdefault(cls["name"], set())
-                for m in cls.get("methods", []):
-                    nid = ids.id(f'{cls["name"]}.{m["name"]}', rel)
+                members = cls.get("methods", [])
+                for m, local in zip(members, _local_names(members)):
+                    nid = ids.id(f'{cls["name"]}.{local}', rel)
                     class_methods[cls["name"]].add(m["name"])
+                    if local != m["name"]:
+                        overloads.setdefault(f'{cls["name"]}.{m["name"]}', []).append(
+                            (f'{cls["name"]}.{local}', m.get("kinds") or [], rel))
                     routed = bool(m.get("routes"))
                     node = _lang_node(nid, m["name"], cls["name"],
                                       "controller" if routed else layer,
@@ -713,17 +749,21 @@ def _analyze_lang(lang_files: list, ids: "FlowIds"):
                                       m, rel, lang)
                     prev = methods.get(nid)
                     if prev is not None:
-                        # Overloads share one node id -- the id scheme carries no
-                        # arity. Keep one node, but record every signature that
-                        # folded into it rather than silently showing the last.
+                        # Still one id for two definitions: overloads whose parameter
+                        # types could not be read apart, or a language with no
+                        # overloading at all (Rust's two `impl`s). Keep one node, and
+                        # record every signature that folded into it.
                         node["signatures"] = ((prev.get("signatures") or [prev["signature"]])
                                               + [node["signature"]])
                     _claim(methods, nid, node)
                     raw_calls.append((nid, m.get("calls", []), rel))
 
-            for fn in res.get("functions", []):
-                nid = ids.id(fn["name"], rel)
+            functions = res.get("functions", [])
+            for fn, local in zip(functions, _local_names(functions)):
+                nid = ids.id(local, rel)
                 func_nodes[fn["name"]] = fn["name"]
+                if local != fn["name"]:
+                    overloads.setdefault(fn["name"], []).append((local, fn.get("kinds") or [], rel))
                 _claim(methods, nid, _lang_node(nid, fn["name"], None,
                                                 infer_layer(f'{fn["name"]} {stem}'),
                                                 "function", fn, rel, lang))
@@ -738,6 +778,7 @@ def _analyze_lang(lang_files: list, ids: "FlowIds"):
     edges: set[tuple[str, str]] = set()
     for owner, calls, rel in raw_calls:
         external = 0
+        ambiguous: set[str] = set()
         cls_ctx = methods[owner]["cls"]
         for call in calls:
             name, declared = call["name"], call["type"]
@@ -749,6 +790,17 @@ def _analyze_lang(lang_files: list, ids: "FlowIds"):
                 target = f"{cls_ctx}.{name}"     # bare call: same class first,
             else:
                 target = func_nodes.get(name)    # then a module function
+            if target in overloads:
+                # One call name, possibly several call sites: each argument list
+                # picks its own overload, or is dropped as ambiguous.
+                for args in call.get("args") or [None]:
+                    picked = _pick_overload(overloads[target], args, rel) if args is not None else None
+                    picked = ids.target(picked, rel) if picked else None
+                    if picked is None or picked not in methods:
+                        ambiguous.add(target)
+                    elif picked != owner:
+                        edges.add((owner, picked))
+                continue
             if target:
                 target = ids.target(target, rel)  # a shared name: the caller's own file only
             if target and target in methods:
@@ -757,6 +809,8 @@ def _analyze_lang(lang_files: list, ids: "FlowIds"):
             else:
                 external += 1
         methods[owner]["ext"] = external
+        if ambiguous:
+            methods[owner]["ambiguous"] = sorted(ambiguous)
     return methods, edges
 
 
@@ -923,6 +977,8 @@ def write_graph(methods: dict, edges, graph_path: str) -> None:
             node["declaration"] = True   # signature only; no body to measure or run
         if i.get("signatures"):
             node["signatures"] = i["signatures"]   # overloads folded into one id
+        if i.get("ambiguous"):
+            node["ambiguous"] = i["ambiguous"]     # overload sets a call here could not pick from
         nodes.append(node)
     graph = {"nodes": nodes,
              "edges": [{"source": s, "target": t, "type": ty} for s, t, ty in edges]}

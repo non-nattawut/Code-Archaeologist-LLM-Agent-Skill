@@ -30,6 +30,17 @@ from __future__ import annotations
 import sys
 
 
+def bare(nid: str) -> str:
+    """The name the code itself spells: `widgets.Store.save(Order,int)` -> `save`.
+
+    Drops a file qualifier, a class, and an overload's parameter types. Anything that
+    looks a node's name up in source text must ask this, not split the id itself.
+    """
+    if nid.endswith(")") and "(" in nid:
+        nid = nid[:nid.index("(")]
+    return nid.rsplit(".", 1)[-1]
+
+
 def _qualifiers(rel: str) -> list[str]:
     """Ways to name a file, shortest first: stem, path without extension, full path."""
     base = rel.rsplit("/", 1)[-1]

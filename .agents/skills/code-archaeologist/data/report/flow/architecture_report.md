@@ -1,6 +1,6 @@
 # Architecture report — flow_graph.json
 
-52 nodes · 32 edges
+53 nodes · 33 edges
 
 ## Health: **D** (68/100)
 
@@ -9,19 +9,19 @@
 | dead code | -7 |
 | security | -25 |
 
-Dead-code ratio 13.5% · cycles 0 · layer violations 0 · security findings 4
+Dead-code ratio 13.2% · cycles 0 · layer violations 0 · security findings 4
 
 > **This grade rests on a lower bound.** Call edges are a lower bound in every language: a call is only drawn when the receiver's type can be read from the source, and anything else is dropped rather than guessed. The real coupling is at least this much, never less.
 
-> **17 of 52 nodes lose precision in a way that can be named** — see each node's `precision` field: `interface-dispatch` (calls through an interface stop at its declaration -- which implementation runs is not knowable from the source); `overloads` (an overload set is folded into one node, so which signature is called is ambiguous); `name-matched` (JS/TS, Ruby, PHP, Elixir and Groovy calls are matched by name, so a call through an object with no declared type was dropped).
+> **16 of 53 nodes lose precision in a way that can be named** — see each node's `precision` field: `interface-dispatch` (calls through an interface stop at its declaration -- which implementation runs is not knowable from the source); `overloads` (a call to an overloaded method could not be matched to one overload from the arguments the source states, so it was dropped); `name-matched` (JS/TS, Ruby, PHP, Elixir and Groovy calls are matched by name, so a call through an object with no declared type was dropped).
 
 ## Census
 
 - Source: 22 file(s), 529 lines (py 23.8%, java 19.3%, csharp 17.0%, ts 17.0%, go 12.5%, js 5.3%, tsx 5.1%)
-- Layers: `client` 6, `controller` 18, `repository` 8, `service` 10, `test` 2, `ui` 5, `unknown` 3
-- Kinds: `component` 2, `endpoint` 16, `function` 11, `method` 23
-- Languages: `csharp` 7, `go` 8, `java` 9, `js` 15, `py` 13
-- Edge types: `calls` 28, `http` 4
+- Layers: `client` 6, `controller` 18, `repository` 8, `service` 11, `test` 2, `ui` 5, `unknown` 3
+- Kinds: `component` 2, `endpoint` 16, `function` 11, `method` 24
+- Languages: `csharp` 8, `go` 8, `java` 9, `js` 15, `py` 13
+- Edge types: `calls` 29, `http` 4
 
 ## Entry points (routes)
 
@@ -163,7 +163,7 @@ _None._
 
 Files where every node is dead: `sample_src/frontend/order_page.ts`
 
-## Tests — 4/48 node(s) named by a test (8.3%)
+## Tests — 4/49 node(s) named by a test (8.2%)
 
 _2 test file(s). Name-based, not execution coverage: a node counts as referenced when a test file names it._
 
@@ -182,10 +182,10 @@ _2 test file(s). Name-based, not execution coverage: a node counts as referenced
 | `InvoiceController.Find` | controller | `sample_src/services/orders_cs/InvoiceController.cs:23` |
 | `InvoiceService.Find` | service | `sample_src/services/orders_cs/InvoiceService.cs:21` |
 | `InvoiceService.Issue` | service | `sample_src/services/orders_cs/InvoiceService.cs:14` |
-| `InvoiceService.Total` | service | `sample_src/services/orders_cs/InvoiceService.cs:35` |
+| `InvoiceService.Total(InvoiceRequest)` | service | `sample_src/services/orders_cs/InvoiceService.cs:27` |
+| `InvoiceService.Total(int,int)` | service | `sample_src/services/orders_cs/InvoiceService.cs:35` |
 | `InvoiceStore.Get` | repository | `sample_src/services/orders_cs/InvoiceStore.cs:19` |
 | `InvoiceStore.Put` | repository | `sample_src/services/orders_cs/InvoiceStore.cs:11` |
-| `NewRouter` | controller | `sample_src/services/orders_go/router.go:10` |
 
 ## Duplicate code — 1 cluster(s), 4 duplicated line(s), 0 copied block(s)
 

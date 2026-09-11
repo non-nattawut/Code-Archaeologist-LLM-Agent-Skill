@@ -2,7 +2,7 @@
 
 > ## Status: **all nine phases are complete — the skill is feature-complete. The goal in the title is reached: seventeen languages have a graph.**
 > Every planning concern is closed, and every *Found while implementing* item from the plan is
-> resolved (#8, found afterwards on a real repository, is open and awaiting a decision) — #6
+> resolved, and so is #8, found afterwards on a real repository (every overload its own node) — #6
 > (every range starts at its first decorator) and #7 (copied blocks grouped by shape) were decided
 > by the user on 2026-09-11 and shipped the same day.
 >
@@ -10,7 +10,7 @@
 > read-only, on a Next.js + NestJS + Python repository and re-run on the Java + Next.js one used
 > in 6d. It found ten silent bugs no fixture had -- all fixed, each a regression case `r28`–`r32`
 > or an oracle run -- and one needing a decision, recorded as *Found while implementing* #8
-> (open). The record is in `docs/PROJECT_HISTORY.md` and `docs/prompt.md` [73].
+> (resolved the same day: every overload its own node). The record is in `docs/PROJECT_HISTORY.md` and `docs/prompt.md` [73].
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
@@ -1788,6 +1788,21 @@ first..last and accept the swallow. (c) Leave it, and make c13 accept a callee n
 overload's text -- honest about edges, still wrong for metrics. **Recommendation: (a)** -- it is the
 only option that is right for every reader, and `signatures` already establishes that a folded
 node carries per-overload detail.
+
+#### Resolved — shipped 2026-09-11 (none of the three: every overload its own node, the user's choice)
+
+The user asked for the flow map's own rule instead -- every method a node -- rather than a node
+that carries several ranges. A name a class defines twice gets its parameter types in its id
+(`InvoiceService.Total(InvoiceRequest)`, `InvoiceService.Total(int,int)`); every other id is
+unchanged. A call picks its overload by argument count, then by each argument type the source
+states (literal, `new X(...)`, a name with a declared type); a call that still fits two is
+**dropped**, and the caller records the set in `ambiguous` and carries `precision: overloads` --
+the same "a wrong edge is worse than a missing one" rule as everywhere else. `signatures` survives
+only for two definitions that still cannot be told apart. `check_graph` c18 asserts every
+`ambiguous` names a real overload set; regression r33 covers all six overloading languages and
+found the pinned Kotlin grammar puts `value_arguments` directly under the call. The sample moved by
+exactly that: 52/32 → 53/33, and `Issue` no longer carries `overloads` because both of its `Total`
+calls now pick their overload. Option (a)'s `ranges` became unnecessary: each node has one body.
 
 ---
 

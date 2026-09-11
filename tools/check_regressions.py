@@ -281,8 +281,10 @@ def r18_same_name_in_two_files():
         return "two.main carries a call it does not make"
     with contextlib.redirect_stderr(io.StringIO()):
         cs, _ = _flow(os.path.join(SAMPLE, "services", "orders_cs"))
-    if "InvoiceService.Total" not in cs:
-        return "a same-file overload fold was qualified as if it were a collision"
+    # Overloads in one file are separate nodes (finding #8), and never qualified by file:
+    # two overloads are not two files sharing a name.
+    if not {"InvoiceService.Total(InvoiceRequest)", "InvoiceService.Total(int,int)"} <= set(cs):
+        return f"the sample's overload pair is not two unqualified nodes: {sorted(k for k in cs if 'Total' in k)}"
 
 
 # --- resolved from the findings review ---------------------------------------------
@@ -674,6 +676,62 @@ def r32_const_base_and_client_prefix():
                 f"link), got {sorted(http)}")
 
 
+def r33_overloads_are_separate_nodes():
+    """finding #8: an overload set was ONE node -- every overload's calls, one overload's
+    range. Each overload is now its own node, and each call site picks its overload by
+    argument count and stated argument types, or is dropped and marked `overloads`."""
+    d = _tree({
+        "Printer.java": "package demo;\n\npublic class Printer {\n"
+                        "    public void run(Report report) {\n        render(report);\n"
+                        "        render(report, 2);\n        render(report, \"wide\");\n"
+                        "        render(report, pick());\n    }\n\n"
+                        "    void render(Report report) {\n        report.close();\n    }\n\n"
+                        "    int pick() {\n        return 1;\n    }\n\n"
+                        "    void render(Report report, int width) {\n        pick();\n    }\n\n"
+                        "    void render(Report report, String style) {\n        pick();\n    }\n}\n",
+        "NPrinter.cs": "public class NPrinter\n{\n    public void Run(int w)\n    {\n"
+                       "        Render(w);\n        Render(w, \"x\");\n    }\n\n"
+                       "    public void Render(int w)\n    {\n    }\n\n"
+                       "    public void Render(int w, string s)\n    {\n    }\n}\n",
+        "KPrinter.kt": "class KPrinter {\n    fun run(w: Int) {\n        render(w)\n"
+                       "        render(w, \"x\")\n    }\n\n    fun render(w: Int) {\n    }\n\n"
+                       "    fun render(w: Int, s: String) {\n    }\n}\n",
+        "SPrinter.scala": "class SPrinter {\n  def run(w: Int): Unit = {\n    render(w)\n"
+                          "    render(w, \"x\")\n  }\n\n  def render(w: Int): Unit = {\n  }\n\n"
+                          "  def render(w: Int, s: String): Unit = {\n  }\n}\n",
+        "WPrinter.swift": "class WPrinter {\n    func run(w: Int) {\n        render(w: w)\n"
+                          "        render(w: w, s: \"x\")\n    }\n\n    func render(w: Int) {\n    }\n\n"
+                          "    func render(w: Int, s: String) {\n    }\n}\n",
+        "CPrinter.cpp": "class CPrinter {\npublic:\n    void run(int w) {\n        render(w);\n"
+                        "        render(w, 1.5);\n    }\n\n    void render(int w) {\n    }\n\n"
+                        "    void render(int w, double s) {\n    }\n};\n"})
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        methods, edges = _flow(d)
+    want = {("Printer.run", "Printer.render(Report)"), ("Printer.run", "Printer.render(Report,int)"),
+            ("Printer.run", "Printer.render(Report,String)"),
+            ("Printer.render(Report,int)", "Printer.pick"),
+            ("Printer.render(Report,String)", "Printer.pick"),
+            ("NPrinter.Run", "NPrinter.Render(int)"), ("NPrinter.Run", "NPrinter.Render(int,string)"),
+            ("KPrinter.run", "KPrinter.render(Int)"), ("KPrinter.run", "KPrinter.render(Int,String)"),
+            ("SPrinter.run", "SPrinter.render(Int)"), ("SPrinter.run", "SPrinter.render(Int,String)"),
+            ("WPrinter.run", "WPrinter.render(Int)"), ("WPrinter.run", "WPrinter.render(Int,String)"),
+            ("CPrinter.run", "CPrinter.render(int)"), ("CPrinter.run", "CPrinter.render(int,double)")}
+    if want - edges:
+        return f"missing edges {sorted(want - edges)}; got {sorted(e for e in edges if 'rinter' in e[0])}"
+    if ("Printer.render(Report)", "Printer.pick") in edges:
+        return "an overload carries another overload's call again"
+    run = methods.get("Printer.run", {})
+    if run.get("ambiguous") != ["Printer.render"] or run.get("precision") != ["overloads"]:
+        return (f"render(report, pick()) must be dropped as ambiguous and marked: "
+                f"ambiguous={run.get('ambiguous')} precision={run.get('precision')}")
+    folded = sorted(k for k, m in methods.items() if m.get("signatures"))
+    if folded:
+        return f"overloads still folded into one node: {folded}"
+    lines = {methods[k]["source"] for k in methods if k.startswith("Printer.render(")}
+    if len(lines) != 3:
+        return f"the three render overloads do not have three ranges: {sorted(lines)}"
+
+
 CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_append,
          r05_duplicates_declarations, r06_orphan_guard, r07_flask_routes,
          r08_missing_parser_is_visible, r09_no_absolute_paths, r10_brief_agrees_with_check,
@@ -685,7 +743,7 @@ CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_app
          r26_graph_path_on_another_drive, r27_generated_dirs_are_not_source,
          r28_mock_patch_is_not_a_route, r29_names_differing_only_by_case,
          r30_imported_axios_instance, r31_unknown_url_links_nowhere,
-         r32_const_base_and_client_prefix]
+         r32_const_base_and_client_prefix, r33_overloads_are_separate_nodes]
 
 
 def main() -> int:

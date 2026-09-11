@@ -18,10 +18,10 @@ How this project went from an empty repo to its current state.
 | | |
 | --- | --- |
 | Repo | `Code-Archaeologist-LLM-Agent-Skill` |
-| Commits | 119 |
+| Commits | 126 |
 | Span | 2026-09-02 → 2026-09-11 (10 days) |
-| Cadence | 44 commits exploring · 8 working the first plan · 52 working the second (`c0bec8a` on) |
-| Current HEAD | *Validate on a real repository: six silent bugs, all fixed* (2026-09-11) |
+| Cadence | 44 commits exploring · 8 working the first plan · 59 working the second (`c0bec8a` on) |
+| Current HEAD | *Every overload its own node (finding #8)* (2026-09-11) |
 | Skill location | `.agents/skills/code-archaeologist/` |
 | Hard constraint held throughout | Deterministic output — same source, same bytes. "Zero external Python deps" held until phase 5, and was traded knowingly for one parser (tree-sitter) |
 | Languages with a graph | 17 (at the end of phase 4: Python and JS/TS, plus Java/Go/C# as an approximate tier) |
@@ -355,6 +355,18 @@ regression case exist because a detector that reports nothing looks exactly like
 **Fixtures prove what you thought of; a real repository finds what you didn't.** Every real-code
 run in this arc -- MAX_PATH, `.next/`, the six above -- found something no fixture had. The
 README and the presentation now say which languages have met real code and which have not.
+
+### Finding #8, decided: every overload its own node
+
+The one thing the real-repository pass could not fix without a decision was the overload fold:
+since phase 2 an overload set had been one node, holding every overload's calls but only one
+overload's range. The recommendation on record was a list of ranges on the folded node. The user
+chose the flow map's own rule instead -- *every method is a node* -- so an overloaded method's id
+now carries its parameter types, and a call picks its overload by argument count and by any
+argument type the source states. A call the arguments cannot settle is dropped and named
+(`ambiguous`, `precision: overloads`), not guessed. The new regression case covering all six
+overloading languages failed first on Kotlin, whose pinned grammar puts a call's arguments where
+Swift's does not -- one more thing only a test in that language could have shown.
 
 ---
 

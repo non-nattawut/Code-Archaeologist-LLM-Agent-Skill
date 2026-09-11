@@ -233,9 +233,11 @@ own right. Which implementation runs at runtime is a question a type checker can
 so the trace stops there rather than fanning out to every class that implements it — one guess or
 two wrong edges are both worse than an honest stop.
 
-What still cannot be resolved is **dropped, not invented**: overloads collapse to one node (ids
-carry no arity, so the node records every signature that folded into it) and lambda handlers have
-no declared type to resolve through. The coupling shown is a lower bound.
+What still cannot be resolved is **dropped, not invented**. Every overload is its own node
+(`InvoiceService.Total(InvoiceRequest)`, `InvoiceService.Total(int,int)`), and a call picks one by
+argument count and by any argument type the source states — a literal, or a variable with a
+declared type; when that still leaves two, the call is dropped and the caller says `overloads`.
+Lambda handlers have no declared type to resolve through. The coupling shown is a lower bound.
 
 Test files are recognized across all of them (pytest, Jest/Vitest, JUnit/Spring, `*_test.go`,
 `#[test]`, `[Fact]`, RSpec, PHPUnit) and tagged `layer: test` — so **test code is never reported as

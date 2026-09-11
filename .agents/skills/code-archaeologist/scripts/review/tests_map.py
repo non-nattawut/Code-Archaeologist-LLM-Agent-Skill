@@ -32,6 +32,7 @@ DEFAULT_GRAPH = os.path.join(DATA_DIR, "flow", "flow_graph.json")
 DEFAULT_OUT = os.path.join(DATA_DIR, "report", "tests.json")
 
 import console          # noqa: E402  (stdout must survive a non-UTF-8 console)
+import ids              # noqa: E402  (a node's name as the source spells it)
 import scan_security    # noqa: E402  (one definition of "a source file")
 import taxonomy         # noqa: E402  (one definition of "a test file")
 import manifest  # noqa: E402
@@ -64,7 +65,7 @@ def build(roots, graph_path: str = DEFAULT_GRAPH, out_path: str | None = None) -
     unreferenced: list[dict] = []
     for n in nodes:
         nid = n.get("id", "")
-        name = nid.rsplit(".", 1)[-1]
+        name = ids.bare(nid)                                # `save`, not `save(Order,int)`
         if name.startswith("__") and name.endswith("__"):
             continue                                        # called implicitly
         if taxonomy.is_test_path((n.get("source") or "").split(":")[0]):

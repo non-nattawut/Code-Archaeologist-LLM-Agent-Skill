@@ -146,8 +146,8 @@ def to_text(d: dict) -> str:
     out.append("             dropped rather than guessed. Say so when you answer from them.")
     if any(m.get("imprecise") for m in d["maps"].values()):
         out.append("             Nodes with a NAMED loss carry `precision`: interface-dispatch")
-        out.append("             (stops at an interface), overloads (signatures folded into one")
-        out.append("             node), name-matched (JS/TS, Ruby, PHP, Elixir, Groovy: a call")
+        out.append("             (stops at an interface), overloads (the arguments did not say")
+        out.append("             which overload; dropped), name-matched (JS/TS, Ruby, PHP, Elixir, Groovy: a call")
         out.append("             through an object with no declared type dropped).")
     if d.get("skipped_langs"):
         langs = ", ".join(d["skipped_langs"])

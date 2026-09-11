@@ -162,8 +162,10 @@ def is_test_file(path: str, full_path: str | None = None) -> bool:
 #
 #   interface-dispatch  an outgoing edge stops at a `declaration: true` node, so
 #                       which implementation actually runs is not knowable here
-#   overloads           an outgoing edge lands on a node that folds several
-#                       signatures into one id, so which one is called is ambiguous
+#   overloads           a call here names an overload set and no single overload
+#                       fits the arguments the source states, so it was dropped
+#                       (`ambiguous`); or an edge lands on a node that still folds
+#                       several signatures because their types could not be read
 #   name-matched        this node's language resolves calls by name only, so calls
 #                       through an object were dropped (measured: the TypeScript
 #                       fixture resolves 0 of 3 edges where the typed languages
@@ -184,8 +186,8 @@ PRECISION_CAVEAT = (
 PRECISION_NOTES = {
     "interface-dispatch": ("calls through an interface stop at its declaration -- "
                            "which implementation runs is not knowable from the source"),
-    "overloads": ("an overload set is folded into one node, so which signature is "
-                  "called is ambiguous"),
+    "overloads": ("a call to an overloaded method could not be matched to one overload "
+                  "from the arguments the source states, so it was dropped"),
     "name-matched": ("JS/TS, Ruby, PHP, Elixir and Groovy calls are matched by name, so a "
                      "call through an object with no declared type was dropped"),
 }
@@ -201,6 +203,8 @@ def precision_of(node: dict, targets: list[dict]) -> list[str]:
     reasons = set()
     if node.get("lang") in NAME_MATCHED_LANGS:
         reasons.add("name-matched")
+    if node.get("ambiguous"):
+        reasons.add("overloads")
     for t in targets:
         if t.get("declaration"):
             reasons.add("interface-dispatch")

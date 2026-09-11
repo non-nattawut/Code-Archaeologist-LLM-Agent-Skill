@@ -164,6 +164,119 @@ def _base_type(text: str) -> str:
     return text if re.fullmatch(r"[A-Za-z_]\w*", text) else ""
 
 
+# ---------------------------------------------------------------------------
+# Overloads -- parameter kinds on declarations, argument kinds on calls
+# ---------------------------------------------------------------------------
+# These languages let one class define a name more than once, and every overload is
+# its own node (`build_flow._local_names`). So each method records its parameter
+# types twice over -- `sig` for its id, `kinds` to match a call against -- and each
+# call its argument kinds. Until this, an overload set was one node carrying every
+# overload's calls but one overload's range (finding #8). No other language needs it.
+OVERLOADING = {"java", "groovy", "csharp", "kotlin", "scala", "swift", "cpp"}
+
+_PRIMITIVES = {
+    "#int": {"int", "long", "short", "byte", "integer", "int16", "int32", "int64", "uint", "ulong",
+             "ushort", "sbyte", "uint16", "uint32", "uint64", "size_t", "unsigned"},
+    "#float": {"float", "double", "decimal"},
+    "#string": {"string"},
+    "#bool": {"bool", "boolean"},
+    "#char": {"char", "character"},
+}
+
+
+def _kind_of_type(text: str) -> str:
+    """A declared type as calls are matched against it.
+
+    A primitive family (`int`, `Int` and `Int32` are all `#int`), else the plain type
+    name, else "*" -- an array, pointer, generic, function type or nothing readable,
+    which accepts any argument rather than risk refusing the right overload.
+    """
+    m = re.fullmatch(r"\s*(?:const\s+)?([\w.:]+)\s*\??\s*", text or "")
+    if not m:
+        return "*"
+    base = m.group(1).replace("::", ".").split(".")[-1]
+    for kind, names in _PRIMITIVES.items():
+        if base.lower() in names:
+            return kind
+    return base
+
+
+def _sig_type(text: str) -> str:
+    """A declared type as it is spelled in an overloaded node's id.
+
+    `List<String>` -> `List`, `java.util.Map` -> `Map`, `char*` -> `charPtr`,
+    `String...` -> `String[]`, nothing readable -> `_`. Every id is also a note's file
+    name, so nothing Windows forbids in one (`<>:"/\\|?*`) may survive.
+    """
+    t = (text or "").replace("...", "[]")
+    while True:
+        stripped = re.sub(r"<[^<>]*>", "", t)
+        if stripped == t:
+            break
+        t = stripped
+    t = re.sub(r"\b(?:const|final|volatile)\b", "", t).replace("::", ".")
+    t = re.sub(r"\w+\.", "", t)                          # namespaces and packages
+    t = t.replace("*", "Ptr").replace("?", "Opt")
+    return re.sub(r'[\s<>:"/\\|]', "", t) or "_"
+
+
+_LITERAL_KINDS = {
+    **dict.fromkeys(("decimal_integer_literal", "hex_integer_literal", "octal_integer_literal",
+                     "binary_integer_literal", "integer_literal", "long_literal", "hex_literal",
+                     "bin_literal", "oct_literal"), "#int"),
+    **dict.fromkeys(("decimal_floating_point_literal", "hex_floating_point_literal",
+                     "real_literal", "floating_point_literal"), "#float"),
+    **dict.fromkeys(("string_literal", "text_block", "verbatim_string_literal", "raw_string_literal",
+                     "interpolated_string_expression", "line_string_literal",
+                     "multi_line_string_literal", "string", "concatenated_string"), "#string"),
+    **dict.fromkeys(("true", "false", "boolean_literal"), "#bool"),
+    **dict.fromkeys(("character_literal", "char_literal"), "#char"),
+}
+
+
+def _arg_nodes(call, lang: str) -> list:
+    """A call's argument expressions, in order."""
+    if lang in ("kotlin", "swift"):
+        # Swift wraps the arguments in a `call_suffix`; the pinned Kotlin grammar puts
+        # `value_arguments` straight under the call (found by r33: every Kotlin call
+        # read as zero arguments, so no overload ever matched).
+        holder = _child(call, {"call_suffix"}) or call
+        args = _child(holder, {"value_arguments"})
+        out = [a.named_children[-1] for a in (args.named_children if args is not None else [])
+               if a.type == "value_argument" and a.named_children]
+        trailing = _child(holder, {"annotated_lambda", "lambda_literal"})
+        return out + ([trailing] if trailing is not None else [])
+    args = _field(call, "arguments")
+    out = [a for a in (args.named_children if args is not None else []) if "comment" not in a.type]
+    if lang == "csharp":                                 # `argument` wraps the expression
+        out = [a.named_children[-1] if a.type == "argument" and a.named_children else a for a in out]
+    return out
+
+
+def _arg_kinds(call, src: bytes, lang: str, types: dict[str, str]) -> list[str]:
+    """Each argument's kind, or "" where the source does not state it.
+
+    Stated means a literal, `new X(...)`, or a name whose declared type is already in
+    `types` -- the same fields, parameters and locals the receiver resolver reads.
+    """
+    out = []
+    for a in _arg_nodes(call, lang):
+        if a.type == "number_literal":                   # C++: one node for every number
+            text = _text(a, src).lower()
+            out.append("#int" if text.startswith("0x") or not re.search(r"[.e]", text) else "#float")
+        elif a.type in _LITERAL_KINDS:
+            out.append(_LITERAL_KINDS[a.type])
+        elif a.type in ("identifier", "simple_identifier"):
+            declared = types.get(_text(a, src), "")
+            out.append(_kind_of_type(declared) if declared else "")
+        elif a.type == "object_creation_expression":
+            declared = _base_type(_field_text(a, "type", src))
+            out.append(_kind_of_type(declared) if declared else "")
+        else:
+            out.append("")
+    return out
+
+
 def _doc_above(node, src: bytes, lang: str) -> str:
     """The comment block immediately above a declaration, cleaned of its markers.
 
@@ -216,11 +329,10 @@ def _params(node, src: bytes, lang: str) -> dict[str, str]:
     return _params_of(_field(node, "parameters"), src, lang)
 
 
-def _params_of(params, src: bytes, lang: str) -> dict[str, str]:
-    """The same, given the parameter list itself -- Go's receiver is one of these."""
-    out: dict[str, str] = {}
+def _param_pairs(params, src: bytes, lang: str):
+    """(name, declared type text) for each parameter in a parameter list, in order."""
     if params is None:
-        return out
+        return
     for p in params.named_children:
         if p.type not in SPEC[lang]["param"]:
             continue
@@ -232,6 +344,13 @@ def _params_of(params, src: bytes, lang: str) -> dict[str, str]:
             kids = [c for c in p.named_children if c.type != "attribute_list"]
             declared = _text(kids[0], src) if len(kids) > 1 else ""
             name = name or (_text(kids[-1], src) if kids else "")
+        yield name, declared
+
+
+def _params_of(params, src: bytes, lang: str) -> dict[str, str]:
+    """The same, given the parameter list itself -- Go's receiver is one of these."""
+    out: dict[str, str] = {}
+    for name, declared in _param_pairs(params, src, lang):
         base = _base_type(declared)
         if base and re.fullmatch(r"[A-Za-z_]\w*", name):
             out[name] = base
@@ -338,31 +457,41 @@ def _calls(body, src: bytes, lang: str, types: dict[str, str], recv_name: str = 
         if not name or not re.fullmatch(r"[A-Za-z_]\w*", name):
             continue
         recv = recv.replace(" ", "")
-        if not recv:
-            out.append({"type": "", "name": name})
-            continue
         parts = recv.split(".")
         head = parts[0]
-        if head in SELF_WORDS and len(parts) == 1:
-            out.append({"type": "", "name": name})        # `this.m()` is same-class
-            continue
-        resolved = ""
-        if len(parts) == 1:
-            resolved = types.get(head, "")
-        elif len(parts) == 2 and (head in SELF_WORDS or head == recv_name):
-            resolved = types.get(parts[1], "")            # this.field.m() / r.field.m()
-        out.append({"type": resolved or "?", "name": name})
+        if not recv or (head in SELF_WORDS and len(parts) == 1):
+            typ = ""                                      # bare, or `this.m()`: same class
+        else:
+            resolved = ""
+            if len(parts) == 1:
+                resolved = types.get(head, "")
+            elif len(parts) == 2 and (head in SELF_WORDS or head == recv_name):
+                resolved = types.get(parts[1], "")        # this.field.m() / r.field.m()
+            typ = resolved or "?"
+        entry = {"type": typ, "name": name}
+        if lang in OVERLOADING:
+            entry["args"] = [_arg_kinds(call, src, lang, types)]
+        out.append(entry)
     return out
 
 
 def _dedupe_calls(calls: list[dict]) -> list[dict]:
-    seen: set[tuple[str, str]] = set()
-    out: list[dict] = []
-    for c in sorted(calls, key=lambda c: (c["type"], c["name"])):
-        key = (c["type"], c["name"])
-        if key not in seen:
-            seen.add(key)
-            out.append(c)
+    """One entry per (receiver type, name); every distinct argument list is kept.
+
+    The key is unchanged, so a language without overloads gets exactly the list it
+    always did. `args` only matters when the name is an overload set: `f(a)` and
+    `f(a, b)` in one body are calls to two different nodes.
+    """
+    merged: dict[tuple[str, str], dict] = {}
+    for c in calls:
+        entry = merged.setdefault((c["type"], c["name"]), {"type": c["type"], "name": c["name"]})
+        for args in c.get("args", []):
+            if args not in entry.setdefault("args", []):
+                entry["args"].append(args)
+    out = [merged[k] for k in sorted(merged)]
+    for entry in out:
+        if "args" in entry:
+            entry["args"].sort()
     return out
 
 
@@ -508,7 +637,15 @@ def _method(node, src: bytes, lang: str, fields: dict[str, str],
         # No `body` field at all: an interface member or an `abstract` method.
         # tree-sitter states this outright -- no pattern, no false positives.
         entry["declaration"] = True
+    if lang in OVERLOADING:
+        _overload_keys(entry, [d for _, d in _param_pairs(_field(node, "parameters"), src, lang)])
     return entry
+
+
+def _overload_keys(entry: dict, declared: list[str]) -> None:
+    """`sig` (the id suffix, used only if the name repeats) and `kinds` (to match calls)."""
+    entry["sig"] = ",".join(_sig_type(d) for d in declared)
+    entry["kinds"] = [_kind_of_type(d) for d in declared]
 
 
 def _bases(node, src: bytes, lang: str) -> list[str]:
@@ -962,25 +1099,26 @@ def _rb_bare_calls(body, src: bytes) -> list[tuple[str, str]]:
 def _gresolve(pairs, types: dict[str, str]) -> list[dict]:
     """`_calls`'s three-way answer, plus: a receiver that is a type name is that type."""
     out = []
-    for recv, name in pairs:
+    for recv, name, *args in pairs:                  # (receiver, name[, argument kinds])
         if not name or not re.fullmatch(r"[A-Za-z_]\w*", name):
             continue
         recv = re.sub(r"\s+", "", recv).replace("?.", ".").replace("->", ".").replace("::", ".")
         recv = recv.replace("$", "").lstrip("@")
-        if not recv:
-            out.append({"type": "", "name": name})
-            continue
         parts = recv.split(".")
         head = parts[0]
-        if head in _G_SELF and len(parts) == 1:
-            out.append({"type": "", "name": name})
-            continue
-        resolved = ""
-        if len(parts) == 1:
-            resolved = types.get(head, "") or (head if re.fullmatch(r"[A-Z]\w*", head) else "")
-        elif len(parts) == 2 and head in _G_SELF:
-            resolved = types.get(parts[1], "")
-        out.append({"type": resolved or "?", "name": name})
+        if not recv or (head in _G_SELF and len(parts) == 1):
+            typ = ""
+        else:
+            resolved = ""
+            if len(parts) == 1:
+                resolved = types.get(head, "") or (head if re.fullmatch(r"[A-Z]\w*", head) else "")
+            elif len(parts) == 2 and head in _G_SELF:
+                resolved = types.get(parts[1], "")
+            typ = resolved or "?"
+        entry = {"type": typ, "name": name}
+        if args:
+            entry["args"] = [args[0]]
+        out.append(entry)
     return out
 
 
@@ -1107,18 +1245,25 @@ def _gmethod(node, src: bytes, lang: str, fields: dict[str, str], prefix: str) -
     routes = []
     if lang == "kotlin":
         routes = _method_routes(annos, prefix, "java")
+    if lang in OVERLOADING and body is not None:
+        pairs = [(*_grecv(c, src, lang), _arg_kinds(c, src, lang, types))
+                 for c in _walk(body, _G_CALLS[lang])]
+    else:
+        pairs = _gcalls(body, src, lang)
     entry = {
         "name": _text(name_node, src).split("::")[-1],
         "doc": _gdoc(node, src, lang),
         "line": _gstart(node),
         "endLine": _end_line(body if lang == "dart" and body is not None else node),
         "params": params,
-        "calls": _dedupe_calls(_gresolve(_gcalls(body, src, lang), types)),
+        "calls": _dedupe_calls(_gresolve(pairs, types)),
         "routes": routes,
         "http": [],
     }
     if body is None and lang not in ("ruby", "elixir"):
         entry["declaration"] = True               # an interface / abstract / trait signature
+    if lang in OVERLOADING:
+        _overload_keys(entry, [d for _, d in _gparam_pairs(node, src, lang)])
     return entry
 
 

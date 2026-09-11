@@ -448,7 +448,21 @@
       "fan_out": 2,
       "risk": 4
     },
-    "InvoiceService.Total": {
+    "InvoiceService.Total(InvoiceRequest)": {
+      "file": "sample_src/services/orders_cs/InvoiceService.cs",
+      "commits": 1,
+      "owner": "non-nattawut",
+      "authors": {
+        "non-nattawut": 1
+      },
+      "author_count": 1,
+      "last_commit": "2026-09-08T22:13:49+07:00",
+      "first_commit": "2026-09-08T22:13:49+07:00",
+      "fan_in": 1,
+      "fan_out": 1,
+      "risk": 3
+    },
+    "InvoiceService.Total(int,int)": {
       "file": "sample_src/services/orders_cs/InvoiceService.cs",
       "commits": 1,
       "owner": "non-nattawut",
@@ -1365,6 +1379,21 @@
       "risk": 3
     },
     {
+      "node": "InvoiceService.Total(InvoiceRequest)",
+      "file": "sample_src/services/orders_cs/InvoiceService.cs",
+      "commits": 1,
+      "owner": "non-nattawut",
+      "authors": {
+        "non-nattawut": 1
+      },
+      "author_count": 1,
+      "last_commit": "2026-09-08T22:13:49+07:00",
+      "first_commit": "2026-09-08T22:13:49+07:00",
+      "fan_in": 1,
+      "fan_out": 1,
+      "risk": 3
+    },
+    {
       "node": "OrderWorkflow.find",
       "file": "sample_src/services/orders_java/OrderWorkflow.java",
       "commits": 1,
@@ -1486,7 +1515,7 @@
       "risk": 2
     },
     {
-      "node": "InvoiceService.Total",
+      "node": "InvoiceService.Total(int,int)",
       "file": "sample_src/services/orders_cs/InvoiceService.cs",
       "commits": 1,
       "owner": "non-nattawut",
