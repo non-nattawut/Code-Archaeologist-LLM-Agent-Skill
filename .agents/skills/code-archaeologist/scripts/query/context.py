@@ -31,7 +31,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from paths import DATA_DIR, SKILL_ROOT  # noqa: E402  (also puts sibling script dirs on sys.path)
+from paths import DATA_DIR, skill_rel  # noqa: E402  (also puts sibling script dirs on sys.path)
 from taxonomy import PRECISION_NOTES  # noqa: E402  (one definition of the precision vocabulary)
 REPORT_DIR = os.path.join(DATA_DIR, "report")
 DEFAULT_GRAPH = os.path.join(DATA_DIR, "flow", "flow_graph.json")
@@ -133,7 +133,7 @@ def build(graph_path: str, node_ids: list[str], depth: int = 1, cap: int = NEIGH
             "called_by_total": len(callers),
             "covered_by": covered_by,
         })
-    return {"graph": os.path.relpath(graph_path, SKILL_ROOT).replace("\\", "/"),
+    return {"graph": skill_rel(graph_path),
             "map": _map_of(graph_path), "depth": depth, "nodes": packs}
 
 

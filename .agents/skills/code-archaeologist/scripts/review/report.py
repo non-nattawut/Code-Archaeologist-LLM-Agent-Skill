@@ -28,7 +28,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from paths import DATA_DIR, SKILL_ROOT  # noqa: E402  (also puts sibling script dirs on sys.path)
+from paths import DATA_DIR, skill_rel  # noqa: E402  (also puts sibling script dirs on sys.path)
 from taxonomy import PRECISION_CAVEAT, PRECISION_NOTES  # noqa: E402  (one definition of the precision vocabulary)
 DEFAULT_GRAPH = os.path.join(DATA_DIR, "flow", "flow_graph.json")
 DEFAULT_OUT_DIR = os.path.join(DATA_DIR, "report")
@@ -245,17 +245,27 @@ def to_markdown(data: dict) -> str:
                          for n in tests["unreferenced"][:TOP_ORPHANS]])
 
     dupes = data.get("duplicates") or {}
-    if dupes and dupes["summary"]["clusters"]:
+    blocks = dupes.get("blocks") or []
+    if dupes and (dupes["summary"]["clusters"] or blocks):
         ds = dupes["summary"]
         lines += [f"## Duplicate code — {ds['clusters']} cluster(s), "
-                  f"{ds['duplicated_loc']} duplicated line(s)", "",
+                  f"{ds['duplicated_loc']} duplicated line(s), {len(blocks)} copied block(s)", "",
                   "_Matched on token shape: identifiers and literals are normalized away, so a "
                   "renamed copy still matches. Similar-looking code can cluster; it is a prompt "
                   "to look, not proof._", ""]
-        lines += _table(["Tokens", "Copies", "Nodes"],
-                        [[str(c["tokens"]), str(len(c["nodes"])),
-                          ", ".join(f"`{n['id']}`" for n in c["nodes"])]
-                         for c in dupes["clusters"][:TOP_FINDINGS]])
+        if dupes["clusters"]:
+            lines += _table(["Tokens", "Copies", "Nodes"],
+                            [[str(c["tokens"]), str(len(c["nodes"])),
+                              ", ".join(f"`{n['id']}`" for n in c["nodes"])]
+                             for c in dupes["clusters"][:TOP_FINDINGS]])
+        if blocks:
+            lines += ["### Copied blocks", "",
+                      "_A run of at least 30 tokens copied into two otherwise different nodes, "
+                      "trimmed to whole lines. A pair already listed above is not repeated._", ""]
+            lines += _table(["Tokens", "Lines", "In", "And"],
+                            [[str(b["tokens"]), str(b["loc"])] +
+                             [f"`{n['id']}` L{n['lines'][0]}–{n['lines'][1]}" for n in b["nodes"]]
+                             for b in blocks[:TOP_FINDINGS]])
 
     lines += [
         "## Dig deeper",
@@ -287,7 +297,7 @@ def build(src, graph_path: str = DEFAULT_GRAPH, out_dir: str = DEFAULT_OUT_DIR) 
     dupes = duplicates.build(src, graph_path, os.path.join(out_dir, "duplicates.json"))
 
     data = {
-        "graph": os.path.relpath(graph_path, SKILL_ROOT).replace("\\", "/"),
+        "graph": skill_rel(graph_path),
         "census": census(graph), "files": file_census(size), "analysis": analysis,
         "security": security, "insights": insights, "metrics": size,
         "debt": rot, "tests": tests, "duplicates": dupes,

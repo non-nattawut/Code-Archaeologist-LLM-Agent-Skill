@@ -43,7 +43,7 @@ from paths import SKILL_ROOT  # noqa: E402  (also puts sibling script dirs on sy
 import grammars  # noqa: E402
 
 JS_EXTS = (".js", ".jsx", ".ts", ".tsx")
-SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data", "dist", "build"}
+from taxonomy import SKIP_DIRS  # noqa: E402  (one definition of "not source")
 HTTP_VERBS = ("get", "post", "put", "patch", "delete")
 
 # Which grammar reads which extension. `.tsx` needs its own language, not

@@ -36,7 +36,7 @@ import py_extract as px  # noqa: E402  (Python, via tree-sitter)
 from ids import SharedNames  # noqa: E402  (one id rule for both maps)
 from ts_extract import find_lang_files, extract_lang_files  # noqa: E402  (Java/Go/C#, via tree-sitter)
 
-SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data"}
+from taxonomy import SKIP_DIRS  # noqa: E402  (one definition of "not source")
 
 
 # ---------------------------------------------------------------------------

@@ -366,7 +366,7 @@ const MAP_NAMES = Object.keys(MAPS);
 let mapName = MAP_NAMES.includes("flow") ? "flow" : MAP_NAMES[0];
 
 // All of this is rebuilt by loadMap() whenever the active map changes.
-let GRAPH, REPORT, ANALYSIS, HEALTH, FINDINGS, CHURN, FILE_META, FILE_STATS, HAS_CHURN, DUPES;
+let GRAPH, REPORT, ANALYSIS, HEALTH, FINDINGS, CHURN, FILE_META, FILE_STATS, HAS_CHURN, DUPES, BLOCKS;
 let nodes, byId, links, isFlow, OUT_LABEL, IN_LABEL, outAdj, inAdj;
 let filesIndex, folders, issuesByNode, issuesByFile, MAX, treeRoot, openDirs;
 
@@ -385,6 +385,7 @@ function loadMap(name) {
   HEALTH = ANALYSIS.health || null;
   FINDINGS = (REPORT.security || {}).findings || [];
   DUPES = ((REPORT.duplicates || {}).clusters) || [];
+  BLOCKS = ((REPORT.duplicates || {}).blocks) || [];
   CHURN = ((REPORT.insights || {}).nodes) || {};
   FILE_META = ((REPORT.files || {}).files) || {};
   FILE_STATS = REPORT.files || {};
@@ -1124,7 +1125,7 @@ function renderTabs() {
   const counts = {
     patterns: (ANALYSIS.cycles || []).length + (ANALYSIS.layer_violations || []).length
       + (ANALYSIS.hubs || []).length + (ANALYSIS.god_objects || []).length
-      + (ANALYSIS.orphans || []).length + (DUPES || []).length
+      + (ANALYSIS.orphans || []).length + (DUPES || []).length + (BLOCKS || []).length
       + Object.values(ANALYSIS.patterns || {}).reduce((s, v) => s + v.length, 0),
     security: FINDINGS.length,
   };
@@ -1320,6 +1321,10 @@ function renderPatterns() {
   push("Duplicate code", DUPES || [], (c) =>
     `<div class="item"><span class="grow">${c.nodes.map((id) => nodeItem(id)).join("")}</span>
       <span class="badge med">${c.tokens} tokens x${c.nodes.length}</span></div>`);
+  // Phase 9: a block copied into two otherwise different nodes -- never a pair above.
+  push("Copied blocks", BLOCKS || [], (b) =>
+    `<div class="item"><span class="grow">${b.nodes.map((n) => nodeItem(n.id)).join("")}</span>
+      <span class="badge med">${b.tokens} tokens, ${b.loc} lines</span></div>`);
   Object.entries(idioms).forEach(([name, ids]) =>
     push(name.replace(/_/g, " "), ids, (id) => nodeItem(id)));
 

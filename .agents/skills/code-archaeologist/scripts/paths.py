@@ -61,6 +61,21 @@ def long_path(path: str) -> str:
     return "\\\\?\\" + full
 
 
+def skill_rel(path: str) -> str:
+    """`path` relative to the skill, with `/` -- or absolute when it has no relative form.
+
+    Every report records which graph it was built from. On Windows a graph on another
+    drive than the skill has no relative path at all, and `os.path.relpath` raised --
+    in five places, each a hand-rolled copy of the same line. Found in phase 9 by a
+    regression case whose graph lived in the temp directory (C:) while the skill sits
+    on D:; `build_graph` had the same shape in phase 5.
+    """
+    try:
+        return os.path.relpath(path, SKILL_ROOT).replace("\\", "/")
+    except ValueError:
+        return os.path.abspath(path).replace("\\", "/")
+
+
 def _install() -> None:
     """Put scripts/, every category dir and vendor/ on sys.path, nearest-first."""
     for name in reversed(CATEGORIES):

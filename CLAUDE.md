@@ -68,7 +68,8 @@ the only entrypoint:
 scripts/
   archaeologist.py   the entrypoint
   paths.py           SKILL_ROOT / DATA_DIR / TEMPLATES_DIR, the sys.path bootstrap, and
-                     long_path() -- every per-node file goes through it (MAX_PATH, phase 6d)
+                     long_path() -- every per-node file goes through it (MAX_PATH, phase 6d),
+                     and skill_rel() -- every report's `graph` field (cross-drive, phase 9)
   core/     taxonomy.py  manifest.py  console.py  grammars.py  ids.py
   extract/  build_wiki.py  build_graph.py  build_flow.py  py_extract.py
             js_ts_extract.py  ts_extract.py  route_tables.py  apply_descriptions.py
@@ -100,7 +101,11 @@ and re-deriving the skill root inside `core/` is exactly the duplication `paths`
 delete. Nothing else in `core/` may import a skill module.
 
 - `taxonomy.py` owns every `kind`/`layer` value (mirrored in `templates/TAXONOMY.md`). Add values
-  there, never inline. It also owns `LANG_BY_EXT` / `lang_of()` -- one answer to "what language is
+  there, never inline. It also owns **`SKIP_DIRS`** -- the one definition of which directories are
+  not source (dependencies, build output, framework caches such as `.next/`); five hand-kept copies
+  had drifted, and a Next.js dev server's output became 9% of a real repository's flow graph
+  (phase 9). `target`, `out`, `coverage` and `vendor` are deliberately absent: each is a real
+  source directory somewhere. It also owns `LANG_BY_EXT` / `lang_of()` -- one answer to "what language is
   this file", read by `metrics.py` and `ts_extract.py`. And it owns **what counts as a test
   file** (`is_test_path` / `is_test_file`): path and filename conventions plus framework markers
   (`@Test`, `@SpringBootTest`, `[Fact]`, `#[test]`, `func TestX(t *testing.T)`). Nodes in test
@@ -202,6 +207,14 @@ delete. Nothing else in `core/` may import a skill module.
   copy still matches. It reads ranges from the graph (`source` + `end`), never re-parsing --
   which is why `build_flow.py` records `end` on every node it builds. Nodes marked
   `declaration: true` are skipped: a signature has a readable range but no body to compare.
+  Since phase 9 it also finds **blocks**: a run of 30+ tokens copied into two otherwise
+  different nodes, which no whole-body hash can see. Winnowed k-gram fingerprints (K=10,
+  W=21, so every shared run of 30 is guaranteed a common fingerprint) with a *stable* rolling
+  hash -- Python's `hash()` is salted per process and would break constraint 2. Matches grow
+  to maximal runs and are trimmed to **whole lines** in both copies, so half a statement never
+  counts; that keeps the "never re-parses" property, where statement boundaries would need a
+  parse. A pair already in a cluster is never repeated as a block; overlapping ranges are
+  skipped; a fingerprint in 50+ places is boilerplate.
 - `brief.py` is the fixed-size digest an agent should open a session with — it only reads what the
   other scripts wrote. Anything expensive belongs upstream of it, never inside it.
 - `report.py` joins all of it into `data/report/<map>/architecture_report.{md,json}` plus
@@ -405,7 +418,8 @@ components, four API frameworks, and Java/Go/C# with two deliberate hard cases, 
   fell from C(71) when the interface impls were added -- that is the hard case being honest, not a
   regression. Flow fell from D(69) when the planted clone below was added: nothing calls it, so it
   is one more orphan.
-- duplicates: **1 cluster, 2 nodes, 4 duplicated lines** -- `createInvoice` is `createOrder` with
+- duplicates: **1 cluster, 2 nodes, 4 duplicated lines, 0 copied blocks** (the planted pair is a
+  whole-body clone, so it is a cluster and never repeated as a block) -- `createInvoice` is `createOrder` with
   every identifier renamed, planted in `frontend/api_client.ts` so the clone pass has something to
   find. Renaming a variable in one copy must keep them clustered; changing an operator must split
   them.

@@ -187,7 +187,7 @@ _2 test file(s). Name-based, not execution coverage: a node counts as referenced
 | `InvoiceStore.Put` | repository | `sample_src/services/orders_cs/InvoiceStore.cs:11` |
 | `NewRouter` | controller | `sample_src/services/orders_go/router.go:10` |
 
-## Duplicate code — 1 cluster(s), 4 duplicated line(s)
+## Duplicate code — 1 cluster(s), 4 duplicated line(s), 0 copied block(s)
 
 _Matched on token shape: identifiers and literals are normalized away, so a renamed copy still matches. Similar-looking code can cluster; it is a prompt to look, not proof._
 

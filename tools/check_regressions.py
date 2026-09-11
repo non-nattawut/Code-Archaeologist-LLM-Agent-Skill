@@ -432,6 +432,112 @@ def r24_route_table_handlers():
         return "a frontend fetch did not link to a handler routed only by a table"
 
 
+def r25_copied_blocks():
+    """phase 9: clones were matched whole-body only, so a block pasted into two otherwise
+    different functions was invisible -- and a block finder must not re-report clusters."""
+    import contextlib
+    import io
+    d = tempfile.mkdtemp()
+    open(os.path.join(d, "ledger.py"), "w", encoding="utf-8").write(
+        "def load_sales(rows):\n"
+        "    header = rows[0]\n"
+        "    total = 0\n"
+        "    for row in rows[1:]:\n"
+        "        if row.amount > 0 and row.kind == 'sale':\n"
+        "            total = total + row.amount * row.rate\n"
+        "            audit(row.name, total, 'sale')\n"
+        "    return header, total\n\n\n"
+        "def load_refunds(entries, limit):\n"
+        "    count = len(entries)\n"
+        "    running = 0\n"
+        "    for entry in entries[1:]:\n"
+        "        if entry.amount > 0 and entry.kind == 'sale':\n"
+        "            running = running + entry.amount * entry.rate\n"
+        "            audit(entry.name, running, 'sale')\n"
+        "    print(count, limit)\n"
+        "    return running\n\n\n"
+        "def load_other(items, scale, flag):\n"          # the same block, one operator flipped
+        "    acc = 0\n"
+        "    for item in items[1:]:\n"
+        "        if item.amount > 0 and item.kind == 'sale':\n"
+        "            acc = acc - item.amount * item.rate\n"
+        "            audit(item.name, acc, 'sale')\n"
+        "    raise ValueError(flag)\n")
+    graph = os.path.join(d, "flow.json")
+    with contextlib.redirect_stderr(io.StringIO()):
+        methods, edges = build_flow.analyze([d])
+    build_flow.write_graph(methods, edges, graph)
+    blocks = duplicates.build([d], graph)["blocks"]
+    pairs = {tuple(n["id"] for n in b["nodes"]): b for b in blocks}
+    hit = pairs.get(("load_refunds", "load_sales"))
+    if hit is None:
+        return f"the renamed block in load_sales / load_refunds was not found; blocks: {sorted(pairs)}"
+    if [n["lines"] for n in hit["nodes"]] != [[13, 17], [3, 7]]:
+        return f"the block is not the five copied lines: {[n['lines'] for n in hit['nodes']]}"
+    if any("load_other" in p for p in pairs):
+        return "a block with a flipped operator was reported as a copy"
+    sample = duplicates.build([SAMPLE], FLOW)
+    clustered = {tuple(sorted(n["id"] for n in c["nodes"])) for c in sample["clusters"]}
+    if ("createInvoice", "createOrder") not in clustered:
+        return "the sample's planted whole-body clone is no longer a cluster"
+    if any(tuple(n["id"] for n in b["nodes"]) in clustered for b in sample["blocks"]):
+        return "a pair already in a cluster was reported again as a block"
+
+
+def r26_graph_path_on_another_drive():
+    """phase 9: five passes recorded their graph with a hand-rolled
+    relpath(graph, SKILL_ROOT), which raises when the graph is on another drive."""
+    import paths
+    other = "Z:\\elsewhere\\g.json" if os.name == "nt" else "/elsewhere/g.json"
+    try:
+        label = paths.skill_rel(other)
+    except ValueError as exc:
+        return f"skill_rel raised for a path on another drive: {exc}"
+    if not label.endswith("elsewhere/g.json"):
+        return f"skill_rel lost the path: {label!r}"
+    scripts = os.path.join(SKILL, "scripts")
+    for base, _dirs, files in os.walk(scripts):
+        for fn in files:
+            full = os.path.join(base, fn)
+            if fn.endswith(".py") and fn != "paths.py" and \
+                    "relpath(graph_path, SKILL_ROOT)" in open(full, encoding="utf-8").read():
+                return f"{fn} hand-rolls relpath(graph_path, SKILL_ROOT) again; use paths.skill_rel"
+
+
+def r27_generated_dirs_are_not_source():
+    """phase 9: five copies of "which directories are not source" had drifted, and none
+    skipped `.next/` -- a Next.js dev server's generated TypeScript became 9% of a real
+    repository's flow graph, and the graph changed every time it recompiled."""
+    import contextlib
+    import io
+    import build_graph
+    import build_wiki
+    d = tempfile.mkdtemp()
+    os.makedirs(os.path.join(d, ".next", "types"))
+    open(os.path.join(d, ".next", "types", "routes.ts"),
+         "w", encoding="utf-8").write("export function generatedRoute() {\n  return 1;\n}\n")
+    open(os.path.join(d, "app.ts"), "w", encoding="utf-8").write(
+        "export function handWritten() {\n  return 2;\n}\n")
+    vault, out = os.path.join(d, "vault"), os.path.join(d, "out")
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        methods, _ = build_flow.analyze([d])
+        build_wiki.build([d], vault)
+        build_graph.build(vault, out)
+    if "generatedRoute" in methods or "handWritten" not in methods:
+        return f"flow map: expected handWritten only, got {sorted(methods)}"
+    if any(".next" in (n.get("source") or "")
+           for n in json.load(open(os.path.join(out, "graph.json"), encoding="utf-8"))["nodes"]):
+        return "structure map: a node came from .next/"
+    if any(".next" in k for k in manifest.snapshot([d])):
+        return "the freshness manifest hashes .next/, so a dev server makes every build stale"
+    scripts = os.path.join(SKILL, "scripts")
+    for base, _dirs, files in os.walk(scripts):
+        for fn in files:
+            if fn.endswith(".py") and fn != "taxonomy.py" and \
+                    re.search(r"^SKIP_DIRS\s*=", open(os.path.join(base, fn), encoding="utf-8").read(), re.M):
+                return f"{fn} defines its own SKIP_DIRS again; import taxonomy.SKIP_DIRS"
+
+
 CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_append,
          r05_duplicates_declarations, r06_orphan_guard, r07_flask_routes,
          r08_missing_parser_is_visible, r09_no_absolute_paths, r10_brief_agrees_with_check,
@@ -439,7 +545,8 @@ CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_app
          r14_context_budget, r15_moved_root_reason, r16_install_hint,
          r17_owner_respects_end, r18_same_name_in_two_files, r19_reports_are_reproducible,
          r20_structure_shared_names, r21_grammars_are_pinned, r22_metrics_by_graph_id,
-         r23_long_node_paths, r24_route_table_handlers]
+         r23_long_node_paths, r24_route_table_handlers, r25_copied_blocks,
+         r26_graph_path_on_another_drive, r27_generated_dirs_are_not_source]
 
 
 def main() -> int:

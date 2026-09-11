@@ -3096,3 +3096,58 @@ reaches its view; a frontend `fetch()` links to a table-routed handler.
 
 **Docs:** CLAUDE.md (layout, pipeline, a `route_tables` bullet, four fixture rows), README (tree,
 routes row), USAGE (command form and the drop rule), the fixtures README, and the plan.
+
+### 9 — duplicates below function granularity (seventh commit) — and the end of the turn
+
+**Blocks.** `duplicates.find_blocks` uses winnowed k-gram fingerprints over the pass's own token
+shapes: K=10 and W=21, so any shared run of 30 tokens is guaranteed a common fingerprint. The
+rolling hash is stable, because Python's `hash()` is salted per process. Matches grow to maximal
+runs and are trimmed to whole lines in both copies. Pairs already in a cluster, and overlapping
+ranges, are skipped. The payload gets `blocks` as pairs, as decided; the report gets a table; the
+explorer gets a PATTERNS group.
+
+**One departure from the plan, recorded:** blocks align to whole lines rather than to CST statement
+boundaries. That keeps "never re-parses" and works in all seventeen languages.
+
+**Regression r25:**
+
+- a renamed 48-token block in two functions is found at exactly its five lines;
+- the same block with one operator flipped is not found;
+- the sample's clone stays a cluster, and the sample has 0 blocks.
+
+On the skill's own code it finds real copy-paste. It also lists 207 *pairs*, because one block
+pasted in N places makes N·(N−1)/2 entries. Grouping them would change the approved format, so
+that is finding #7, recommending grouping like clusters, not a silent change.
+
+**Found on the way, each fixed:**
+
+1. **A latent crash in five places.** Every report pass hand-rolled
+   `relpath(graph, SKILL_ROOT)`, which raises across drives. My first fix put a helper into
+   `duplicates.py` alone. The grep then showed four more copies, so it became `paths.skill_rel()`,
+   used everywhere, with regression r26.
+2. **Generated code in the graph.** A timing run was refused by the harness's read-only guard.
+   Rather than assume, I checked, read-only, who wrote to the corpus: a running Next.js dev server
+   (265 writes, 260 in `.next/`), not the skill. But it exposed that nothing skipped `.next/`: 228
+   of 2,521 flow nodes were generated TypeScript. Along the way I chased a moved structure edge
+   count and a 725-vs-729 node count. Before accepting any explanation I proved the build
+   deterministic: byte-identical under three hash seeds, both root spellings, every stage, and a
+   kept `time_build` install. The cause was the dev server changing the corpus between runs. The
+   skip list lived in five drifted copies. It is now one `taxonomy.SKIP_DIRS` with the framework
+   caches added. `target`, `out`, `coverage` and `vendor` are deliberately excluded. Regression
+   r27. The corpus now gives 0 `.next` nodes.
+
+**Verified:**
+
+| Check | Result |
+| --- | --- |
+| Sample | only the new duplicates fields changed |
+| Regressions | 27/27 |
+| `check_langs` | 21 rows |
+| `check_graph` | clean, self-test 30/30 |
+| Oracle | 0 disagreements |
+| `check_docs` | OK |
+
+**End of the turn.** All nine phases are complete: 6c, 6b, 6a, 6d, 7, 8 and 9, each committed and
+pushed separately. The skill is feature-complete. Two findings await the user's review: #6 (a
+decorated TS method's source line) and #7 (block pairs vs groups). Both were found after the
+decisions were made, so both were recorded rather than decided by me.

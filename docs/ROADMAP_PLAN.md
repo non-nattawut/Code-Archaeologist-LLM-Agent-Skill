@@ -1,8 +1,9 @@
 # Graph as many languages as possible
 
-> ## Status: **phases 1–8 are complete; phase 9 remains. The goal in the title is reached: seventeen languages have a graph.**
-> Every planning concern is closed. One recorded finding awaits review: *Found while implementing*
-> #6 (a decorated TS method's `source` line), found in 6b after the phase-6 decisions were made.
+> ## Status: **all nine phases are complete — the skill is feature-complete. The goal in the title is reached: seventeen languages have a graph.**
+> Every planning concern is closed. Two recorded findings await review, both found after the
+> phase 6–9 decisions were made: *Found while implementing* #6 (a decorated TS method's `source`
+> line) and #7 (copied blocks are listed as pairs, so one block in N places is N·(N−1)/2 entries).
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
@@ -13,8 +14,8 @@
 > | 5 — The two limits phase 4 left: structure-map shared names, the narrow toolbar | close the known gaps | **done** — both closed; toolbar floor ~1270 → ~987px | `cc4d0af` |
 > | 6 — Close the open concerns: pinned grammars, non-ASCII, per-language metrics, timing | make adding a language safe | **done** — 6c, 6b (recorded #6), 6a, 6d (found and fixed the MAX_PATH crash) | `16b6f62`, `6553498`, `bf588e7`, `758e522` |
 > | 7 — A graph for every review-only language (Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir) | the title goal | **done** — 17 languages graphed; 2 defects found by the fixtures and fixed | `9be5825` |
-> | 8 — Route tables: Django `urlpatterns`, Rails, Laravel, Phoenix | cross-stack links for table-routed apps | **done** — 4 tables read; 1 Ruby gap found and fixed | this commit |
-> | 9 — Duplicates below function granularity | copied blocks, not only copied functions | **planned, not started** | — |
+> | 8 — Route tables: Django `urlpatterns`, Rails, Laravel, Phoenix | cross-stack links for table-routed apps | **done** — 4 tables read; 1 Ruby gap found and fixed | `82a1cf4` |
+> | 9 — Duplicates below function granularity | copied blocks, not only copied functions | **done** — blocks found; 1 latent crash fixed in 5 places; finding #7 recorded | this commit |
 >
 > ### Where phase 2 actually stands
 >
@@ -1431,6 +1432,43 @@ renamed — must be found; one operator changed — must not; the sample's exist
 (`createOrder` / `createInvoice`) reported once as a cluster and **not** again as a block. Runs in
 the 6d timing, because windowing is the first pass whose cost grows faster than node count.
 
+**Result — shipped 2026-09-11. The skill is feature-complete.**
+
+- **Blocks.** `duplicates.find_blocks`: winnowed k-gram fingerprints (K=10, W=21 — any shared run of
+  30 tokens is guaranteed a common fingerprint) over the token shapes the pass already computed,
+  with a stable rolling hash (Python's `hash()` is salted per process). Matches grow to maximal
+  runs, are trimmed to **whole lines in both copies**, and skip pairs already in a cluster and
+  overlapping ranges. `duplicates.json` gains `blocks` (pairs, as decided); the report gains a
+  *Copied blocks* table; the explorer's PATTERNS tab lists them.
+- **One departure from the text above:** alignment is to *whole lines*, not "statement boundaries
+  from the CST". Line alignment gives the same guarantee — half a statement never counts — in all
+  seventeen languages while keeping this pass's property of never re-parsing a file; statement
+  boundaries would have needed a parse per node.
+- **Verified:** regression r25 — a renamed 48-token block in two functions is found at exactly its
+  five lines; the same block with one operator flipped is not; the sample's planted whole-body clone
+  stays a cluster and is never repeated as a block (the sample has **0** blocks). On the skill's own
+  code it finds real copy-paste: the `main()` boilerplate across scripts (212 tokens),
+  `_dedupe_calls` / `_dedupe_routes`. That run is also where *Found while implementing* #7 comes from.
+- **Found and fixed — a latent crash in five places:** every report pass recorded its graph with a
+  hand-rolled `os.path.relpath(graph, SKILL_ROOT)`, which raises when the graph is on another drive.
+  `paths.skill_rel()` is now the one copy; regression r26 checks it and that nobody hand-rolls it again.
+- **Timing (the 6d harness):** `srs-eol-system` 34.6 s in total, report 13.3 → 16.3 s — the real cost
+  of windowing on ~3,100 nodes; per 100 files every stage is still cheaper than on the small corpora.
+- **Found and fixed — generated code in the graph.** A later timing run was *refused* by the
+  harness's read-only guard: 20 files in the corpus changed during it. I checked, read-only, who
+  changed them: a running **Next.js dev server** (265 writes in 20 minutes, 260 in `.next/`), not
+  the skill. But it exposed a real bug — nothing skipped `.next/`, so **228 of 2,521 flow nodes were
+  generated TypeScript**, and the graph moved whenever the dev server recompiled. It also explained
+  a structure edge count that had moved between runs; the build itself was proven deterministic
+  (byte-identical under three hash seeds, both root spellings, every stage). The skip list existed
+  in **five copies that had already drifted** (only the JS/TS and Java-family extractors skipped
+  `dist/` and `build/`). Now: one `taxonomy.SKIP_DIRS`, with `.next`, `.nuxt`, `.svelte-kit`,
+  `.angular`, `.turbo`, `.parcel-cache`, `.gradle`, `.dart_tool`; `target`, `out`, `coverage` and
+  `vendor` deliberately left out, since each is a real source directory somewhere. Result: 0 nodes
+  from `.next/`; regression r27; the sample unchanged.
+- **Recorded, not changed:** *Found while implementing* #7 — blocks are pairs as decided, so one
+  block in N places is N·(N−1)/2 entries; the recommendation is to group them like clusters.
+
 ---
 
 ## Found while implementing
@@ -1677,6 +1715,25 @@ decorator-inclusive, so Python/Java/C# ranges start at their first decorator too
 node owns — the annotations on a Spring or ASP.NET method are exactly where a route or an auth
 rule lives. The sample data changes by a handful of `source` lines, and 6b's `lines` column would
 catch any language left behind.
+
+### 7. Copied blocks are listed as pairs, so one block in N places is N·(N−1)/2 entries — found in phase 9
+
+**What.** The approved output format for phase 9 is a `blocks` list whose entries are *pairs*
+(two node ids, their line ranges, the token count). On the skill's own code that gave **207
+entries**, and most of them are one block seen many times: the `argparse` boilerplate of each
+script's `main()` is copied across a dozen scripts, and every pair of them is its own entry. Each
+entry is true — the top ones are real copy-paste (`duplicates.main` / `tests_map.main`, 212 tokens;
+`_dedupe_calls` / `_dedupe_routes`, a genuinely copied helper) — but the list buries the distinct
+copies under the repeated ones. The report shows only the top rows; the explorer lists them all.
+
+**Why it is not simply fixed.** Grouping changes the output format that was decided (and
+`duplicates.json`'s shape), which is exactly the kind of change principle 7 sends for review.
+
+**Options.** (a) Keep pairs. (b) Group regions with the same token shape into one entry listing
+every place it occurs — `{"tokens", "loc", "places": [{id, lines}, ...]}` — the way whole-body
+`clusters` already work. (c) Keep pairs but collapse them in the report and explorer only.
+**Recommendation: (b).** It makes blocks read like clusters, which is how the rest of the pass
+already thinks, and the 207 entries on this code would become a few dozen distinct copies.
 
 ---
 

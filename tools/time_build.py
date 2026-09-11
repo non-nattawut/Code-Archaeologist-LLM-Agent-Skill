@@ -119,11 +119,21 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Time every stage of the skill on read-only corpora.")
     parser.add_argument("roots", nargs="*", help="One source root per corpus (default: sample_src, then the skill's own code)")
     parser.add_argument("--json", default=None, help="Also write the rows here")
+    parser.add_argument("--keep", default=None,
+                        help="Install into this (new) directory and leave it, so the built maps can be inspected")
     args = parser.parse_args(argv)
 
     corpora = ([[os.path.abspath(r)] for r in args.roots] if args.roots
                else [[os.path.join(REPO, "sample_src")], OWN_CODE])
     rows = []
+    if args.keep:
+        # Only the last corpus's maps survive: each run rebuilds the same install.
+        _run(corpora, install(os.path.abspath(args.keep)), rows)
+        if args.json:
+            with open(args.json, "w", encoding="utf-8") as fh:
+                json.dump(rows, fh, indent=2)
+                fh.write("\n")
+        return 0
     # The temp install holds notes whose names can pass MAX_PATH, which the default
     # cleanup cannot delete; remove it through the long-path form instead.
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:

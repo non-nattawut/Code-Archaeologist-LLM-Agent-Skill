@@ -69,7 +69,7 @@ from js_ts_extract import find_js_files, extract_js_files, frontend_degraded   #
 from ts_extract import find_lang_files, extract_lang_files  # noqa: E402  (Java/Go/C#, via tree-sitter)
 import route_tables  # noqa: E402  (Django / Rails / Laravel / Phoenix route tables)
 
-SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data"}
+from taxonomy import SKIP_DIRS  # noqa: E402  (one definition of "not source")
 
 
 def iter_py_files(src: str):

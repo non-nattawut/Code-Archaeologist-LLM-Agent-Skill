@@ -27,7 +27,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from paths import DATA_DIR, SKILL_ROOT  # noqa: E402  (also puts sibling script dirs on sys.path)
+from paths import DATA_DIR, skill_rel  # noqa: E402  (also puts sibling script dirs on sys.path)
 DEFAULT_GRAPH = os.path.join(DATA_DIR, "flow", "flow_graph.json")
 DEFAULT_OUT = os.path.join(DATA_DIR, "report", "tests.json")
 
@@ -81,7 +81,7 @@ def build(roots, graph_path: str = DEFAULT_GRAPH, out_path: str | None = None) -
     considered = len(referenced) + len(unreferenced)
     payload = {
         "roots": manifest.rel_roots(roots),
-        "graph": os.path.relpath(graph_path, SKILL_ROOT).replace("\\", "/"),
+        "graph": skill_rel(graph_path),
         "summary": {
             "test_files": len(tests),
             "considered": considered,

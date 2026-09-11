@@ -6,7 +6,9 @@
   "summary": {
     "clusters": 0,
     "nodes_involved": 0,
-    "duplicated_loc": 0
+    "duplicated_loc": 0,
+    "blocks": 0
   },
-  "clusters": []
+  "clusters": [],
+  "blocks": []
 }

@@ -57,7 +57,7 @@ LANG_EXTS = {".java": "java", ".go": "go", ".cs": "csharp",
              ".rb": "ruby", ".php": "php", ".ex": "elixir", ".exs": "elixir"}
 # Languages whose tree is Java's: same node types, same fields, same branch.
 JAVA_LIKE = {"java", "groovy"}
-SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data", "dist", "build"}
+from taxonomy import SKIP_DIRS  # noqa: E402  (one definition of "not source")
 
 # Per language: which node types play which structural role. Everything else is
 # shared. `container` is anything that owns methods (a class, interface, struct);

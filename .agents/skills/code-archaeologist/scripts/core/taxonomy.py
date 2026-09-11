@@ -54,6 +54,24 @@ def lang_of(path: str) -> str:
     """Language name for a path, or "other" when the extension is unknown."""
     return LANG_BY_EXT.get(os.path.splitext(path)[1].lower(), "other")
 
+# --- what is not source -----------------------------------------------------------
+# Directories no pass reads: VCS and tool state, dependencies, build output, and the
+# caches frameworks regenerate while a dev server runs. One definition, because five
+# copies had already drifted apart -- the JS/TS and Java-family extractors skipped
+# `dist/` and `build/`, the Python builders and the freshness manifest did not -- and
+# none skipped `.next/`: on a real Next.js repository 228 of 2,521 flow nodes were
+# generated code, and the graph changed every time the dev server recompiled (found
+# by tools/time_build.py's read-only guard, phase 9).
+#
+# Deliberately *not* here: `target`, `out`, `coverage`, `vendor` -- each is also a
+# real source directory name in some repositories, and skipping source is the worse
+# mistake. Only names nobody writes code into by hand are listed.
+SKIP_DIRS = frozenset({
+    ".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data", "dist", "build",
+    ".next", ".nuxt", ".svelte-kit", ".angular", ".turbo", ".parcel-cache", ".gradle",
+    ".dart_tool",
+})
+
 # --- test code -----------------------------------------------------------------
 # Test code is *not* dead code: a runner calls it, so nothing in the graph does.
 # Detection is by convention, not by parsing, so it also holds for languages this

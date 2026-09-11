@@ -6,7 +6,8 @@
   "summary": {
     "clusters": 1,
     "nodes_involved": 2,
-    "duplicated_loc": 4
+    "duplicated_loc": 4,
+    "blocks": 0
   },
   "clusters": [
     {
@@ -28,5 +29,6 @@
         }
       ]
     }
-  ]
+  ],
+  "blocks": []
 }

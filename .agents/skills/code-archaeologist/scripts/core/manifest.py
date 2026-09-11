@@ -36,7 +36,7 @@ SOURCE_EXTS = (".py", ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs",
                ".java", ".kt", ".kts", ".go", ".rs", ".cs", ".rb", ".php",
                ".swift", ".scala", ".groovy", ".dart", ".ex", ".exs",
                ".c", ".cc", ".cpp", ".h", ".hpp")
-SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data"}
+from taxonomy import SKIP_DIRS  # noqa: E402  (one definition of "not source")
 
 
 def _rel_key(path: str, root: str) -> str:
