@@ -3347,3 +3347,33 @@ overloading cannot define two same-named methods in one class, so every node the
 one body and one range. Added one nuance: in a language *without* overloading, a second
 same-named definition in the same scope simply replaces the first at runtime (Python), so one
 node is correct there. No code changed.
+
+## [77] 2026-09-11 — How finding #8 would be fixed
+
+**Prompt**
+> how you will fix it
+
+**Response**
+Looked at the two places that decide it before answering: the fold in `build_flow.py` (~l.714,
+where a second overload with the same id adds to `signatures`, and `_claim` keeps one node) and
+`scan_security.index`/`owner_of` (one `(start, end, id)` entry per node). The plan given:
+
+1. **Record it** -- at the fold, also record `ranges: [[start, end], ...]`, one per overload,
+   beside `signatures`. `source`/`end` stay exactly as today, so ids, notes and every
+   non-overloaded node are untouched; the field appears only on folded nodes, like `signatures`.
+   The fold is in the shared `ts_extract` path, so all six overloading languages get it at once.
+2. **Read it** -- every pass that uses a node's lines takes all its ranges: `scan_security`'s
+   index gets one entry per range (so `debt` follows for free), `metrics.locate` measures each
+   overload and combines them (LOC and complexity summed, depth and params the maximum),
+   `duplicates` compares each overload's body separately, and `check_graph` c06/c07/c13 check
+   against any range -- plus a new assertion that `ranges` is sorted, non-overlapping and starts
+   at `source`.
+3. **Prove it** -- a regression case with two overloads apart in a file, calling different
+   things, with a finding in the second; it must fail before and pass after. The sample's
+   `InvoiceService.Total` gains a `ranges` field, so its committed `flow_graph.json` changes by
+   that one field (the only intended byte change); both grades and all counts should stay.
+   Re-run on the Java repository: c13 must come back clean.
+4. **Docs** -- `TAXONOMY.md` (the new graph-only field), `CLAUDE.md`, roadmap #8 marked resolved.
+
+Asked for the go-ahead, since it adds a field to the graph format (why it was recorded rather than
+fixed). No code changed.
