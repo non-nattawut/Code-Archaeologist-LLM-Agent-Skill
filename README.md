@@ -160,7 +160,8 @@ it or email it.
 - **Left** — health ring (A–F), color-by (layer / folder / churn / risk), stat tiles, language
   mix, and a file tree that filters the canvas.
 - **Center** — seven views of the same graph: Graph, Treemap, Matrix, Tree, Flow, Cluster, Bundle.
-  Plus folder hulls, a blast-radius toggle, and PNG export.
+  Plus folder hulls, a blast-radius toggle, and an overflow menu (`⋯`) holding zoom, fit and
+  PNG export.
 - **Right** — **FILE** (what it does, blast radius, connections, git ownership, risks),
   **PATTERNS** (cycles, layer violations, hubs, god objects, dead code), **SECURITY** (findings by
   severity). All click through into each other.
@@ -238,7 +239,7 @@ dead code** and its calls never count as coupling.
 ```bash
 npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill                    # pick a harness
 npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --harness claude   # or name it
-npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --self-test        # install + verify
+npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --self-test        # install, fetch the demo's grammars, build it
 ```
 
 | Harness | Installs to |

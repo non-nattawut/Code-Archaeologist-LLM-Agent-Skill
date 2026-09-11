@@ -62,7 +62,6 @@ def _map_summary(name: str) -> dict:
         "imprecise": sum(1 for n in graph.get("nodes", []) if n.get("precision")),
         "grade": health.get("grade"),
         "score": health.get("score"),
-        "reported": rep.get("generated"),
         "report": rep,
     }
 
@@ -96,7 +95,7 @@ def collect(src=None, focus: str = "flow", top: int = 5) -> dict:
 
     roots = src or size.get("roots")
     digest = {
-        "maps": {k: {x: v[x] for x in ("nodes", "edges", "imprecise", "grade", "score", "reported")} for k, v in maps.items()},
+        "maps": {k: {x: v[x] for x in ("nodes", "edges", "imprecise", "grade", "score")} for k, v in maps.items()},
         "focus": focus,
         "freshness": _freshness(roots),
         # A language present in the source but missing its grammar contributes

@@ -2576,3 +2576,54 @@ the commit.
 
 **The roadmap's four phases are complete.** Four findings wait for your review: #1 the fresh-install
 demo builds 12 nodes, #3 report timestamps, #4 the toolbar below ~1360px, #5 the id scheme.
+
+## [65] 2026-09-11 — Findings #1, #3, #4: the self-test builds the whole demo, reports reproduce, the toolbar fits
+
+**Prompt**
+> use your recommendations for all four findings
+
+**Response**
+Three of the four are in this commit; #5 (file-qualified ids) touches the core builder and gets
+its own commit and entry.
+
+**#1 — the self-test installs the demo's grammars.** `bin/cli.js --self-test` now runs
+`<python> -m pip install --only-binary :all: --no-cache-dir --target <skill>/vendor` for the seven
+wheels, with the interpreter it has already resolved -- the one thing the wheels must match, which
+is why the installer can do this here and nowhere else. On a fresh target: all seven installed,
+and the demo builds **25/22 and 52/32** with no skip warning, where it used to build 12 nodes and
+still pass. Offline, it says so in one line and builds what it can.
+
+**#3 — no wall-clock time in any report.** `generated` removed from `report.py`, `metrics.py`,
+`debt.py`, `duplicates.py` and `tests_map.py` (and their now-unused `datetime` imports), the
+timestamp dropped from the markdown header, `reported` dropped from `brief` -- which stored it and
+never printed it. Two consecutive reports of identical source: `diff -r` empty. New regression case
+r19 runs the report twice and diffs the bytes. CLAUDE.md's constraint 2 now says "graphs *and*
+reports".
+
+**#4 — zoom, fit and PNG moved into a `⋯` overflow menu.** Same element ids, so no handler moved;
+inline-SVG icon, amber only while open, closes on outside click, Escape, or choosing an item.
+Measured in the browser: the toolbar went from ~897px to ~770-810px, so with both rails at their
+minimum it fits one row down to **~1270px** (was ~1360px), and at 1600px both rails now widen
+where before they could barely move.
+
+**Misses along the way, recorded because each looked like a result:**
+
+- **A probe that measured nothing.** The first layout probe ran before the page had laid out, so
+  `clientWidth` was **0**, which made `setRail`'s cap negative and snapped both rails to their
+  minimum -- my probe *caused* the "rails can't widen" it then reported. Re-measured at emulated
+  1600px and 1240px after waiting for layout: rails widen at 1600, the toolbar fits exactly at 1240.
+- **Zoom "did not zoom"**, twice -- because the pane was not drawing (the screenshot timed out), so
+  `requestAnimationFrame` never advanced the 250ms zoom animation. Proved the wiring instead by
+  spying on `Graph.zoom` / `zoomToFit`: ×1.4, ÷1.4, fit(400, 60).
+- **An overclaim in my own CSS comment.** I wrote that the toolbar now stays one row "down to
+  ~1100px". Measured, it is ~1270px. Corrected in the comment, CLAUDE.md, the plan and here -- a
+  smaller gain than the recommendation hoped, and said so rather than rounded.
+- **A plan patch that wrote nothing**: #3's closing sentence spans a line break, so the anchor
+  failed; the script asserts every anchor before its single write, so nothing half-applied.
+
+Docs: CLAUDE.md (layout rules with the measured numbers, a new rule that the toolbar row holds only
+what is used constantly, constraint 2), README (explorer line, self-test comment), and the plan's
+findings #1/#3/#4 marked resolved with their measurements.
+
+**Verified:** classic-script parse; sample graphs byte-identical to HEAD; `check_graph` 25/25 on
+both maps; regressions 19/19; `check_docs` OK; installer self-test full-size.

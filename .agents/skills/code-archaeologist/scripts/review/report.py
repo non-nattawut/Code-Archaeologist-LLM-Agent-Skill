@@ -26,7 +26,6 @@ import argparse
 import json
 import os
 import sys
-from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from paths import DATA_DIR, SKILL_ROOT  # noqa: E402  (also puts sibling script dirs on sys.path)
@@ -118,7 +117,9 @@ def to_markdown(data: dict) -> str:
     lines = [
         f"# Architecture report — {os.path.basename(data['graph'])}",
         "",
-        f"Generated {data['generated']} · {stats['nodes']} nodes · {stats['edges']} edges",
+        # No wall-clock time: the same source must give the same bytes (constraint 2),
+        # and `check` already answers "is this current" from source hashes.
+        f"{stats['nodes']} nodes · {stats['edges']} edges",
         "",
         f"## Health: **{h['grade']}** ({h['score']}/100)",
         "",
@@ -286,7 +287,6 @@ def build(src, graph_path: str = DEFAULT_GRAPH, out_dir: str = DEFAULT_OUT_DIR) 
 
     data = {
         "graph": os.path.relpath(graph_path, SKILL_ROOT).replace("\\", "/"),
-        "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         "census": census(graph), "files": file_census(size), "analysis": analysis,
         "security": security, "insights": insights, "metrics": size,
         "debt": rot, "tests": tests, "duplicates": dupes,

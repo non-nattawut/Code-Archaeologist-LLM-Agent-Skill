@@ -71,7 +71,8 @@ Options:
   -d, --dir <path>     Custom install path (relative to --target or absolute);
                        overrides --harness
   -t, --target <dir>   Project root to install into (default: current directory)
-      --self-test      After installing, build the bundled sample_src demo
+      --self-test      After installing, fetch the demo's grammars into the skill's
+                       vendor/ and build the bundled sample_src demo
   -f, --force          Overwrite an existing data/ workspace (default: keep it)
   -h, --help           Show this help
 
@@ -244,6 +245,26 @@ async function main() {
   console.log("OK   Skill installed.\n");
 
   if (opts.selfTest) {
+    // The demo spans seven languages, and since phase 2 every one of them -- Python
+    // included -- is read by a tree-sitter wheel. A fresh install has none, so the
+    // self-test used to build 12 of the sample's 25 nodes and still pass: the demo
+    // that exists to show what the tool does showed a third of it. The wheels must
+    // match the interpreter that will run the skill, and `py` is exactly that
+    // interpreter -- which is why here, and only here, the installer can install
+    // them correctly. Same flags as SKILL.md: into the skill's own vendor/, never
+    // into the user's Python, and never compiled.
+    const vendor = path.join(dest, "vendor");
+    console.log(`Installing the demo's tree-sitter grammars into ${vendor} ...`);
+    const wheels = ["tree-sitter", "tree-sitter-python", "tree-sitter-javascript",
+      "tree-sitter-typescript", "tree-sitter-java", "tree-sitter-go", "tree-sitter-c-sharp"];
+    const pip = spawnSync(py.exe, ["-m", "pip", "install", "--quiet", "--only-binary", ":all:",
+      "--no-cache-dir", "--target", vendor, ...wheels], { stdio: "inherit" });
+    if (pip.status === 0) {
+      console.log("OK   Grammars installed.");
+    } else {
+      console.log("WARN Could not install the grammars (offline?). The demo still builds, but only");
+      console.log("     for languages this machine can already parse -- the build names each one it skips.");
+    }
     console.log("Running self-test on bundled sample_src/ ...");
     // Exercise the real entrypoint end to end: both maps, then the review pass.
     const steps = [

@@ -224,16 +224,22 @@ scrolls.
   how you give it more.
 - **A rail may never eat the toolbar.** `setRail` caps a drag at what the centre still needs,
   measured by summing the toolbar's children — `clientWidth` would report "exactly what it already
-  has" and let a drag ratchet controls off the right edge a pixel at a time. On a 1600px screen
-  the toolbar needs nearly the whole centre, so a rail there can be narrowed but barely widened.
+  has" and let a drag ratchet controls off the right edge a pixel at a time. The toolbar needs
+  about 770-810px (it varies with which labels show), so with both rails at their minimum it fits
+  one row down to about **1270px** wide; at 1600px both rails widen freely. Below ~1270px it clips
+  -- measured in phase 4's review, and the supported floor.
+- **The toolbar row holds only what is used constantly.** Zoom in/out, fit and PNG export live in
+  the `⋯` overflow menu (`#more` / `#moreMenu`), which took the toolbar from ~897px to ~780px and
+  the clipping floor from ~1360px to ~1270px. A new control goes in that menu unless it is used on
+  nearly every visit. The menu items keep their old ids (`zoomIn`, `zoomOut`, `zoomFit`, `png`), so
+  no handler depends on where a control is drawn.
 - **Below `max-height: 620px`** the rail gives up and scrolls as a whole — a 60px tree is worse
   than a scrollbar.
 - **Dragging a node pins it** (force-graph sets `fx`/`fy` and leaves them), so `resetLayout()` is
   the only way back. It deletes `x`/`y`/`vx`/`vy` as well as clearing the pins, because `setView`
   alone only unpins and reheats — the simulation would restart from wherever the nodes were
-  dragged. It hangs off the existing toolbar **reset** rather than a button of its own: the
-  toolbar already wants ~930px against a 928px stage at 1600px wide, so one more control would
-  make it clip by default.
+  dragged. It hangs off the existing toolbar **reset** rather than a button of its own -- a new
+  toolbar button would cost the row width the overflow menu was introduced to win back.
 
 ## Hard constraints
 
@@ -261,7 +267,8 @@ scrolls.
    That end state was reached in phase 2 (`docs/ROADMAP_PLAN.md`): one engine, tree-sitter, with
    `ast` kept only as a test oracle and Node gone. **Do not add a second engine** — a new language
    is a grammar wheel plus a `SPEC` row, never a new parser.
-2. **Deterministic.** Same source in, same bytes out. AI text enters only through
+2. **Deterministic.** Same source in, same bytes out -- graphs *and* reports: no artifact carries
+   a wall-clock time (`tools/check_regressions.py` r19 runs the report twice and diffs it). AI text enters only through
    `apply_descriptions.py` (cached by source hash, docstring wins first, deterministic fallback
    last).
 3. **Paths resolve from the skill root**, so every script runs from any working directory.

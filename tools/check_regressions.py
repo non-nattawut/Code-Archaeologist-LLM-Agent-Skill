@@ -277,12 +277,28 @@ def r18_id_collision_is_said():
         return "a same-file overload fold was reported as a collision"
 
 
+# --- resolved from the findings review ---------------------------------------------
+
+def r19_reports_are_reproducible():
+    """finding #3: every report artifact carried a wall-clock `generated`, so two builds
+    of identical source differed in twelve files and constraint 2 was untrue for them."""
+    import report
+    first, second = tempfile.mkdtemp(), tempfile.mkdtemp()
+    report.build([SAMPLE], FLOW, first)
+    report.build([SAMPLE], FLOW, second)
+    for name in sorted(os.listdir(first)):
+        a = open(os.path.join(first, name), "rb").read()
+        b = open(os.path.join(second, name), "rb").read()
+        if a != b:
+            return f"{name} differs between two reports of identical source"
+
+
 CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_append,
          r05_duplicates_declarations, r06_orphan_guard, r07_flask_routes,
          r08_missing_parser_is_visible, r09_no_absolute_paths, r10_brief_agrees_with_check,
          r11_test_filename_with_line, r12_crlf_hashes, r13_wrapped_signature,
          r14_context_budget, r15_moved_root_reason, r16_install_hint,
-         r17_owner_respects_end, r18_id_collision_is_said]
+         r17_owner_respects_end, r18_id_collision_is_said, r19_reports_are_reproducible]
 
 
 def main() -> int:

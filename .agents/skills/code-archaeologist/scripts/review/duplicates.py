@@ -44,7 +44,6 @@ import json
 import os
 import re
 import sys
-from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from paths import DATA_DIR, SKILL_ROOT  # noqa: E402  (also puts sibling script dirs on sys.path)
@@ -172,7 +171,6 @@ def build(roots, graph_path: str = DEFAULT_GRAPH, out_path: str | None = None) -
     clusters = find_clusters(node_bodies(roots, graph_path))
 
     payload = {
-        "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "roots": manifest.rel_roots(roots),
         "graph": os.path.relpath(graph_path, SKILL_ROOT).replace("\\", "/"),
         "summary": {

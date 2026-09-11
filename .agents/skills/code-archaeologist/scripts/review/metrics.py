@@ -28,7 +28,6 @@ import argparse
 import json
 import os
 import sys
-from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from paths import DATA_DIR  # noqa: E402  (also puts sibling script dirs on sys.path)
@@ -200,7 +199,6 @@ def build(roots, graph_path: str | None = None, out_path: str | None = None, top
         return sorted(items, key=lambda kv: (-kv[1][field], kv[0]))[:top]
 
     payload = {
-        "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "roots": manifest.rel_roots(roots),
         "totals": totals,
         "languages": dict(sorted(langs.items(), key=lambda kv: (-kv[1]["lines"], kv[0]))),

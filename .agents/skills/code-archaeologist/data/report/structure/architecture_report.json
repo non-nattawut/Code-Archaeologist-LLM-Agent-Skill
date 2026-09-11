@@ -1,6 +1,5 @@
 {
   "graph": "data/structure/graph.json",
-  "generated": "2026-09-11 05:12 UTC",
   "census": {
     "nodes": 25,
     "edges": 22,
@@ -1279,7 +1278,6 @@
     }
   },
   "metrics": {
-    "generated": "2026-09-11T05:12:34Z",
     "roots": [
       "sample_src"
     ],
@@ -1809,7 +1807,6 @@
     ]
   },
   "debt": {
-    "generated": "2026-09-11T05:12:34Z",
     "roots": [
       "sample_src"
     ],
@@ -1864,7 +1861,6 @@
     ]
   },
   "tests": {
-    "generated": "2026-09-11T05:12:34Z",
     "roots": [
       "sample_src"
     ],
@@ -2015,7 +2011,6 @@
     ]
   },
   "duplicates": {
-    "generated": "2026-09-11T05:12:34Z",
     "roots": [
       "sample_src"
     ],

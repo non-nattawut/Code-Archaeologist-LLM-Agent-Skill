@@ -1,6 +1,6 @@
 # Graph as many languages as possible
 
-> ## Status: **all four phases are complete.** Four findings await review in *Found while implementing* (#1, #3, #4, #5; #2 is resolved).
+> ## Status: **all four phases are complete.** Findings #1-#4 are resolved; #5 (file-qualified ids) is being implemented.
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
@@ -971,6 +971,14 @@ interpreter it just found, and says so; (b) it prints one line up front saying t
 partial and gives the command; (c) leave it. Doing nothing is the only one that leaves a new user
 looking at a graph that misrepresents the tool.
 
+#### Resolved — shipped 2026-09-11 (option a)
+
+`bin/cli.js --self-test` now installs the demo's seven wheels with the interpreter it has
+already resolved, into the installed skill's own `vendor/`, with the same three flags as
+SKILL.md. Verified on a fresh target: all seven installed, and the demo builds the **full 25 / 22
+and 52 / 32** with no skip warning, instead of 12 nodes. If the install fails (offline), it says so
+in one line and still builds what it can.
+
 ---
 
 ### 2. The `exact` / `sparse` tiering in 2d no longer matches what the extractors do — found in 2g
@@ -1080,6 +1088,13 @@ thing standing between the reports and a constraint the rest of the pipeline alr
 Alternative if the stamp is wanted: keep it out of the committed artifacts and print it at the
 console instead.
 
+#### Resolved — shipped 2026-09-11 (field removed)
+
+`generated` is gone from all five scripts and from the report's markdown header; `brief` no
+longer carries `reported`. Two consecutive reports of identical source are now **byte-identical**
+(`diff -r` empty), and `tools/check_regressions.py` r19 runs the report twice and diffs it, so the
+stamp cannot creep back. Freshness is `check`'s job, from source hashes.
+
 ---
 
 ### 4. Below ~1360px wide the toolbar clips even with both rails at their minimum — found in phase 3
@@ -1103,6 +1118,15 @@ pressure crossing the line on a narrower screen.
 
 **Recommendation: (b).** It is the only option that keeps a single-row toolbar and both rail
 minimums, and it takes space from the controls used least.
+
+#### Resolved — shipped 2026-09-11 (option b)
+
+Zoom in/out, fit and PNG moved into a `⋯` overflow menu. Measured in the browser, not estimated:
+the toolbar went from **~897px to ~770-810px**, so with both rails at minimum it fits one row down
+to **~1270px** (was ~1360px), and at 1600px both rails now widen where before they could barely
+move. The menu opens, is amber while open, closes on an outside click, on Escape and after an item;
+each item still calls its handler (spied: zoom in x1.4, zoom out /1.4, fit). Below ~1270px the
+toolbar still clips — a smaller gain than the recommendation hoped, stated rather than rounded.
 
 ---
 
