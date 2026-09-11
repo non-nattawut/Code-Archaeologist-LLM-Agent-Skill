@@ -129,14 +129,17 @@ def _line(node) -> int:
 
 
 def _decl_line(node) -> int:
-    """The line a declaration is *written* on, ignoring its annotations.
+    """The first line of a declaration, its annotations and attributes included.
 
-    A `class_declaration` node starts at `[ApiController]`, not at `class`, so
-    using the node's own line would point every annotated declaration at its
-    first attribute. The `name` field is where a reader would say it is.
+    Until finding #6 this was the line of the `name` field, so a Spring or ASP.NET
+    method's range started *below* `@PostMapping` / `[HttpPost]` -- the very lines
+    that route and guard it -- while a decorated TS method's started at its first
+    decorator. One rule now, in every language: a node's range covers everything it
+    owns, so a finding on an annotation line is attributed to the method it annotates.
+    Java and C# keep annotations and attributes inside the declaration node, so its
+    own start is that line.
     """
-    name = _field(node, "name")
-    return _line(name if name is not None else node)
+    return _line(node)
 
 
 def _end_line(node) -> int:
@@ -1075,6 +1078,22 @@ def _gbases(node, src: bytes, lang: str) -> list[str]:
     return out
 
 
+# Decorations that sit *beside* a declaration in some grammars rather than inside it:
+# Rust `#[...]`, Kotlin's class annotations (parsed as an expression before `class`),
+# Dart's `@override`.
+_DECORATION_SIBLINGS = {"attribute_item", "annotated_expression", "annotation", "marker_annotation"}
+
+
+def _gstart(node) -> int:
+    """A declaration's first line, decorations included (finding #6)."""
+    first = node
+    prev = node.prev_named_sibling
+    while prev is not None and prev.type in _DECORATION_SIBLINGS:
+        first = prev
+        prev = prev.prev_named_sibling
+    return _line(first)
+
+
 def _gmethod(node, src: bytes, lang: str, fields: dict[str, str], prefix: str) -> dict:
     """One method/function record, in `_method`'s shape."""
     name_node = _gname_node(node, src, lang)
@@ -1091,7 +1110,7 @@ def _gmethod(node, src: bytes, lang: str, fields: dict[str, str], prefix: str) -
     entry = {
         "name": _text(name_node, src).split("::")[-1],
         "doc": _gdoc(node, src, lang),
-        "line": _line(name_node),
+        "line": _gstart(node),
         "endLine": _end_line(body if lang == "dart" and body is not None else node),
         "params": params,
         "calls": _dedupe_calls(_gresolve(_gcalls(body, src, lang), types)),
@@ -1117,7 +1136,7 @@ def _gclass(node, src: bytes, lang: str, is_method) -> dict | None:
                if is_method(m) and _gname_node(m, src, lang) is not None]
     return {"name": name, "bases": _gbases(node, src, lang),
             "decorators": [a["name"] for a in annos if a["name"]],
-            "doc": _gdoc(node, src, lang), "line": _line(name_node), "endLine": _end_line(node),
+            "doc": _gdoc(node, src, lang), "line": _gstart(node), "endLine": _end_line(node),
             "fields": fields, "methods": methods}
 
 

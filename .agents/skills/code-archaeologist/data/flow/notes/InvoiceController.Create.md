@@ -3,7 +3,7 @@ entity: InvoiceController.Create
 kind: endpoint
 layer: controller
 class: InvoiceController
-source: sample_src/services/orders_cs/InvoiceController.cs:17
+source: sample_src/services/orders_cs/InvoiceController.cs:16
 lang: csharp
 desc_source: docstring
 ---

@@ -3,7 +3,7 @@ entity: InvoiceController.Find
 kind: endpoint
 layer: controller
 class: InvoiceController
-source: sample_src/services/orders_cs/InvoiceController.cs:24
+source: sample_src/services/orders_cs/InvoiceController.cs:23
 lang: csharp
 desc_source: docstring
 ---

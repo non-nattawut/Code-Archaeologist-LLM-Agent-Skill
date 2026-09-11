@@ -3151,3 +3151,45 @@ that is finding #7, recommending grouping like clusters, not a silent change.
 pushed separately. The skill is feature-complete. Two findings await the user's review: #6 (a
 decorated TS method's source line) and #7 (block pairs vs groups). Both were found after the
 decisions were made, so both were recorded rather than decided by me.
+
+## [71] 2026-09-11 — Findings #6 and #7, as recommended
+
+**Prompt**
+> use your recommendations for both findings
+
+**Response**
+
+### #6: every range starts at its first decorator
+
+**What changed.** One rule for every language, in both maps:
+
+- **Python:** flow nodes and structure classes take the decorated definition's line.
+- **Java, C#, Groovy and Go:** `_decl_line` now returns the declaration's own start, which already
+  contains its annotations and attributes.
+- **The shared walker's languages:** `_gstart` extends back over decorations the grammar puts
+  beside the declaration (Rust `#[…]`, Kotlin's class annotations, Dart's `@override`).
+- **JS/TS** already worked this way.
+
+**Before re-recording, I checked it against the files.** Every fixture node whose line moved had to
+land on a line starting with `@`, `#[` or `[`, and no other part of any row could change. Result:
+exactly 9 moved, all onto their decorations; nothing else changed. In the sample, 12 `source`
+lines moved (the decorated Python, Spring and ASP.NET handlers and the annotated classes), with
+graph counts unchanged. One consequence, now recorded in the plan: a decorated node's `loc` counts
+its decorator lines.
+
+### #7: copied blocks grouped by shape
+
+**What changed.** Each entry is now `{hash, tokens, loc, places: […]}`. The report, the explorer
+and the CLI read `places`. Regression r25 now plants the block in a third function and requires
+one entry with three places.
+
+**Measured on the skill's own code: 207 pairs → 96 entries** (254 places). I had predicted "a few
+dozen", and that was wrong. The same boilerplate appears as several nested variants (212 tokens ×2,
+205 ×3, 88 ×4), and each maximal run is a different shape. The plan now says so, rather than
+claiming the prediction came true.
+
+**Verified:** regressions 27/27, `check_langs` 21 rows, `check_graph` clean with a 30/30 self-test,
+oracle 0 disagreements, viewer script parses as a classic script, `check_docs` OK.
+
+**Docs:** the plan (both findings resolved; status: none awaiting review), TAXONOMY's `source`
+row, and CLAUDE.md (the decorator rule, grouped blocks).

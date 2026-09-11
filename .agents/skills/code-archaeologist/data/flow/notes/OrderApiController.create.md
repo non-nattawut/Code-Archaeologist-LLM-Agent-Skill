@@ -3,7 +3,7 @@ entity: OrderApiController.create
 kind: endpoint
 layer: controller
 class: OrderApiController
-source: sample_src/services/orders_java/OrderApiController.java:16
+source: sample_src/services/orders_java/OrderApiController.java:15
 lang: java
 desc_source: docstring
 ---

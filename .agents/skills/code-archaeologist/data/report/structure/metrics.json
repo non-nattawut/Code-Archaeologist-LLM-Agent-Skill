@@ -225,12 +225,12 @@
       "lang": "java"
     },
     "InvoiceController": {
-      "loc": 23,
+      "loc": 25,
       "complexity": 1,
       "depth": 0,
       "params": 0,
       "file": "sample_src/services/orders_cs/InvoiceController.cs",
-      "line": 6,
+      "line": 4,
       "lang": "csharp"
     },
     "InvoiceService": {
@@ -252,21 +252,21 @@
       "lang": "csharp"
     },
     "OrderApiController": {
-      "loc": 20,
+      "loc": 22,
       "complexity": 1,
       "depth": 0,
       "params": 0,
       "file": "sample_src/services/orders_java/OrderApiController.java",
-      "line": 6,
+      "line": 4,
       "lang": "java"
     },
     "OrderArchive": {
-      "loc": 16,
+      "loc": 17,
       "complexity": 1,
       "depth": 0,
       "params": 0,
       "file": "sample_src/services/orders_java/OrderArchive.java",
-      "line": 8,
+      "line": 7,
       "lang": "java"
     },
     "OrderCard": {
@@ -315,12 +315,12 @@
       "lang": "py"
     },
     "OrderWorkflow": {
-      "loc": 24,
+      "loc": 25,
       "complexity": 1,
       "depth": 0,
       "params": 0,
       "file": "sample_src/services/orders_java/OrderWorkflow.java",
-      "line": 5,
+      "line": 4,
       "lang": "java"
     },
     "OrdersController": {
@@ -378,25 +378,25 @@
       "line": 4
     },
     {
-      "id": "OrderWorkflow",
-      "loc": 24,
-      "complexity": 1,
-      "file": "sample_src/services/orders_java/OrderWorkflow.java",
-      "line": 5
-    },
-    {
       "id": "InvoiceController",
-      "loc": 23,
+      "loc": 25,
       "complexity": 1,
       "file": "sample_src/services/orders_cs/InvoiceController.cs",
-      "line": 6
+      "line": 4
+    },
+    {
+      "id": "OrderWorkflow",
+      "loc": 25,
+      "complexity": 1,
+      "file": "sample_src/services/orders_java/OrderWorkflow.java",
+      "line": 4
     },
     {
       "id": "OrderApiController",
-      "loc": 20,
+      "loc": 22,
       "complexity": 1,
       "file": "sample_src/services/orders_java/OrderApiController.java",
-      "line": 6
+      "line": 4
     },
     {
       "id": "InvoiceStore",
@@ -406,18 +406,18 @@
       "line": 6
     },
     {
+      "id": "OrderArchive",
+      "loc": 17,
+      "complexity": 1,
+      "file": "sample_src/services/orders_java/OrderArchive.java",
+      "line": 7
+    },
+    {
       "id": "OrderCard",
       "loc": 17,
       "complexity": 2,
       "file": "sample_src/frontend/OrderCard.tsx",
       "line": 11
-    },
-    {
-      "id": "OrderArchive",
-      "loc": 16,
-      "complexity": 1,
-      "file": "sample_src/services/orders_java/OrderArchive.java",
-      "line": 8
     },
     {
       "id": "OrderController",
@@ -487,9 +487,9 @@
     {
       "id": "InvoiceController",
       "complexity": 1,
-      "loc": 23,
+      "loc": 25,
       "file": "sample_src/services/orders_cs/InvoiceController.cs",
-      "line": 6
+      "line": 4
     },
     {
       "id": "InvoiceService",
@@ -501,16 +501,16 @@
     {
       "id": "OrderApiController",
       "complexity": 1,
-      "loc": 20,
+      "loc": 22,
       "file": "sample_src/services/orders_java/OrderApiController.java",
-      "line": 6
+      "line": 4
     },
     {
       "id": "OrderArchive",
       "complexity": 1,
-      "loc": 16,
+      "loc": 17,
       "file": "sample_src/services/orders_java/OrderArchive.java",
-      "line": 8
+      "line": 7
     }
   ],
   "top_files": [

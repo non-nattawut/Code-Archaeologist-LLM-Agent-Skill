@@ -3,7 +3,7 @@ entity: orders
 kind: endpoint
 layer: controller
 class: 
-source: sample_src/api_flask/order_routes.py:16
+source: sample_src/api_flask/order_routes.py:15
 lang: py
 desc_source: docstring
 ---

@@ -1,7 +1,7 @@
 ---
 entity: OrderArchive
 layer: repository
-source: sample_src/services/orders_java/OrderArchive.java:8
+source: sample_src/services/orders_java/OrderArchive.java:7
 end: 23
 kind: class
 lang: java

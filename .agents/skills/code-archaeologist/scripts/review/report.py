@@ -260,11 +260,13 @@ def to_markdown(data: dict) -> str:
                              for c in dupes["clusters"][:TOP_FINDINGS]])
         if blocks:
             lines += ["### Copied blocks", "",
-                      "_A run of at least 30 tokens copied into two otherwise different nodes, "
-                      "trimmed to whole lines. A pair already listed above is not repeated._", ""]
-            lines += _table(["Tokens", "Lines", "In", "And"],
-                            [[str(b["tokens"]), str(b["loc"])] +
-                             [f"`{n['id']}` L{n['lines'][0]}–{n['lines'][1]}" for n in b["nodes"]]
+                      "_A run of at least 30 tokens copied into otherwise different nodes, "
+                      "trimmed to whole lines; one row per block, listing every place it occurs. "
+                      "Nodes already listed above as whole-body copies are not repeated._", ""]
+            lines += _table(["Tokens", "Lines", "Copies", "Places"],
+                            [[str(b["tokens"]), str(b["loc"]), str(len(b["places"])),
+                              ", ".join(f"`{p['id']}` L{p['lines'][0]}–{p['lines'][1]}"
+                                        for p in b["places"])]
                              for b in blocks[:TOP_FINDINGS]])
 
     lines += [

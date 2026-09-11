@@ -284,7 +284,11 @@ def find_blocks(bodies: list[dict], clusters: list[dict], min_tokens: int = MIN_
                     e1, e2 = e1 + 1, e2 + 1
                 regions.append((s1, e1, s2, e2))
 
-    blocks, seen = [], set()
+    # One entry per copied *shape*, listing every place it occurs (finding #7). As
+    # pairs, one block pasted into N functions was N*(N-1)/2 entries -- 207 on the
+    # skill's own code, most of them one piece of argparse boilerplate seen again
+    # and again -- which buried the distinct copies under the repeated one.
+    groups: dict[tuple, dict] = {}
     for (i, j), regions in grown.items():
         la, lb = usable[i]["lined"], usable[j]["lined"]
         for s1, e1, s2, e2 in regions:
@@ -294,18 +298,19 @@ def find_blocks(bodies: list[dict], clusters: list[dict], min_tokens: int = MIN_
                 e1, e2 = e1 - 1, e2 - 1
             if e1 - s1 < min_tokens:
                 continue
-            first = {"id": usable[i]["node"]["id"], "source": usable[i]["node"].get("source"),
-                     "lines": [la[s1][1], la[e1 - 1][1]]}
-            second = {"id": usable[j]["node"]["id"], "source": usable[j]["node"].get("source"),
-                      "lines": [lb[s2][1], lb[e2 - 1][1]]}
-            pair = sorted([first, second], key=lambda n: (n["id"], n["lines"]))
-            key = tuple((n["id"], tuple(n["lines"])) for n in pair)
-            if key not in seen:
-                seen.add(key)
-                blocks.append({"tokens": e1 - s1, "loc": pair[0]["lines"][1] - pair[0]["lines"][0] + 1,
-                               "nodes": pair})
-    return sorted(blocks, key=lambda b: (-b["tokens"], b["nodes"][0]["id"], b["nodes"][1]["id"],
-                                         b["nodes"][0]["lines"]))
+            places = groups.setdefault(tuple(t for t, _ in la[s1:e1]), {})
+            for body, lined, s, e in ((usable[i], la, s1, e1), (usable[j], lb, s2, e2)):
+                lines = (lined[s][1], lined[e - 1][1])
+                places[(body["node"]["id"], lines)] = {
+                    "id": body["node"]["id"], "source": body["node"].get("source"), "lines": list(lines)}
+    blocks = []
+    for shape, places in groups.items():
+        ordered = [places[k] for k in sorted(places)]
+        blocks.append({"hash": hashlib.sha1(" ".join(shape).encode("utf-8")).hexdigest()[:12],
+                       "tokens": len(shape),
+                       "loc": max(p["lines"][1] - p["lines"][0] + 1 for p in ordered),
+                       "places": ordered})
+    return sorted(blocks, key=lambda b: (-b["tokens"], -len(b["places"]), b["hash"]))
 
 
 def build(roots, graph_path: str = DEFAULT_GRAPH, out_path: str | None = None) -> dict:
@@ -364,11 +369,10 @@ def main(argv=None) -> int:
         for n in c["nodes"]:
             print(f"       {n['source']}")
     if d["blocks"]:
-        print(f"Copied blocks: {len(d['blocks'])} (a run of {MIN_TOKENS}+ tokens inside two different nodes)")
+        print(f"Copied blocks: {len(d['blocks'])} (a run of {MIN_TOKENS}+ tokens in two or more different nodes)")
         for b in d["blocks"][:args.top]:
-            a, c = b["nodes"]
-            print(f"  {b['tokens']:>4} tokens  {a['id']} L{a['lines'][0]}-{a['lines'][1]}"
-                  f"  ~  {c['id']} L{c['lines'][0]}-{c['lines'][1]}")
+            print(f"  {b['tokens']:>4} tokens x{len(b['places'])}  "
+                  + "  ~  ".join(f"{p['id']} L{p['lines'][0]}-{p['lines'][1]}" for p in b["places"]))
     if args.out:
         print(f"  -> {args.out}")
     return 0

@@ -151,10 +151,10 @@
       ]
     ],
     "lines": {
-      "WidgetController.Create": 77,
+      "WidgetController.Create": 76,
       "WidgetService.Grade": 41,
       "WidgetService.Place": 35,
-      "WidgetServiceTests.PlacesThroughTheStore": 9,
+      "WidgetServiceTests.PlacesThroughTheStore": 8,
       "WidgetStore.Gr\u00f6\u00dfe": 18,
       "WidgetStore.Save": 12
     },
@@ -579,10 +579,10 @@
       ]
     ],
     "lines": {
-      "WidgetController.create": 66,
+      "WidgetController.create": 65,
       "WidgetService.grade": 37,
       "WidgetService.place": 32,
-      "WidgetServiceTest.placesThroughTheStore": 9,
+      "WidgetServiceTest.placesThroughTheStore": 8,
       "WidgetStore.gr\u00f6\u00dfe": 17,
       "WidgetStore.save": 12
     },
@@ -735,10 +735,10 @@
       ]
     ],
     "lines": {
-      "WidgetController.create": 53,
+      "WidgetController.create": 52,
       "WidgetService.grade": 30,
       "WidgetService.place": 25,
-      "WidgetServiceTest.placesThroughTheStore": 8,
+      "WidgetServiceTest.placesThroughTheStore": 7,
       "WidgetStore.gr\u00f6\u00dfe": 16,
       "WidgetStore.save": 11
     },
@@ -1016,7 +1016,7 @@
     ],
     "lines": {
       "WidgetController.__init__": 47,
-      "WidgetController.create": 51,
+      "WidgetController.create": 50,
       "WidgetService.__init__": 36,
       "WidgetService.place": 39,
       "WidgetStore.gr\u00f6\u00dfe": 15,
@@ -1255,8 +1255,8 @@
       "WidgetService.place": 29,
       "WidgetStore.gr\u00f6\u00dfe": 17,
       "WidgetStore.save": 12,
-      "create_widget": 53,
-      "places_through_the_store": 2
+      "create_widget": 52,
+      "places_through_the_store": 1
     },
     "metrics": {
       "WidgetService.grade": [

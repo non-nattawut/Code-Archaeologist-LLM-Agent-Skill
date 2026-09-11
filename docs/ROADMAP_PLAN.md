@@ -1,9 +1,9 @@
 # Graph as many languages as possible
 
 > ## Status: **all nine phases are complete — the skill is feature-complete. The goal in the title is reached: seventeen languages have a graph.**
-> Every planning concern is closed. Two recorded findings await review, both found after the
-> phase 6–9 decisions were made: *Found while implementing* #6 (a decorated TS method's `source`
-> line) and #7 (copied blocks are listed as pairs, so one block in N places is N·(N−1)/2 entries).
+> Every planning concern is closed, and every *Found while implementing* item is resolved — #6
+> (every range starts at its first decorator) and #7 (copied blocks grouped by shape) were decided
+> by the user on 2026-09-11 and shipped the same day.
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
@@ -1716,6 +1716,19 @@ node owns — the annotations on a Spring or ASP.NET method are exactly where a 
 rule lives. The sample data changes by a handful of `source` lines, and 6b's `lines` column would
 catch any language left behind.
 
+#### Resolved — shipped 2026-09-11 (option c, as recommended)
+
+Every node's range now opens at its first decorator, annotation or attribute, in every language.
+Python takes the decorated definition's line (flow nodes and structure classes); Java, C#, Groovy
+and Go take the declaration node's own start, which already contains its annotations and
+attributes (`ts_extract._decl_line`); the shared walker's languages extend back over decorations
+the grammar puts *beside* the declaration — Rust `#[…]`, Kotlin's class annotations, Dart's
+`@override` (`_gstart`). JS/TS already worked this way. Measured: exactly 9 fixture nodes moved,
+each onto its decoration line (`[HttpPost]`, `@Test`, `#[post("/widgets")]`,
+`@router.post(...)`, …) and nothing else in any row; 12 `source` lines in the sample moved (the
+decorated Python, Spring and ASP.NET handlers and the annotated classes), graph counts unchanged.
+A consequence worth knowing: a decorated node's `loc` now counts its decorator lines.
+
 ### 7. Copied blocks are listed as pairs, so one block in N places is N·(N−1)/2 entries — found in phase 9
 
 **What.** The approved output format for phase 9 is a `blocks` list whose entries are *pairs*
@@ -1734,6 +1747,18 @@ every place it occurs — `{"tokens", "loc", "places": [{id, lines}, ...]}` — 
 `clusters` already work. (c) Keep pairs but collapse them in the report and explorer only.
 **Recommendation: (b).** It makes blocks read like clusters, which is how the rest of the pass
 already thinks, and the 207 entries on this code would become a few dozen distinct copies.
+
+#### Resolved — shipped 2026-09-11 (option b, as recommended)
+
+`duplicates.json`'s `blocks` entries are now `{hash, tokens, loc, places: [{id, source, lines}]}`
+— one per copied token shape, listing every place it occurs; the report's *Copied blocks* table
+and the explorer's PATTERNS group read `places`. Regression r25 now plants the block in a third
+function and requires **one** entry with three places. Measured on the skill's own code: **207
+pairs → 96 entries** (254 places). That is less than the "few dozen" predicted above, and the
+prediction was wrong for a visible reason: the same boilerplate occurs as several *nested*
+variants — a 212-token run in 2 places, 205 tokens in 3, 88 tokens in 4 — and each maximal run is
+a different shape, so each keeps its entry. Folding nested variants into their longest form would
+be a further step; it is not needed for the list to be readable and was not done.
 
 ---
 

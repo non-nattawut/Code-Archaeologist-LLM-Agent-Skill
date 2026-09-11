@@ -1,7 +1,7 @@
 ---
 entity: OrderWorkflow
 layer: service
-source: sample_src/services/orders_java/OrderWorkflow.java:5
+source: sample_src/services/orders_java/OrderWorkflow.java:4
 end: 28
 kind: class
 lang: java

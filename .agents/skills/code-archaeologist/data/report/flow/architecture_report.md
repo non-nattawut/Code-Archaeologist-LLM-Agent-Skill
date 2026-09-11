@@ -56,13 +56,13 @@ Dead-code ratio 13.5% · cycles 0 · layer violations 0 · security findings 4
 | `OrderCard` | 17 | 2 | `sample_src/frontend/OrderCard.tsx:11` |
 | `NewRouter` | 11 | 1 | `sample_src/services/orders_go/router.go:10` |
 | `OrderWorkflow.place` | 7 | 1 | `sample_src/services/orders_java/OrderWorkflow.java:16` |
+| `orders` | 7 | 2 | `sample_src/api_flask/order_routes.py:15` |
 | `InvoiceStore.Put` | 6 | 1 | `sample_src/services/orders_cs/InvoiceStore.cs:11` |
 | `handleOrderEvents` | 6 | 2 | `sample_src/services/orders_go/router.go:23` |
 | `loadOrder` | 6 | 1 | `sample_src/frontend/order_page.ts:8` |
-| `orders` | 6 | 2 | `sample_src/api_flask/order_routes.py:16` |
+| `InvoiceController.Create` | 5 | 1 | `sample_src/services/orders_cs/InvoiceController.cs:16` |
+| `InvoiceController.Find` | 5 | 1 | `sample_src/services/orders_cs/InvoiceController.cs:23` |
 | `InvoiceService.Issue` | 5 | 1 | `sample_src/services/orders_cs/InvoiceService.cs:14` |
-| `OrderArchive.save` | 5 | 1 | `sample_src/services/orders_java/OrderArchive.java:13` |
-| `OrderRepository.get` | 5 | 1 | `sample_src/backend/order_repository.py:11` |
 
 ### Most complex nodes
 
@@ -72,7 +72,7 @@ Dead-code ratio 13.5% · cycles 0 · layer violations 0 · security findings 4
 | `OrderCard` | 2 | 17 | `sample_src/frontend/OrderCard.tsx:11` |
 | `TieredRate.price` | 2 | 3 | `sample_src/services/orders_java/PricingRule.java:23` |
 | `handleOrderEvents` | 2 | 6 | `sample_src/services/orders_go/router.go:23` |
-| `orders` | 2 | 6 | `sample_src/api_flask/order_routes.py:16` |
+| `orders` | 2 | 7 | `sample_src/api_flask/order_routes.py:15` |
 | `test_place_order_charges_and_saves` | 2 | 4 | `sample_src/backend/tests/test_orders.py:13` |
 | `EventService.Events` | 1 | 3 | `sample_src/services/orders_go/event_service.go:9` |
 | `EventService.Record` | 1 | 3 | `sample_src/services/orders_go/event_service.go:14` |
@@ -178,8 +178,8 @@ _2 test file(s). Name-based, not execution coverage: a node counts as referenced
 | `FlatRate.price` | unknown | `sample_src/services/orders_java/PricingRule.java:14` |
 | `GET /go/healthz` | controller | `sample_src/services/orders_go/router.go:16` |
 | `GET /orders/:id/status` | controller | `sample_src/api_express/order_router.js:24` |
-| `InvoiceController.Create` | controller | `sample_src/services/orders_cs/InvoiceController.cs:17` |
-| `InvoiceController.Find` | controller | `sample_src/services/orders_cs/InvoiceController.cs:24` |
+| `InvoiceController.Create` | controller | `sample_src/services/orders_cs/InvoiceController.cs:16` |
+| `InvoiceController.Find` | controller | `sample_src/services/orders_cs/InvoiceController.cs:23` |
 | `InvoiceService.Find` | service | `sample_src/services/orders_cs/InvoiceService.cs:21` |
 | `InvoiceService.Issue` | service | `sample_src/services/orders_cs/InvoiceService.cs:14` |
 | `InvoiceService.Total` | service | `sample_src/services/orders_cs/InvoiceService.cs:35` |

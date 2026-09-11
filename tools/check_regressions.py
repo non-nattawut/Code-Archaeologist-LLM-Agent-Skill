@@ -462,25 +462,34 @@ def r25_copied_blocks():
         "        if item.amount > 0 and item.kind == 'sale':\n"
         "            acc = acc - item.amount * item.rate\n"
         "            audit(item.name, acc, 'sale')\n"
-        "    raise ValueError(flag)\n")
+        "    raise ValueError(flag)\n\n\n"
+        "def load_more(batch, a, b, c):\n"               # a third copy of the same block
+        "    seen = set()\n"
+        "    subtotal = 0\n"
+        "    for rec in batch[1:]:\n"
+        "        if rec.amount > 0 and rec.kind == 'sale':\n"
+        "            subtotal = subtotal + rec.amount * rec.rate\n"
+        "            audit(rec.name, subtotal, 'sale')\n"
+        "    yield seen\n")
     graph = os.path.join(d, "flow.json")
     with contextlib.redirect_stderr(io.StringIO()):
         methods, edges = build_flow.analyze([d])
     build_flow.write_graph(methods, edges, graph)
     blocks = duplicates.build([d], graph)["blocks"]
-    pairs = {tuple(n["id"] for n in b["nodes"]): b for b in blocks}
-    hit = pairs.get(("load_refunds", "load_sales"))
+    by_ids = {tuple(sorted({p["id"] for p in b["places"]})): b for b in blocks}
+    hit = by_ids.get(("load_more", "load_refunds", "load_sales"))
     if hit is None:
-        return f"the renamed block in load_sales / load_refunds was not found; blocks: {sorted(pairs)}"
-    if [n["lines"] for n in hit["nodes"]] != [[13, 17], [3, 7]]:
-        return f"the block is not the five copied lines: {[n['lines'] for n in hit['nodes']]}"
-    if any("load_other" in p for p in pairs):
-        return "a block with a flipped operator was reported as a copy"
+        return f"one block in three functions is not one entry with three places: {sorted(by_ids)}"
+    if len(blocks) != 1:
+        return f"finding #7: one block pasted three times became {len(blocks)} entries"
+    if {p["id"]: p["lines"] for p in hit["places"]} != \
+            {"load_sales": [3, 7], "load_refunds": [13, 17], "load_more": [33, 37]}:
+        return f"the block is not the five copied lines: {[(p['id'], p['lines']) for p in hit['places']]}"
     sample = duplicates.build([SAMPLE], FLOW)
     clustered = {tuple(sorted(n["id"] for n in c["nodes"])) for c in sample["clusters"]}
     if ("createInvoice", "createOrder") not in clustered:
         return "the sample's planted whole-body clone is no longer a cluster"
-    if any(tuple(n["id"] for n in b["nodes"]) in clustered for b in sample["blocks"]):
+    if any(tuple(sorted({p["id"] for p in b["places"]})) in clustered for b in sample["blocks"]):
         return "a pair already in a cluster was reported again as a block"
 
 

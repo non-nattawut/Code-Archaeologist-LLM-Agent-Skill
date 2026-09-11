@@ -201,7 +201,8 @@ def _class_entity(node, decorator_nodes, rel: str, imports: set[str], source: st
         "name": px.def_name(node),
         "kind": "class",
         "source": rel,
-        "line": px.line(node), "end": px.end_line(node),
+        # From the first decorator, like every node in both maps (finding #6).
+        "line": px.line(node.parent if decorator_nodes else node), "end": px.end_line(node),
         "bases": bases,
         "decorators": decorators,
         "doc": px.docstring_of(node).strip(),

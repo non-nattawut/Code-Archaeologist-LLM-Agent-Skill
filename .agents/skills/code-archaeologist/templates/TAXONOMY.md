@@ -29,7 +29,7 @@ sets — change the taxonomy instead).
 | `declaration` | `true` (present only when true) | A signature with no body (interface member, `abstract` method). Its **Calls** section is always empty because there is no body to call from — that says nothing about whether the implementations are used. |
 | `desc_source` | `docstring`, `ai`, `auto` | Where "What it does" came from (see hybrid descriptions). |
 | `class` | class name | Owning class (absent for module-level functions). |
-| `source` | `<area>/<path>:<line>` | Location. |
+| `source` | `<area>/<path>:<line>` | Location: the declaration's **first** line, decorators, annotations and attributes included, in every language — so the range `source`..`end` covers everything the node owns. |
 
 Graph-only node fields (in `flow_graph.json`, not written into the pages):
 

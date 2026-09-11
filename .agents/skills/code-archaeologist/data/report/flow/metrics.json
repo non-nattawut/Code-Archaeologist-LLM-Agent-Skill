@@ -261,21 +261,21 @@
       "lang": "js"
     },
     "InvoiceController.Create": {
-      "loc": 4,
+      "loc": 5,
       "complexity": 1,
       "depth": 0,
       "params": 1,
       "file": "sample_src/services/orders_cs/InvoiceController.cs",
-      "line": 17,
+      "line": 16,
       "lang": "csharp"
     },
     "InvoiceController.Find": {
-      "loc": 4,
+      "loc": 5,
       "complexity": 1,
       "depth": 0,
       "params": 1,
       "file": "sample_src/services/orders_cs/InvoiceController.cs",
-      "line": 24,
+      "line": 23,
       "lang": "csharp"
     },
     "InvoiceService.Find": {
@@ -333,21 +333,21 @@
       "lang": "go"
     },
     "OrderApiController.create": {
-      "loc": 3,
+      "loc": 4,
       "complexity": 1,
       "depth": 0,
       "params": 1,
       "file": "sample_src/services/orders_java/OrderApiController.java",
-      "line": 16,
+      "line": 15,
       "lang": "java"
     },
     "OrderApiController.findOne": {
-      "loc": 3,
+      "loc": 4,
       "complexity": 1,
       "depth": 0,
       "params": 1,
       "file": "sample_src/services/orders_java/OrderApiController.java",
-      "line": 22,
+      "line": 21,
       "lang": "java"
     },
     "OrderArchive.get": {
@@ -387,21 +387,21 @@
       "lang": "py"
     },
     "OrderController.create_order": {
-      "loc": 3,
+      "loc": 4,
       "complexity": 1,
       "depth": 0,
       "params": 2,
       "file": "sample_src/backend/order_controller.py",
-      "line": 16,
+      "line": 15,
       "lang": "py"
     },
     "OrderController.get_order": {
-      "loc": 3,
+      "loc": 4,
       "complexity": 1,
       "depth": 0,
       "params": 2,
       "file": "sample_src/backend/order_controller.py",
-      "line": 21,
+      "line": 20,
       "lang": "py"
     },
     "OrderRepository.get": {
@@ -603,21 +603,21 @@
       "lang": "ts"
     },
     "order_detail": {
-      "loc": 4,
+      "loc": 5,
       "complexity": 1,
       "depth": 0,
       "params": 1,
       "file": "sample_src/api_flask/order_routes.py",
-      "line": 25,
+      "line": 24,
       "lang": "py"
     },
     "orders": {
-      "loc": 6,
+      "loc": 7,
       "complexity": 2,
       "depth": 1,
       "params": 0,
       "file": "sample_src/api_flask/order_routes.py",
-      "line": 16,
+      "line": 15,
       "lang": "py"
     },
     "recordOrderEvent": {
@@ -680,6 +680,13 @@
       "line": 16
     },
     {
+      "id": "orders",
+      "loc": 7,
+      "complexity": 2,
+      "file": "sample_src/api_flask/order_routes.py",
+      "line": 15
+    },
+    {
       "id": "InvoiceStore.Put",
       "loc": 6,
       "complexity": 1,
@@ -701,11 +708,18 @@
       "line": 8
     },
     {
-      "id": "orders",
-      "loc": 6,
-      "complexity": 2,
-      "file": "sample_src/api_flask/order_routes.py",
+      "id": "InvoiceController.Create",
+      "loc": 5,
+      "complexity": 1,
+      "file": "sample_src/services/orders_cs/InvoiceController.cs",
       "line": 16
+    },
+    {
+      "id": "InvoiceController.Find",
+      "loc": 5,
+      "complexity": 1,
+      "file": "sample_src/services/orders_cs/InvoiceController.cs",
+      "line": 23
     },
     {
       "id": "InvoiceService.Issue",
@@ -713,20 +727,6 @@
       "complexity": 1,
       "file": "sample_src/services/orders_cs/InvoiceService.cs",
       "line": 14
-    },
-    {
-      "id": "OrderArchive.save",
-      "loc": 5,
-      "complexity": 1,
-      "file": "sample_src/services/orders_java/OrderArchive.java",
-      "line": 13
-    },
-    {
-      "id": "OrderRepository.get",
-      "loc": 5,
-      "complexity": 1,
-      "file": "sample_src/backend/order_repository.py",
-      "line": 11
     }
   ],
   "top_complexity": [
@@ -761,9 +761,9 @@
     {
       "id": "orders",
       "complexity": 2,
-      "loc": 6,
+      "loc": 7,
       "file": "sample_src/api_flask/order_routes.py",
-      "line": 16
+      "line": 15
     },
     {
       "id": "test_place_order_charges_and_saves",

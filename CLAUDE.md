@@ -38,6 +38,12 @@ resolves to the caller's own file's definition, or is dropped (`FlowIds.target`)
 every `main()` was one node carrying every definition's calls: 72 false edges on the skill's own
 code. `sample_src` has no shared names, so none of its ids changed.
 
+**A node's range starts at its first decorator, annotation or attribute** -- in every language,
+both maps. `@PostMapping`, `[HttpPost]`, `#[post(...)]` and `@app.route` are part of what a
+handler *is*, so a finding on one of those lines belongs to the handler (finding #6). It used to
+be the name line in Python/Java/C# and the decorator line in JS/TS; `tests/fixtures/langs`'
+`lines` column pins it now.
+
 An agent answers architecture questions by **querying the graph, then reading only the notes on the
 returned path** — never by scanning source.
 
@@ -214,7 +220,9 @@ delete. Nothing else in `core/` may import a skill module.
   to maximal runs and are trimmed to **whole lines** in both copies, so half a statement never
   counts; that keeps the "never re-parses" property, where statement boundaries would need a
   parse. A pair already in a cluster is never repeated as a block; overlapping ranges are
-  skipped; a fingerprint in 50+ places is boilerplate.
+  skipped; a fingerprint in 50+ places is boilerplate. Blocks are **grouped by shape** -- one
+  entry per copied block with every `places` it occurs (finding #7); as pairs, one block in N
+  places was N*(N-1)/2 entries.
 - `brief.py` is the fixed-size digest an agent should open a session with — it only reads what the
   other scripts wrote. Anything expensive belongs upstream of it, never inside it.
 - `report.py` joins all of it into `data/report/<map>/architecture_report.{md,json}` plus

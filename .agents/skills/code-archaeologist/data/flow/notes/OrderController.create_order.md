@@ -3,7 +3,7 @@ entity: OrderController.create_order
 kind: endpoint
 layer: controller
 class: OrderController
-source: sample_src/backend/order_controller.py:16
+source: sample_src/backend/order_controller.py:15
 lang: py
 desc_source: docstring
 ---

@@ -3,7 +3,7 @@ entity: OrderApiController.findOne
 kind: endpoint
 layer: controller
 class: OrderApiController
-source: sample_src/services/orders_java/OrderApiController.java:22
+source: sample_src/services/orders_java/OrderApiController.java:21
 lang: java
 desc_source: docstring
 ---

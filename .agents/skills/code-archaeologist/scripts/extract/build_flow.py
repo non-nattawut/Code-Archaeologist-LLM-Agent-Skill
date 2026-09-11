@@ -396,7 +396,9 @@ def analyze(roots: list[str]):
                     "kind": "endpoint" if is_endpoint else "method",
                     "signature": px.signature(m),
                     "doc": doc.strip().splitlines()[0] if doc.strip() else "",
-                    "source": f"{rel}:{px.line(m)}", "end": px.end_line(m),
+                    # A range opens at the first decorator (finding #6): what a node owns
+                    # includes the decorators that route it, guard it or cache it.
+                    "source": f"{rel}:{px.line(outer)}", "end": px.end_line(m),
                     "calls": [], "callers": [],
                     "hash": _hash(code), "code": code, "routes": routes,
                 })
@@ -420,7 +422,7 @@ def analyze(roots: list[str]):
                 "layer": "controller" if routes else "function",
                 "kind": "endpoint" if routes else "function", "signature": px.signature(fn),
                 "doc": doc.strip().splitlines()[0] if doc.strip() else "",
-                "source": f"{rel}:{px.line(fn)}", "end": px.end_line(fn),
+                "source": f"{rel}:{px.line(outer)}", "end": px.end_line(fn),
                 "calls": [], "callers": [],
                 "hash": _hash(code), "code": code, "routes": routes,
             })

@@ -40,7 +40,7 @@
       "layer": "controller",
       "kind": "class",
       "lang": "csharp",
-      "source": "sample_src/services/orders_cs/InvoiceController.cs:6",
+      "source": "sample_src/services/orders_cs/InvoiceController.cs:4",
       "doc": "HTTP entry point for invoices.",
       "end": 28
     },
@@ -67,7 +67,7 @@
       "layer": "controller",
       "kind": "class",
       "lang": "java",
-      "source": "sample_src/services/orders_java/OrderApiController.java:6",
+      "source": "sample_src/services/orders_java/OrderApiController.java:4",
       "doc": "HTTP entry point for the Java side of the order domain.",
       "end": 25
     },
@@ -76,7 +76,7 @@
       "layer": "repository",
       "kind": "class",
       "lang": "java",
-      "source": "sample_src/services/orders_java/OrderArchive.java:8",
+      "source": "sample_src/services/orders_java/OrderArchive.java:7",
       "doc": "Where Java orders are kept. Stands in for a JPA repository.",
       "end": 23
     },
@@ -154,7 +154,7 @@
       "layer": "service",
       "kind": "class",
       "lang": "java",
-      "source": "sample_src/services/orders_java/OrderWorkflow.java:5",
+      "source": "sample_src/services/orders_java/OrderWorkflow.java:4",
       "doc": "Application service: price an order, then archive it.",
       "end": 28
     },

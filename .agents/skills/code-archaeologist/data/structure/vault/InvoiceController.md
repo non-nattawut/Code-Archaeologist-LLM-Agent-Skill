@@ -1,7 +1,7 @@
 ---
 entity: InvoiceController
 layer: controller
-source: sample_src/services/orders_cs/InvoiceController.cs:6
+source: sample_src/services/orders_cs/InvoiceController.cs:4
 end: 28
 kind: class
 lang: csharp

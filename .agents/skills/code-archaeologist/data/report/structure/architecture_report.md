@@ -35,12 +35,12 @@ _None._
 | Node | LOC | Complexity | Location |
 | --- | --- | --- | --- |
 | `InvoiceService` | 36 | 1 | `sample_src/services/orders_cs/InvoiceService.cs:4` |
-| `OrderWorkflow` | 24 | 1 | `sample_src/services/orders_java/OrderWorkflow.java:5` |
-| `InvoiceController` | 23 | 1 | `sample_src/services/orders_cs/InvoiceController.cs:6` |
-| `OrderApiController` | 20 | 1 | `sample_src/services/orders_java/OrderApiController.java:6` |
+| `InvoiceController` | 25 | 1 | `sample_src/services/orders_cs/InvoiceController.cs:4` |
+| `OrderWorkflow` | 25 | 1 | `sample_src/services/orders_java/OrderWorkflow.java:4` |
+| `OrderApiController` | 22 | 1 | `sample_src/services/orders_java/OrderApiController.java:4` |
 | `InvoiceStore` | 18 | 2 | `sample_src/services/orders_cs/InvoiceStore.cs:6` |
+| `OrderArchive` | 17 | 1 | `sample_src/services/orders_java/OrderArchive.java:7` |
 | `OrderCard` | 17 | 2 | `sample_src/frontend/OrderCard.tsx:11` |
-| `OrderArchive` | 16 | 1 | `sample_src/services/orders_java/OrderArchive.java:8` |
 | `OrderController` | 15 | 1 | `sample_src/backend/order_controller.py:9` |
 | `OrderService` | 15 | 1 | `sample_src/backend/order_service.py:6` |
 | `OrdersController` | 14 | 1 | `sample_src/api_nest/orders.controller.ts:7` |
@@ -55,10 +55,10 @@ _None._
 | `EventService` | 1 | 3 | `sample_src/services/orders_go/event_service.go:4` |
 | `EventStore` | 1 | 3 | `sample_src/services/orders_go/event_store.go:4` |
 | `FlatRate` | 1 | 7 | `sample_src/services/orders_java/PricingRule.java:11` |
-| `InvoiceController` | 1 | 23 | `sample_src/services/orders_cs/InvoiceController.cs:6` |
+| `InvoiceController` | 1 | 25 | `sample_src/services/orders_cs/InvoiceController.cs:4` |
 | `InvoiceService` | 1 | 36 | `sample_src/services/orders_cs/InvoiceService.cs:4` |
-| `OrderApiController` | 1 | 20 | `sample_src/services/orders_java/OrderApiController.java:6` |
-| `OrderArchive` | 1 | 16 | `sample_src/services/orders_java/OrderArchive.java:8` |
+| `OrderApiController` | 1 | 22 | `sample_src/services/orders_java/OrderApiController.java:4` |
+| `OrderArchive` | 1 | 17 | `sample_src/services/orders_java/OrderArchive.java:7` |
 
 ### Largest files
 
@@ -152,17 +152,17 @@ _2 test file(s). Name-based, not execution coverage: a node counts as referenced
 | `EventService` | service | `sample_src/services/orders_go/event_service.go:4` |
 | `EventStore` | repository | `sample_src/services/orders_go/event_store.go:4` |
 | `FlatRate` | unknown | `sample_src/services/orders_java/PricingRule.java:11` |
-| `InvoiceController` | controller | `sample_src/services/orders_cs/InvoiceController.cs:6` |
+| `InvoiceController` | controller | `sample_src/services/orders_cs/InvoiceController.cs:4` |
 | `InvoiceService` | service | `sample_src/services/orders_cs/InvoiceService.cs:4` |
 | `InvoiceStore` | repository | `sample_src/services/orders_cs/InvoiceStore.cs:6` |
-| `OrderApiController` | controller | `sample_src/services/orders_java/OrderApiController.java:6` |
-| `OrderArchive` | repository | `sample_src/services/orders_java/OrderArchive.java:8` |
+| `OrderApiController` | controller | `sample_src/services/orders_java/OrderApiController.java:4` |
+| `OrderArchive` | repository | `sample_src/services/orders_java/OrderArchive.java:7` |
 | `OrderCard` | ui | `sample_src/frontend/OrderCard.tsx:11` |
 | `OrderController` | controller | `sample_src/backend/order_controller.py:9` |
 | `OrderPageModule` | ui | `sample_src/frontend/order_page.ts` |
 | `OrderRouterModule` | controller | `sample_src/api_express/order_router.js` |
 | `OrderRoutesModule` | controller | `sample_src/api_flask/order_routes.py` |
-| `OrderWorkflow` | service | `sample_src/services/orders_java/OrderWorkflow.java:5` |
+| `OrderWorkflow` | service | `sample_src/services/orders_java/OrderWorkflow.java:4` |
 
 ## Dig deeper
 
