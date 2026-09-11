@@ -2847,3 +2847,39 @@ corrected before commit.
 | A `blocks` list in `duplicates.json` | add it |
 
 Files: `docs/ROADMAP_PLAN.md`, `README.md` (section removed), this log.
+
+## [70] 2026-09-11 — Phases 6–9, implemented with the recommended decisions
+
+**Prompt**
+> ok do as your reccoemnd, on srs-eol-system dont edit any file on project just add skill can use to test
+
+**Response**
+Took it as approval of all six recommendations, and as a hard rule for the timing corpus: nothing
+in `srs-eol-system` is created, edited or deleted. The skill is installed into a temp directory
+and only *reads* that project. Both are recorded under *Decisions — approved* in the plan. Work
+goes sub-phase by sub-phase, one commit each, and this entry grows a section per commit. Each
+section is appended when its commit lands and never revised afterwards.
+
+### 6c — pinned grammars (first commit)
+
+- **`grammars.PINS`**, with the versions read off the installed wheels. The runtime is a range,
+  `>=0.26,<0.27`; each grammar is exact.
+- **`install_hint()` pins every requirement.** It quotes the runtime range, because `<` in a
+  pasted command is a shell redirect.
+- **`grammars.py` became the installer.** `--install [langs]` runs pip with the interpreter that
+  will run the skill; `--print` shows the command. That removed the reason for any second list:
+  `bin/cli.js` calls it, and so do `SKILL.md`, `USAGE.md`, the README and the presentation.
+- **`drift()` feeds a `pin_drift` field in `check` and an `UNPINNED` block in `brief`.**
+
+Verified:
+
+- **A fresh self-test install got exactly the pins.** Runtime 0.26.0, every package vendored,
+  25/22 and 52/32.
+- **Sabotage is named in both commands.** Installing `tree-sitter-go==0.23.4` over that install
+  made both `brief` and `check` name `go 0.23.4 (pinned 0.25.0)`.
+- **The repo's sample data didn't move a byte.**
+- **The checks pass.** Regressions 21/21, with the new r21. `check_graph`, `check_langs` and
+  `check_docs` are OK.
+
+One miss, caught before it could fail: r16 counted `pkg + " "` in the hint, which a pinned
+`pkg==ver` token no longer contains. It now parses the tokens.

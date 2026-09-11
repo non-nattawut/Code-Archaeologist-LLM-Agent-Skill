@@ -65,6 +65,25 @@ PIP_NAMES = {
     "tree_sitter_typescript": "tree-sitter-typescript",
 }
 
+# The version every install asks for -- one table, read by `install_hint()`, by
+# `--install`, and through that by `bin/cli.js`. A grammar release can rename node
+# types, and a query written against the old names then matches nothing: the
+# language silently reports zero nodes on every fresh install from that day on.
+# Grammars are exact -- they are abi3 wheels, so an exact pin installs on any
+# Python. The runtime is a range: its wheels are built per interpreter, so an
+# exact pin would stop installing on the first Python released after it, and the
+# node-type names this skill depends on come from the grammars, not the runtime.
+# Bump a pin only together with a green `tools/check_langs.py`.
+PINS = {
+    "tree-sitter": ">=0.26,<0.27",
+    "tree-sitter-java": "==0.23.5",
+    "tree-sitter-go": "==0.25.0",
+    "tree-sitter-c-sharp": "==0.23.5",
+    "tree-sitter-python": "==0.25.0",
+    "tree-sitter-javascript": "==0.25.0",
+    "tree-sitter-typescript": "==0.23.2",
+}
+
 # The factory to call on the module, when it is not the usual `language()`.
 # `tree-sitter-typescript` ships two grammars in one wheel, and they are not
 # interchangeable: `.tsx` will not parse under `language_typescript` (`<` is
@@ -203,17 +222,54 @@ def install_hint(langs) -> str:
     # Deduplicated by *package*, not by language: one wheel can provide several
     # (`tree-sitter-typescript` ships both `typescript` and `tsx`), and naming it
     # twice in a command the user is meant to paste looks like a mistake.
+    pkgs = _packages(langs)
+    if not pkgs:
+        return ""
+    if not runtime_available():
+        pkgs.insert(0, "tree-sitter")
+    # A range carries `<` and `>`, which a shell reads as redirection: quote it.
+    reqs = [f'"{r}"' if any(c in r for c in "<>") else r for r in map(requirement, pkgs)]
+    return ("pip install --only-binary :all: --no-cache-dir"
+            f" --target \"{VENDOR_DIR}\" {' '.join(reqs)}")
+
+
+def _packages(langs) -> list[str]:
     pkgs: list[str] = []
     for lang in sorted(set(langs)):
         pkg = PIP_NAMES.get(GRAMMAR_MODULES.get(lang, ""), "")
         if pkg and pkg not in pkgs:
             pkgs.append(pkg)
-    if not pkgs:
-        return ""
-    if not runtime_available():
-        pkgs.insert(0, "tree-sitter")
-    return ("pip install --only-binary :all: --no-cache-dir"
-            f" --target \"{VENDOR_DIR}\" {' '.join(pkgs)}")
+    return pkgs
+
+
+def requirement(pkg: str) -> str:
+    """`pkg` with its pin, as pip reads it: `tree-sitter-go==0.25.0`."""
+    return pkg + PINS.get(pkg, "")
+
+
+def install_args(langs=None) -> list[str]:
+    """pip's arguments for installing `langs` (default: every grammar) into vendor/.
+
+    The runtime is always included: this is the full install, not a repair hint.
+    """
+    pkgs = _packages(langs if langs is not None else GRAMMAR_MODULES)
+    return (["-m", "pip", "install", "--only-binary", ":all:", "--no-cache-dir",
+             "--target", VENDOR_DIR] + [requirement(p) for p in ["tree-sitter"] + pkgs])
+
+
+def drift() -> dict[str, tuple[str, str]]:
+    """Installed grammars that are not their pinned version: {lang: (installed, pinned)}.
+
+    Not staleness -- the graph agrees with what is installed -- but it is not the
+    grammar `check_langs.py` was run against, so a node type may have been renamed
+    under it. Said by name so a small graph has a stated cause.
+    """
+    out: dict[str, tuple[str, str]] = {}
+    for lang, ver in versions().items():
+        pin = PINS.get(PIP_NAMES[GRAMMAR_MODULES[lang]], "")
+        if pin.startswith("==") and ver != pin[2:]:
+            out[lang] = (ver, pin[2:])
+    return out
 
 
 def versions() -> dict[str, str]:
@@ -254,3 +310,35 @@ def query(lang: str, source: str):
     """Compile a query string against `lang`'s grammar."""
     ts = runtime()
     return ts.Query(_language(ts, lang), source)
+
+
+def main(argv=None) -> int:
+    """`--install` the pinned grammars into vendor/ with *this* interpreter, or `--print` the command.
+
+    The interpreter matters: the runtime wheel is built for one Python version, so
+    the Python that installs it must be the Python that runs the skill. Running
+    this file with that Python is the one way to guarantee it.
+    """
+    import argparse
+    import subprocess
+    parser = argparse.ArgumentParser(description="Install the pinned tree-sitter grammars into <skill>/vendor.")
+    parser.add_argument("langs", nargs="*", help=f"Languages (default: all of {', '.join(sorted(GRAMMAR_MODULES))})")
+    parser.add_argument("--install", action="store_true", help="Run pip now")
+    parser.add_argument("--print", action="store_true", help="Print the pip command instead")
+    parser.add_argument("--quiet", action="store_true", help="Pass --quiet to pip")
+    args = parser.parse_args(argv)
+    unknown = sorted(set(args.langs) - set(GRAMMAR_MODULES))
+    if unknown:
+        print(f"error: no grammar known for: {', '.join(unknown)}", file=sys.stderr)
+        return 2
+    pip = install_args(args.langs or None) + (["--quiet"] if args.quiet else [])
+    if args.print or not args.install:
+        # A vendor path may not be ASCII, and the console may be cp874 (constraint 5).
+        sys.stdout.reconfigure(errors="replace")
+        print(" ".join([sys.executable] + [f'"{a}"' if any(c in a for c in " <>") else a for a in pip]))
+        return 0
+    return subprocess.call([sys.executable] + pip)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

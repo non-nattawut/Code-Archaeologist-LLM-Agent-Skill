@@ -49,8 +49,8 @@ python .claude/skills/code-archaeologist/scripts/archaeologist.py report --src .
 Then open `data/explorer.html` — one self-contained page, both maps, works offline from `file://`.
 
 > Install each language's grammar first — **Python included** — into the skill rather than your
-> Python: `cd .claude/skills/code-archaeologist && pip install --only-binary :all: --no-cache-dir
-> --target vendor tree-sitter tree-sitter-python tree-sitter-javascript tree-sitter-typescript`.
+> Python, at pinned versions: `python .claude/skills/code-archaeologist/scripts/core/grammars.py
+> --install` (or name languages: `--install python typescript`).
 > Skip one and those files are left out — the build says so loudly, and names the wheel.
 
 ---
@@ -229,7 +229,7 @@ dead code** and its calls never count as coupling.
 | | |
 | --- | --- |
 | **Python 3.10+** | required — it runs the pipeline |
-| **`tree-sitter` + a grammar wheel per language** | for **every** language including Python — `pip install --only-binary :all: --no-cache-dir --target vendor tree-sitter tree-sitter-python` (etc), run inside the skill folder. Wheels, no compiler; install only the languages you have. Lands in `<skill>/vendor`, **not** in your Python — delete the skill folder and it is gone |
+| **`tree-sitter` + a grammar wheel per language** | for **every** language including Python — `python scripts/core/grammars.py --install [langs]`, which runs `pip install --only-binary :all: --no-cache-dir --target vendor` at the pinned versions. Wheels, no compiler; install only the languages you have. Lands in `<skill>/vendor`, **not** in your Python — delete the skill folder and it is gone |
 | **git** | optional — only for churn / ownership / hotspots |
 | **A browser** | to open the explorer — no network needed |
 

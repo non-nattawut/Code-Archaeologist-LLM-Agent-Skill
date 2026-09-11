@@ -33,10 +33,14 @@ Older or missing: stop and tell the user, the skill cannot run.
 install only what the repo actually contains. **Do this yourself — don't ask the user to.**
 ```bash
 cd .agents/skills/code-archaeologist && python -c "import tree_sitter; print('runtime ok')"
-cd .agents/skills/code-archaeologist && pip install --only-binary :all: --no-cache-dir --target vendor tree-sitter tree-sitter-python tree-sitter-javascript tree-sitter-typescript tree-sitter-java tree-sitter-go tree-sitter-c-sharp
+python .agents/skills/code-archaeologist/scripts/core/grammars.py --install python typescript   # the repo's languages
+python .agents/skills/code-archaeologist/scripts/core/grammars.py --install                     # or every grammar
 ```
-These are wheels — no compiler, grammar bundled, one package per language. Pick the languages the
-repo actually has; the runtime (`tree-sitter`) is needed for any of them. Two mappings are worth
+These are wheels — no compiler, grammar bundled, one package per language — at the **pinned**
+versions the skill was tested against (`grammars.PINS`; `--print` shows the pip command instead of
+running it). Run it with the same `python` that runs the skill: the runtime wheel is built for one
+Python version. Languages: `python`, `javascript`, `typescript`, `tsx`, `java`, `go`, `csharp`;
+the runtime is always included. Two mappings are worth
 knowing: **`tree-sitter-javascript` covers `.js` and `.jsx`**, and **`tree-sitter-typescript`
 covers both `.ts` and `.tsx`** (one wheel, two grammars — `.tsx` genuinely needs the second one).
 

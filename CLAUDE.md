@@ -105,6 +105,11 @@ delete. Nothing else in `core/` may import a skill module.
   `scan_security.py` skips them. Every pass must ask taxonomy, never re-implement the check.
 - `grammars.py` owns "can this machine parse language X" -- the wheel table, lazy cached parsers,
   the exact `pip install` for anything missing, and the installed versions for the manifest. It
+  owns the **pins** too (`PINS`: exact per grammar, a range for the runtime, since phase 6c), and is
+  itself the installer: `grammars.py --install [langs]` runs pip with the interpreter that will run
+  the skill. `bin/cli.js` calls it rather than keeping a wheel list, and every doc points at it
+  rather than spelling out package names -- a second list is how the pins went missing before.
+  `drift()` names an installed grammar that is not its pin; `brief` prints it as `UNPINNED`. It
   lives in `core/` because `manifest.py` needs it, and `core/` may not import `extract/`. It also
   owns the two questions the vendor directory creates: **`origins()`** (did this resolve from
   `vendor/` or from site-packages — both can be installed, and `sys.path` order decides silently)

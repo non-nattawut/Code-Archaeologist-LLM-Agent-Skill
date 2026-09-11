@@ -233,9 +233,10 @@ def r16_install_hint():
     """step 3: the hint for JS/TS was an empty command, and after that a command naming
     tree-sitter-typescript twice."""
     hint = grammars.install_hint(["javascript", "typescript", "tsx"])
+    names = [re.split(r"[=<>]", tok.strip('"'))[0] for tok in hint.split()]
     for pkg in ("tree-sitter-javascript", "tree-sitter-typescript"):
-        if hint.count(pkg + " ") + hint.endswith(pkg) != 1:
-            return f"{pkg!r} appears {hint.count(pkg)} time(s) in {hint!r}"
+        if names.count(pkg) != 1:
+            return f"{pkg!r} appears {names.count(pkg)} time(s) in {hint!r}"
 
 
 # --- found by phase 4's own checker ----------------------------------------------
@@ -327,13 +328,31 @@ def r20_structure_shared_names():
         return f"each subclass must link to its own file's Store; edges were {sorted(edges)}"
 
 
+def r21_grammars_are_pinned():
+    """phase 6c: every install took the latest wheel, from two lists (grammars.py and
+    bin/cli.js) -- a grammar release renaming a node type would zero a language silently."""
+    for pkg in set(grammars.PIP_NAMES.values()) | {"tree-sitter"}:
+        if not grammars.PINS.get(pkg):
+            return f"{pkg} has no pin"
+    hint = grammars.install_hint(["go"])
+    if f"tree-sitter-go{grammars.PINS['tree-sitter-go']}" not in hint:
+        return f"the install hint does not carry the pin: {hint!r}"
+    if not set(grammars.PINS) <= {a.split("=")[0].split(">")[0] for a in grammars.install_args()}:
+        return "install_args() does not name every pinned package"
+    cli = open(os.path.join(REPO, "bin", "cli.js"), encoding="utf-8").read()
+    if re.search(r'"tree-sitter-[a-z-]+"', cli):
+        return "bin/cli.js holds its own wheel list again"
+    if grammars.drift():
+        return f"the grammars installed here are not the pinned ones: {grammars.drift()}"
+
+
 CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_append,
          r05_duplicates_declarations, r06_orphan_guard, r07_flask_routes,
          r08_missing_parser_is_visible, r09_no_absolute_paths, r10_brief_agrees_with_check,
          r11_test_filename_with_line, r12_crlf_hashes, r13_wrapped_signature,
          r14_context_budget, r15_moved_root_reason, r16_install_hint,
          r17_owner_respects_end, r18_same_name_in_two_files, r19_reports_are_reproducible,
-         r20_structure_shared_names]
+         r20_structure_shared_names, r21_grammars_are_pinned]
 
 
 def main() -> int:

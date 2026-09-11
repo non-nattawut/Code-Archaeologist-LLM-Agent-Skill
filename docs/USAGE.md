@@ -74,9 +74,14 @@ Needs the tree-sitter runtime plus the wheel per language, installed **into the 
 rather than into your Python:
 
 ```bash
-cd .agents/skills/code-archaeologist && pip install --only-binary :all: --no-cache-dir --target vendor tree-sitter tree-sitter-python tree-sitter-javascript tree-sitter-typescript tree-sitter-java tree-sitter-go tree-sitter-c-sharp
+python .agents/skills/code-archaeologist/scripts/core/grammars.py --install              # every grammar
+python .agents/skills/code-archaeologist/scripts/core/grammars.py --install python go    # only these
+python .agents/skills/code-archaeologist/scripts/core/grammars.py --print                # show the pip command
 ```
 
+It runs `pip install --only-binary :all: --no-cache-dir --target <skill>/vendor` with the Python you
+ran it with, at the versions pinned in `grammars.PINS` — exact for each grammar, a range for the
+runtime. If `brief` prints `UNPINNED`, an installed grammar is not its pin; re-run `--install`.
 They land in `<skill>/vendor`, which is git-ignored: your own environment is untouched, nothing can
 collide with your projects' versions, and removing the skill removes them. `tree-sitter-javascript`
 covers `.js`/`.jsx` and `tree-sitter-typescript` covers `.ts` *and* `.tsx`. **Python needs

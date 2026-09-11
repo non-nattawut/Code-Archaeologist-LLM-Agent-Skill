@@ -102,6 +102,7 @@ def collect(src=None, focus: str = "flow", top: int = 5) -> dict:
         # no nodes at all -- that has to be said, not inferred from a small graph.
         "skipped_langs": grammars.missing(size.get("languages") or {}),
         "skipped_hint": grammars.install_hint(grammars.missing(size.get("languages") or {})),
+        "pin_drift": {k: list(v) for k, v in grammars.drift().items()},
         "size": size.get("totals") or {},
         "languages": size.get("languages") or {},
         "routes": census.get("routes", [])[:top],
@@ -152,6 +153,11 @@ def to_text(d: dict) -> str:
         out.append(f"  SKIPPED    {langs}: no tree-sitter grammar installed, so these files")
         out.append("             produced no nodes. The graph is smaller than the codebase.")
         out.append(f"             Fix with: {d.get('skipped_hint', '')}")
+    if d.get("pin_drift"):
+        moved = ", ".join(f"{k} {i} (pinned {p})" for k, (i, p) in sorted(d["pin_drift"].items()))
+        out.append(f"  UNPINNED   {moved}: not the grammar version this skill was tested")
+        out.append("             against; a renamed node type would drop nodes silently.")
+        out.append("             Fix with: python <skill>/scripts/core/grammars.py --install")
 
     t = d["size"]
     if t:

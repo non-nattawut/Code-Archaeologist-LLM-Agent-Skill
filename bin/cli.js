@@ -253,12 +253,12 @@ async function main() {
     // interpreter -- which is why here, and only here, the installer can install
     // them correctly. Same flags as SKILL.md: into the skill's own vendor/, never
     // into the user's Python, and never compiled.
+    // The wheel list and its pins live in grammars.py alone (phase 6c): this file
+    // used to hold a second, unpinned copy that nothing kept in step with the first.
     const vendor = path.join(dest, "vendor");
     console.log(`Installing the demo's tree-sitter grammars into ${vendor} ...`);
-    const wheels = ["tree-sitter", "tree-sitter-python", "tree-sitter-javascript",
-      "tree-sitter-typescript", "tree-sitter-java", "tree-sitter-go", "tree-sitter-c-sharp"];
-    const pip = spawnSync(py.exe, ["-m", "pip", "install", "--quiet", "--only-binary", ":all:",
-      "--no-cache-dir", "--target", vendor, ...wheels], { stdio: "inherit" });
+    const pip = spawnSync(py.exe, [path.join(dest, "scripts", "core", "grammars.py"),
+      "--install", "--quiet"], { stdio: "inherit" });
     if (pip.status === 0) {
       console.log("OK   Grammars installed.");
     } else {
@@ -302,9 +302,9 @@ async function main() {
   console.log(`  ${py.exe} ${relPosix}/scripts/archaeologist.py brief  --src ./src   # the whole thing in ~35 lines`);
   console.log(`  open ${relPosix}/data/explorer.html`);
   console.log("\nEvery language, Python included, is one tree-sitter wheel, installed into the");
-  console.log("skill folder rather than into your Python:");
-  console.log(`  cd ${relPosix} && pip install --only-binary :all: --no-cache-dir --target vendor \\`);
-  console.log("      tree-sitter tree-sitter-python tree-sitter-javascript tree-sitter-typescript   # add java/go/c-sharp as needed");
+  console.log("skill folder rather than into your Python, at pinned versions:");
+  console.log(`  ${py.exe} ${relPosix}/scripts/core/grammars.py --install              # every grammar`);
+  console.log(`  ${py.exe} ${relPosix}/scripts/core/grammars.py --install python go    # only these`);
   console.log("Tip: add --self-test to build the bundled demo now.");
   return 0;
 }

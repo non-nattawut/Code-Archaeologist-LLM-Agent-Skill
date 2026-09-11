@@ -12,7 +12,7 @@
 > | 3 — Full regression gate: nothing old may break | does it still run | **done** — 5 things fixed, 1 recorded (*Found while implementing* #4) | `f904891` |
 > | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | **done** — 3 bugs fixed, 1 recorded (#5); 29 checks + 18 regression cases | `b44b909` |
 > | 5 — The two limits phase 4 left: structure-map shared names, the narrow toolbar | close the known gaps | **done** — both closed; toolbar floor ~1270 → ~987px | `cc4d0af` |
-> | 6 — Close the open concerns: pinned grammars, non-ASCII, per-language metrics, timing | make adding a language safe | **planned, not started** — 6c → 6b → 6a → 6d | — |
+> | 6 — Close the open concerns: pinned grammars, non-ASCII, per-language metrics, timing | make adding a language safe | **in progress** — 6c done (this commit); 6b, 6a, 6d next | — |
 > | 7 — A graph for every review-only language (Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir) | the title goal | **planned, not started** | — |
 > | 8 — Route tables: Django `urlpatterns`, Rails, Laravel, Phoenix | cross-stack links for table-routed apps | **planned, not started** | — |
 > | 9 — Duplicates below function granularity | copied blocks, not only copied functions | **planned, not started** | — |
@@ -1043,6 +1043,13 @@ is a phase here. Nothing the skill cannot do is left advertised as "next".
 
 Each phase ends with the full verification chain below plus its own checks, and one commit.
 
+**Decisions — approved 2026-09-11.** The user accepted every recommendation below as written:
+runtime pinned by range, grammars exact (6c); `end` added to structure nodes (6a);
+`srs-eol-system` as the timing corpus with aggregates only (6d) — **read-only: no file in that
+project may be created, edited or deleted**; the skill is installed into a temp directory and
+pointed at it; colours by language family (7); no routes for Swift/Scala/Dart/C/C++ (7); a `blocks`
+list in `duplicates.json` (9).
+
 ---
 
 ## Phase 6 — Close the open concerns
@@ -1087,6 +1094,17 @@ release of the runtime does not rename anything. The grammars stay exact.
 **Verify.** A fresh `vendor/` built from the hint has exactly the pinned versions; `check_langs`
 passes; a deliberately different installed version is named by `check` and `brief`; the installer
 self-test still passes; `cli.js` contains no wheel names.
+
+**Result — shipped 2026-09-11.** `grammars.PINS` holds the table above; `install_hint()` emits
+pinned requirements (the runtime range quoted, since `<` is a shell redirect); and `grammars.py` is
+now the installer itself — `--install [langs]` runs pip with the interpreter that will run the
+skill, `--print` shows the command. `bin/cli.js`, `SKILL.md`, `USAGE.md`, `README.md` and the
+presentation all call it instead of listing wheels, so the pins exist in one place. `drift()`
+feeds a `pin_drift` field in `check` and an `UNPINNED` block in `brief`. Measured: a fresh
+installer self-test vendored exactly the pinned set (runtime 0.26.0), 25/22 and 52/32; installing
+`tree-sitter-go==0.23.4` over it made `brief` print `UNPINNED go 0.23.4 (pinned 0.25.0)` and
+`check` report the same; the committed sample data did not move a byte. New regression case r21;
+r16 now parses pinned tokens instead of counting `pkg + " "`.
 
 ### 6b. Non-ASCII in every graphed language (concern 4)
 

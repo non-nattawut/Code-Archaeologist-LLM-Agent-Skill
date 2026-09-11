@@ -177,6 +177,8 @@ def compare(roots=None, path: str = DEFAULT_MANIFEST) -> dict:
         "stale": stale, "reason": reason,
         "changed": changed, "added": added, "deleted": deleted,
         "grammars": now,
+        # Not staleness: installed grammars that are not the tested, pinned version.
+        "pin_drift": {k: {"installed": i, "pinned": p} for k, (i, p) in grammars.drift().items()},
     }
 
 
