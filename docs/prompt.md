@@ -3462,3 +3462,18 @@ errors). Verified: 33/33 regressions, `check_graph` + self-test 31/31, oracle 0 
 `check_langs`, `compileall`, `check_docs`, `check` fresh. Docs: CLAUDE.md (new paragraph, sample
 block, c18), TAXONOMY (`entity`, `signatures`, new `ambiguous`, `overloads`), README, SKILL.md,
 `brief.py`, PRESENTATION, roadmap #8 resolved, PROJECT_HISTORY subsection.
+
+## [81] 2026-09-11 — Is everything finished?
+
+**Prompt**
+> now we are finish all things right?
+
+**Response**
+Checked rather than recalled: `git status` clean and in sync with `origin/main` at `e5c6a75`;
+every *Found while implementing* entry in ROADMAP_PLAN.md is marked resolved (#8 was the last),
+and all eight *Open concerns* read resolved. Told the user yes -- nothing open that needs a
+decision or a fix. Named the three things that remain optional and were never requested: real-code
+validation of the eleven fixture-only languages (needs public repos and download permission), the
+four route-table readers likewise, and opening a large real-repo explorer page in their own browser
+(the preview pane refuses pages over ~0.3 MB). The release step stays skipped by their choice. No
+code changed this turn.
