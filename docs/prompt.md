@@ -3316,3 +3316,21 @@ route tables have still only met fixtures; closing that needs public repositorie
 their permission to download -- the local projects cannot help. (3) The explorer's walk-through on
 a real-repository page could not be done, because the preview pane refuses pages over ~0.3 MB;
 the user can open one in their own browser. No code changed.
+
+## [75] 2026-09-11 — Finding #8, explained plainly
+
+**Prompt**
+> explain number 1 more conisely what is the problem, is it the Java/C# same name our script look at it same node?
+
+**Response**
+Yes. Explained without code changes: a node id carries no parameter count, so two overloads in one
+class (`Total(request)` and `Total(unitPrice, units)`) are one node, `InvoiceService.Total`. That
+merge is deliberate and already visible (`signatures` lists both). The bug is inside the merged
+node: its **calls are both overloads' combined**, but its **line range is only one overload's**.
+So every pass that reads the range sees half the node -- metrics measure one body, duplicates
+compare one body, a security finding in the other overload's lines is not attributed to it, and
+`check_graph` c13 fires because an edge's callee is not in the recorded lines. It only bites when
+the overloads do different things; the sample's pair happens not to trip c13. The fix
+recommended: store one range per overload (`ranges`) and teach the range readers to use it.
+Only languages with method overloading are affected: Java, C#, Kotlin, Scala, Swift and C++ (not
+Python, JS/TS, Go, Rust, C, Dart, Ruby, PHP or Elixir). No code changed.
