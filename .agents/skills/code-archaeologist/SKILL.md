@@ -72,6 +72,11 @@ If a grammar is missing, the build still succeeds and those files simply produce
 saying so** — the graph is smaller than the codebase, and nothing else in the output makes that
 visible.
 
+`brief` also prints an **`UNPINNED`** line when an installed grammar is not the version this skill
+was tested against. It is a warning, not a failure: the build is fine, but if that language's
+output looks wrong, the version gap is the first thing to suspect. Re-running the install command
+above puts it back on the pin.
+
 ## Operating Principles
 1. NEVER read raw source for architecture, flow or review questions.
 2. Pick the map: **structure** for "how is this organized / who uses X"; **flow** for "how does a
@@ -108,6 +113,43 @@ visible.
    whole answer (dead code, blast radius, "who calls this") rests on edges that were resolved
    rather than declared. `context.py` and the report both carry the caveat for you, and name the
    specific loss where a node has one; do not quietly drop it.
+
+## Pick the command: what the user asked → what to run
+
+Find the row before reaching for a tool. Every question below is answered from artifacts, so the
+answer costs a command, not a source read.
+
+| The user asks | Run | Map |
+| --- | --- | --- |
+| "explain this repo", "where do I start" | **1** `brief` | both |
+| "where is X handled?", "find the Y class" | **4** `search.py --name` | either |
+| "who calls X?" / "what does X call?" | **4** `search.py --calls` / `--called-by` | flow |
+| "how does a request get from A to B?" | **5** `trace_path.py --from --to` | flow |
+| "how are these two classes connected?" | **5** `trace_path.py --from --to` | structure |
+| "what breaks if I change X?" | **6** `trace_path.py --impact-of` | flow |
+| "what does this PR / my current diff affect?" | **6** `--impact-of-diff` | flow |
+| "tell me everything about X" | **7** `context.py --node` | flow |
+| "which tests cover X?" | **7** `context.py --node` → *Covered by* | flow |
+| "is this codebase healthy?", "what do we fix first?" | **14** `report`, then **1** `brief` | both |
+| "any security problems?" | **11** `scan_security.py` | either |
+| "what's dead / rotting?", "TODOs?" | **15** `debt.py` | either |
+| "what's untested?" | **16** `tests_map.py` | flow |
+| "what's been copy-pasted?" | **17** `duplicates.py` | flow |
+| "what changes most / who owns this?" | **12** `git_insights.py` | either |
+| "how big / complex is X?" | **13** `metrics.py` | either |
+| "any cycles / layering problems?" | **10** `analyze.py` | either |
+| "show me the architecture" (for a human) | **8** `build_html.py` → `explorer.html` | both |
+| "is the map still accurate?" | **9** `check` | both |
+| anything, and the map is stale or missing | **2 / 3** `project` / `flow` / `both` | — |
+
+Two rules that decide the **Map** column when it says "either":
+
+- **structure** answers *how is this organised, who uses this class* — nodes are classes,
+  components and module groups.
+- **flow** answers *what calls what, how does a request travel* — nodes are methods and functions.
+
+Node ids differ between the two maps, so never carry an id from one into the other, and never read
+a report built for one map against the other.
 
 ## Available Tool Commands
 
@@ -164,9 +206,19 @@ python .agents/skills/code-archaeologist/scripts/query/search.py --name "payment
 python .agents/skills/code-archaeologist/scripts/query/search.py --doc "refund"
 python .agents/skills/code-archaeologist/scripts/query/search.py --layer repository --kind method
 python .agents/skills/code-archaeologist/scripts/query/search.py --calls OrderRepository.save
-python .agents/skills/code-archaeologist/scripts/query/search.py --orphans
+python .agents/skills/code-archaeologist/scripts/query/search.py --called-by OrderService.place_order
+python .agents/skills/code-archaeologist/scripts/query/search.py --lang java --file controllers/
+python .agents/skills/code-archaeologist/scripts/query/search.py --orphans --format json
 ```
-Filters AND together; `--graph` picks the map (default: flow), `--limit` caps rows.
+Filters AND together; `--graph` picks the map (default: flow), `--limit` caps rows (default 40),
+`--format json` for tooling. `--name` and `--doc` take a regex. `--lang` is the exact tag on the
+node (`py`, `js`, `ts`, `tsx`, `java`, `go`, `csharp`, `kotlin`, `rust`, `swift`, `scala`,
+`groovy`, `dart`, `c`, `cpp`, `ruby`, `php`, `elixir`); `--file` is a substring of the path.
+
+`--calls` and `--called-by` are the two directions of one edge — "who calls X" and "what does X
+call" — and are the cheapest way to answer a connectivity question without a full trace. Ids are
+bare (`place_order`) **unless two files define the same name**, in which case each is qualified by
+its file (`report.build`), so search for an id rather than typing one from memory.
 
 ### 5. Trace Execution Flow
 Structure is the default graph; flow needs `--graph`. Output is one line per path (`A > B > C`);
@@ -215,6 +267,22 @@ tabs on the right. A map with no report still renders, minus the grade and revie
 **Tests** checkbox appears when the map has test nodes and hides them, for when you want the
 architecture without the suite hanging off it.
 
+It is one self-contained file — data *and* the graph library are inlined, so it opens from
+`file://` with the network off and can be emailed to someone with no repo access. Hand it to a
+**human**; it is not a way for you to read the graph (use Commands 4–7 for that). What to tell
+them it does:
+
+- **Left rail** — health ring, a colour-by selector (layer / folder / churn / risk), stat tiles,
+  language mix, and a file tree that filters the canvas. Each section folds from its own heading
+  to give the tree room, and both rails drag to resize from their inner border.
+- **Centre** — the seven views, folder hulls, and a **blast radius** toggle that shades everything
+  reachable from the selected node. The `⋯` overflow menu holds zoom in/out, fit and PNG export.
+- **Right** — the three tabs click through into each other (a risk opens its file, a pattern opens
+  its node).
+
+Dragging a node **pins** it where it is dropped, so a messy layout is fixed with the toolbar
+**reset**, which throws away the layout, the selection and the filter and re-runs it from scratch.
+
 ### 9. Check freshness (are the maps stale?)
 Returns `{stale, changed, added, deleted}`. Rebuild if `stale`.
 ```bash
@@ -253,19 +321,27 @@ python .agents/skills/code-archaeologist/scripts/review/git_insights.py --src ./
 ```
 
 ### 13. Size & complexity (lines of code)
-Lines per file (total / code / comment / blank + language mix) and, for Python nodes, LOC,
-cyclomatic complexity, nesting depth and parameter count — keyed by the graph's node ids, so
-"how long / how tangled is `OrderService.place_order`" needs no file read.
+Lines per file (total / code / comment / blank + language mix) and, **for nodes in every graphed
+language**, LOC, cyclomatic complexity, nesting depth and parameter count — keyed by the graph's
+node ids, so "how long / how tangled is `OrderService.place_order`" needs no file read, and the
+same question works on a Java or Go node.
 ```bash
 python .agents/skills/code-archaeologist/scripts/review/metrics.py --src ./src --top 10
 ```
 `--graph <graph.json>` ranks only that map's nodes; `--out <path>.json` saves it. Command 14 runs
 this for you into `data/report/<map>/metrics.json`.
 
+A node's figures are measured on its own range (`source` + `end`) inside that file's parse, so they
+always line up with the id you queried. A node with **no body** has no figures and is listed in
+`unmeasured_graph_ids` rather than given a fake `1`: a structure module group (which is a whole
+file) and a signature-only `declaration: true` member are the two normal cases. If a node you ask
+about is in that list, say it is unmeasured — do not read the source to substitute a number.
+
 ### 14. Full architecture report
 One review pass per built map — census, grade, smells, anti-patterns, risks, hotspots, size and
 complexity, debt and test references — into `data/report/<map>/architecture_report.md`
-(+ `.json`, `security.json`, `insights.json`, `metrics.json`, `debt.json`, `tests.json`). It also re-renders `data/explorer.html` with both reports
+(+ `.json`, `security.json`, `insights.json`, `metrics.json`, `debt.json`, `tests.json`,
+`duplicates.json`). It also re-renders `data/explorer.html` with both reports
 embedded, enabling the health ring, churn/risk colors, ownership and the Patterns/Security tabs.
 ```bash
 python .agents/skills/code-archaeologist/scripts/archaeologist.py report --src ./src
@@ -314,6 +390,20 @@ the point — it finds copies, not merely similar-looking code. Bodies under 30 
 getters and one-line delegates do not flood the list. It errs toward missing a copy rather than
 inventing one: a docstring counts as a token, so documenting one copy and not the other hides the
 pair. Treat a cluster as a prompt to look, not proof of a bad abstraction.
+
+The output has **two** lists, and they answer different questions:
+
+- **`clusters`** — whole bodies that reduce to the same shape. "These functions are the same
+  function."
+- **`blocks`** — a run of 30+ tokens copied into two or more *otherwise different* nodes, which no
+  whole-body hash can see. Each entry is one copied block with every `places` it occurs in (node id
+  + line range), so one block in five places is one finding, not ten pairs. Use it for "this
+  validation stanza was pasted into six handlers".
+
+A pair already reported as a cluster is never repeated as a block. Blocks are trimmed to whole
+lines in both copies, so a copy laid out differently line by line is missed; nodes with
+`declaration: true` are skipped entirely (a signature has a range but no body to compare); and a
+fingerprint appearing in 50+ places is treated as boilerplate, not a copy.
 
 ## Keeping the maps current (hybrid AI descriptions)
 

@@ -197,7 +197,7 @@ python .agents/skills/code-archaeologist/scripts/review/scan_security.py --src .
 # git churn/ownership + hotspot ranking (risk = commits x (1 + fan_in + fan_out))
 python .agents/skills/code-archaeologist/scripts/review/git_insights.py --src ./src --top 10
 
-# lines of code per file + LOC/complexity/depth per node (Python nodes)
+# lines of code per file + LOC/complexity/depth per node (every graphed language)
 python .agents/skills/code-archaeologist/scripts/review/metrics.py --src ./src --top 10
 
 # TODO/FIXME/HACK markers + nodes nothing calls + files where every node is dead
@@ -207,7 +207,8 @@ python .agents/skills/code-archaeologist/scripts/review/debt.py --src ./src --to
 # (pytest, Jest, JUnit 5/Spring Boot, Go, Rust, .NET, RSpec, PHPUnit conventions)
 python .agents/skills/code-archaeologist/scripts/review/tests_map.py --src ./src --top 15
 
-# copy-pasted functions, found even when the names were changed
+# copy-pasted functions (clusters) + blocks pasted into otherwise different functions,
+# found even when the names were changed
 python .agents/skills/code-archaeologist/scripts/review/duplicates.py --src ./src --top 10
 ```
 

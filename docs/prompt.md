@@ -3530,3 +3530,58 @@ five blocks, `lang="th"`, prose resolves to the Thai stack and `code` to mono; n
 overflow at 1400px *or* 500px — the three wide tables and one command block scroll inside their own
 containers; grep confirms no `<script src>`, `<link href>` or `@import`. Also updated the CLAUDE.md
 doc table to say the page is written in Thai, so the next session does not "fix" it back to English.
+
+## [83] 2026-09-11 — SKILL.md checked against the code, and the gaps closed
+
+**Prompt**
+> update skill.md to make AI agent understand how to use all feature of this skill if its not updated yte
+
+**Response**
+Checked rather than assumed whether it was already updated. SKILL.md turned out to be *mostly*
+current — the preflight, the seventeen-language note, operating principle 8 (`precision`, the
+lower-bound caveat) and principle 3 (file-qualified ids) had all been kept up. So this was a gap
+hunt, not a rewrite.
+
+Built the flag inventory from the code instead of reading prose: `grep -oE 'add_argument\("[^"]+"'`
+across every script, then checked each claim SKILL.md makes against the module that implements it.
+
+Four real gaps, all verified against artifacts before writing:
+
+1. **Command 13 said metrics were "for Python nodes".** Stale since phase 6a and materially
+   misleading — an agent would decline to answer "how complex is this Java method". The committed
+   `data/report/flow/metrics.json` measures 52 nodes across py, ts, js, tsx, java, go and csharp.
+   Rewrote it, and documented `unmeasured_graph_ids` (the sample's one entry is the declaration
+   `PricingRule.price`) so a node with no body is reported as unmeasured rather than prompting a
+   source read.
+2. **Command 17 described only whole-body clusters.** Phase 9's copied *blocks* were missing
+   entirely. `duplicates.json` really does carry both keys; documented the difference, the
+   `places` grouping, and the three exclusions (already-clustered pairs, `declaration: true`,
+   50+-place boilerplate).
+3. **Command 14's output list was missing `duplicates.json`.** Confirmed by `ls data/report/flow/`.
+4. **Command 4 listed five of search's eleven filters.** Added `--called-by`, `--lang`, `--file`,
+   `--format`, the default `--limit 40`, and the note that `--calls`/`--called-by` are the cheap
+   way to answer a connectivity question without a trace.
+
+Also added the `UNPINNED` line to the preflight (`brief` prints it; SKILL.md only mentioned
+`SKIPPED`), and expanded Command 8 — the explorer had no description of colour-by, the blast-radius
+toggle, the `⋯` menu, rail resizing or the pin/reset behaviour, and nothing said it is for a
+*human* rather than a way for the agent to read the graph.
+
+The substantive addition is a **routing table** before the command list: twenty rows of "what the
+user asked → which numbered command → which map". The file listed seventeen commands well but never
+said which one answers which question, which is the thing an agent actually has to decide first.
+The Map column is backed by the two-sentence rule underneath it plus the warning that ids never
+cross between maps.
+
+Verified by running it. `both --src ./sample_src` in this session **degraded** — `vendor/` is built
+for another Python and this is 3.13 — which incidentally confirmed the documented failure mode:
+one named warning per language, build still succeeds, and `git status` clean afterwards (the empty
+build did not clobber the committed graphs, and the re-rendered `explorer.html` came out
+byte-identical). The artifact-only commands then ran against the committed graphs and all behaved
+as documented: `--called-by` returned save/charge, `--lang java` returned the Java nodes,
+the trace returned `create_order > place_order > save`, `--impact-of PaymentClient.charge`
+returned 6 nodes across the stack, and the context pack printed **Covered by**.
+
+`tools/check_docs.py` passes. Grepping the same stale claim across every doc found it once more in
+`docs/USAGE.md` ("Python nodes"), fixed in this commit along with its duplicates comment — per
+principle 6 the fact has one spelling everywhere.
