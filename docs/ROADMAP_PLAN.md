@@ -1,6 +1,6 @@
 # Graph as many languages as possible
 
-> ## Status: **all four phases are complete.** Findings #1-#4 are resolved; #5 (file-qualified ids) is being implemented.
+> ## Status: **all four phases are complete, and all five *Found while implementing* findings are resolved.**
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
@@ -1155,6 +1155,18 @@ every unique id keeps its current spelling, so `sample_src` and the CLAUDE.md nu
 and drop the merged edges, so a collided node keeps only its own file's calls — honest edges, but
 the other definitions still vanish. **Recommendation: (a).** It is the only option that makes the
 graph correct on large codebases without renaming a single id that is correct today.
+
+#### Resolved — shipped 2026-09-11 (option a)
+
+`build_flow.FlowIds` pre-scans every definition from all three producers before any node exists,
+and qualifies only the ids defined in two or more files: by file stem, else by path, compared
+case-insensitively (a first run qualified Java's `Widgets.WidgetController.create` and Python's
+`widgets.WidgetController.create` apart only by case -- one note file on Windows and macOS; the
+new `check_graph` c17 now asserts note names are distinct case-insensitively). A call to a shared
+name resolves to the caller's own file, or is dropped. Measured: `sample_src` byte-identical; on
+the corpus 25 names qualified, flow nodes 331 → 405 as merged definitions came apart, and
+`c13`'s false edges **72 → 0**. Open concern 2 is resolved for the flow map; the structure map
+still keeps the first entity of a shared name and warns, as it always has.
 
 ---
 

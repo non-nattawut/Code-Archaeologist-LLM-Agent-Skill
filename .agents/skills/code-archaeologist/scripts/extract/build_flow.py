@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import itertools
 import json
 import os
 import re
@@ -264,16 +265,85 @@ def _iter_sources(roots: list[str]):
             yield path, root
 
 
-# Flow ids carry no file: a module function is its bare name and a method is
-# `Class.method`. So two `main()`s in two scripts, or two `UserService.get`s in two
-# services, are one id. The later definition has always replaced the earlier --
-# and, worse, inherited its call edges, because pass 2 resolves every definition's
-# calls under the shared id. The graph then shows one `main` whose calls are the
-# union of every `main`'s, which is a false edge for all but one of them.
-# Which one wins is unchanged (the roadmap's open concern 2); what changes is that
-# it is said. The structure map already does this for its entities.
+# Flow ids: bare where a name is defined in one file, file-qualified where it is not.
+#
+# A module function's id is its name and a method's is `Class.method`, so every
+# `main()` in every script used to be ONE node -- and it inherited every
+# definition's call edges, because each definition's calls were resolved under the
+# shared id. On the skill's own code that was 25 shared ids and 72 false edges.
+# Now only the ids that actually collide are qualified by their file
+# (`tests_map.build`, `report.build`), so an id that is unique today keeps its
+# spelling -- `sample_src` has no collisions and its graph did not move a byte.
+#
+# `_claim` stays as a guard: after qualification two definitions in different
+# files can no longer share a final id, so if it ever fires, an extractor emitted an
+# id the pre-scan did not see.
 _COLLISIONS: list[tuple[str, str, str]] = []
 _COLLIDED: set[str] = set()
+
+
+def _qualifiers(rel: str) -> list[str]:
+    """Ways to name a file, shortest first: stem, path without extension, full path."""
+    base = rel.rsplit("/", 1)[-1]
+    stem = base.rsplit(".", 1)[0] if "." in base else base
+    return [stem, rel[: len(rel) - len(base)] + stem, rel]
+
+
+class FlowIds:
+    """Every definition's provisional id and file, and the final id each one gets.
+
+    Built from a pre-scan of all three producers before any node exists, because
+    whether `build` needs qualifying depends on files not yet read.
+    """
+
+    def __init__(self, defs):
+        self.defined: dict[str, set[str]] = {}
+        for prov, rel in defs:
+            self.defined.setdefault(prov, set()).add(rel)
+        self.qualified: dict[tuple[str, str], str] = {}
+        # Compared case-insensitively: each node's note is written to `<id>.md`, and on
+        # Windows and macOS `Widgets.X` (Java) and `widgets.X` (Python) are ONE file,
+        # so the second note would silently overwrite the first.
+        taken = {p.lower() for p in self.defined}
+        for prov in sorted(p for p, rels in self.defined.items() if len(rels) > 1):
+            rels = sorted(self.defined[prov])
+            # The shortest qualifier under which every definition is distinct and
+            # none clashes with an id that already exists. Two `widgets.test`
+            # files in different folders need their paths; most need only a stem.
+            for level in range(3):
+                names = [f"{_qualifiers(r)[level]}.{prov}" for r in rels]
+                low = [n.lower() for n in names]
+                if len(set(low)) == len(low) and not taken.intersection(low):
+                    break
+            self.qualified.update(zip(((prov, r) for r in rels), names))
+            taken.update(n.lower() for n in names)
+
+    def id(self, prov: str, rel: str) -> str:
+        """The id the definition of `prov` in `rel` gets."""
+        return self.qualified.get((prov, rel), prov)
+
+    def target(self, prov: str, caller_rel: str) -> str | None:
+        """The id a call to `prov` from `caller_rel` means, or None if that cannot be told.
+
+        Unambiguous names are unchanged. A name defined in several files resolves to
+        the caller's own file's definition; from any other file it is dropped rather
+        than guessed -- name-based resolution cannot know which one an import meant,
+        and a wrong edge is worse than a missing one.
+        """
+        if len(self.defined.get(prov, ())) < 2:
+            return prov
+        return self.qualified.get((prov, caller_rel))
+
+    def report(self, limit: int = 5) -> None:
+        shared = sorted(p for p, rels in self.defined.items() if len(rels) > 1)
+        if not shared:
+            return
+        shown = "; ".join(f"{p} -> {', '.join(sorted(self.qualified[(p, r)] for r in self.defined[p]))}"
+                          for p in shared[:limit])
+        more = f" (+{len(shared) - limit} more)" if len(shared) > limit else ""
+        print(f"  ! {len(shared)} flow id(s) are defined in more than one file, so each definition is"
+              f" qualified by its file: {shown}{more}. A call to one of them from a file that does"
+              " not define it is dropped rather than guessed.", file=sys.stderr)
 
 
 def _file_of(node: dict) -> str:
@@ -294,27 +364,15 @@ def _claim(methods: dict, nid: str, node: dict) -> None:
 
 
 def _report_collisions(limit: int = 8) -> None:
-    if not _COLLISIONS:
-        return
+    """The guard's voice: a final id still shared across files is an extractor bug."""
     for nid, first, second in _COLLISIONS[:limit]:
-        print(f"  ! id collision: {nid} is defined in {first} and in {second}", file=sys.stderr)
-    more = len(_COLLISIONS) - limit
-    print(f"  ! {len(_COLLISIONS)} flow id(s) are shared by code in different files"
-          + (f" ({more} not listed)" if more > 0 else "")
-          + ". Ids carry no file, so each is ONE node, and it carries the call edges of every"
-            " definition that shares it -- read those nodes' edges with care.", file=sys.stderr)
+        print(f"  ! id collision after qualification (a bug): {nid} is defined in {first}"
+              f" and in {second}", file=sys.stderr)
 
 
-def analyze(roots: list[str]):
-    """Two-pass analysis across one or more source roots (Python + JS/TS)."""
-    _COLLISIONS.clear()
-    _COLLIDED.clear()
-    methods: dict[str, dict] = {}          # node_id -> info
-    class_methods: dict[str, set[str]] = {}  # ClassName -> {method names}
-    func_nodes: dict[str, str] = {}         # module function name -> node_id
-    # Deferred call sites, resolved in pass 2:  (caller_id, class_ctx, ctx, node)
-    pending: list[tuple[str, str | None, dict, object]] = []
-
+def _py_files(roots: list[str]) -> list[tuple[str, object]]:
+    """Every Python file parsed once: (rel, root node). Shared by pre-scan and build."""
+    out = []
     for path, root in _iter_sources(roots):
         try:
             raw = px.read_source(path)
@@ -325,9 +383,52 @@ def analyze(roots: list[str]):
         if tree is None:
             px.warn_missing()
             continue
-        rel = _rel_source(path, root)
-        root_node = tree.root_node
+        out.append((_rel_source(path, root), tree.root_node))
+    return out
 
+
+def _py_defs(py_files):
+    for rel, root_node in py_files:
+        for _decos, cls in px.defs_in(root_node, ("class_definition",)):
+            for _m_decos, m in px.defs_in(px.body_of(cls)):
+                yield f"{px.def_name(cls)}.{px.def_name(m)}", rel
+        for _decos, fn in px.defs_in(root_node):
+            yield px.def_name(fn), rel
+
+
+def _extracted_defs(files):
+    """Provisional ids from JS/TS or Java/Go/C# extraction results: (rel, res) pairs."""
+    for rel, res in files:
+        for fn in res.get("functions", []):
+            yield fn["name"], rel
+        for cls in res.get("classes", []):
+            for m in cls.get("methods", []):
+                yield f'{cls["name"]}.{m["name"]}', rel
+        for r in res.get("routes", []):
+            if not r.get("handler"):                     # an inline handler is its own node
+                yield f'{r["method"]} {r["path"]}', rel
+
+
+def analyze(roots: list[str]):
+    """Two-pass analysis across one or more source roots (Python + JS/TS)."""
+    _COLLISIONS.clear()
+    _COLLIDED.clear()
+    methods: dict[str, dict] = {}          # node_id -> info
+    class_methods: dict[str, set[str]] = {}  # ClassName -> {method names}
+    func_nodes: dict[str, str] = {}         # module function name -> its name (ids via `ids`)
+    # Deferred call sites, resolved in pass 2:  (caller_id, class_ctx, ctx, node)
+    pending: list[tuple[str, str | None, dict, object]] = []
+
+    # Read every source once, then decide every id before building any node.
+    py_files = _py_files(roots)
+    js_files = [(_rel_source(res["file"], root), res)
+                for root in roots for res in extract_js_files(find_js_files(root))]
+    lang_files = [(_rel_source(res["file"], root), res)
+                  for root in roots for res in extract_lang_files(find_lang_files(root))]
+    ids = FlowIds(itertools.chain(_py_defs(py_files), _extracted_defs(js_files),
+                                  _extracted_defs(lang_files)))
+
+    for rel, root_node in py_files:
         for cls_decos_nodes, cls in px.defs_in(root_node, ("class_definition",)):
             cls_name = px.def_name(cls)
             cls_decos = [px.name_of(d.named_children[0]) if d.named_children else ""
@@ -339,7 +440,7 @@ def analyze(roots: list[str]):
 
             for m_decos, m in px.defs_in(px.body_of(cls)):
                 m_name = px.def_name(m)
-                node_id = f"{cls_name}.{m_name}"
+                node_id = ids.id(f"{cls_name}.{m_name}", rel)
                 class_methods[cls_name].add(m_name)
                 decos = [px.name_of(d.named_children[0]) if d.named_children else ""
                          for d in m_decos]
@@ -361,12 +462,13 @@ def analyze(roots: list[str]):
                     "hash": _hash(code), "code": code, "routes": routes,
                 })
                 local_types = _local_types(outer, attr_types, decl=m)
-                pending.append((node_id, cls_name, {"attr_types": attr_types, "local_types": local_types}, outer))
+                pending.append((node_id, cls_name, {"attr_types": attr_types, "local_types": local_types,
+                                                    "rel": rel}, outer))
 
         for fn_decos, fn in px.defs_in(root_node):
             fn_name = px.def_name(fn)
-            node_id = fn_name
-            func_nodes[fn_name] = node_id
+            node_id = ids.id(fn_name, rel)
+            func_nodes[fn_name] = fn_name
             doc = px.docstring_of(fn)
             code = px.text(fn)
             # Flask's normal shape is @app.route on a module-level def, not on a
@@ -384,19 +486,20 @@ def analyze(roots: list[str]):
                 "hash": _hash(code), "code": code, "routes": routes,
             })
             local_types = _local_types(outer, {}, decl=fn)
-            pending.append((node_id, None, {"attr_types": {}, "local_types": local_types}, outer))
+            pending.append((node_id, None, {"attr_types": {}, "local_types": local_types,
+                                            "rel": rel}, outer))
 
     # --- Pass 2: resolve Python call edges ---  (edges carry a type)
     edges: set[tuple[str, str, str]] = set()
     for caller_id, cls_ctx, ctx, fn in pending:
-        targets, external = _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes)
+        targets, external = _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes, ids)
         methods[caller_id]["ext"] = external
         for target in targets:
             if target != caller_id:
                 edges.add((caller_id, target, "calls"))
 
     # --- Frontend (JS/TS): merge nodes + call edges into the same graph ---
-    js_methods, js_edges = _analyze_js(roots)
+    js_methods, js_edges = _analyze_js(js_files, ids)
     for nid, node in js_methods.items():
         _claim(methods, nid, node)
     for s, t in js_edges:
@@ -404,7 +507,7 @@ def analyze(roots: list[str]):
             edges.add((s, t, "calls"))
 
     # --- Java / Go / C#: same graph, same shape ---
-    lang_methods, lang_edges = _analyze_lang(roots)
+    lang_methods, lang_edges = _analyze_lang(lang_files, ids)
     for nid, node in lang_methods.items():
         _claim(methods, nid, node)
     for s, t in lang_edges:
@@ -424,6 +527,7 @@ def analyze(roots: list[str]):
     # `precision` needs the edges, so it is computed here rather than at extraction:
     # two of its three reasons are properties of what a node *calls*, not of the
     # node itself.
+    ids.report()
     _report_collisions()
     for src_id, dst_id, _type in edges:
         methods[src_id]["calls"].append(dst_id)
@@ -457,7 +561,8 @@ def _js_node(nid: str, name: str, cls, layer: str, kind: str, data: dict, rel: s
     }
 
 
-def _attach_routes(routes: list[dict], methods: dict, raw_calls: list, make_node) -> None:
+def _attach_routes(routes: list[dict], methods: dict, raw_calls: list, make_node,
+                   rel: str, ids: "FlowIds") -> None:
     """Router registrations -> the handler's node, or an endpoint node of their own.
 
     Express (`router.post("/x", h)`) and Go (`mux.HandleFunc("POST /x", h)`) register
@@ -468,61 +573,67 @@ def _attach_routes(routes: list[dict], methods: dict, raw_calls: list, make_node
     for r in routes:
         handler = r.get("handler")
         route = {"method": r["method"], "path": r["path"]}
-        if handler and handler in methods:
-            methods[handler]["routes"] = _dedupe_routes(methods[handler]["routes"] + [route])
-            methods[handler]["kind"] = "endpoint"
-            methods[handler]["layer"] = "controller"
+        target = ids.target(handler, rel) if handler else None
+        if handler and target in methods:
+            methods[target]["routes"] = _dedupe_routes(methods[target]["routes"] + [route])
+            methods[target]["kind"] = "endpoint"
+            methods[target]["layer"] = "controller"
         elif not handler:
-            nid = f'{r["method"]} {r["path"]}'
+            label = f'{r["method"]} {r["path"]}'
+            nid = ids.id(label, rel)
             node = make_node(nid, dict(r, routes=[route]))
-            node["signature"] = nid    # the route is the signature; `nid()` reads as nonsense
+            node["signature"] = label  # the route is the signature; `nid()` reads as nonsense
             _claim(methods, nid, node)
-            raw_calls.append((nid, r.get("calls", [])))
+            raw_calls.append((nid, r.get("calls", []), rel))
 
 
-def _analyze_js(roots: list[str]):
-    """Extract JS/TS functions/methods as flow nodes and resolve their calls."""
+def _analyze_js(js_files: list, ids: "FlowIds"):
+    """JS/TS functions/methods as flow nodes, and their calls resolved by name."""
     methods: dict[str, dict] = {}
     func_nodes: set[str] = set()
-    raw_calls: list[tuple[str, list[str]]] = []
+    raw_calls: list[tuple[str, list[str], str]] = []
 
-    for root in roots:
-        for res in extract_js_files(find_js_files(root)):
-            rel = _rel_source(res["file"], root)
+    for rel, res in js_files:
+        if True:
             stem = os.path.splitext(os.path.basename(res["file"]))[0]
             for fn in res.get("functions", []):
-                nid = fn["name"]
+                nid = ids.id(fn["name"], rel)
                 # A function that returns JSX is a React component in both maps --
                 # one meaning, one kind, whichever map you are reading.
                 component = bool(fn.get("jsx"))
                 _claim(methods, nid, _js_node(nid, fn["name"], None,
                                               "ui" if component else infer_layer(f'{fn["name"]} {stem}'),
                                               "component" if component else "function", fn, rel))
-                func_nodes.add(nid)
-                raw_calls.append((nid, fn.get("calls", [])))
+                func_nodes.add(fn["name"])
+                raw_calls.append((nid, fn.get("calls", []), rel))
             for cls in res.get("classes", []):
                 # Nest hands us real decorator names (@Controller, @Injectable), which
                 # is better evidence of a layer than the class name and file stem that
                 # were all a JS class used to offer.
                 layer = infer_layer(f'{cls["name"]} {stem}', cls.get("decorators", []))
                 for m in cls.get("methods", []):
-                    nid = f'{cls["name"]}.{m["name"]}'
+                    nid = ids.id(f'{cls["name"]}.{m["name"]}', rel)
                     routed = bool(m.get("routes"))
                     _claim(methods, nid, _js_node(nid, m["name"], cls["name"],
                                                   "controller" if routed else layer,
                                                   "endpoint" if routed else "method", m, rel))
-                    raw_calls.append((nid, m.get("calls", [])))
+                    raw_calls.append((nid, m.get("calls", []), rel))
 
             _attach_routes(res.get("routes", []), methods, raw_calls,
-                           lambda nid, data: _js_node(nid, nid, None, "controller",
-                                                      "endpoint", data, rel))
+                           lambda nid, data, rel=rel: _js_node(nid, nid, None, "controller",
+                                                               "endpoint", data, rel),
+                           rel, ids)
 
     edges: set[tuple[str, str]] = set()
-    for owner, calls in raw_calls:
-        methods[owner]["ext"] = sum(1 for name in calls if name not in func_nodes)
+    for owner, calls, rel in raw_calls:
+        external = 0
         for name in calls:
-            if name in func_nodes and name != owner:
-                edges.add((owner, name))
+            target = ids.target(name, rel) if name in func_nodes else None
+            if target is None:
+                external += 1               # library, or a name several files define
+            elif target != owner:
+                edges.add((owner, target))
+        methods[owner]["ext"] = external
     return methods, edges
 
 
@@ -557,7 +668,7 @@ def _lang_node(nid: str, name: str, cls, layer: str, kind: str, data: dict,
     return node
 
 
-def _analyze_lang(roots: list[str]):
+def _analyze_lang(lang_files: list, ids: "FlowIds"):
     """Java/Go/C# nodes and call edges.
 
     Two passes for the same reason the Python analyzer needs two: a call can only
@@ -568,11 +679,10 @@ def _analyze_lang(roots: list[str]):
     methods: dict[str, dict] = {}
     class_methods: dict[str, set[str]] = {}
     func_nodes: dict[str, str] = {}
-    raw_calls: list[tuple[str, list[dict]]] = []
+    raw_calls: list[tuple[str, list[dict], str]] = []
 
-    for root in roots:
-        for res in extract_lang_files(find_lang_files(root)):
-            rel = _rel_source(res["file"], root)
+    for rel, res in lang_files:
+        if True:
             stem = os.path.splitext(os.path.basename(res["file"]))[0]
             lang = res["lang"]
 
@@ -581,7 +691,7 @@ def _analyze_lang(roots: list[str]):
                                     cls.get("bases", []))
                 class_methods.setdefault(cls["name"], set())
                 for m in cls.get("methods", []):
-                    nid = f'{cls["name"]}.{m["name"]}'
+                    nid = ids.id(f'{cls["name"]}.{m["name"]}', rel)
                     class_methods[cls["name"]].add(m["name"])
                     routed = bool(m.get("routes"))
                     node = _lang_node(nid, m["name"], cls["name"],
@@ -596,23 +706,24 @@ def _analyze_lang(roots: list[str]):
                         node["signatures"] = ((prev.get("signatures") or [prev["signature"]])
                                               + [node["signature"]])
                     _claim(methods, nid, node)
-                    raw_calls.append((nid, m.get("calls", [])))
+                    raw_calls.append((nid, m.get("calls", []), rel))
 
             for fn in res.get("functions", []):
-                nid = fn["name"]
-                func_nodes[fn["name"]] = nid
+                nid = ids.id(fn["name"], rel)
+                func_nodes[fn["name"]] = fn["name"]
                 _claim(methods, nid, _lang_node(nid, fn["name"], None,
                                                 infer_layer(f'{fn["name"]} {stem}'),
                                                 "function", fn, rel, lang))
-                raw_calls.append((nid, fn.get("calls", [])))
+                raw_calls.append((nid, fn.get("calls", []), rel))
 
             _attach_routes(res.get("routes", []), methods, raw_calls,
                            lambda nid, data, rel=rel, lang=lang:
                                _lang_node(nid, nid, None, "controller", "endpoint",
-                                          data, rel, lang))
+                                          data, rel, lang),
+                           rel, ids)
 
     edges: set[tuple[str, str]] = set()
-    for owner, calls in raw_calls:
+    for owner, calls, rel in raw_calls:
         external = 0
         cls_ctx = methods[owner]["cls"]
         for call in calls:
@@ -625,6 +736,8 @@ def _analyze_lang(roots: list[str]):
                 target = f"{cls_ctx}.{name}"     # bare call: same class first,
             else:
                 target = func_nodes.get(name)    # then a module function
+            if target:
+                target = ids.target(target, rel)  # a shared name: the caller's own file only
             if target and target in methods:
                 if target != owner:
                     edges.add((owner, target))
@@ -655,7 +768,8 @@ def _local_types(fn, seed: dict[str, str], decl=None) -> dict[str, str]:
     return types
 
 
-def _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes) -> tuple[set[str], int]:
+def _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes,
+                   ids: "FlowIds") -> tuple[set[str], int]:
     """Returns (in-graph call targets, number of call sites that stayed external)."""
     attr_types, local_types = ctx["attr_types"], ctx["local_types"]
     found: set[str] = set()
@@ -691,6 +805,8 @@ def _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes) -> tupl
             # bare function call to a known module function
             if px.text(func) in func_nodes:
                 target = func_nodes[px.text(func)]
+        if target:
+            target = ids.target(target, ctx["rel"])   # a shared name: the caller's own file only
         if target:
             found.add(target)
         else:

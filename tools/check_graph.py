@@ -38,6 +38,7 @@ import argparse
 import copy
 import json
 import os
+import re
 import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -337,10 +338,28 @@ def c16_security_owner(c):
     return out
 
 
+def c17_note_names(c):
+    """Every node's note file is distinct on a case-insensitive filesystem.
+
+    Notes are written to `<id>.md` (unsafe characters as `_`). On Windows and macOS
+    two ids differing only in case are ONE file, so the second note silently
+    overwrites the first -- the vault has a page fewer than the graph has nodes.
+    """
+    seen, out = {}, []
+    for n in c.nodes:
+        key = re.sub(r"[^A-Za-z0-9_.-]", "_", n["id"]).lower()
+        if key in seen:
+            out.append(f"{n['id']} and {seen[key]}: one note file on a case-insensitive filesystem"
+                       " -- one note overwrites the other")
+        else:
+            seen[key] = n["id"]
+    return out
+
+
 STRUCTURAL = [c01_dangling, c02_duplicate_ids, c03_edge_types, c04_taxonomy, c05_source,
               c06_end_range, c07_name_at_source, c08_declaration_calls, c09_precision,
               c10_signatures, c11_routes, c12_http_edges, c13_call_text, c14_ext,
-              c15_report_counts, c16_security_owner]
+              c15_report_counts, c16_security_owner, c17_note_names]
 
 
 # --- D: derived features, tested by injecting a known defect -------------------
@@ -583,6 +602,8 @@ def _mutations():
          lambda g, r: r["analysis"]["summary"].__setitem__("nodes", r["analysis"]["summary"]["nodes"] + 1)),
         ("c16_security_owner", "flow", "a finding moved outside its owner's range",
          lambda g, r: r["security"]["findings"][0].__setitem__("line", 10 ** 6)),
+        ("c17_note_names", "flow", "two ids that differ only in case",
+         lambda g, r: g["nodes"].append(dict(g["nodes"][0], id=g["nodes"][0]["id"].swapcase()))),
     ]
 
 

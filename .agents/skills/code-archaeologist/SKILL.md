@@ -72,7 +72,11 @@ visible.
 2. Pick the map: **structure** for "how is this organized / who uses X"; **flow** for "how does a
    request travel / what calls what".
 3. Start from the graph, not from grep: `search.py` (Command 4) to find node ids, `trace_path.py`
-   (Commands 5-6) for the path or blast-radius.
+   (Commands 5-6) for the path or blast-radius. Ids are bare (`place_order`,
+   `OrderService.place_order`) **unless two files define the same name** — then each definition
+   is qualified by its file (`tests_map.build`, `report.build`). So find an id with
+   `search.py --name 'build$'` rather than typing one from memory; and a call to a shared name from
+   a file that does not define it was dropped, not guessed.
 4. Then take the facts in ONE call with `context.py --node <id>` (Command 7). Read individual notes
    (`data/structure/vault/<Entity>.md`, `data/flow/notes/<Class.method>.md`) only when the pack is
    not enough, and only for nodes on the discovered path.

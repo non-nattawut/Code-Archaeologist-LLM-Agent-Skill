@@ -28,6 +28,14 @@ Java/Go/C#, which was honest while those three were read textually and became ar
 language moved to tree-sitter. Adding a producer means adding an `extract_*_entities` in
 `build_wiki.py` and an `_analyze_*` in `build_flow.py`, nothing else.
 
+**Flow ids are bare unless a name is defined in more than one file.** `build_flow.FlowIds`
+pre-scans every definition from all three producers, then qualifies only the ids two or more files
+share -- by file stem, else by path -- compared **case-insensitively**, because each node's note is
+`<id>.md` and `Widgets.X` / `widgets.X` are one file on Windows and macOS. A call to a shared name
+resolves to the caller's own file's definition, or is dropped (`FlowIds.target`). Before this,
+every `main()` was one node carrying every definition's calls: 72 false edges on the skill's own
+code. `sample_src` has no shared names, so none of its ids changed.
+
 An agent answers architecture questions by **querying the graph, then reading only the notes on the
 returned path** — never by scanning source.
 
@@ -393,7 +401,8 @@ node bin/cli.js --harness claude --target <tmpdir> --self-test        # installe
 `tools/check_graph.py` asserts what a *correct* graph must satisfy, on any built graph: every
 edge lands on a node, ids are unique, each node's range really contains its own name, each call
 edge's callee is really named inside its caller, `precision` is what the edges imply, the report's
-counts are the graph's, and every security finding lies inside the node it is attributed to. Its
+counts are the graph's, and every security finding lies inside the node it is attributed to, and no two nodes'
+notes are one file on a case-insensitive filesystem (c17). Its
 `D` checks test the analysis *metamorphically* — inject a cycle, an orphan, a hub, a god object or
 a layer violation into a copy of the real graph and require it to be reported — because a detector
 that returns nothing looks exactly like a clean codebase. `--self-test` breaks the input (or swaps

@@ -2627,3 +2627,56 @@ findings #1/#3/#4 marked resolved with their measurements.
 
 **Verified:** classic-script parse; sample graphs byte-identical to HEAD; `check_graph` 25/25 on
 both maps; regressions 19/19; `check_docs` OK; installer self-test full-size.
+
+## [66] 2026-09-11 — Finding #5: a name defined in several files is qualified by its file
+
+**Prompt** *(same turn as [65])*
+> use your recommendations for all four findings
+
+**Response**
+The fourth recommendation, and the only one that touched the core builder: qualify **only** the
+flow ids that two or more files define, so every id that is unique today keeps its spelling.
+
+**How.** `build_flow.FlowIds`. Every source is now read once, up front -- Python files parsed, JS/TS
+and Java/Go/C# extracted -- and those results feed both a **pre-scan** (every provisional id with
+its file, from all three producers) and the build, so qualifying costs no second extraction and
+the "frontend skipped" warning still fires once. `FlowIds` gives each shared id the shortest
+qualifier under which every definition is distinct: file stem (`tests_map.build`), else path
+without extension, else full path. Every resolver -- Python's, the JS name matcher, the
+Java/Go/C# one, and `_attach_routes` for handlers -- now asks `FlowIds.target(name, caller_file)`:
+an unshared name is unchanged; a shared one resolves to **the caller's own file's definition**, or
+is dropped and counted in `ext`. Name-based resolution cannot know which of several same-named
+definitions an import meant, and a wrong edge is worse than a missing one.
+
+**Measured.** `sample_src` has no shared names: graphs, notes and vault byte-identical. On the
+corpus (the skill's own scripts, tools, bin and fixtures): 25 names qualified, flow nodes 331 →
+405 as merged definitions came apart, and `check_graph`'s `c13` -- call edges whose callee is never
+named in the caller -- **72 → 0**. No bare `build` or `main` survives.
+
+**A miss of my own, caught by reading the output rather than by a check.** The first run
+qualified Java's `Widgets.WidgetController.create` and Python's `widgets.WidgetController.create`
+apart *only by case*. Every node's note is `<id>.md`, and on Windows and macOS those are one file,
+so one note would silently overwrite the other -- the same class of silent loss this phase exists to
+catch, introduced by the fix for another one. Qualification is now compared case-insensitively
+(those two fall through to their paths), and new check **c17** asserts no two nodes' note files
+collide case-insensitively, with a self-test mutation (30/30 now). On the corpus afterwards: 406
+nodes, 406 note files, 406 ids distinct case-insensitively.
+
+Also worth recording: the recommendation in finding #5 said "qualify by file stem". Reality needed
+two more levels -- a path fallback for stems that collide (the two `widgets.test` fixtures) and
+case-insensitivity -- which the recommendation did not foresee.
+
+**r18 rewritten** from "a collision is warned" to the real property: two files each defining
+`main()` give `one.main` and `two.main`, each with only its own calls, and a same-file overload
+(`InvoiceService.Total`) stays unqualified. `_claim` survives only as a guard -- after
+qualification a final id shared across files would mean an extractor bug.
+
+Docs: CLAUDE.md (the id rule, and c17 in `check_graph`'s description), SKILL.md principle 3 (ids may
+be qualified; find them with `search.py --name`), README (limitation rewritten, *What's next* bullet
+removed), PRESENTATION's limitation rewritten as the honest residual cost, and the plan's finding #5
+marked resolved -- with open concern 2 resolved for the flow map; the structure map still keeps the
+first entity of a shared name and warns, as before.
+
+**Verified:** `check_graph` 26 checks OK on both maps of the sample *and* of the corpus; self-test
+30/30; regressions 19/19; `check_langs` 6/6; oracle 0; `check_docs` OK. **All five findings from
+the four phases are now resolved.**

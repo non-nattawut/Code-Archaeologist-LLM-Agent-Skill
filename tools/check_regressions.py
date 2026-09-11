@@ -257,24 +257,29 @@ def r17_owner_respects_end():
         return "a node with no range (structure entity) no longer owns its file"
 
 
-def r18_id_collision_is_said():
-    """phase 4: two definitions in different files sharing one flow id (every `main`,
-    every `build`) became one node with every definition's call edges -- silently."""
+def r18_same_name_in_two_files():
+    """phase 4 / finding #5: two definitions in different files sharing one flow id
+    (every `main`, every `build`) became one node carrying every definition's calls."""
     import contextlib
     import io
     d = tempfile.mkdtemp()
-    for name in ("one.py", "two.py"):
-        open(os.path.join(d, name), "w", encoding="utf-8").write("def main():\n    return 1\n")
-    err = io.StringIO()
-    with contextlib.redirect_stderr(err):
-        build_flow.analyze([d])
-    if "id collision: main" not in err.getvalue():
-        return "two files defining main() produced no collision warning"
-    err = io.StringIO()
-    with contextlib.redirect_stderr(err):
-        build_flow.analyze([os.path.join(FIX, "csharp")])    # an overload fold, one file
-    if "id collision" in err.getvalue():
-        return "a same-file overload fold was reported as a collision"
+    open(os.path.join(d, "one.py"), "w", encoding="utf-8").write(
+        "def helper():\n    return 1\n\n\ndef main():\n    return helper()\n")
+    open(os.path.join(d, "two.py"), "w", encoding="utf-8").write("def main():\n    return 2\n")
+    with contextlib.redirect_stderr(io.StringIO()):
+        methods, calls = _flow(d)
+    if "main" in methods:
+        return "a bare `main` node still exists -- the two definitions were merged"
+    if not {"one.main", "two.main"} <= set(methods):
+        return f"expected one.main and two.main, got {sorted(methods)}"
+    if ("one.main", "helper") not in calls:
+        return "one.main lost its own call to helper"
+    if any(src == "two.main" for src, _ in calls):
+        return "two.main carries a call it does not make"
+    with contextlib.redirect_stderr(io.StringIO()):
+        cs, _ = _flow(os.path.join(SAMPLE, "services", "orders_cs"))
+    if "InvoiceService.Total" not in cs:
+        return "a same-file overload fold was qualified as if it were a collision"
 
 
 # --- resolved from the findings review ---------------------------------------------
@@ -298,7 +303,7 @@ CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_app
          r08_missing_parser_is_visible, r09_no_absolute_paths, r10_brief_agrees_with_check,
          r11_test_filename_with_line, r12_crlf_hashes, r13_wrapped_signature,
          r14_context_budget, r15_moved_root_reason, r16_install_hint,
-         r17_owner_respects_end, r18_id_collision_is_said, r19_reports_are_reproducible]
+         r17_owner_respects_end, r18_same_name_in_two_files, r19_reports_are_reproducible]
 
 
 def main() -> int:

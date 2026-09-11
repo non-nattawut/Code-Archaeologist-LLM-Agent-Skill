@@ -200,11 +200,12 @@ Where a loss can be *named*, the node says which: `interface-dispatch`, `overloa
 0 of 3 edges in the TypeScript fixture, against 3 of 3 for the typed languages). `context.py`
 repeats the reason on the node an agent is reading, and the explorer shows it as a chip.
 
-**Flow ids carry no file.** A module function's id is its bare name and a method's is
-`Class.method`, so two `main()`s in two scripts are one node, carrying both definitions' call
-edges. The build names every such id (`! id collision: main is defined in ... and in ...`), so it
-is never silent -- but on a large codebase, read a collided node's edges with care. On the skill's
-own code that is 25 ids.
+**A name defined in several files is qualified by its file.** Flow ids are bare -- `place_order`,
+`OrderService.place_order` -- until two files define the same one; then each definition gets its
+file (`tests_map.build`, `report.build`), and every id that is unique keeps its spelling. A call
+to such a name resolves to the caller's own file's definition, and from any other file it is
+dropped rather than guessed. On the skill's own code that qualifies 25 names and removes 72 call
+edges that used to be false.
 
 A call through an interface **resolves to the interface**, not to its implementations. Declaring
 `PricingRule pricing` and calling `pricing.price()` gives you the edge
@@ -333,9 +334,6 @@ Everything the earlier roadmap listed has shipped: frontend entities in the stru
 route coverage across four frameworks, a graph tier for Java/Go/C#, a fully offline
 viewer, and duplicate-code clusters. What is still open:
 
-- **File-qualified ids where names collide.** Same-named code in different files shares one flow
-  node today (the build warns). The plan is to qualify only the colliding ids, so every id that is
-  unique now keeps its spelling.
 - **Django URL-table routes.** Routes are read from decorators today, so a `urlpatterns` table is
   not picked up and Django views do not link across the stack.
 - **Graphs for dynamic languages.** Ruby, PHP and Elixir are scanned for lines, risk, debt and
