@@ -1,11 +1,21 @@
 package com.example.widgets;
 
+// Größe — 寸法 📦: 2-, 3- and 4-byte UTF-8 before every node, so a byte offset
+// used on decoded text would shift every name, line and doc below this point.
+
 /** Persists widgets. */
 public class WidgetStore {
 
-    /** Store one widget. */
+    static final String LABEL = "寸法 📦 größe";
+
+    /** Store one widget — größe 寸法 📦. */
     public Widget save(Widget item) {
         return item;
+    }
+
+    /** Größe of the store — 寸法. */
+    public int größe() {
+        return 0;
     }
 }
 

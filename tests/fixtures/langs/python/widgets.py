@@ -1,12 +1,20 @@
 """Python extraction fixture: store, service, controller, one route."""
 
+# Größe — 寸法 📦: 2-, 3- and 4-byte UTF-8 before every node, so a byte offset
+# used on decoded text would shift every name, line and doc below this point.
+LABEL = "寸法 📦 größe"
+
 
 class WidgetStore:
     """Persists widgets."""
 
     def save(self, item):
-        """Store one widget."""
+        """Store one widget — größe 寸法 📦."""
         return item
+
+    def größe(self):
+        """Größe of the store — 寸法."""
+        return 0
 
 
 class WidgetService:

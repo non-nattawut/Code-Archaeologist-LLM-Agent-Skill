@@ -1,12 +1,23 @@
 namespace Sample.Widgets;
 
+// Größe — 寸法 📦: 2-, 3- and 4-byte UTF-8 before every node, so a byte offset
+// used on decoded text would shift every name, line and doc below this point.
+
 /// <summary>Persists widgets.</summary>
 public class WidgetStore
 {
-    /// <summary>Store one widget.</summary>
+    public const string Label = "寸法 📦 größe";
+
+    /// <summary>Store one widget — größe 寸法 📦.</summary>
     public Widget Save(Widget item)
     {
         return item;
+    }
+
+    /// <summary>Größe of the store — 寸法.</summary>
+    public int Größe()
+    {
+        return 0;
     }
 }
 

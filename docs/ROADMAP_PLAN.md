@@ -12,7 +12,7 @@
 > | 3 — Full regression gate: nothing old may break | does it still run | **done** — 5 things fixed, 1 recorded (*Found while implementing* #4) | `f904891` |
 > | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | **done** — 3 bugs fixed, 1 recorded (#5); 29 checks + 18 regression cases | `b44b909` |
 > | 5 — The two limits phase 4 left: structure-map shared names, the narrow toolbar | close the known gaps | **done** — both closed; toolbar floor ~1270 → ~987px | `cc4d0af` |
-> | 6 — Close the open concerns: pinned grammars, non-ASCII, per-language metrics, timing | make adding a language safe | **in progress** — 6c done (this commit); 6b, 6a, 6d next | — |
+> | 6 — Close the open concerns: pinned grammars, non-ASCII, per-language metrics, timing | make adding a language safe | **in progress** — 6c done (`16b6f62`), 6b done (this commit; recorded #6); 6a, 6d next | `16b6f62` |
 > | 7 — A graph for every review-only language (Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir) | the title goal | **planned, not started** | — |
 > | 8 — Route tables: Django `urlpatterns`, Rails, Laravel, Phoenix | cross-stack links for table-routed apps | **planned, not started** | — |
 > | 9 — Duplicates below function granularity | copied blocks, not only copied functions | **planned, not started** | — |
@@ -1123,6 +1123,17 @@ shift appears, the extractor is fixed to slice bytes and decode after — never 
 **Verify.** `check_langs` passes with the new columns, and a deliberate sabotage — slicing the
 decoded string with a byte offset — makes it fail (an assertion that cannot fail is worse than none).
 
+**Result — shipped 2026-09-11.** All six fixtures now carry 2-, 3- and 4-byte UTF-8 (`größe`,
+`寸法`, `📦`) in a comment and a string placed before every node, a non-ASCII doc on the store's
+save, and one node with a non-ASCII name (`größe` / `Größe`). `check_langs.py` asserts two new
+columns, `lines` and `docs`, compared node by node. **No extractor needed a fix:** every line was
+checked against the file independently of the recorder (the node's own name is on its line), and
+every multi-byte doc came through exactly. The sabotage — `ts_extract._text` decoding first and
+slicing after — fails Java, Go and C# with 20–24 problems each (the node names themselves shift).
+Python and JS/TS read `node.text`, the node's own bytes, so they cannot have this bug by
+construction. One inconsistency surfaced that is *not* a byte bug, and needs a decision: see
+*Found while implementing* #6.
+
 ### 6a. Per-node metrics for every graphed language (concern 3) — and a key bug found while planning
 
 **What.** `metrics.py` measures Python only. In the committed sample report, **39 of 52 flow nodes
@@ -1536,6 +1547,28 @@ name resolves to the caller's own file, or is dropped. Measured: `sample_src` by
 the corpus 25 names qualified, flow nodes 331 → 405 as merged definitions came apart, and
 `c13`'s false edges **72 → 0**. Open concern 2 is resolved for the flow map; the structure map
 still keeps the first entity of a shared name and warns, as it always has.
+
+### 6. A decorated TS method's `source` line is its first decorator, not its name — found in 6b
+
+**What.** Asserting every fixture node's line (6b) showed one language out of step:
+`WidgetController.create` in the TypeScript fixture reports line 33, which is `@Post()`; the method
+name is on line 34. Python, Java and C# all report the line holding the name, even when the member
+is decorated or annotated.
+
+**Why it is not simply fixed.** It is deliberate, not a slip: `js_ts_extract._start_line` is
+documented as "where Babel would say this node starts — decorators included", and the port was
+proved byte-identical to Babel on exactly this. The range it opens (`source`..`end`) therefore
+*contains the decorators*, which is what lets `owner_of` attribute a security finding on a
+decorator line to the method. Moving `source` to the name line changes the sample flow graph's
+bytes (the Nest nodes) and gives up that containment — a trade, so it waits for review.
+
+**Options.** (a) Leave it and document it per language. (b) Report the name line in `source` but
+keep a decorator-inclusive range start in a separate field. (c) Make every language
+decorator-inclusive, so Python/Java/C# ranges start at their first decorator too.
+**Recommendation: (c).** One rule for every language, and the range then covers everything the
+node owns — the annotations on a Spring or ASP.NET method are exactly where a route or an auth
+rule lives. The sample data changes by a handful of `source` lines, and 6b's `lines` column would
+catch any language left behind.
 
 ---
 

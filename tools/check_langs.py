@@ -52,15 +52,25 @@ def observe(lang_dir: str) -> dict:
         "edges": sorted([src, dst] for src, dst, kind in edges if kind == "calls"),
         "routes": sorted(set(routes)),
         "test_nodes": sorted(n for n, i in methods.items() if i.get("layer") == "test"),
+        # Phase 6b: every fixture carries 2-, 3- and 4-byte UTF-8 before its nodes, so a
+        # byte offset applied to decoded text shifts exactly these two things.
+        "lines": {n: int(i["source"].rsplit(":", 1)[1]) for n, i in sorted(methods.items())},
+        "docs": {n: i.get("doc", "") for n, i in sorted(methods.items())},
     }
 
 
 def compare(lang: str, want: dict, got: dict) -> list[str]:
     out = []
-    for key in ("nodes", "edges", "routes", "test_nodes"):
+    for key in ("nodes", "edges", "routes", "test_nodes", "lines", "docs"):
         expected = want.get(key, [])
         actual = got.get(key, [])
         if expected == actual:
+            continue
+        if isinstance(expected, dict):
+            for node in sorted(set(expected) | set(actual)):
+                if expected.get(node) != actual.get(node):
+                    out.append(f"{lang}: {key}[{node!r}] expected {expected.get(node)!r},"
+                               f" got {actual.get(node)!r}")
             continue
         missing = [x for x in expected if x not in actual]
         extra = [x for x in actual if x not in expected]

@@ -2883,3 +2883,28 @@ Verified:
 
 One miss, caught before it could fail: r16 counted `pkg + " "` in the hint, which a pinned
 `pkg==ver` token no longer contains. It now parses the tokens.
+
+### 6b — non-ASCII in every graphed language (second commit)
+
+**What changed:**
+
+- **All six fixtures carry non-ASCII before their nodes.** A comment and a string with 2-, 3- and
+  4-byte UTF-8 (`größe`, `寸法`, `📦`), a non-ASCII doc on the store's save, and one node with a
+  non-ASCII name.
+- **`check_langs.py` asserts two new columns,** `lines` and `docs`.
+
+**Not blessed blindly.** Before running `--update` I checked every observed line against the file
+itself, independently: the node's own name must be on it. All 33 nodes passed but one, and every
+multi-byte doc came through exactly. So no extractor needed fixing.
+
+- **The sabotage is caught.** `ts_extract._text` rewritten to decode first and slice after fails
+  Java, Go and C# with 20–24 problems each: the node names themselves shift.
+- **Python and JS/TS are immune by construction.** They read `node.text`, the node's own bytes.
+
+**The one exception was not a byte bug.** A decorated TS method reports its decorator's line. I
+nearly "fixed" it, then found `_start_line` documents it as deliberate: Babel parity, and a range
+that contains the decorators, which `owner_of` relies on. So it is a trade, recorded as *Found
+while implementing* #6. The recommendation is to make every language decorator-inclusive.
+
+**Verified:** `check_langs` 6/6, regressions 21/21, oracle 0 disagreements on the fixture, graph
+self-test 30/30.

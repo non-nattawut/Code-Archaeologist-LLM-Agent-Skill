@@ -1,5 +1,12 @@
 {
   "csharp": {
+    "docs": {
+      "WidgetController.Create": "POST /widgets.",
+      "WidgetService.Place": "Place one widget through the store.",
+      "WidgetServiceTests.PlacesThroughTheStore": "",
+      "WidgetStore.Gr\u00f6\u00dfe": "Gr\u00f6\u00dfe of the store \u2014 \u5bf8\u6cd5.",
+      "WidgetStore.Save": "Store one widget \u2014 gr\u00f6\u00dfe \u5bf8\u6cd5 \ud83d\udce6."
+    },
     "edges": [
       [
         "WidgetController.Create",
@@ -14,10 +21,18 @@
         "WidgetService.Place"
       ]
     ],
+    "lines": {
+      "WidgetController.Create": 55,
+      "WidgetService.Place": 35,
+      "WidgetServiceTests.PlacesThroughTheStore": 9,
+      "WidgetStore.Gr\u00f6\u00dfe": 18,
+      "WidgetStore.Save": 12
+    },
     "nodes": [
       "WidgetController.Create",
       "WidgetService.Place",
       "WidgetServiceTests.PlacesThroughTheStore",
+      "WidgetStore.Gr\u00f6\u00dfe",
       "WidgetStore.Save"
     ],
     "routes": [
@@ -28,6 +43,14 @@
     ]
   },
   "go": {
+    "docs": {
+      "NewRouter": "NewRouter wires the widget routes.",
+      "TestPlace": "TestPlace proves is_test_file fires on the _test.go convention.",
+      "WidgetService.Place": "Place places one widget through the store.",
+      "WidgetStore.Gr\u00f6\u00dfe": "Gr\u00f6\u00dfe of the store \u2014 \u5bf8\u6cd5.",
+      "WidgetStore.Save": "Save stores one widget \u2014 gr\u00f6\u00dfe \u5bf8\u6cd5 \ud83d\udce6.",
+      "handleCreateWidget": "handleCreateWidget is the POST /widgets handler."
+    },
     "edges": [
       [
         "TestPlace",
@@ -42,10 +65,19 @@
         "WidgetService.Place"
       ]
     ],
+    "lines": {
+      "NewRouter": 35,
+      "TestPlace": 6,
+      "WidgetService.Place": 30,
+      "WidgetStore.Gr\u00f6\u00dfe": 20,
+      "WidgetStore.Save": 15,
+      "handleCreateWidget": 42
+    },
     "nodes": [
       "NewRouter",
       "TestPlace",
       "WidgetService.Place",
+      "WidgetStore.Gr\u00f6\u00dfe",
       "WidgetStore.Save",
       "handleCreateWidget"
     ],
@@ -57,6 +89,13 @@
     ]
   },
   "java": {
+    "docs": {
+      "WidgetController.create": "POST /widgets.",
+      "WidgetService.place": "Place one widget through the store.",
+      "WidgetServiceTest.placesThroughTheStore": "",
+      "WidgetStore.gr\u00f6\u00dfe": "Gr\u00f6\u00dfe of the store \u2014 \u5bf8\u6cd5.",
+      "WidgetStore.save": "Store one widget \u2014 gr\u00f6\u00dfe \u5bf8\u6cd5 \ud83d\udce6."
+    },
     "edges": [
       [
         "WidgetController.create",
@@ -71,10 +110,18 @@
         "WidgetService.place"
       ]
     ],
+    "lines": {
+      "WidgetController.create": 50,
+      "WidgetService.place": 32,
+      "WidgetServiceTest.placesThroughTheStore": 9,
+      "WidgetStore.gr\u00f6\u00dfe": 17,
+      "WidgetStore.save": 12
+    },
     "nodes": [
       "WidgetController.create",
       "WidgetService.place",
       "WidgetServiceTest.placesThroughTheStore",
+      "WidgetStore.gr\u00f6\u00dfe",
       "WidgetStore.save"
     ],
     "routes": [
@@ -85,6 +132,13 @@
     ]
   },
   "javascript": {
+    "docs": {
+      "createWidgetHandler": "Create a widget.",
+      "gr\u00f6\u00dfe": "Gr\u00f6\u00dfe of the store \u2014 \u5bf8\u6cd5.",
+      "placeWidget": "Place one widget through the store.",
+      "saveWidget": "Store one widget \u2014 gr\u00f6\u00dfe \u5bf8\u6cd5 \ud83d\udce6.",
+      "testPlacesThroughTheStore": ""
+    },
     "edges": [
       [
         "createWidgetHandler",
@@ -99,8 +153,16 @@
         "placeWidget"
       ]
     ],
+    "lines": {
+      "createWidgetHandler": 26,
+      "gr\u00f6\u00dfe": 16,
+      "placeWidget": 21,
+      "saveWidget": 11,
+      "testPlacesThroughTheStore": 4
+    },
     "nodes": [
       "createWidgetHandler",
+      "gr\u00f6\u00dfe",
       "placeWidget",
       "saveWidget",
       "testPlacesThroughTheStore"
@@ -113,6 +175,15 @@
     ]
   },
   "python": {
+    "docs": {
+      "WidgetController.__init__": "",
+      "WidgetController.create": "POST /widgets.",
+      "WidgetService.__init__": "",
+      "WidgetService.place": "Place one widget through the store.",
+      "WidgetStore.gr\u00f6\u00dfe": "Gr\u00f6\u00dfe of the store \u2014 \u5bf8\u6cd5.",
+      "WidgetStore.save": "Store one widget \u2014 gr\u00f6\u00dfe \u5bf8\u6cd5 \ud83d\udce6.",
+      "test_place": "A test that names WidgetService.place, so tests_map has something to find."
+    },
     "edges": [
       [
         "WidgetController.create",
@@ -127,11 +198,21 @@
         "WidgetService.place"
       ]
     ],
+    "lines": {
+      "WidgetController.__init__": 34,
+      "WidgetController.create": 38,
+      "WidgetService.__init__": 23,
+      "WidgetService.place": 26,
+      "WidgetStore.gr\u00f6\u00dfe": 15,
+      "WidgetStore.save": 11,
+      "test_place": 4
+    },
     "nodes": [
       "WidgetController.__init__",
       "WidgetController.create",
       "WidgetService.__init__",
       "WidgetService.place",
+      "WidgetStore.gr\u00f6\u00dfe",
       "WidgetStore.save",
       "test_place"
     ],
@@ -143,10 +224,25 @@
     ]
   },
   "typescript": {
+    "docs": {
+      "WidgetController.create": "POST /widgets.",
+      "WidgetService.place": "Place one widget through the store.",
+      "WidgetStore.gr\u00f6\u00dfe": "Gr\u00f6\u00dfe of the store \u2014 \u5bf8\u6cd5.",
+      "WidgetStore.save": "Store one widget \u2014 gr\u00f6\u00dfe \u5bf8\u6cd5 \ud83d\udce6.",
+      "testPlacesThroughTheStore": ""
+    },
     "edges": [],
+    "lines": {
+      "WidgetController.create": 33,
+      "WidgetService.place": 25,
+      "WidgetStore.gr\u00f6\u00dfe": 17,
+      "WidgetStore.save": 12,
+      "testPlacesThroughTheStore": 4
+    },
     "nodes": [
       "WidgetController.create",
       "WidgetService.place",
+      "WidgetStore.gr\u00f6\u00dfe",
       "WidgetStore.save",
       "testPlacesThroughTheStore"
     ],

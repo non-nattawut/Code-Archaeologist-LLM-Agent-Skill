@@ -440,12 +440,16 @@ A fixture costs one directory and one row. Current expectations, all asserted:
 
 | Language | Nodes | Edges | Routes | Test node |
 | --- | --- | --- | --- | --- |
-| python | 6 | 3 | 1 | yes |
-| java | 4 | 3 | 1 | yes |
-| csharp | 4 | 3 | 1 | yes |
-| go | 5 | 3 | 1 | yes |
-| javascript | 4 | 3 | 1 | yes |
-| typescript | 4 | **0** | 1 | yes |
+| python | 7 | 3 | 1 | yes |
+| java | 5 | 3 | 1 | yes |
+| csharp | 5 | 3 | 1 | yes |
+| go | 6 | 3 | 1 | yes |
+| javascript | 5 | 3 | 1 | yes |
+| typescript | 5 | **0** | 1 | yes |
+
+Each also asserts every node's **line and doc**, and each fixture carries 2-, 3- and 4-byte UTF-8
+before its nodes plus one non-ASCII node name (`größe`) — phase 6b, so a byte offset applied to
+decoded text cannot shift a name silently.
 
 That TypeScript zero is not a broken fixture, it is the honest number: JS/TS call edges are matched
 by **name**, so bare function calls link (JavaScript's 3) and method calls on an object do not

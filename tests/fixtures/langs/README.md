@@ -49,9 +49,15 @@ That last one matters more than it looks: test detection is per-language convent
 
 ## What a fixture must assert
 
-`expected.json` carries, per language: the node ids, the resolved call edges, the routes, and which
-nodes are `layer: test`. **The edges are the load-bearing part** — nodes alone only prove the
-grammar loaded.
+`expected.json` carries, per language: the node ids, the resolved call edges, the routes, which
+nodes are `layer: test`, and each node's **line** and **doc**. **The edges are the load-bearing
+part** — nodes alone only prove the grammar loaded.
+
+**Every fixture carries non-ASCII before its nodes** — a comment and a string with 2-, 3- and
+4-byte UTF-8 (`größe`, `寸法`, `📦`), a non-ASCII doc on the store's save, and one node with a
+non-ASCII name (`größe`). tree-sitter reports byte offsets; slicing *decoded* text with one shifts
+every name, line and doc after the first multi-byte character, silently. The `lines` and `docs`
+columns are what catch it. A new fixture keeps all three.
 
 For a dynamically typed language (none graphed yet — Ruby, PHP, Elixir, Lua) the fixture must
 assert *sparseness*: nodes yes, edges few or none. That is what keeps the honest-limitations
