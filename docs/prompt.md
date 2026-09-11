@@ -3395,3 +3395,28 @@ so their notes and cached AI descriptions are re-keyed, and the `overloads` prec
 changes meaning. Recommended: do `ranges` now (small, fixes every range reader, no id change); the
 split can come later on top of it, with same-arity overloads staying folded, since those need
 `ranges` anyway. Asked which they want. No code changed.
+
+## [79] 2026-09-11 — Same-count overloads as separate nodes too
+
+**Prompt**
+> so if I want samecount also become diffreent node too
+
+**Response**
+Answered how that would work. **Nodes** are easy: tree-sitter reads each declaration's parameter
+types, so the id can carry them -- `InvoiceService.Total(Request)`,
+`InvoiceService.Total(decimal,int)` -- only on overloaded methods; everything else stays bare, as
+the id rule already does for shared names. Type names must be made filename-safe, because every id
+is also a note file (`<`, `>`, `*`, `?` are illegal on Windows): generics dropped (`List<String>`
+-> `List`), pointers and other symbols normalised. Stable across edits, unlike numbering by source
+order. And `ranges` is no longer needed -- each node has one body.
+**Calls** are the hard part: match by argument count first, then by argument types where the
+source gives them -- literals, and variables/fields/parameters with a declared type, which the
+receiver resolver already reads (Swift adds argument labels). What stays ambiguous: arguments whose
+type is not written down (a method call's result, `var`, `null`), subtype and widening conversions.
+For those, recommended **drop the edge and mark the caller `precision: overloads`**, which keeps
+the project's "a wrong edge is worse than a missing one" rule; drawing an edge to every candidate
+would break it.
+Costs stated: the biggest change of the options (per-language argument typing in six languages),
+node ids change for every overloaded method (notes and cached descriptions re-keyed), and the
+sample's numbers move -- `InvoiceService.Total` becomes two nodes, so the flow graph's counts and
+the pinned CLAUDE.md block change. Asked for confirmation before starting. No code changed.
