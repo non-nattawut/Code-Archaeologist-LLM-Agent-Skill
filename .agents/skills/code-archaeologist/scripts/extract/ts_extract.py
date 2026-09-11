@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""ts_extract.py — Java/Go/C# declarations and calls, read from a real parse tree.
+"""ts_extract.py — declarations and calls for thirteen languages, read from a real parse tree.
+
+Java, Go and C# since phase 2 (inline branches, below); since phase 7 also Kotlin,
+Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP and Elixir (`SHAPES`, one
+small table and a few readers per grammar -- Groovy through Java's branch).
 
 Same contract as the textual extractor it replaces (`find_lang_files` /
 `extract_lang_files`), so both graph builders consume it unchanged and the port
@@ -45,7 +49,14 @@ from paths import DATA_DIR  # noqa: E402,F401  (puts sibling script dirs on sys.
 
 import grammars  # noqa: E402
 
-LANG_EXTS = {".java": "java", ".go": "go", ".cs": "csharp"}
+LANG_EXTS = {".java": "java", ".go": "go", ".cs": "csharp",
+             # Phase 7 -- read by SHAPES below (Groovy by Java's branch).
+             ".kt": "kotlin", ".kts": "kotlin", ".rs": "rust", ".swift": "swift",
+             ".scala": "scala", ".groovy": "groovy", ".dart": "dart",
+             ".c": "c", ".h": "c", ".cc": "cpp", ".cpp": "cpp", ".hpp": "cpp",
+             ".rb": "ruby", ".php": "php", ".ex": "elixir", ".exs": "elixir"}
+# Languages whose tree is Java's: same node types, same fields, same branch.
+JAVA_LIKE = {"java", "groovy"}
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data", "dist", "build"}
 
 # Per language: which node types play which structural role. Everything else is
@@ -85,6 +96,8 @@ SPEC = {
         "annotation": set(),
     },
 }
+# Groovy's grammar spells classes, methods, fields and calls exactly as Java's does.
+SPEC["groovy"] = dict(SPEC["java"])
 
 SELF_WORDS = {"this", "self", "base", "super"}
 
@@ -158,6 +171,13 @@ def _doc_above(node, src: bytes, lang: str) -> str:
     """
     comments = []
     prev = node.prev_named_sibling
+    if lang == "groovy" and prev is not None and prev.type not in SPEC[lang]["comment"]:
+        # Groovy's grammar ends a field declaration that has no `;` at the next
+        # token, so the doc comment of the member *below* it lands inside it.
+        last = prev.named_children[-1] if prev.named_child_count else None
+        if last is not None and last.type in SPEC[lang]["comment"]:
+            comments.append(_text(last, src))
+            prev = None
     while prev is not None and prev.type in SPEC[lang]["comment"]:
         comments.append(_text(prev, src))
         prev = prev.prev_named_sibling
@@ -226,7 +246,7 @@ def _fields(container, src: bytes, lang: str) -> dict[str, str]:
     for f in _walk(body, SPEC[lang]["field"], stop=SPEC[lang]["method"]):
         declared = _base_type(_field_text(f, "type", src))
         names: list[str] = []
-        if lang == "java":
+        if lang in JAVA_LIKE:
             for d in f.named_children:
                 if d.type == "variable_declarator":
                     names.append(_field_text(d, "name", src))
@@ -285,7 +305,7 @@ def _locals(body_text: str, lang: str) -> dict[str, str]:
 # ---------------------------------------------------------------------------
 def _receiver_and_name(call, src: bytes, lang: str) -> tuple[str, str]:
     """(receiver text, method name) for one call node, or ("", "") to skip it."""
-    if lang == "java":
+    if lang in JAVA_LIKE:
         name = _field_text(call, "name", src)
         obj = _field(call, "object")
         return (_text(obj, src) if obj is not None else ""), name
@@ -567,7 +587,576 @@ def _containers(root, src: bytes, lang: str) -> tuple[list[dict], list[dict]]:
     return classes, []
 
 
-IMPORT_TYPES = {"java": {"import_declaration"}, "csharp": {"using_directive"}, "go": set()}
+IMPORT_TYPES = {"java": {"import_declaration"}, "csharp": {"using_directive"}, "go": set(),
+                "groovy": {"import_declaration"}}
+
+
+# ---------------------------------------------------------------------------
+# Phase 7 languages -- one walker, one small shape per grammar
+# ---------------------------------------------------------------------------
+# Java/Go/C# above were ported line for line from the textual extractor, which is
+# why their per-language branches are inline. The ten languages phase 7 added
+# share one walker instead (Groovy's tree is Java's, so it takes Java's branch):
+# each grammar names its container / method / comment node types here, and the few
+# places a tree is genuinely shaped differently get one small reader each -- a
+# Rust method lives in an `impl`, a Dart method is a signature *beside* its body,
+# a C function's name sits inside nested declarators, an Elixir `def` is a macro
+# call. Resolution is `_calls`'s three-way answer plus one rule these languages
+# lean on: a receiver that is itself a type name (`WidgetStore.save` in Elixir,
+# `Widget::new` in Rust, `Store::get` in PHP) resolves to that type.
+SHAPES = {
+    "kotlin": {"container": {"class_declaration", "object_declaration"},
+               "method": {"function_declaration"}, "comment": {"block_comment", "line_comment"}},
+    "rust": {"container": {"struct_item", "enum_item", "trait_item"},
+             "method": {"function_item", "function_signature_item"},
+             "comment": {"line_comment", "block_comment"}},
+    "swift": {"container": {"class_declaration", "protocol_declaration"},
+              "method": {"function_declaration", "protocol_function_declaration"},
+              "comment": {"comment", "multiline_comment"}},
+    "scala": {"container": {"class_definition", "object_definition", "trait_definition"},
+              "method": {"function_definition", "function_declaration"},
+              "comment": {"comment", "block_comment"}},
+    "dart": {"container": {"class_definition", "mixin_declaration"},
+             "method": {"method_signature", "function_signature"},
+             "comment": {"comment", "documentation_comment"}},
+    "c": {"container": set(), "method": {"function_definition"}, "comment": {"comment"}},
+    "cpp": {"container": {"class_specifier", "struct_specifier"},
+            "method": {"function_definition"}, "comment": {"comment"}},
+    "ruby": {"container": {"class", "module"}, "method": {"method", "singleton_method"},
+             "comment": {"comment"}},
+    "php": {"container": {"class_declaration", "interface_declaration", "trait_declaration"},
+            "method": {"method_declaration", "function_definition"}, "comment": {"comment"}},
+    # Elixir has no declaration nodes: `defmodule` and `def` are calls, so these
+    # are the *names* of the macros (see `_gkind`), not node types.
+    "elixir": {"container": {"defmodule"}, "method": {"def", "defp"}, "comment": {"comment"}},
+}
+_BODY_TYPES = {"class_body", "enum_class_body", "template_body", "declaration_list",
+               "field_declaration_list", "body_statement", "protocol_body"}
+_SKIP_ABOVE = {"attribute_item", "annotated_expression", "access_specifier"}
+_KT_NAMES = {"identifier", "simple_identifier"}
+_KT_TYPES = {"user_type", "nullable_type"}
+_G_SELF = SELF_WORDS | {"parent", "static"}
+_G_BASES = {"kotlin": {"delegation_specifier"}, "swift": {"inheritance_specifier"},
+            "scala": {"extends_clause"}, "dart": {"superclass", "interfaces", "mixins"},
+            "cpp": {"base_class_clause"}, "ruby": {"superclass"},
+            "php": {"base_clause", "class_interface_clause"}}
+_BASE_WORDS = {"extends", "implements", "with", "public", "private", "protected", "virtual",
+               "class", "struct"}
+_G_CALLS = {"kotlin": {"call_expression"}, "rust": {"call_expression"}, "swift": {"call_expression"},
+            "scala": {"call_expression"}, "c": {"call_expression"}, "cpp": {"call_expression"},
+            "ruby": {"call"}, "elixir": {"call"},
+            "php": {"member_call_expression", "nullsafe_member_call_expression",
+                    "function_call_expression", "scoped_call_expression"}}
+# Macros and special forms: calls in the grammar, never a function of the code's own.
+_EX_MACROS = {"def", "defp", "defmodule", "defmacro", "defmacrop", "defstruct", "defprotocol",
+              "defimpl", "defdelegate", "defexception", "if", "unless", "for", "case", "cond",
+              "with", "fn", "quote", "unquote", "import", "alias", "require", "use", "raise",
+              "try", "receive"}
+RUST_VERBS = {"get", "post", "put", "patch", "delete", "head"}
+# A local whose type is written where it is made -- the same idea as `_locals`.
+_G_LOCALS = {
+    "kotlin": re.compile(r"\b(?:val|var)\s+(\w+)(?:\s*:\s*[\w.<>?]+)?\s*=\s*([A-Z]\w*)\s*\("),
+    "scala": re.compile(r"\b(?:val|var)\s+(\w+)(?:\s*:\s*[\w.\[\]]+)?\s*=\s*(?:new\s+)?([A-Z]\w*)\s*[(\[{]"),
+    "swift": re.compile(r"\b(?:let|var)\s+(\w+)(?:\s*:\s*[\w.<>?]+)?\s*=\s*([A-Z]\w*)\s*\("),
+    "dart": re.compile(r"\b(?:final|var|const|[A-Z]\w*)\s+(\w+)\s*=\s*(?:new\s+|const\s+)?([A-Z]\w*)\s*\("),
+    "rust": re.compile(r"\blet\s+(?:mut\s+)?(\w+)(?:\s*:\s*[\w:<>&']+)?\s*=\s*([A-Z]\w*)\s*(?:\{|::)"),
+    "php": re.compile(r"\$(\w+)\s*=\s*new\s+\\?(?:\w+\\)*([A-Z]\w*)"),
+    "ruby": re.compile(r"\b(\w+)\s*=\s*([A-Z]\w*)\.new\b"),
+}
+_CPP_LOCAL = re.compile(r"(?m)^\s*(?:const\s+)?([A-Z]\w*)\s*[*&]?\s*(\w+)\s*(?:;|\(|\{|=)")
+
+
+def _child(node, types):
+    """The first direct named child of one of `types`, or None."""
+    if node is None:
+        return None
+    return next((c for c in node.named_children if c.type in types), None)
+
+
+def _first_of(node, types):
+    """The first named descendant of one of `types` (depth first), or None."""
+    if node is None:
+        return None
+    for c in node.named_children:
+        if c.type in types:
+            return c
+        found = _first_of(c, types)
+        if found is not None:
+            return found
+    return None
+
+
+def _gkind(node, src: bytes, lang: str) -> str:
+    """A node's structural role: its type -- or, for an Elixir macro call, the macro."""
+    if lang == "elixir" and node.type == "call":
+        target = _field(node, "target")
+        return _text(target, src) if target is not None and target.type == "identifier" else ""
+    return node.type
+
+
+def _gname_node(node, src: bytes, lang: str):
+    """The node holding a declaration's name, or None."""
+    if lang == "elixir":
+        args = _child(node, {"arguments"})
+        head = args.named_children[0] if args is not None and args.named_child_count else None
+        if head is not None and head.type == "binary_operator":      # def f(x) when guard
+            head = _field(head, "left")
+        if head is not None and head.type == "call":                  # def f(x)
+            head = _field(head, "target")
+        return head if head is not None and head.type in ("identifier", "alias") else None
+    if lang == "dart" and node.type == "method_signature":
+        node = _child(node, {"function_signature", "getter_signature", "setter_signature"})
+        return _field(node, "name") if node is not None else None
+    if lang in ("c", "cpp") and node.type == "function_definition":
+        d = _field(node, "declarator")
+        while d is not None and d.type not in ("identifier", "field_identifier",
+                                               "qualified_identifier", "destructor_name"):
+            d = _field(d, "declarator")
+        return d
+    return _field(node, "name")
+
+
+def _gbody(node, lang: str):
+    """Where a container's members live."""
+    if lang == "elixir":
+        return _child(node, {"do_block"})
+    return _field(node, "body") or _child(node, _BODY_TYPES)
+
+
+def _gmbody(node, lang: str):
+    """A method's body, or None for a signature."""
+    if lang == "dart":
+        nxt = node.next_named_sibling
+        return nxt if nxt is not None and nxt.type == "function_body" else None
+    if lang == "elixir":
+        return _child(node, {"do_block"}) or _child(node, {"arguments"})
+    if lang == "kotlin":
+        return _child(node, {"function_body"})
+    return _field(node, "body")
+
+
+def _ktext(node, types, src: bytes) -> str:
+    got = _child(node, types)
+    return _text(got, src) if got is not None else ""
+
+
+def _gparam_pairs(node, src: bytes, lang: str):
+    """(name, declared type text) for each parameter; the type is "" where none is written."""
+    if lang == "kotlin":
+        plist = _child(node, {"function_value_parameters"})
+        for p in plist.named_children if plist is not None else []:
+            if p.type == "parameter":
+                yield _ktext(p, _KT_NAMES, src), _ktext(p, _KT_TYPES, src)
+    elif lang == "swift":
+        for p in node.named_children:
+            names = p.children_by_field_name("name") if p.type == "parameter" else []
+            if len(names) > 1:                        # `name: Type` -- both are `name` fields
+                yield _text(names[0], src), _text(names[-1], src)
+    elif lang == "dart":
+        sig = _child(node, {"function_signature"}) if node.type == "method_signature" else node
+        plist = _child(sig, {"formal_parameter_list"})
+        for p in _walk(plist, {"formal_parameter"}) if plist is not None else []:
+            yield _field_text(p, "name", src), _ktext(p, {"type_identifier"}, src)
+    elif lang in ("c", "cpp"):
+        fd = _field(node, "declarator")
+        while fd is not None and fd.type != "function_declarator":
+            fd = _field(fd, "declarator")
+        plist = _field(fd, "parameters") if fd is not None else None
+        for p in plist.named_children if plist is not None else []:
+            if p.type in ("parameter_declaration", "optional_parameter_declaration"):
+                d = _field(p, "declarator")
+                ident = d if d is not None and d.type == "identifier" else _first_of(d, {"identifier"})
+                yield (_text(ident, src) if ident is not None else ""), _field_text(p, "type", src)
+    elif lang == "php":
+        plist = _field(node, "parameters")
+        for p in plist.named_children if plist is not None else []:
+            yield _field_text(p, "name", src).lstrip("$"), _field_text(p, "type", src)
+    elif lang in ("rust", "scala"):
+        plist = _field(node, "parameters")
+        for p in plist.named_children if plist is not None else []:
+            if p.type == "parameter":
+                yield _field_text(p, "pattern" if lang == "rust" else "name", src), _field_text(p, "type", src)
+    # ruby, elixir: no declared types to read
+
+
+def _gparams(node, src: bytes, lang: str) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for name, declared in _gparam_pairs(node, src, lang):
+        base = _base_type(declared)
+        if base and re.fullmatch(r"[A-Za-z_]\w*", name):
+            out[name] = base
+    return out
+
+
+def _gfields(node, src: bytes, lang: str) -> dict[str, str]:
+    """Field name -> declared base type for one container."""
+    out: dict[str, str] = {}
+
+    def put(name: str, declared: str) -> None:
+        base = _base_type(declared)
+        if name and base:
+            out[name] = base
+
+    body = _gbody(node, lang)
+    methods = SHAPES[lang]["method"]
+    if lang == "kotlin":
+        params = _child(_child(node, {"primary_constructor"}), {"class_parameters"})
+        for p in params.named_children if params is not None else []:
+            if p.type == "class_parameter":                       # class Service(val store: Store)
+                put(_ktext(p, _KT_NAMES, src), _ktext(p, _KT_TYPES, src))
+        for prop in _walk(body, {"property_declaration"}, methods) if body is not None else []:
+            var = _child(prop, {"variable_declaration"})
+            if var is not None:
+                put(_ktext(var, _KT_NAMES, src), _ktext(var, _KT_TYPES, src))
+    elif lang == "rust":
+        for f in _walk(body, {"field_declaration"}) if body is not None else []:
+            put(_field_text(f, "name", src), _field_text(f, "type", src))
+    elif lang == "swift":
+        for prop in _walk(body, {"property_declaration"}, methods) if body is not None else []:
+            ident = _first_of(_field(prop, "name"), {"simple_identifier"})
+            ann = _child(prop, {"type_annotation"})
+            put(_text(ident, src) if ident is not None else "",
+                _field_text(ann, "name", src) if ann is not None else "")
+    elif lang == "scala":
+        params = _field(node, "class_parameters")
+        for p in params.named_children if params is not None else []:
+            if p.type == "class_parameter":
+                put(_field_text(p, "name", src), _field_text(p, "type", src))
+        for v in _walk(body, {"val_definition", "var_definition"}, methods) if body is not None else []:
+            put(_field_text(v, "pattern", src), _field_text(v, "type", src))
+    elif lang == "dart":
+        for d in body.named_children if body is not None else []:
+            if d.type == "declaration":                           # final Store store;
+                declared = _ktext(d, {"type_identifier"}, src)
+                for ident in _walk(d, {"initialized_identifier"}):
+                    name = _first_of(ident, {"identifier"})
+                    put(_text(name, src) if name is not None else "", declared)
+    elif lang == "cpp":
+        for f in body.named_children if body is not None else []:
+            if f.type == "field_declaration":
+                d = _field(f, "declarator")
+                ident = d if d is not None and d.type == "field_identifier" else _first_of(d, {"field_identifier"})
+                put(_text(ident, src) if ident is not None else "", _field_text(f, "type", src))
+    elif lang == "php":
+        for p in _walk(node, {"property_promotion_parameter"}):   # __construct(private Store $store)
+            put(_field_text(p, "name", src).lstrip("$"), _field_text(p, "type", src))
+        for prop in _walk(body, {"property_declaration"}) if body is not None else []:
+            declared = _field_text(prop, "type", src)
+            for el in _walk(prop, {"property_element"}):
+                name = _first_of(el, {"variable_name"})
+                put(_text(name, src).lstrip("$") if name is not None else "", declared)
+    return out
+
+
+def _grecv(call, src: bytes, lang: str) -> tuple[str, str]:
+    """(receiver text, method name) for one call node, or ("", "") to skip it."""
+    if lang in ("kotlin", "swift"):
+        head = call.named_children[0] if call.named_child_count else None
+        if head is None:
+            return "", ""
+        if head.type == "navigation_expression":
+            if lang == "swift":
+                suffix = _field(head, "suffix")
+                name = _field(suffix, "suffix") if suffix is not None else None
+                return _field_text(head, "target", src), (_text(name, src) if name is not None else "")
+            kids = head.named_children
+            recv = src[head.start_byte:kids[-1].start_byte].decode("utf-8", "replace")
+            return recv.rstrip(".?"), _text(kids[-1], src)
+        return ("", _text(head, src)) if head.type in _KT_NAMES else ("", "")
+    if lang in ("rust", "scala", "c", "cpp"):
+        fn = _field(call, "function")
+        if fn is None:
+            return "", ""
+        if fn.type == "field_expression":
+            recv = _field(fn, "value") if lang in ("rust", "scala") else _field(fn, "argument")
+            return (_text(recv, src) if recv is not None else ""), _field_text(fn, "field", src)
+        if fn.type in ("scoped_identifier", "qualified_identifier"):
+            scope = _field(fn, "path") if lang == "rust" else _field(fn, "scope")
+            return (_text(scope, src) if scope is not None else ""), _field_text(fn, "name", src)
+        return ("", _text(fn, src)) if fn.type == "identifier" else ("", "")
+    if lang == "ruby":
+        recv = _field(call, "receiver")
+        return (_text(recv, src) if recv is not None else ""), _field_text(call, "method", src)
+    if lang == "php":
+        if call.type == "function_call_expression":
+            return "", _field_text(call, "function", src)
+        obj = _field(call, "object") or _field(call, "scope")
+        return (_text(obj, src) if obj is not None else ""), _field_text(call, "name", src)
+    if lang == "elixir":
+        target = _field(call, "target")
+        if target is not None and target.type == "dot":
+            return _field_text(target, "left", src), _field_text(target, "right", src)
+        if target is not None and target.type == "identifier" and _text(target, src) not in _EX_MACROS:
+            return "", _text(target, src)
+    return "", ""
+
+
+def _gcalls(body, src: bytes, lang: str) -> list[tuple[str, str]]:
+    """(receiver, name) for every call site in a body."""
+    if body is None:
+        return []
+    if lang != "dart":
+        return [_grecv(call, src, lang) for call in _walk(body, _G_CALLS[lang])]
+    # Dart has no call node: `store.save(x)` is `identifier, selector(.save),
+    # selector(arguments)` side by side, so a call is read off the sibling sequence.
+    out = []
+    stack = [body]
+    while stack:
+        node = stack.pop()
+        kids = node.named_children
+        for i, kid in enumerate(kids):
+            if kid.type != "selector" or _child(kid, {"argument_part"}) is None or not i:
+                continue
+            prev = kids[i - 1]
+            if prev.type == "selector":
+                sel = _child(prev, {"unconditional_assignable_selector", "conditional_assignable_selector"})
+                ident = _child(sel, {"identifier"})
+                if ident is not None:
+                    recv = "".join(_text(k, src) for k in kids[:i - 1])
+                    out.append((recv, _text(ident, src)))
+            elif prev.type == "identifier" and (i == 1 or kids[i - 2].type != "selector"):
+                out.append(("", _text(prev, src)))     # a bare call: nothing chained before it
+        stack.extend(kids)
+    return out
+
+
+def _gresolve(pairs, types: dict[str, str]) -> list[dict]:
+    """`_calls`'s three-way answer, plus: a receiver that is a type name is that type."""
+    out = []
+    for recv, name in pairs:
+        if not name or not re.fullmatch(r"[A-Za-z_]\w*", name):
+            continue
+        recv = re.sub(r"\s+", "", recv).replace("?.", ".").replace("->", ".").replace("::", ".")
+        recv = recv.replace("$", "").lstrip("@")
+        if not recv:
+            out.append({"type": "", "name": name})
+            continue
+        parts = recv.split(".")
+        head = parts[0]
+        if head in _G_SELF and len(parts) == 1:
+            out.append({"type": "", "name": name})
+            continue
+        resolved = ""
+        if len(parts) == 1:
+            resolved = types.get(head, "") or (head if re.fullmatch(r"[A-Z]\w*", head) else "")
+        elif len(parts) == 2 and head in _G_SELF:
+            resolved = types.get(parts[1], "")
+        out.append({"type": resolved or "?", "name": name})
+    return out
+
+
+def _glocals(body_text: str, lang: str) -> dict[str, str]:
+    if lang == "cpp":
+        return {name: t for t, name in _CPP_LOCAL.findall(body_text)}
+    rx = _G_LOCALS.get(lang)
+    return dict(rx.findall(body_text)) if rx is not None else {}
+
+
+def _clean_doc(comments: list[str]) -> str:
+    lines: list[str] = []
+    for block in reversed(comments):
+        block = re.sub(r"^/\*+|\*+/$", "", block.strip())
+        for raw in block.splitlines():
+            raw = re.sub(r"^(?://+[/!]?|\*+|#+)\s?", "", raw.strip())
+            if raw.strip():
+                lines.append(raw.strip())
+    return " ".join(lines).strip()
+
+
+def _gdoc(node, src: bytes, lang: str) -> str:
+    """The comment block right above a declaration -- or an Elixir `@doc` / `@moduledoc`."""
+    if lang == "elixir":
+        if _gkind(node, src, lang) == "defmodule":
+            for c in (_child(node, {"do_block"}) or node).named_children:
+                call = _field(c, "operand") if c.type == "unary_operator" else None
+                if call is not None and call.type == "call" and _gkind(call, src, lang) == "moduledoc":
+                    s = _first_of(call, {"quoted_content"})
+                    return _text(s, src).strip() if s is not None else ""
+            return ""
+        prev = node.prev_named_sibling
+        while prev is not None and prev.type == "unary_operator":   # @doc, @spec, @impl ...
+            call = _field(prev, "operand")
+            if call is not None and call.type == "call" and _gkind(call, src, lang) == "doc":
+                s = _first_of(call, {"quoted_content"})
+                return _text(s, src).strip() if s is not None else ""
+            prev = prev.prev_named_sibling
+        return ""
+    prev = node.prev_named_sibling
+    while prev is not None and prev.type in _SKIP_ABOVE:
+        prev = prev.prev_named_sibling
+    if prev is None and node.parent is not None and node.parent.type == "body_statement":
+        prev = node.parent.prev_named_sibling       # Ruby: a class's first member's comment
+    comments = []
+    while prev is not None and prev.type in SHAPES[lang]["comment"]:
+        comments.append(_text(prev, src))
+        prev = prev.prev_named_sibling
+    return _clean_doc(comments)
+
+
+def _kanno(anno, scope, src: bytes) -> dict:
+    """A Kotlin annotation. `scope` holds its argument when the grammar put it beside it."""
+    ut = _first_of(anno, {"user_type"})
+    idents = [c for c in (ut.named_children if ut is not None else []) if c.type in _KT_NAMES]
+    arg = _first_string(anno, src)
+    if not arg and scope is not anno:
+        for c in scope.named_children:
+            if c.type not in ("annotation", "annotated_expression"):
+                arg = _first_string(c, src) or arg
+    return {"name": _text(idents[-1], src) if idents else "", "arg": arg, "text": _text(anno, src)}
+
+
+def _gannos(node, src: bytes, lang: str) -> list[dict]:
+    """Annotations/attributes on a declaration: name, first string argument, text."""
+    out: list[dict] = []
+    if lang == "kotlin":
+        for a in _walk(_child(node, {"modifiers"}), {"annotation"}) if _child(node, {"modifiers"}) else []:
+            out.append(_kanno(a, a, src))
+        # A class's annotations before `class` parse as a sibling expression.
+        prev = node.prev_named_sibling
+        while prev is not None and prev.type == "annotated_expression":
+            for scope in [prev] + list(_walk(prev, {"annotated_expression"})):
+                out += [_kanno(a, scope, src) for a in scope.named_children if a.type == "annotation"]
+            prev = prev.prev_named_sibling
+    elif lang == "rust":
+        prev = node.prev_named_sibling
+        while prev is not None and prev.type in ("attribute_item", "line_comment", "block_comment"):
+            attr = _child(prev, {"attribute"}) if prev.type == "attribute_item" else None
+            ident = _child(attr, {"identifier", "scoped_identifier"})
+            if ident is not None:
+                out.append({"name": _text(ident, src).split("::")[-1],
+                            "arg": _first_string(attr, src), "text": _text(attr, src)})
+            prev = prev.prev_named_sibling
+    return out
+
+
+def _gbases(node, src: bytes, lang: str) -> list[str]:
+    out: list[str] = []
+    for child in _walk(node, _G_BASES.get(lang, set()), stop=_BODY_TYPES | {"do_block"}):
+        for part in re.split(r"[,\s:<>()]+", _text(child, src)):
+            base = _base_type(part)
+            if base and base not in _BASE_WORDS and base not in out:
+                out.append(base)
+    return out
+
+
+def _gmethod(node, src: bytes, lang: str, fields: dict[str, str], prefix: str) -> dict:
+    """One method/function record, in `_method`'s shape."""
+    name_node = _gname_node(node, src, lang)
+    params = _gparams(node, src, lang)
+    body = _gmbody(node, lang)
+    types = dict(fields)
+    types.update(params)
+    if body is not None:
+        types.update(_glocals(_text(body, src), lang))
+    annos = _gannos(node, src, lang)
+    routes = []
+    if lang == "kotlin":
+        routes = _method_routes(annos, prefix, "java")
+    entry = {
+        "name": _text(name_node, src).split("::")[-1],
+        "doc": _gdoc(node, src, lang),
+        "line": _line(name_node),
+        "endLine": _end_line(body if lang == "dart" and body is not None else node),
+        "params": params,
+        "calls": _dedupe_calls(_gresolve(_gcalls(body, src, lang), types)),
+        "routes": routes,
+        "http": [],
+    }
+    if body is None and lang not in ("ruby", "elixir"):
+        entry["declaration"] = True               # an interface / abstract / trait signature
+    return entry
+
+
+def _gclass(node, src: bytes, lang: str, is_method) -> dict | None:
+    name_node = _gname_node(node, src, lang)
+    if name_node is None:
+        return None
+    name = _text(name_node, src)
+    annos = _gannos(node, src, lang)
+    prefix = _class_prefix(annos, "java", name) if lang == "kotlin" else ""
+    fields = _gfields(node, src, lang)
+    body = _gbody(node, lang)
+    methods = [_gmethod(m, src, lang, fields, prefix)
+               for m in (body.named_children if body is not None else [])
+               if is_method(m) and _gname_node(m, src, lang) is not None]
+    return {"name": name, "bases": _gbases(node, src, lang),
+            "decorators": [a["name"] for a in annos if a["name"]],
+            "doc": _gdoc(node, src, lang), "line": _line(name_node), "endLine": _end_line(node),
+            "fields": fields, "methods": methods}
+
+
+def _generic(root, src: bytes, lang: str) -> tuple[list[dict], list[dict], list[dict]]:
+    """(classes, functions, routes) for one file of a SHAPES language."""
+    shape = SHAPES[lang]
+
+    def is_container(n) -> bool:
+        return _gkind(n, src, lang) in shape["container"]
+
+    def is_method(n) -> bool:
+        return _gkind(n, src, lang) in shape["method"]
+
+    classes: list[dict] = []
+    by_name: dict[str, dict] = {}
+
+    def containers(node) -> None:
+        for child in node.named_children:
+            if is_container(child):
+                rec = _gclass(child, src, lang, is_method)
+                if rec is not None:
+                    classes.append(rec)
+                    by_name.setdefault(rec["name"], rec)
+                body = _gbody(child, lang)
+                if body is not None:
+                    containers(body)                    # a nested class
+            elif not is_method(child):
+                containers(child)
+
+    functions: list[dict] = []
+    routes: list[dict] = []
+
+    def attach(holder: str, m) -> None:
+        rec = by_name.get(holder)
+        entry = _gmethod(m, src, lang, rec["fields"] if rec else {}, "")
+        (rec["methods"] if rec else functions).append(entry)
+
+    def free(node) -> None:
+        for child in node.named_children:
+            if is_container(child):
+                continue
+            if lang == "rust" and child.type == "impl_item":
+                # `impl Store { fn save(&self) }` -- methods of a type declared elsewhere
+                # in the file. A type from another file keeps its methods as functions,
+                # the rule Go's receivers already follow.
+                holder = _base_type(_field_text(child, "type", src))
+                trait = _base_type(_field_text(child, "trait", src))
+                if trait and holder in by_name and trait not in by_name[holder]["bases"]:
+                    by_name[holder]["bases"].append(trait)
+                body = _field(child, "body")
+                for m in body.named_children if body is not None else []:
+                    if is_method(m) and _gname_node(m, src, lang) is not None:
+                        attach(holder, m)
+            elif is_method(child):
+                name_node = _gname_node(child, src, lang)
+                if name_node is None:
+                    continue
+                qualified = _text(name_node, src)
+                if lang == "cpp" and "::" in qualified:          # int Store::save() {...}
+                    attach(qualified.split("::")[-2], child)
+                    continue
+                entry = _gmethod(child, src, lang, {}, "")
+                annos = _gannos(child, src, lang) if lang == "rust" else []
+                for a in annos:                                  # #[post("/widgets")] async fn h
+                    if a["name"] in RUST_VERBS and a["arg"]:
+                        routes.append({"method": a["name"].upper(), "path": _join_path("", a["arg"]),
+                                       "handler": entry["name"], "line": entry["line"],
+                                       "endLine": entry["endLine"], "doc": entry["doc"]})
+                functions.append(entry)
+            else:
+                free(child)
+
+    containers(root)
+    free(root)
+    return classes, functions, routes
 
 
 def _imports(root, src: bytes, lang: str) -> list[dict]:
@@ -620,10 +1209,14 @@ def extract_file(path: str) -> dict | None:
         return None
 
     root = parser.parse(src).root_node
-    classes, functions = _containers(root, src, lang)
-    routes = _go_routes(root, src) if lang == "go" else []
-    return {"file": path, "lang": lang,
-            "imports": _imports(root, src, lang),
+    if lang in SHAPES:
+        classes, functions, routes = _generic(root, src, lang)
+        imports: list[dict] = []        # the graphs resolve through declared types, not imports
+    else:
+        classes, functions = _containers(root, src, lang)
+        routes = _go_routes(root, src) if lang == "go" else []
+        imports = _imports(root, src, lang)
+    return {"file": path, "lang": lang, "imports": imports,
             "classes": classes, "functions": functions, "routes": routes}
 
 

@@ -13,7 +13,7 @@ Dead-code ratio 13.5% · cycles 0 · layer violations 0 · security findings 4
 
 > **This grade rests on a lower bound.** Call edges are a lower bound in every language: a call is only drawn when the receiver's type can be read from the source, and anything else is dropped rather than guessed. The real coupling is at least this much, never less.
 
-> **17 of 52 nodes lose precision in a way that can be named** — see each node's `precision` field: `interface-dispatch` (calls through an interface stop at its declaration -- which implementation runs is not knowable from the source); `overloads` (an overload set is folded into one node, so which signature is called is ambiguous); `name-matched` (JS/TS calls are matched by name, so calls through an object were dropped).
+> **17 of 52 nodes lose precision in a way that can be named** — see each node's `precision` field: `interface-dispatch` (calls through an interface stop at its declaration -- which implementation runs is not knowable from the source); `overloads` (an overload set is folded into one node, so which signature is called is ambiguous); `name-matched` (JS/TS, Ruby, PHP, Elixir and Groovy calls are matched by name, so a call through an object with no declared type was dropped).
 
 ## Census
 

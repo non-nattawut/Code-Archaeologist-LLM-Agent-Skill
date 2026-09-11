@@ -479,7 +479,7 @@ const TEST_COLOR = "#57ab5a";
 const PRECISION_NOTES = {
   "interface-dispatch": "Calls through an interface stop at its declaration - which implementation runs is not knowable from the source.",
   "overloads": "An overload set is folded into one node, so which signature is called is ambiguous.",
-  "name-matched": "JS/TS calls are matched by name, so calls through an object were dropped.",
+  "name-matched": "JS/TS, Ruby, PHP, Elixir and Groovy calls are matched by name, so a call through an object with no declared type was dropped.",
 };
 const LAYER_COLORS = {
   controller: "#f778ba", endpoint: "#f778ba", service: "#6ea8fe", repository: "#3fb950",
@@ -488,8 +488,16 @@ const LAYER_COLORS = {
 };
 const FOLDER_COLORS = ["#6ea8fe", "#f778ba", "#3fb950", "#e3b341", "#a371f7", "#39c5cf",
                        "#f0883e", "#db6d28", "#8ddb8c", "#c297ff", "#ff7b72", "#7ee787"];
+// The language-mix bar. Since phase 7 eighteen languages have graphs, and eighteen
+// hues cannot stay distinguishable on this ground, so languages of one family share
+// a colour and the label beside each swatch names the language. The family hues sit
+// outside FOLDER_COLORS and the layer palette, so none of them means two things.
+const JVM = "#b08968", DOTNET = "#8e7cc3", NATIVE = "#d16d6d", DYNAMIC = "#9fb0c4";
 const LANG_COLORS = { py: "#6ea8fe", js: "#e3b341", jsx: "#f0883e", ts: "#39c5cf",
-                      tsx: "#a371f7", other: "#8b98ad" };
+                      tsx: "#a371f7", java: JVM, kotlin: JVM, scala: JVM, groovy: JVM,
+                      csharp: DOTNET, c: NATIVE, cpp: NATIVE, rust: NATIVE, swift: NATIVE,
+                      ruby: DYNAMIC, php: DYNAMIC, elixir: DYNAMIC, go: "#5fb3a1",
+                      dart: "#c9a0dc", other: "#8b98ad" };
 const COOL = [45, 63, 94], HOT = [248, 81, 73];
 const heat = (v, max) => {
   const t = max > 0 ? Math.min(1, v / max) : 0;

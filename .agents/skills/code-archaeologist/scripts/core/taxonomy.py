@@ -84,6 +84,8 @@ TEST_CONTENT_RE = re.compile(
     r"|\[(TestMethod|TestClass|Fact|Theory|TestFixture)\]"          # .NET
     r"|#\[(test|cfg\(test\))\]"                                     # Rust
     r"|\bfunc\s+Test[A-Z]\w*\s*\(\s*\w+\s+\*testing\.T"             # Go
+    r"|\buse\s+ExUnit\.Case\b|<\s*Minitest::Test\b|\bXCTestCase\b"   # Elixir, Ruby, Swift
+    r"|\bextends\s+(?:\\?\w+\\)*TestCase\b|package:(?:flutter_)?test/"  # PHPUnit, Dart
     r"|\bunittest\.TestCase\b|^\s*import\s+pytest\b", re.M)         # Python
 TEST_CONTENT_BYTES = 8192
 # A graph node's `source` is "<path>:<line>"; the line is not part of the filename.
@@ -151,7 +153,9 @@ def is_test_file(path: str, full_path: str | None = None) -> bool:
 PRECISION_REASONS = ("interface-dispatch", "overloads", "name-matched")
 
 # Languages whose extractor matches call *names* rather than resolving a receiver.
-NAME_MATCHED_LANGS = {"js", "ts", "jsx", "tsx"}
+# Ruby, PHP, Elixir and Groovy joined in phase 7: their source usually names no
+# receiver type, so a call through an object is dropped unless one is written down.
+NAME_MATCHED_LANGS = {"js", "ts", "jsx", "tsx", "ruby", "php", "elixir", "groovy"}
 
 PRECISION_CAVEAT = (
     "Call edges are a lower bound in every language: a call is only drawn when the "
@@ -164,8 +168,8 @@ PRECISION_NOTES = {
                            "which implementation runs is not knowable from the source"),
     "overloads": ("an overload set is folded into one node, so which signature is "
                   "called is ambiguous"),
-    "name-matched": ("JS/TS calls are matched by name, so calls through an object "
-                     "were dropped"),
+    "name-matched": ("JS/TS, Ruby, PHP, Elixir and Groovy calls are matched by name, so a "
+                     "call through an object with no declared type was dropped"),
 }
 
 

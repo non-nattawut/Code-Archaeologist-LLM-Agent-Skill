@@ -178,8 +178,16 @@ re-runs it from scratch — along with the current selection and filter.
 
 | Capability | Languages |
 | --- | --- |
-| **Graphs, exact** (parsed) | Python, JavaScript/TypeScript/JSX/TSX, Java, Go, C# — all tree-sitter |
-| **Lines, complexity, risk scan, debt markers, test detection** | + Kotlin, Rust, Ruby, PHP, Swift, Scala, Groovy, Dart, Elixir, C/C++ |
+| **Graphs** — nodes, call edges, structure, per-node metrics, tests | Python, JavaScript/TypeScript/JSX/TSX, Java, Go, C#, Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir — all tree-sitter, each with its own fixture |
+| **Lines, risk scan, debt markers, test detection** | all of the above |
+| **Routes read** | FastAPI, Flask, Express, NestJS, Spring (Java and Kotlin), ASP.NET, Go `net/http`, actix-web / Rocket |
+
+Seventeen languages, one engine: each is a pinned grammar wheel plus a row of node types
+(`ts_extract.SHAPES`), never a new parser. The graph's precision follows the *type system*, not
+the grammar: Kotlin, Rust, Swift, Scala, Dart, C and C++ declare their types, so a call through a
+field or parameter resolves as it does in Java; Ruby, PHP, Elixir and Groovy usually do not, so
+their nodes say `name-matched`, and a call through an untyped object is dropped. Routes are read
+only for the frameworks named above; any other framework's handlers are ordinary nodes.
 
 Every language with a graph is **parsed by the same engine**: Java, Go and C# moved off a
 hand-written textual scan, JS/TS off `@babel/parser`, and Python off the standard library's `ast`,
@@ -196,8 +204,9 @@ is a lower bound, and the report says so in its opening line rather than pinning
 languages.
 
 Where a loss can be *named*, the node says which: `interface-dispatch`, `overloads`, or
-`name-matched` (JS/TS resolve calls by name, so a call through an object is dropped — measured at
-0 of 3 edges in the TypeScript fixture, against 3 of 3 for the typed languages). `context.py`
+`name-matched` (JS/TS, Ruby, PHP, Elixir and Groovy resolve calls by name, so a call through an
+object with no declared type is dropped — measured at 0 of 3 edges in the TypeScript fixture,
+against 3 of 3 for the typed languages). `context.py`
 repeats the reason on the node an agent is reading, and the explorer shows it as a chip.
 
 **A name defined in several files is qualified by its file.** Flow ids are bare -- `place_order`,
@@ -293,7 +302,7 @@ It has no npm dependencies of its own.
 │   │   ├── build_flow.py
 │   │   ├── py_extract.py   Python, parsed with tree-sitter (ast is kept as the oracle)
 │   │   ├── js_ts_extract.py JS/JSX/TS/TSX, parsed with tree-sitter
-│   │   ├── ts_extract.py   Java/Go/C#, parsed with tree-sitter
+│   │   ├── ts_extract.py   Java/Go/C# and eleven more languages, parsed with tree-sitter
 │   │   └── apply_descriptions.py
 │   │
 │   ├── review/           graphs -> findings
@@ -325,6 +334,7 @@ Alongside the skill, in the repo but never installed:
 tests/fixtures/langs/      one small fixture per graphed language + expected.json
 tools/                     check_docs.py · check_langs.py · check_py_oracle.py
                            check_graph.py (the graph's invariants) · check_regressions.py
+                           time_build.py (wall time per stage, corpora read-only)
 ```
 
 ---

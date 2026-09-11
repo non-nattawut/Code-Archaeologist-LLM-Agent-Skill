@@ -57,7 +57,10 @@ DEFAULT_COMMENTS = ("//", "/*", "*")
 
 # Census language (taxonomy.lang_of) -> the grammar that parses it.
 GRAMMAR = {"py": "python", "js": "javascript", "jsx": "javascript", "ts": "typescript",
-           "tsx": "tsx", "java": "java", "go": "go", "csharp": "csharp"}
+           "tsx": "tsx", "java": "java", "go": "go", "csharp": "csharp",
+           "kotlin": "kotlin", "rust": "rust", "swift": "swift", "scala": "scala",
+           "groovy": "groovy", "dart": "dart", "c": "c", "cpp": "cpp", "ruby": "ruby",
+           "php": "php", "elixir": "elixir"}
 
 # Per grammar: `decisions` each add 1 to the McCabe count of the node containing
 # them, `blocks` indent a body (depth follows them), and `defs` are what a graph
@@ -74,11 +77,22 @@ _JS_BLOCKS = {"if_statement", "for_statement", "for_in_statement", "while_statem
               "function_expression", "arrow_function", "method_definition", "class_declaration"}
 _JS_DEFS = {"function_declaration", "generator_function_declaration", "method_definition",
             "arrow_function", "function_expression", "class_declaration", "variable_declarator"}
+_BIN = {"binary_expression"}
+_C_DECISIONS = {"if_statement", "for_statement", "while_statement", "do_statement",
+                "case_statement", "conditional_expression"}
+_C_BLOCKS = {"if_statement", "for_statement", "while_statement", "do_statement", "switch_statement"}
+_C_DEFS = {"function_definition", "struct_specifier", "enum_specifier", "union_specifier"}
+# Optional keys, absent from every table that predates phase 7 (so their numbers
+# cannot move): `boolean` -- node types whose `operator` is a short-circuit;
+# `fallback` -- case types whose default arm (`default:`, `_ =>`, `else ->`) is not
+# a branch; `decision_calls` / `block_calls` / `arm_calls` -- Elixir, where `if`,
+# `for` and `case` are macro *calls* rather than node types.
 TABLES = {
     "python": {
         "decisions": {"if_statement", "elif_clause", "for_statement", "while_statement",
                       "except_clause", "with_statement", "assert_statement",
-                      "conditional_expression", "case_clause"},
+                      "conditional_expression", "case_clause", "if_clause"},
+        "boolean": {"boolean_operator"},
         "blocks": {"if_statement", "for_statement", "while_statement", "with_statement",
                    "try_statement", "match_statement", "function_definition", "class_definition"},
         "defs": {"function_definition", "class_definition"},
@@ -86,6 +100,7 @@ TABLES = {
     "java": {
         "decisions": {"if_statement", "for_statement", "enhanced_for_statement", "while_statement",
                       "do_statement", "catch_clause", "ternary_expression", "switch_label"},
+        "fallback": {"switch_label"}, "boolean": _BIN,
         "blocks": {"if_statement", "for_statement", "enhanced_for_statement", "while_statement",
                    "do_statement", "try_statement", "try_with_resources_statement",
                    "switch_expression", "lambda_expression"},
@@ -95,6 +110,7 @@ TABLES = {
     "go": {
         "decisions": {"if_statement", "for_statement", "expression_case", "type_case",
                       "communication_case"},
+        "boolean": _BIN,
         "blocks": {"if_statement", "for_statement", "expression_switch_statement",
                    "type_switch_statement", "select_statement", "func_literal"},
         "defs": {"function_declaration", "method_declaration", "type_spec", "func_literal"},
@@ -103,6 +119,7 @@ TABLES = {
         "decisions": {"if_statement", "for_statement", "foreach_statement", "while_statement",
                       "do_statement", "catch_clause", "conditional_expression", "switch_section",
                       "switch_expression_arm"},
+        "fallback": {"switch_section", "switch_expression_arm"}, "boolean": _BIN,
         "blocks": {"if_statement", "for_statement", "foreach_statement", "while_statement",
                    "do_statement", "try_statement", "switch_statement", "lambda_expression",
                    "local_function_statement"},
@@ -110,18 +127,103 @@ TABLES = {
                  "interface_declaration", "struct_declaration", "record_declaration",
                  "enum_declaration", "local_function_statement"},
     },
-    "javascript": {"decisions": _JS_DECISIONS, "blocks": _JS_BLOCKS, "defs": _JS_DEFS},
-    "typescript": {"decisions": _JS_DECISIONS, "blocks": _JS_BLOCKS,
+    "javascript": {"decisions": _JS_DECISIONS, "boolean": _BIN, "blocks": _JS_BLOCKS, "defs": _JS_DEFS},
+    "typescript": {"decisions": _JS_DECISIONS, "boolean": _BIN, "blocks": _JS_BLOCKS,
                    "defs": _JS_DEFS | {"abstract_class_declaration"}},
-    "tsx": {"decisions": _JS_DECISIONS, "blocks": _JS_BLOCKS,
+    "tsx": {"decisions": _JS_DECISIONS, "boolean": _BIN, "blocks": _JS_BLOCKS,
             "defs": _JS_DEFS | {"abstract_class_declaration"}},
+    # --- phase 7 --------------------------------------------------------------------
+    "kotlin": {
+        "decisions": {"if_expression", "for_statement", "while_statement", "do_while_statement",
+                      "when_entry", "catch_block"},
+        "fallback": {"when_entry"}, "boolean": _BIN,
+        "blocks": {"if_expression", "for_statement", "while_statement", "do_while_statement",
+                   "when_expression", "try_expression", "lambda_literal"},
+        "defs": {"function_declaration", "class_declaration", "object_declaration"},
+    },
+    "rust": {
+        "decisions": {"if_expression", "for_expression", "while_expression", "match_arm"},
+        "fallback": {"match_arm"}, "boolean": _BIN,
+        "blocks": {"if_expression", "for_expression", "while_expression", "loop_expression",
+                   "match_expression", "closure_expression"},
+        "defs": {"function_item", "function_signature_item", "struct_item", "enum_item", "trait_item"},
+    },
+    "swift": {
+        # Swift spells `&&` / `||` as node types of their own, so they are decisions.
+        "decisions": {"if_statement", "for_statement", "while_statement", "repeat_while_statement",
+                      "guard_statement", "switch_entry", "catch_block", "ternary_expression",
+                      "conjunction_expression", "disjunction_expression"},
+        "fallback": {"switch_entry"},
+        "blocks": {"if_statement", "for_statement", "while_statement", "repeat_while_statement",
+                   "guard_statement", "switch_statement", "lambda_literal"},
+        "defs": {"function_declaration", "class_declaration", "protocol_declaration", "init_declaration"},
+    },
+    "scala": {
+        "decisions": {"if_expression", "for_expression", "while_expression", "case_clause",
+                      "catch_clause"},
+        "fallback": {"case_clause"}, "boolean": {"infix_expression"},
+        "blocks": {"if_expression", "for_expression", "while_expression", "match_expression",
+                   "try_expression", "lambda_expression"},
+        "defs": {"function_definition", "function_declaration", "class_definition",
+                 "object_definition", "trait_definition"},
+    },
+    "groovy": {
+        "decisions": {"if_statement", "for_statement", "enhanced_for_statement", "while_statement",
+                      "do_statement", "catch_clause", "ternary_expression", "switch_label"},
+        "fallback": {"switch_label"}, "boolean": _BIN,
+        "blocks": {"if_statement", "for_statement", "enhanced_for_statement", "while_statement",
+                   "do_statement", "try_statement", "closure"},
+        "defs": {"method_declaration", "constructor_declaration", "class_declaration",
+                 "interface_declaration", "enum_declaration"},
+    },
+    "dart": {
+        # Dart names each short-circuit operator token, which counts `a && b && c` exactly.
+        "decisions": {"if_statement", "for_statement", "while_statement", "do_statement",
+                      "catch_clause", "switch_statement_case", "conditional_expression",
+                      "logical_and_operator", "logical_or_operator"},
+        "blocks": {"if_statement", "for_statement", "while_statement", "do_statement",
+                   "try_statement", "switch_statement", "function_expression"},
+        # A Dart method is a signature *beside* its body, so the body is what a
+        # method's range (signature line .. body end) lands on.
+        "defs": {"class_definition", "mixin_declaration", "function_body"},
+    },
+    "c": {"decisions": _C_DECISIONS, "fallback": {"case_statement"}, "boolean": _BIN,
+          "blocks": _C_BLOCKS, "defs": _C_DEFS},
+    "cpp": {"decisions": _C_DECISIONS | {"for_range_loop", "catch_clause"},
+            "fallback": {"case_statement"}, "boolean": _BIN,
+            "blocks": _C_BLOCKS | {"for_range_loop", "try_statement", "lambda_expression"},
+            "defs": _C_DEFS | {"class_specifier"}},
+    "ruby": {
+        "decisions": {"if", "unless", "elsif", "while", "until", "for", "when", "rescue",
+                      "conditional", "if_modifier", "unless_modifier", "while_modifier",
+                      "until_modifier"},
+        "boolean": {"binary"},
+        "blocks": {"if", "unless", "while", "until", "for", "case", "begin", "block", "do_block"},
+        "defs": {"method", "singleton_method", "class", "module"},
+    },
+    "php": {
+        "decisions": {"if_statement", "else_if_clause", "for_statement", "foreach_statement",
+                      "while_statement", "do_statement", "case_statement", "catch_clause",
+                      "conditional_expression"},
+        "boolean": _BIN,
+        "blocks": {"if_statement", "for_statement", "foreach_statement", "while_statement",
+                   "do_statement", "try_statement", "switch_statement", "anonymous_function",
+                   "arrow_function"},
+        "defs": {"method_declaration", "function_definition", "class_declaration",
+                 "interface_declaration", "trait_declaration"},
+    },
+    "elixir": {
+        "decisions": set(), "boolean": {"binary_operator"},
+        "decision_calls": {"if", "unless", "for", "while", "with"},
+        "arm_calls": {"case", "cond", "receive"},
+        "blocks": {"anonymous_function"},
+        "block_calls": {"if", "unless", "for", "case", "cond", "with", "receive", "try"},
+        "defs": {"call"},       # `def` is a call; locate() picks the one the range spans
+    },
 }
 
-# Short-circuit operators: each is a branch. Python spells them in
-# `boolean_operator`; every other grammar here in `binary_expression`.
+# Short-circuit operators: each is a branch.
 BOOLEAN_OPS = {"and", "or", "&&", "||", "??"}
-# A case label that is the fallback, not a branch of its own.
-_FALLBACK_CASES = {"switch_label", "switch_section", "switch_expression_arm"}
 
 
 def line_metrics(full: str, lang: str) -> dict:
@@ -153,28 +255,77 @@ def complexity(node, table: dict) -> int:
     is the fallback, not a branch, and does not count.
     """
     score = 1
+    fallback = table.get("fallback", ())
     for child in px.walk(node):
+        if not child.is_named:
+            # Ruby names its `if` statement node and its `if` keyword token alike, so
+            # without this every Ruby branch counted twice (found by the hand-counted
+            # fixture: 10 for 6). No earlier table's decision type is a keyword.
+            continue
         kind = child.type
         if kind in table["decisions"]:
-            if kind in _FALLBACK_CASES and px.text(child).lstrip().startswith(("default", "_")):
+            if kind in fallback and _is_fallback(child):
                 continue
             score += 1
-        elif kind in ("boolean_operator", "binary_expression"):
-            op = px.field(child, "operator")
-            if op is not None and px.text(op) in BOOLEAN_OPS:
+        elif kind in table.get("boolean", ()):
+            if _operator(child) in BOOLEAN_OPS:
                 score += 1
-        elif kind == "if_clause":
+        elif kind == "call" and _macro(child) in table.get("decision_calls", ()):
             score += 1
+        elif kind == "stab_clause" and table.get("arm_calls"):
+            owner = child.parent.parent if child.parent is not None else None
+            if owner is not None and _macro(owner) in table["arm_calls"] and not _is_fallback(child):
+                score += 1
     return score
 
 
-def depth(node, blocks: set, level: int = 0) -> int:
+def _operator(node) -> str:
+    """A binary node's operator, whether or not the grammar names it as a field."""
+    op = px.field(node, "operator")
+    if op is not None:
+        return px.text(op)
+    for tok in node.children:
+        if not tok.is_named and px.text(tok) in BOOLEAN_OPS:
+            return px.text(tok)
+    return ""
+
+
+def _is_fallback(node) -> bool:
+    """`default:`, `_ =>`, `else ->`, `true ->` -- the arm taken when no other is."""
+    if px.text(node).lstrip().startswith(("default", "_", "else", "true ")):
+        return True
+    pattern = px.field(node, "pattern")
+    return pattern is not None and px.text(pattern).strip() == "_"
+
+
+def _macro(node) -> str:
+    """The macro an Elixir call invokes (`if`, `case`, `def`...), or ""."""
+    if node is None or node.type != "call":
+        return ""
+    target = px.field(node, "target")
+    return px.text(target) if target is not None and target.type == "identifier" else ""
+
+
+def depth(node, table: dict, level: int = 0) -> int:
     """Deepest nesting of block statements below `node` (0 when the body is flat)."""
     deepest = level
+    blocks, calls = table["blocks"], table.get("block_calls", ())
     for child in node.named_children:
-        step = level + 1 if child.type in blocks else level
-        deepest = max(deepest, depth(child, blocks, step))
+        nests = child.type in blocks or (calls and _macro(child) in calls)
+        deepest = max(deepest, depth(child, table, level + 1 if nests else level))
     return deepest
+
+
+def _descendant(node, kind: str):
+    if node is None:
+        return None
+    for c in node.named_children:
+        if c.type == kind:
+            return c
+        found = _descendant(c, kind)
+        if found is not None:
+            return found
+    return None
 
 
 def params(node, grammar: str) -> int:
@@ -186,6 +337,31 @@ def params(node, grammar: str) -> int:
         if plist is None:
             return 0
         return len([c for c in plist.named_children if c.type != "comment"])
+    if grammar == "kotlin":
+        plist = next((c for c in node.named_children if c.type == "function_value_parameters"), None)
+        return sum(c.type == "parameter" for c in plist.named_children) if plist is not None else 0
+    if grammar == "swift":                          # parameters are direct children
+        return sum(c.type == "parameter" for c in node.named_children)
+    if grammar == "dart":                           # the signature sits beside the body
+        sig = node.prev_named_sibling if node.type == "function_body" else node
+        plist = _descendant(sig, "formal_parameter_list")
+        return len([c for c in px.walk(plist) if c.type == "formal_parameter"]) if plist is not None else 0
+    if grammar in ("c", "cpp"):
+        d = px.field(node, "declarator")
+        while d is not None and d.type != "function_declarator":
+            d = px.field(d, "declarator")
+        plist = px.field(d, "parameters") if d is not None else None
+        # `f(void)` declares one parameter_declaration and no parameter.
+        return sum(px.field(c, "declarator") is not None or c.type == "variadic_parameter"
+                   for c in plist.named_children) if plist is not None else 0
+    if grammar == "elixir":                         # def name(a, b) -- a call inside a call
+        args = next((c for c in node.named_children if c.type == "arguments"), None)
+        head = args.named_children[0] if args is not None and args.named_child_count else None
+        if head is not None and head.type == "binary_operator":
+            head = px.field(head, "left")
+        inner = next((c for c in head.named_children if c.type == "arguments"), None) \
+            if head is not None and head.type == "call" else None
+        return inner.named_child_count if inner is not None else 0
     if node.type == "variable_declarator":          # const f = (a, b) => ...
         node = px.field(node, "value") or node
     plist = px.field(node, "parameters")
@@ -261,7 +437,7 @@ def node_metrics(nodes, paths: dict) -> dict:
         out[n["id"]] = {
             "loc": end - int(start) + 1,
             "complexity": complexity(found, table),
-            "depth": depth(found, table["blocks"]),
+            "depth": depth(found, table),
             "params": params(found, grammar),
             "file": key,
             "line": int(start),

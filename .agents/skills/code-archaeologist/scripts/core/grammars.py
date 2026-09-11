@@ -53,6 +53,18 @@ GRAMMAR_MODULES = {
     "javascript": "tree_sitter_javascript",
     "typescript": "tree_sitter_typescript",
     "tsx": "tree_sitter_typescript",
+    # Phase 7: every language the review passes already knew, now graphed too.
+    "kotlin": "tree_sitter_kotlin",
+    "rust": "tree_sitter_rust",
+    "swift": "tree_sitter_swift",
+    "scala": "tree_sitter_scala",
+    "groovy": "tree_sitter_groovy",
+    "dart": "tree_sitter_dart",
+    "c": "tree_sitter_c",
+    "cpp": "tree_sitter_cpp",
+    "ruby": "tree_sitter_ruby",
+    "php": "tree_sitter_php",
+    "elixir": "tree_sitter_elixir",
 }
 
 # `pip install` name per module, for the message a user is asked to run.
@@ -63,6 +75,17 @@ PIP_NAMES = {
     "tree_sitter_python": "tree-sitter-python",
     "tree_sitter_javascript": "tree-sitter-javascript",
     "tree_sitter_typescript": "tree-sitter-typescript",
+    "tree_sitter_kotlin": "tree-sitter-kotlin",
+    "tree_sitter_rust": "tree-sitter-rust",
+    "tree_sitter_swift": "tree-sitter-swift",
+    "tree_sitter_scala": "tree-sitter-scala",
+    "tree_sitter_groovy": "tree-sitter-groovy",
+    "tree_sitter_dart": "tree-sitter-dart",
+    "tree_sitter_c": "tree-sitter-c",
+    "tree_sitter_cpp": "tree-sitter-cpp",
+    "tree_sitter_ruby": "tree-sitter-ruby",
+    "tree_sitter_php": "tree-sitter-php",
+    "tree_sitter_elixir": "tree-sitter-elixir",
 }
 
 # The version every install asks for -- one table, read by `install_hint()`, by
@@ -82,6 +105,19 @@ PINS = {
     "tree-sitter-python": "==0.25.0",
     "tree-sitter-javascript": "==0.25.0",
     "tree-sitter-typescript": "==0.23.2",
+    # Phase 7, each checked to load under the runtime above and to parse its fixture
+    # with no error node before it was pinned.
+    "tree-sitter-kotlin": "==1.1.0",
+    "tree-sitter-rust": "==0.24.2",
+    "tree-sitter-swift": "==0.7.3",
+    "tree-sitter-scala": "==0.26.2",
+    "tree-sitter-groovy": "==0.1.2",
+    "tree-sitter-dart": "==0.1.0",
+    "tree-sitter-c": "==0.24.2",
+    "tree-sitter-cpp": "==0.23.4",
+    "tree-sitter-ruby": "==0.23.1",
+    "tree-sitter-php": "==0.24.1",
+    "tree-sitter-elixir": "==0.3.5",
 }
 
 # The factory to call on the module, when it is not the usual `language()`.
@@ -91,6 +127,9 @@ PINS = {
 LANGUAGE_FACTORY = {
     "typescript": "language_typescript",
     "tsx": "language_tsx",
+    # `language_php` is PHP embedded in HTML -- what a `.php` file actually is;
+    # `language_php_only` would reject the `<?php` tag every file starts with.
+    "php": "language_php",
 }
 
 _parsers: dict[str, object] = {}

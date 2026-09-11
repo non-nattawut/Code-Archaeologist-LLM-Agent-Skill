@@ -15,8 +15,9 @@ reviews them, and renders one browsable page:
 | **Flow** | methods/functions | `build_flow.py` | `data/flow/{flow_graph.json, notes/*.md}` |
 
 Three producers feed both maps -- Python (`py_extract.py`), JS/TS (`js_ts_extract.py`) and
-Java/Go/C# (`ts_extract.py`) -- and since phase 2 all three are **tree-sitter**. There is one
-parser in the build.
+everything else (`ts_extract.py`: Java, Go, C#, and since phase 7 Kotlin, Rust, Swift, Scala,
+Groovy, Dart, C, C++, Ruby, PHP and Elixir) -- and since phase 2 all three are **tree-sitter**.
+There is one parser in the build, and **seventeen languages have a graph**.
 
 **Precision is stated once, globally, and named per node where it can be.** Every language's call
 edges are a lower bound -- a call is drawn only when the receiver's type can be read from the
@@ -48,7 +49,7 @@ archaeologist.py  project | flow | both | check | report | brief   <- the only e
   flow     -> build_flow ---------------------------------+--> render_explorer()
       both extract through: py_extract.py     (Python,        tree-sitter)
                             js_ts_extract.py  (JS/TS/JSX/TSX, tree-sitter)
-                            ts_extract.py     (Java/Go/C#,    tree-sitter)
+                            ts_extract.py     (13 languages,  tree-sitter)
   report   -> report.py (scan_security + git_insights + analyze + metrics + debt + tests_map
                          + duplicates)
                                                                     -> data/report/<map>/
@@ -150,6 +151,15 @@ delete. Nothing else in `core/` may import a skill module.
   node-type spellings. Adding a language is a row there plus its receiver rule. tree-sitter gives
   declarations, bodies, param types and doc attachment; it does **not** give resolution, so
   `_calls` still answers `""` / `"Type"` / `"?"` exactly as before.
+  **Since phase 7 it also reads eleven more languages**, through a second, shared walker rather
+  than more inline branches: `SHAPES` names each grammar's container / method / comment node
+  types, and a handful of small readers cover the trees that are genuinely shaped differently (a
+  Rust method lives in an `impl`, a Dart method is a signature *beside* its body, a C function's
+  name sits inside nested declarators, an Elixir `def` is a macro call). Groovy's tree is Java's,
+  so it takes Java's branch (`JAVA_LIKE`). The walker adds one resolution rule these languages
+  lean on: a receiver that is itself a type name (`WidgetStore.save` in Elixir, `Widget::new` in
+  Rust) resolves to that type. Java, Go and C# keep their own branches untouched -- the sample's
+  graphs were byte-identical before and after.
 - `trace_path.py` is the query tool: `--from/--to` (BFS path), `--impact-of` (blast radius),
   `--impact-of-diff` (map a git diff to nodes, union their impact). Works on either graph.
 - `analyze.py` is graph-only: cycles, orphans, layer violations, hubs, god objects, name-based
@@ -215,6 +225,11 @@ One meaning, one colour, everywhere — a reader learns the scheme once, from an
 - **A new `layer` / `kind` value needs its colour in `LAYER_COLORS` in the same commit** that adds
   it to `taxonomy.py`. The legend, the node painter and every view read from there; nothing
   hard-codes a colour at a call site.
+- **Languages are coloured by family** (`LANG_COLORS`, the rail's language-mix bar): JVM
+  (Java/Kotlin/Scala/Groovy), .NET, native (C/C++/Rust/Swift), dynamic (Ruby/PHP/Elixir), Go,
+  Dart, plus the original five for Python and JS/TS. Seventeen distinguishable hues on this ground
+  do not exist, and the label beside each swatch names the language. The family hues sit outside
+  `FOLDER_COLORS` and the layer palette, so none of them means two things.
 - The chrome is deliberately quiet so the data can be loud: near-black ground `#08090b`, hairline
   rules `#1b1f26`, one accent (amber `#d99f4a`) for the active state and nothing else, and a system
   monospace stack. No emoji anywhere in the UI — icons are inline SVG on a 16px grid. Keep it that
@@ -278,7 +293,9 @@ scrolls.
    **Every language is tree-sitter, Python included**: the runtime plus the wheel for that
    language (`tree-sitter-python`, `tree-sitter-javascript` for `.js`/`.jsx`,
    `tree-sitter-typescript` for `.ts` *and* `.tsx`, `tree-sitter-java`, `tree-sitter-go`,
-   `tree-sitter-c-sharp`) — wheels, no compiler, grammar bundled. Python no longer parses out of
+   `tree-sitter-c-sharp`, and since phase 7 one each for Kotlin, Rust, Swift, Scala, Groovy, Dart,
+   C, C++, Ruby, PHP and Elixir — all pinned in `grammars.PINS`) — wheels, no compiler, grammar
+   bundled. Python no longer parses out of
    the box, and that is the promise phase 2 knowingly traded away: one engine, at the cost of
    "zero Python dependencies". **Node is not used at all**:
    it is not required, not checked for, and not installed. The skill has no `package.json`. **Grammars are installed on demand, not shipped**: a repo with no Go pays nothing for
@@ -456,6 +473,23 @@ A fixture costs one directory and one row. Current expectations, all asserted:
 | go | 7 | 3 | 1 | yes |
 | javascript | 6 | 3 | 1 | yes |
 | typescript | 6 | **0** | 1 | yes |
+| kotlin | 6 | 3 | 1 | yes |
+| rust | 6 | 3 | 1 | yes |
+| swift | 5 | 2 | 0 | yes |
+| scala | 5 | 2 | 0 | yes |
+| groovy | 5 | 2 | 0 | yes |
+| dart | 5 | 2 | 0 | yes |
+| c | 5 | 2 | 0 | yes |
+| cpp | 5 | 2 | 0 | yes |
+| ruby | 7 | 2 | 0 | yes |
+| php | 6 | 2 | 0 | yes |
+| elixir | 5 | 2 | 0 | yes |
+
+The eleven phase-7 rows have no controller where the language's route shape is read elsewhere
+(Ruby, PHP, Elixir route *tables* are phase 8) or not at all (Swift, Scala, Dart, C, C++ -- a
+stated boundary in the README), hence 2 edges and 0 routes. Ruby's 2 edges are the honest
+sparse case: `@store.save` is dropped (an instance variable carries no type) while the
+same-class `validate` call and the test's `WidgetService.new(...)` call are kept.
 
 Each also asserts every node's **line and doc**, and each fixture carries 2-, 3- and 4-byte UTF-8
 before its nodes plus one non-ASCII node name (`größe`) — phase 6b, so a byte offset applied to

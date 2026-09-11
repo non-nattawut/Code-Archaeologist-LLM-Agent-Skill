@@ -1,9 +1,8 @@
 # Graph as many languages as possible
 
-> ## Status: **phases 1–5 are complete, and every recorded finding and limit is resolved. Phases 6–9 are planned, not started.**
-> The goal in the title is not reached: no language has been added yet, and four open concerns
-> remain. Phases 6–9 make the skill feature-complete — the open concerns, all eleven review-only
-> languages, route tables and sub-function duplicates (see *Phases 6–9* below).
+> ## Status: **phases 1–7 are complete; phases 8–9 remain. The goal in the title is reached: seventeen languages have a graph.**
+> Every planning concern is closed. One recorded finding awaits review: *Found while implementing*
+> #6 (a decorated TS method's `source` line), found in 6b after the phase-6 decisions were made.
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
@@ -12,8 +11,8 @@
 > | 3 — Full regression gate: nothing old may break | does it still run | **done** — 5 things fixed, 1 recorded (*Found while implementing* #4) | `f904891` |
 > | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | **done** — 3 bugs fixed, 1 recorded (#5); 29 checks + 18 regression cases | `b44b909` |
 > | 5 — The two limits phase 4 left: structure-map shared names, the narrow toolbar | close the known gaps | **done** — both closed; toolbar floor ~1270 → ~987px | `cc4d0af` |
-> | 6 — Close the open concerns: pinned grammars, non-ASCII, per-language metrics, timing | make adding a language safe | **done** — 6c, 6b (recorded #6), 6a, 6d (this commit; found and fixed the MAX_PATH crash) | `16b6f62`, `6553498`, `bf588e7` |
-> | 7 — A graph for every review-only language (Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir) | the title goal | **planned, not started** | — |
+> | 6 — Close the open concerns: pinned grammars, non-ASCII, per-language metrics, timing | make adding a language safe | **done** — 6c, 6b (recorded #6), 6a, 6d (found and fixed the MAX_PATH crash) | `16b6f62`, `6553498`, `bf588e7`, `758e522` |
+> | 7 — A graph for every review-only language (Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir) | the title goal | **done** — 17 languages graphed; 2 defects found by the fixtures and fixed | this commit |
 > | 8 — Route tables: Django `urlpatterns`, Rails, Laravel, Phoenix | cross-stack links for table-routed apps | **planned, not started** | — |
 > | 9 — Duplicates below function granularity | copied blocks, not only copied functions | **planned, not started** | — |
 >
@@ -77,12 +76,9 @@
 > **What is still not done** (corrected 2026-09-11, after phase 5 — this paragraph had kept listing
 > 2d and 2g as open long after both shipped):
 >
-> - **The goal in this file's title has not been advanced.** Languages added since the port began:
->   **none.** The five phases built the engine, the fixtures and the checks that adding a language
->   needs; no seventh language has been added. 2c beyond the six ported languages is unstarted.
-> - **Four of the eight open concerns are still open** — 3, 5, 7, and 4 in part; see the status
->   table at the top of *Open concerns*. 1, 2 and 8 are resolved, and 6 only applies once languages
->   are added. **Phase 6 plans all four**, plus a metrics bug found while writing it.
+> - *(Updated after phase 7.)* **The title goal is reached** — phase 7 added eleven languages, so
+>   seventeen have a graph. **Every planning concern is closed** by phases 6 and 7 (table under
+>   *Open concerns*). What remains is phase 8 (route tables) and phase 9 (sub-function duplicates).
 > - 2b's supplementary TypeScript query is moot (JS/TS walk the tree directly), and 2f is done
 >   (`lang_extract.py` was deleted at step 2, not kept as a fallback).
 >
@@ -1315,6 +1311,39 @@ states that routes are read for the frameworks it names — a stated boundary, n
 sample (`sample_src`, which does **not** grow — CLAUDE.md) byte-identical; every degrade row passes;
 the installer self-test installs the full pinned set.
 
+**Result — shipped 2026-09-11. Seventeen languages have a graph; the title goal is reached.**
+
+- **Step 1 first:** all eleven wheels loaded under runtime 0.26 and parsed their fixture with no
+  error node (Groovy's grammar reports `has_error` on one file from a swallowed newline, but no
+  ERROR node lands in a declaration). None had to be skipped.
+- **One walker, not eleven extractors.** `ts_extract.SHAPES` plus a few small readers; Groovy takes
+  Java's branch (`JAVA_LIKE`) because its tree *is* Java's. Java, Go and C# keep their branches, and
+  the sample's graphs came out byte-identical.
+- **Fixtures, read before blessing.** Each of the eleven has the store / service-through-a-field /
+  test shape, the non-ASCII lines (6b), and a hand-counted `grade` (6a). The recorded rows were
+  printed and read before `--update`; the six existing rows were proven unchanged.
+  Every `grade` is **complexity 6, depth 2, 2 params** in all seventeen languages.
+- **Two defects found by those fixtures, both fixed:** Ruby names its `if` *keyword token* like its
+  `if` *statement*, so every Ruby branch counted twice (complexity 10 for 6) — metrics now counts
+  named nodes only, which no earlier table is affected by; and Groovy's grammar folds the doc
+  comment of a member into the field declaration above it, so two docs were lost — the doc lookup
+  now takes a comment the previous sibling swallowed.
+- **Joint build of all seventeen fixtures** (the hardest shared-name case the repo has: about
+  fifteen files define `WidgetStore`): structure 57 / 17, flow 99 / 25, 9 endpoints, `check_graph`
+  clean on both maps.
+- **Degrade, per grammar:** hiding each of the eleven wheels in turn gives exactly one named warning
+  carrying its pinned install command, zero nodes for that language, and the rest still built.
+- **Routes:** Kotlin Spring through Java's annotation rule; Rust `#[post("/…")]` through the
+  function's attributes, attached by handler name exactly as Go's are.
+- **Colours:** by family, as decided (CLAUDE.md, *Colour rules*).
+- **Installer:** a fresh `bin/cli.js --self-test` installed the full pinned set — 18 grammar keys
+  (17 languages plus `tsx`), zero drift from `grammars.PINS` — and built the demo.
+- **Two places where the result departs from the text above, both toward precision:** Groovy and
+  PHP resolve a receiver whose type *is* written (a Groovy typed field, a PHP typed or promoted
+  property) — they still carry `name-matched`, because most code in those languages declares
+  nothing; and Elixir's module calls (`WidgetStore.save`) resolve outright, because a module name is
+  a static target.
+
 ---
 
 ## Phase 8 — Route tables: Django, Rails, Laravel, Phoenix
@@ -1636,11 +1665,11 @@ this table is the current state.
 | --- | --- | --- |
 | 1 | Resolution parity | **resolved** — step 5: the Python port produced byte-identical graphs, and `tools/check_py_oracle.py` reports 0 disagreements |
 | 2 | Node id collisions | **resolved** — finding #5 (flow) and phase 5a (structure): `core/ids.py` qualifies only names defined in more than one file |
-| 3 | `metrics.py` branch table per language | **open → 6a** — per-node complexity/depth/params are still Python only; Java/Go/C#/JS/TS nodes carry no per-node metrics at all, so nothing reports a false 1, but nothing reports anything |
-| 4 | Byte vs character offsets | **partly covered → 6b** — `sample_src` has non-ASCII in four Python files and one TS file, and those graphs stayed byte-identical through the port; no Java, Go or C# file with non-ASCII content is exercised |
-| 5 | Grammar versions drift | **half done → 6c** — versions are recorded in the manifest and a change makes `check` report stale, and `check_langs.py` would catch a rename; the install command does **not** pin exact versions |
-| 6 | Colours for new languages | **not applicable yet** — no language has been added; it belongs to the phase that adds the first one |
-| 7 | Performance | **open → 6d** — never timed on a large repo |
+| 3 | `metrics.py` branch table per language | **resolved in 6a** (extended in 7) — per-node metrics for all seventeen languages, measured by the graph's range; every fixture's hand-counted `grade` asserted |
+| 4 | Byte vs character offsets | **resolved in 6b** — non-ASCII before every node in every fixture, lines and docs asserted, and a decode-then-slice sabotage shown to fail |
+| 5 | Grammar versions drift | **resolved in 6c** — every wheel pinned in one table (`grammars.PINS`), drift named by `check` and `brief` |
+| 6 | Colours for new languages | **resolved in 7** — coloured by family |
+| 7 | Performance | **resolved in 6d** — 27.7 s for a full build and report of a 1,100-file repository; per-file cost falls as corpora grow |
 | 8 | JSX / `component` detection | **resolved** — step 3: `OrderCard` and `StatusBadge` come out as `kind: component`, byte-identical to Babel |
 
 **1. Resolution parity is unproven.** The spikes proved *declaration* parity for Python (oracle:

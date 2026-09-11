@@ -333,7 +333,8 @@ def extract_js_entities(roots: list[str]) -> list[dict]:
 # Extraction: Java / Go / C#
 # ---------------------------------------------------------------------------
 def extract_lang_entities(roots: list[str]) -> list[dict]:
-    """Java/C# classes, Go structs, and Go module function-groups.
+    """Classes, structs and modules -- plus a module function-group per file -- for every
+    `ts_extract` language (Java, Go, C# and, since phase 7, eleven more).
 
     References come from *declared types* -- bases, field types, parameter types
     and resolved call receivers -- not from the import list. That is a better

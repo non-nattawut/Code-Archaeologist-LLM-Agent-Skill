@@ -59,7 +59,7 @@ derived from what is already in the graph, never from the language alone:
 | --- | --- | --- |
 | `interface-dispatch` | an outgoing edge lands on a node with `declaration: true` | The call stops at an interface; which implementation runs is not knowable from the source. Emitting an edge to every implementor would trade precision for recall. |
 | `overloads` | an outgoing edge lands on a node whose `signatures` has more than one entry | Ids carry no arity, so an overload set folds into one node and which signature is called is ambiguous. |
-| `name-matched` | the node's `lang` is `js`, `ts`, `jsx` or `tsx` | Those extractors match call *names* rather than resolving a receiver, so calls through an object are dropped entirely. Measured: the TypeScript fixture resolves **0 of 3** edges where the typed languages resolve 3 of 3. |
+| `name-matched` | the node's `lang` is `js`, `ts`, `jsx`, `tsx`, `ruby`, `php`, `elixir` or `groovy` | These languages' source usually names no receiver type, so a call through an object is dropped unless its type is written down (a PHP typed property, a Groovy typed field, an Elixir module name). Measured: the TypeScript fixture resolves **0 of 3** edges where the typed languages resolve 3 of 3, and the Ruby fixture drops `@store.save` while keeping the same-class `validate` call. |
 
 Order follows `taxonomy.PRECISION_REASONS`, so the field is deterministic (constraint 2).
 

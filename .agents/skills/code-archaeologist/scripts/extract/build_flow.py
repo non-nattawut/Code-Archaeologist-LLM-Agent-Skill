@@ -577,7 +577,7 @@ def _analyze_js(js_files: list, ids: "FlowIds"):
 
 def _lang_node(nid: str, name: str, cls, layer: str, kind: str, data: dict,
                rel: str, lang: str) -> dict:
-    """A Java/Go/C# flow node. Same shape as `_js_node`.
+    """A flow node from `ts_extract` (Java/Go/C# and the phase-7 languages). Same shape as `_js_node`.
 
     It used to carry `approx: True`, which was honest while these three were read
     textually and became arbitrary once every language moved to tree-sitter --
@@ -607,7 +607,7 @@ def _lang_node(nid: str, name: str, cls, layer: str, kind: str, data: dict,
 
 
 def _analyze_lang(lang_files: list, ids: "FlowIds"):
-    """Java/Go/C# nodes and call edges.
+    """Nodes and call edges for every `ts_extract` language.
 
     Two passes for the same reason the Python analyzer needs two: a call can only
     be resolved once every class and its method names are known. `ts_extract`

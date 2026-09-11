@@ -39,7 +39,8 @@ python .agents/skills/code-archaeologist/scripts/core/grammars.py --install     
 These are wheels — no compiler, grammar bundled, one package per language — at the **pinned**
 versions the skill was tested against (`grammars.PINS`; `--print` shows the pip command instead of
 running it). Run it with the same `python` that runs the skill: the runtime wheel is built for one
-Python version. Languages: `python`, `javascript`, `typescript`, `tsx`, `java`, `go`, `csharp`;
+Python version. Languages: `python`, `javascript`, `typescript`, `tsx`, `java`, `go`, `csharp`,
+`kotlin`, `rust`, `swift`, `scala`, `groovy`, `dart`, `c`, `cpp`, `ruby`, `php`, `elixir`;
 the runtime is always included. Two mappings are worth
 knowing: **`tree-sitter-javascript` covers `.js` and `.jsx`**, and **`tree-sitter-typescript`
 covers both `.ts` and `.tsx`** (one wheel, two grammars — `.tsx` genuinely needs the second one).
@@ -94,7 +95,8 @@ visible.
    in *every* language: a call is drawn only when the receiver's type can be read from the source,
    and anything else is dropped rather than guessed. Where a specific loss is known the node
    carries `precision` — `interface-dispatch` (the call stops at an interface), `overloads`
-   (signatures folded into one node), `name-matched` (JS/TS calls through an object dropped). What
+   (signatures folded into one node), `name-matched` (JS/TS, Ruby, PHP, Elixir, Groovy: a call
+   through an object with no declared type dropped). What
    is trustworthy everywhere is the declarations; what is partial is
    **resolution**. A call is followed only through a *declared* type, and anything else (overloads,
    lambda handlers) is dropped rather than guessed. A call through an interface resolves to the
@@ -331,10 +333,10 @@ never re-described; deleted ones are pruned (except after a build that skipped t
 keeps the cache intact — those nodes are missing, not gone). **0 pending** means done.
 
 ## Notes
-- Graphs cover Python and JS/TS (the two languages with an extractor). The file-level passes —
-  lines/complexity, risk scan, debt markers, test detection — also read Java, Kotlin, Go, Rust,
-  C#, Ruby, PHP, Swift, Scala, Dart, Elixir and C/C++, so a polyglot repo still gets size, risk
-  and debt answers even where there is no call graph.
+- Graphs cover seventeen languages: Python, JS/TS/JSX/TSX, Java, Go, C#, Kotlin, Rust, Swift,
+  Scala, Groovy, Dart, C, C++, Ruby, PHP and Elixir. A language whose grammar is not installed is
+  skipped *by name* — the build says so and `brief` prints a `SKIPPED` block with the command —
+  and the file-level passes (lines, risk scan, debt markers, test detection) still read it.
 - One parser for every language: tree-sitter, whose wheels install into `<skill>/vendor` and never
   into the user's Python. Node is not used at all.
   The generated HTML needs no network: the graph library is vendored and inlined, so the explorer

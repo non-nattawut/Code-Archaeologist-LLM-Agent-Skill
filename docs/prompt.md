@@ -2990,3 +2990,67 @@ ran with `--json`.
 **Commit boundary.** Phase 7 work was already in the working tree when 6d was ready, so this
 commit is staged file by file. Two Phase 7 docstring edits I had made in `build_flow.py` were
 reverted before staging and re-applied afterwards, so this commit carries 6d only.
+
+### 7 — a graph for all eleven review-only languages (fifth commit)
+
+**Step 1, as the plan ordered.** I installed the eleven pinned wheels into the skill's own
+`vendor/` and loaded each one under runtime 0.26. All parsed. Then I wrote the fixtures *first*,
+the same shape as the other six (store, service through a field, non-ASCII, hand-counted `grade`,
+test file), and dumped every parse tree with its field names to the scratchpad. Each `SPEC` row was
+written against a real tree, not against memory of the grammar.
+
+**What the trees showed.**
+
+| Language | Shape |
+| --- | --- |
+| Dart | a method is a signature *beside* its body, and calls are `selector` chains with no call node |
+| Kotlin | class annotations parse as a separate `annotated_expression` sibling |
+| Swift, Dart | `&&` is its own node type |
+| Elixir | `def` / `defmodule` are macro calls |
+| Groovy | its tree *is* Java's |
+
+**Design.** One shared walker (`ts_extract.SHAPES`) with a few small readers for these shapes, not
+eleven extractors. Groovy takes Java's branch, and Java, Go and C# keep theirs untouched.
+
+**Defects the fixtures found, both fixed:**
+
+- **Ruby's `grade` came out at complexity 10, not the hand-counted 6.** Ruby's grammar gives the
+  keyword *token* `if` the same type name as the `if` *statement*. Metrics now counts named nodes
+  only, and no earlier table is affected.
+- **Groovy's grammar folds a member's doc comment into the field declaration above it.** The doc
+  lookup now takes a comment the previous sibling swallowed.
+
+**Misses of my own, caught before anything relied on them:**
+
+- I left a meaningless junk loop in the Dart call reader.
+- I nearly committed Phase 7 docstrings inside the 6d commit. I reverted and re-applied them.
+- One plan edit failed on an anchor that said "this file's title". I re-read the file and
+  re-applied it.
+
+**Verified:**
+
+- **`check_langs`:** all 17 languages. The six existing rows are proven unchanged, and every
+  `grade` is 6 / 2 / 2.
+- **Joint build of all 17 fixtures:** structure 57 / 17 and flow 99 / 25, with `check_graph` clean
+  on both maps. About fifteen files define `WidgetStore`, and SharedNames qualified them by path.
+- **Degrade:** each of the 11 grammars hidden in turn gives exactly one named warning carrying the
+  pinned command, and the rest still builds.
+- **Installer self-test:** all 18 pinned grammar keys installed, zero drift.
+- **Sample:** every graph byte-identical. The report's name-matched sentence and the explorer's
+  colours are the only data changes.
+- **Other checks:** regressions 23/23, oracle 0, viewer script parses as a classic script,
+  freshness clean.
+
+**Departures from the plan text, both toward precision:**
+
+- **Groovy and PHP resolve a receiver whose type is written down.** They keep `name-matched`.
+- **Elixir module calls resolve outright.**
+
+**Docs:**
+
+- **CLAUDE.md:** producers, pipeline, the `ts_extract` bullet, constraint 1, the fixture table and
+  a colour rule for language families.
+- **README:** the language table, with a routes row and the precision paragraph.
+- **SKILL.md:** the language list, the precision rule, and the Notes paragraph. That paragraph was
+  already wrong before today: it said graphs cover "Python and JS/TS".
+- **Also updated:** USAGE, TAXONOMY, the fixtures README, and the presentation.

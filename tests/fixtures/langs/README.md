@@ -59,7 +59,15 @@ non-ASCII name (`größe`). tree-sitter reports byte offsets; slicing *decoded* 
 every name, line and doc after the first multi-byte character, silently. The `lines` and `docs`
 columns are what catch it. A new fixture keeps all three.
 
-For a dynamically typed language (none graphed yet — Ruby, PHP, Elixir, Lua) the fixture must
-assert *sparseness*: nodes yes, edges few or none. That is what keeps the honest-limitations
-section honest. A fixture that quietly returns zero edges and is never asserted is how that section
-starts lying.
+For a dynamically typed language the fixture must assert *sparseness* honestly: nodes yes, and only
+the edges that can be read without executing anything. Ruby's is the example — `@store.save` is
+dropped (an instance variable carries no type), while the same-class `validate(item)` call and the
+test's `WidgetService.new(...).place` (the type is written at the `.new`) are kept. That is what
+keeps the honest-limitations section honest. A fixture that quietly returns zero edges and is never
+asserted is how that section starts lying.
+
+Seventeen languages have a fixture since phase 7. Two cannot carry a non-ASCII *name*: Dart's
+identifiers are ASCII-only, so its fixture keeps the multi-byte text in the comment, the string and
+the doc. Routes are asserted where the phase that added the language reads them: Kotlin (Spring
+annotations, Java's rule) and Rust (actix / Rocket attributes); Ruby, PHP and Elixir routes live in
+route tables, which phase 8 reads.

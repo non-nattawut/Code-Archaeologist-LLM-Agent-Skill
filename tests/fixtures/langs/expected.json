@@ -1,4 +1,132 @@
 {
+  "c": {
+    "docs": {
+      "grade": "Hand-counted: complexity 6 (1 + for, if, &&, if, else if), depth 2, 2 params.",
+      "gr\u00f6\u00dfe": "Gr\u00f6\u00dfe of the store \u2014 \u5bf8\u6cd5.",
+      "test_places_through_the_store": "",
+      "widget_service_place": "Place one widget through the store.",
+      "widget_store_save": "Store one widget \u2014 gr\u00f6\u00dfe \u5bf8\u6cd5 \ud83d\udce6."
+    },
+    "edges": [
+      [
+        "test_places_through_the_store",
+        "widget_service_place"
+      ],
+      [
+        "widget_service_place",
+        "widget_store_save"
+      ]
+    ],
+    "lines": {
+      "grade": 21,
+      "gr\u00f6\u00dfe": 11,
+      "test_places_through_the_store": 1,
+      "widget_service_place": 16,
+      "widget_store_save": 6
+    },
+    "metrics": {
+      "grade": [
+        6,
+        2,
+        2
+      ],
+      "gr\u00f6\u00dfe": [
+        1,
+        0,
+        0
+      ],
+      "test_places_through_the_store": [
+        1,
+        0,
+        0
+      ],
+      "widget_service_place": [
+        1,
+        0,
+        1
+      ],
+      "widget_store_save": [
+        1,
+        0,
+        1
+      ]
+    },
+    "nodes": [
+      "grade",
+      "gr\u00f6\u00dfe",
+      "test_places_through_the_store",
+      "widget_service_place",
+      "widget_store_save"
+    ],
+    "routes": [],
+    "test_nodes": [
+      "test_places_through_the_store"
+    ]
+  },
+  "cpp": {
+    "docs": {
+      "WidgetService.grade": "Hand-counted: complexity 6 (1 + for, if, &&, if, else if), depth 2, 2 params.",
+      "WidgetService.place": "Place one widget through the store.",
+      "WidgetStore.gr\u00f6\u00dfe": "Gr\u00f6\u00dfe of the store \u2014 \u5bf8\u6cd5.",
+      "WidgetStore.save": "Store one widget \u2014 gr\u00f6\u00dfe \u5bf8\u6cd5 \ud83d\udce6.",
+      "test_places_through_the_store": ""
+    },
+    "edges": [
+      [
+        "WidgetService.place",
+        "WidgetStore.save"
+      ],
+      [
+        "test_places_through_the_store",
+        "WidgetService.place"
+      ]
+    ],
+    "lines": {
+      "WidgetService.grade": 30,
+      "WidgetService.place": 25,
+      "WidgetStore.gr\u00f6\u00dfe": 16,
+      "WidgetStore.save": 11,
+      "test_places_through_the_store": 1
+    },
+    "metrics": {
+      "WidgetService.grade": [
+        6,
+        2,
+        2
+      ],
+      "WidgetService.place": [
+        1,
+        0,
+        1
+      ],
+      "WidgetStore.gr\u00f6\u00dfe": [
+        1,
+        0,
+        0
+      ],
+      "WidgetStore.save": [
+        1,
+        0,
+        1
+      ],
+      "test_places_through_the_store": [
+        1,
+        0,
+        0
+      ]
+    },
+    "nodes": [
+      "WidgetService.grade",
+      "WidgetService.place",
+      "WidgetStore.gr\u00f6\u00dfe",
+      "WidgetStore.save",
+      "test_places_through_the_store"
+    ],
+    "routes": [],
+    "test_nodes": [
+      "test_places_through_the_store"
+    ]
+  },
   "csharp": {
     "docs": {
       "WidgetController.Create": "POST /widgets.",
@@ -75,6 +203,134 @@
     ],
     "test_nodes": [
       "WidgetServiceTests.PlacesThroughTheStore"
+    ]
+  },
+  "dart": {
+    "docs": {
+      "WidgetService.grade": "Hand-counted: complexity 6 (1 + for, if, &&, if, else if), depth 2, 2 params.",
+      "WidgetService.place": "Place one widget through the store.",
+      "WidgetStore.save": "Store one widget \u2014 gr\u00f6\u00dfe \u5bf8\u6cd5 \ud83d\udce6.",
+      "WidgetStore.size": "Size of the store \u2014 \u5bf8\u6cd5.",
+      "placesThroughTheStore": ""
+    },
+    "edges": [
+      [
+        "WidgetService.place",
+        "WidgetStore.save"
+      ],
+      [
+        "placesThroughTheStore",
+        "WidgetService.place"
+      ]
+    ],
+    "lines": {
+      "WidgetService.grade": 31,
+      "WidgetService.place": 26,
+      "WidgetStore.save": 9,
+      "WidgetStore.size": 14,
+      "placesThroughTheStore": 1
+    },
+    "metrics": {
+      "WidgetService.grade": [
+        6,
+        2,
+        2
+      ],
+      "WidgetService.place": [
+        1,
+        0,
+        1
+      ],
+      "WidgetStore.save": [
+        1,
+        0,
+        1
+      ],
+      "WidgetStore.size": [
+        1,
+        0,
+        0
+      ],
+      "placesThroughTheStore": [
+        1,
+        0,
+        0
+      ]
+    },
+    "nodes": [
+      "WidgetService.grade",
+      "WidgetService.place",
+      "WidgetStore.save",
+      "WidgetStore.size",
+      "placesThroughTheStore"
+    ],
+    "routes": [],
+    "test_nodes": [
+      "placesThroughTheStore"
+    ]
+  },
+  "elixir": {
+    "docs": {
+      "WidgetService.grade": "Hand-counted: complexity 6 (1 + for, if, and, if, if), depth 2, 2 params.",
+      "WidgetService.place": "Place one widget through the store.",
+      "WidgetServiceTest.places_through_the_store": "",
+      "WidgetStore.gr\u00f6\u00dfe": "Gr\u00f6\u00dfe of the store \u2014 \u5bf8\u6cd5.",
+      "WidgetStore.save": "Store one widget \u2014 gr\u00f6\u00dfe \u5bf8\u6cd5 \ud83d\udce6."
+    },
+    "edges": [
+      [
+        "WidgetService.place",
+        "WidgetStore.save"
+      ],
+      [
+        "WidgetServiceTest.places_through_the_store",
+        "WidgetService.place"
+      ]
+    ],
+    "lines": {
+      "WidgetService.grade": 27,
+      "WidgetService.place": 22,
+      "WidgetServiceTest.places_through_the_store": 2,
+      "WidgetStore.gr\u00f6\u00dfe": 13,
+      "WidgetStore.save": 8
+    },
+    "metrics": {
+      "WidgetService.grade": [
+        6,
+        2,
+        2
+      ],
+      "WidgetService.place": [
+        1,
+        0,
+        1
+      ],
+      "WidgetServiceTest.places_through_the_store": [
+        1,
+        0,
+        0
+      ],
+      "WidgetStore.gr\u00f6\u00dfe": [
+        1,
+        0,
+        0
+      ],
+      "WidgetStore.save": [
+        1,
+        0,
+        1
+      ]
+    },
+    "nodes": [
+      "WidgetService.grade",
+      "WidgetService.place",
+      "WidgetServiceTest.places_through_the_store",
+      "WidgetStore.gr\u00f6\u00dfe",
+      "WidgetStore.save"
+    ],
+    "routes": [],
+    "test_nodes": [
+      "WidgetServiceTest.places_through_the_store"
     ]
   },
   "go": {
@@ -161,6 +417,70 @@
     ],
     "test_nodes": [
       "TestPlace"
+    ]
+  },
+  "groovy": {
+    "docs": {
+      "WidgetService.grade": "Hand-counted: complexity 6 (1 + for, if, &&, if, else if), depth 2, 2 params.",
+      "WidgetService.place": "Place one widget through the store.",
+      "WidgetServiceTest.placesThroughTheStore": "",
+      "WidgetStore.gr\u00f6\u00dfe": "Gr\u00f6\u00dfe of the store \u2014 \u5bf8\u6cd5.",
+      "WidgetStore.save": "Store one widget \u2014 gr\u00f6\u00dfe \u5bf8\u6cd5 \ud83d\udce6."
+    },
+    "edges": [
+      [
+        "WidgetService.place",
+        "WidgetStore.save"
+      ],
+      [
+        "WidgetServiceTest.placesThroughTheStore",
+        "WidgetService.place"
+      ]
+    ],
+    "lines": {
+      "WidgetService.grade": 29,
+      "WidgetService.place": 24,
+      "WidgetServiceTest.placesThroughTheStore": 2,
+      "WidgetStore.gr\u00f6\u00dfe": 14,
+      "WidgetStore.save": 9
+    },
+    "metrics": {
+      "WidgetService.grade": [
+        6,
+        2,
+        2
+      ],
+      "WidgetService.place": [
+        1,
+        0,
+        1
+      ],
+      "WidgetServiceTest.placesThroughTheStore": [
+        1,
+        0,
+        0
+      ],
+      "WidgetStore.gr\u00f6\u00dfe": [
+        1,
+        0,
+        0
+      ],
+      "WidgetStore.save": [
+        1,
+        0,
+        1
+      ]
+    },
+    "nodes": [
+      "WidgetService.grade",
+      "WidgetService.place",
+      "WidgetServiceTest.placesThroughTheStore",
+      "WidgetStore.gr\u00f6\u00dfe",
+      "WidgetStore.save"
+    ],
+    "routes": [],
+    "test_nodes": [
+      "WidgetServiceTest.placesThroughTheStore"
     ]
   },
   "java": {
@@ -319,6 +639,156 @@
       "testPlacesThroughTheStore"
     ]
   },
+  "kotlin": {
+    "docs": {
+      "WidgetController.create": "POST /widgets.",
+      "WidgetService.grade": "Hand-counted: complexity 6 (1 + for, if, &&, if, else if), depth 2, 2 params.",
+      "WidgetService.place": "Place one widget through the store.",
+      "WidgetServiceTest.placesThroughTheStore": "",
+      "WidgetStore.gr\u00f6\u00dfe": "Gr\u00f6\u00dfe of the store \u2014 \u5bf8\u6cd5.",
+      "WidgetStore.save": "Store one widget \u2014 gr\u00f6\u00dfe \u5bf8\u6cd5 \ud83d\udce6."
+    },
+    "edges": [
+      [
+        "WidgetController.create",
+        "WidgetService.place"
+      ],
+      [
+        "WidgetService.place",
+        "WidgetStore.save"
+      ],
+      [
+        "WidgetServiceTest.placesThroughTheStore",
+        "WidgetService.place"
+      ]
+    ],
+    "lines": {
+      "WidgetController.create": 53,
+      "WidgetService.grade": 30,
+      "WidgetService.place": 25,
+      "WidgetServiceTest.placesThroughTheStore": 8,
+      "WidgetStore.gr\u00f6\u00dfe": 16,
+      "WidgetStore.save": 11
+    },
+    "metrics": {
+      "WidgetController.create": [
+        1,
+        0,
+        1
+      ],
+      "WidgetService.grade": [
+        6,
+        2,
+        2
+      ],
+      "WidgetService.place": [
+        1,
+        0,
+        1
+      ],
+      "WidgetServiceTest.placesThroughTheStore": [
+        1,
+        0,
+        0
+      ],
+      "WidgetStore.gr\u00f6\u00dfe": [
+        1,
+        0,
+        0
+      ],
+      "WidgetStore.save": [
+        1,
+        0,
+        1
+      ]
+    },
+    "nodes": [
+      "WidgetController.create",
+      "WidgetService.grade",
+      "WidgetService.place",
+      "WidgetServiceTest.placesThroughTheStore",
+      "WidgetStore.gr\u00f6\u00dfe",
+      "WidgetStore.save"
+    ],
+    "routes": [
+      "POST /widgets"
+    ],
+    "test_nodes": [
+      "WidgetServiceTest.placesThroughTheStore"
+    ]
+  },
+  "php": {
+    "docs": {
+      "WidgetService.__construct": "",
+      "WidgetService.grade": "Hand-counted: complexity 6 (1 + foreach, if, &&, if, elseif), depth 2, 2 params.",
+      "WidgetService.place": "Place one widget through the store.",
+      "WidgetServiceTest.testPlacesThroughTheStore": "",
+      "WidgetStore.gr\u00f6\u00dfe": "Gr\u00f6\u00dfe of the store \u2014 \u5bf8\u6cd5.",
+      "WidgetStore.save": "Store one widget \u2014 gr\u00f6\u00dfe \u5bf8\u6cd5 \ud83d\udce6."
+    },
+    "edges": [
+      [
+        "WidgetService.place",
+        "WidgetStore.save"
+      ],
+      [
+        "WidgetServiceTest.testPlacesThroughTheStore",
+        "WidgetService.place"
+      ]
+    ],
+    "lines": {
+      "WidgetService.__construct": 25,
+      "WidgetService.grade": 36,
+      "WidgetService.place": 30,
+      "WidgetServiceTest.testPlacesThroughTheStore": 5,
+      "WidgetStore.gr\u00f6\u00dfe": 16,
+      "WidgetStore.save": 10
+    },
+    "metrics": {
+      "WidgetService.__construct": [
+        1,
+        0,
+        1
+      ],
+      "WidgetService.grade": [
+        6,
+        2,
+        2
+      ],
+      "WidgetService.place": [
+        1,
+        0,
+        1
+      ],
+      "WidgetServiceTest.testPlacesThroughTheStore": [
+        1,
+        0,
+        0
+      ],
+      "WidgetStore.gr\u00f6\u00dfe": [
+        1,
+        0,
+        0
+      ],
+      "WidgetStore.save": [
+        1,
+        0,
+        1
+      ]
+    },
+    "nodes": [
+      "WidgetService.__construct",
+      "WidgetService.grade",
+      "WidgetService.place",
+      "WidgetServiceTest.testPlacesThroughTheStore",
+      "WidgetStore.gr\u00f6\u00dfe",
+      "WidgetStore.save"
+    ],
+    "routes": [],
+    "test_nodes": [
+      "WidgetServiceTest.testPlacesThroughTheStore"
+    ]
+  },
   "python": {
     "docs": {
       "WidgetController.__init__": "",
@@ -411,6 +881,292 @@
     ],
     "test_nodes": [
       "test_place"
+    ]
+  },
+  "ruby": {
+    "docs": {
+      "WidgetService.grade": "Hand-counted: complexity 6 (1 + for, if, &&, if, elsif), depth 2, 2 params.",
+      "WidgetService.initialize": "",
+      "WidgetService.place": "Place one widget through the store.",
+      "WidgetService.validate": "Reject an empty widget.",
+      "WidgetServiceTest.test_places_through_the_store": "",
+      "WidgetStore.gr\u00f6\u00dfe": "Gr\u00f6\u00dfe of the store \u2014 \u5bf8\u6cd5.",
+      "WidgetStore.save": "Store one widget \u2014 gr\u00f6\u00dfe \u5bf8\u6cd5 \ud83d\udce6."
+    },
+    "edges": [
+      [
+        "WidgetService.place",
+        "WidgetService.validate"
+      ],
+      [
+        "WidgetServiceTest.test_places_through_the_store",
+        "WidgetService.place"
+      ]
+    ],
+    "lines": {
+      "WidgetService.grade": 36,
+      "WidgetService.initialize": 20,
+      "WidgetService.place": 25,
+      "WidgetService.validate": 31,
+      "WidgetServiceTest.test_places_through_the_store": 2,
+      "WidgetStore.gr\u00f6\u00dfe": 13,
+      "WidgetStore.save": 8
+    },
+    "metrics": {
+      "WidgetService.grade": [
+        6,
+        2,
+        2
+      ],
+      "WidgetService.initialize": [
+        1,
+        0,
+        1
+      ],
+      "WidgetService.place": [
+        1,
+        0,
+        1
+      ],
+      "WidgetService.validate": [
+        1,
+        0,
+        1
+      ],
+      "WidgetServiceTest.test_places_through_the_store": [
+        1,
+        0,
+        0
+      ],
+      "WidgetStore.gr\u00f6\u00dfe": [
+        1,
+        0,
+        0
+      ],
+      "WidgetStore.save": [
+        1,
+        0,
+        1
+      ]
+    },
+    "nodes": [
+      "WidgetService.grade",
+      "WidgetService.initialize",
+      "WidgetService.place",
+      "WidgetService.validate",
+      "WidgetServiceTest.test_places_through_the_store",
+      "WidgetStore.gr\u00f6\u00dfe",
+      "WidgetStore.save"
+    ],
+    "routes": [],
+    "test_nodes": [
+      "WidgetServiceTest.test_places_through_the_store"
+    ]
+  },
+  "rust": {
+    "docs": {
+      "WidgetService.grade": "Hand-counted: complexity 6 (1 + for, if, &&, if, else if), depth 2, 2 params.",
+      "WidgetService.place": "Place one widget through the store.",
+      "WidgetStore.gr\u00f6\u00dfe": "Gr\u00f6\u00dfe of the store \u2014 \u5bf8\u6cd5.",
+      "WidgetStore.save": "Store one widget \u2014 gr\u00f6\u00dfe \u5bf8\u6cd5 \ud83d\udce6.",
+      "create_widget": "POST /widgets.",
+      "places_through_the_store": ""
+    },
+    "edges": [
+      [
+        "WidgetService.place",
+        "WidgetStore.save"
+      ],
+      [
+        "create_widget",
+        "WidgetService.place"
+      ],
+      [
+        "places_through_the_store",
+        "WidgetService.place"
+      ]
+    ],
+    "lines": {
+      "WidgetService.grade": 34,
+      "WidgetService.place": 29,
+      "WidgetStore.gr\u00f6\u00dfe": 17,
+      "WidgetStore.save": 12,
+      "create_widget": 53,
+      "places_through_the_store": 2
+    },
+    "metrics": {
+      "WidgetService.grade": [
+        6,
+        2,
+        2
+      ],
+      "WidgetService.place": [
+        1,
+        0,
+        2
+      ],
+      "WidgetStore.gr\u00f6\u00dfe": [
+        1,
+        0,
+        1
+      ],
+      "WidgetStore.save": [
+        1,
+        0,
+        2
+      ],
+      "create_widget": [
+        1,
+        0,
+        2
+      ],
+      "places_through_the_store": [
+        1,
+        0,
+        0
+      ]
+    },
+    "nodes": [
+      "WidgetService.grade",
+      "WidgetService.place",
+      "WidgetStore.gr\u00f6\u00dfe",
+      "WidgetStore.save",
+      "create_widget",
+      "places_through_the_store"
+    ],
+    "routes": [
+      "POST /widgets"
+    ],
+    "test_nodes": [
+      "places_through_the_store"
+    ]
+  },
+  "scala": {
+    "docs": {
+      "WidgetService.grade": "Hand-counted: complexity 6 (1 + for, if, &&, if, else if), depth 2, 2 params.",
+      "WidgetService.place": "Place one widget through the store.",
+      "WidgetServiceSpec.placesThroughTheStore": "",
+      "WidgetStore.gr\u00f6\u00dfe": "Gr\u00f6\u00dfe of the store \u2014 \u5bf8\u6cd5.",
+      "WidgetStore.save": "Store one widget \u2014 gr\u00f6\u00dfe \u5bf8\u6cd5 \ud83d\udce6."
+    },
+    "edges": [
+      [
+        "WidgetService.place",
+        "WidgetStore.save"
+      ],
+      [
+        "WidgetServiceSpec.placesThroughTheStore",
+        "WidgetService.place"
+      ]
+    ],
+    "lines": {
+      "WidgetService.grade": 30,
+      "WidgetService.place": 25,
+      "WidgetServiceSpec.placesThroughTheStore": 4,
+      "WidgetStore.gr\u00f6\u00dfe": 16,
+      "WidgetStore.save": 11
+    },
+    "metrics": {
+      "WidgetService.grade": [
+        6,
+        2,
+        2
+      ],
+      "WidgetService.place": [
+        1,
+        0,
+        1
+      ],
+      "WidgetServiceSpec.placesThroughTheStore": [
+        1,
+        0,
+        0
+      ],
+      "WidgetStore.gr\u00f6\u00dfe": [
+        1,
+        0,
+        0
+      ],
+      "WidgetStore.save": [
+        1,
+        0,
+        1
+      ]
+    },
+    "nodes": [
+      "WidgetService.grade",
+      "WidgetService.place",
+      "WidgetServiceSpec.placesThroughTheStore",
+      "WidgetStore.gr\u00f6\u00dfe",
+      "WidgetStore.save"
+    ],
+    "routes": [],
+    "test_nodes": [
+      "WidgetServiceSpec.placesThroughTheStore"
+    ]
+  },
+  "swift": {
+    "docs": {
+      "WidgetService.grade": "Hand-counted: complexity 6 (1 + for, if, &&, if, else if), depth 2, 2 params.",
+      "WidgetService.place": "Place one widget through the store.",
+      "WidgetServiceTests.testPlacesThroughTheStore": "",
+      "WidgetStore.gr\u00f6\u00dfe": "Gr\u00f6\u00dfe of the store \u2014 \u5bf8\u6cd5.",
+      "WidgetStore.save": "Store one widget \u2014 gr\u00f6\u00dfe \u5bf8\u6cd5 \ud83d\udce6."
+    },
+    "edges": [
+      [
+        "WidgetService.place",
+        "WidgetStore.save"
+      ],
+      [
+        "WidgetServiceTests.testPlacesThroughTheStore",
+        "WidgetService.place"
+      ]
+    ],
+    "lines": {
+      "WidgetService.grade": 32,
+      "WidgetService.place": 27,
+      "WidgetServiceTests.testPlacesThroughTheStore": 4,
+      "WidgetStore.gr\u00f6\u00dfe": 13,
+      "WidgetStore.save": 8
+    },
+    "metrics": {
+      "WidgetService.grade": [
+        6,
+        2,
+        2
+      ],
+      "WidgetService.place": [
+        1,
+        0,
+        1
+      ],
+      "WidgetServiceTests.testPlacesThroughTheStore": [
+        1,
+        0,
+        0
+      ],
+      "WidgetStore.gr\u00f6\u00dfe": [
+        1,
+        0,
+        0
+      ],
+      "WidgetStore.save": [
+        1,
+        0,
+        1
+      ]
+    },
+    "nodes": [
+      "WidgetService.grade",
+      "WidgetService.place",
+      "WidgetServiceTests.testPlacesThroughTheStore",
+      "WidgetStore.gr\u00f6\u00dfe",
+      "WidgetStore.save"
+    ],
+    "routes": [],
+    "test_nodes": [
+      "WidgetServiceTests.testPlacesThroughTheStore"
     ]
   },
   "typescript": {

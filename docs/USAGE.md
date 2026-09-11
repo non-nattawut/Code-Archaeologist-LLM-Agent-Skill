@@ -55,7 +55,8 @@ python .agents/skills/code-archaeologist/scripts/query/search.py --layer reposit
 python .agents/skills/code-archaeologist/scripts/query/search.py --calls OrderRepository.save
 python .agents/skills/code-archaeologist/scripts/query/search.py --orphans --format json
 
-# one language at a time: py, js, java, go, csharp
+# one language at a time: py, js, java, go, csharp, kotlin, rust, swift, scala, groovy,
+# dart, c, cpp, ruby, php, elixir
 python .agents/skills/code-archaeologist/scripts/query/search.py --lang java
 ```
 
