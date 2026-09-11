@@ -3377,3 +3377,21 @@ where a second overload with the same id adds to `signatures`, and `_claim` keep
 
 Asked for the go-ahead, since it adds a field to the graph format (why it was recorded rather than
 fixed). No code changed.
+
+## [78] 2026-09-11 — Could overloads be separate nodes instead?
+
+**Prompt**
+> so in eventually so can extract it to different node
+
+**Response**
+Answered: yes, possible, and more precise -- but it moves the problem rather than removing it.
+Separate nodes need a different id per overload (e.g. by parameter count, `Total/1`, `Total/2`),
+and then every *call* must be matched to the right one. Parameter count can be read from a call
+site (tree-sitter gives the argument list), so overloads with different counts resolve. Overloads
+with the **same** count and different types (`f(int[])` vs `f(boolean[])`) cannot be told apart
+without type inference, which the skill does not do -- for those the choice is drop the edge,
+draw it to both, or keep them folded. Other costs: node ids change for every overloaded method,
+so their notes and cached AI descriptions are re-keyed, and the `overloads` precision marker
+changes meaning. Recommended: do `ranges` now (small, fixes every range reader, no id change); the
+split can come later on top of it, with same-arity overloads staying folded, since those need
+`ranges` anyway. Asked which they want. No code changed.
