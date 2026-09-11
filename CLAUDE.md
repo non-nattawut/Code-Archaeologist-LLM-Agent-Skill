@@ -663,7 +663,7 @@ that nobody rewrites them.
 | `README.md` | a human evaluating/installing it | features, language table, requirements or the structure tree change |
 | `docs/USAGE.md` | a human running it by hand | any command's form or flags change |
 | `templates/TAXONOMY.md` | anyone adding a field value | a `kind`/`layer`/severity/grade value changes |
-| `docs/PRESENTATION.html` | someone being shown the project | Features, Architecture, Honest limitations or Commands drift |
+| `docs/PRESENTATION.html` | someone being shown the project (**written in Thai**) | Features, Architecture, Honest limitations or Commands drift |
 
 **Append, never revise** — these are records of what was actually done and thought at the time;
 editing them to match the present is the one way to make them worthless:

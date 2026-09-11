@@ -3477,3 +3477,56 @@ validation of the eleven fixture-only languages (needs public repos and download
 four route-table readers likewise, and opening a large real-repo explorer page in their own browser
 (the preview pane refuses pages over ~0.3 MB). The release step stays skipped by their choice. No
 code changed this turn.
+
+## [82] 2026-09-11 — PRESENTATION rewritten in Thai, and widened to every feature
+
+**Prompt**
+> git pull then update PRESENTATION to thai lang
+>
+> and make it have ALL feature explain and technical explain as much as possible
+>
+> then commit and push
+
+**Response**
+`git pull` brought phases 6-9 down (17 languages, route tables, duplicates blocks, `ids.py`,
+`grammars.py`, the `tools/check_*` harness) — and `PRESENTATION.html` had moved to `docs/`, so the
+first job was reading what the repo actually is now rather than translating the page in place.
+Sources of truth read before writing: CLAUDE.md, README.md, SKILL.md, USAGE.md, plus the code for
+the numbers the page states — `taxonomy.py` (KINDS/LAYERS, `PRECISION_REASONS`,
+`NAME_MATCHED_LANGS`), `analyze.health()` (the six deductions and their caps), `scan_security.RULES`
+(three severities), `analyze`'s `HUB_DEGREE 10` / `GOD_METHODS 12` / `GOD_FANOUT 8`,
+`grammars.PINS` (17 grammars + runtime), and `find | wc -l` for the script count.
+
+Rewrote the page rather than translating it sentence by sentence, because the old copy was a phase-1
+artifact: it still said "tree-sitter and every other file with tree-sitter" (a half-finished edit),
+claimed 25 scripts, and its Frontend-extraction card described a world where JS/TS was the special
+case. Thai body prose, English kept for identifiers and technique names (BFS, tree-sitter, node,
+edge, `precision`) — that is how the audience reads.
+
+Typography was the one real design decision. The page was all-monospace, and a mono stack has no
+Thai glyphs, so every Thai character would have fallen back to an unrelated font at an unrelated
+size. Split it: `--sans` (system Thai faces only — IBM Plex Sans Thai / Noto Sans Thai /
+Leelawadee UI / Sarabun / Tahoma, no webfont, because the page must open offline) for prose,
+`--mono` kept for code, commands, the ASCII pipeline, eyebrows and stat values. Line-height 1.85,
+since Thai stacks vowels and tone marks above and below the line.
+
+Content grew from 22 feature cards to **37**, 8 limitations to **10**, and 6 sections to 13. New
+cards: one-engine parsing, the vendored grammar install, `ids.py`'s shared-name qualification,
+overloads-as-nodes, decorator-inclusive ranges, route tables, `SKIP_DIRS`, the robustness set
+(cp874 / MAX_PATH / cross-drive / CRLF), the `check_*` harness, the seven views, the artifact
+layout, and the installer. New static sections: the full language table with how far each row is
+*proven*, the health-grade arithmetic, the `precision` model as a table, the agent's operating
+sequence from SKILL.md, the QA-tooling table, and requirements/installation.
+
+Fixed a real bug while rewriting: the old `explorer` entry's `qa` array had a nested array as a
+third element of one Q&A pair, so `qa.map(([q,a]) => …)` silently dropped the "what if I drag the
+graph into a mess?" answer — it had never rendered.
+
+Verified rather than assumed: `tools/check_docs.py` OK (it lints `scripts/…` paths inside this
+page, so every command in it resolves to a real file); the inline script parses as a **classic**
+script under `new vm.Script` (not `node --check`, which would accept browser-invalid top-level
+`return`); in the browser, 37 cards / 5 categories / 10 limits render, the drawer opens with all
+five blocks, `lang="th"`, prose resolves to the Thai stack and `code` to mono; no horizontal body
+overflow at 1400px *or* 500px — the three wide tables and one command block scroll inside their own
+containers; grep confirms no `<script src>`, `<link href>` or `@import`. Also updated the CLAUDE.md
+doc table to say the page is written in Thai, so the next session does not "fix" it back to English.
