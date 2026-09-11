@@ -211,9 +211,14 @@ python .agents/skills/code-archaeologist/scripts/query/search.py --lang java --f
 python .agents/skills/code-archaeologist/scripts/query/search.py --orphans --format json
 ```
 Filters AND together; `--graph` picks the map (default: flow), `--limit` caps rows (default 40),
-`--format json` for tooling. `--name` and `--doc` take a regex. `--lang` is the exact tag on the
-node (`py`, `js`, `ts`, `tsx`, `java`, `go`, `csharp`, `kotlin`, `rust`, `swift`, `scala`,
-`groovy`, `dart`, `c`, `cpp`, `ruby`, `php`, `elixir`); `--file` is a substring of the path.
+`--format json` for tooling. `--name` and `--doc` take a regex; `--file` is a substring of the path.
+
+`--lang` matches the tag **on the node**, which is coarser than the file census: `py`, `js`,
+`java`, `go`, `csharp`, `kotlin`, `rust`, `swift`, `scala`, `groovy`, `dart`, `c`, `cpp`, `ruby`,
+`php`, `elixir`. **`js` covers all of `.js`, `.jsx`, `.ts` and `.tsx`** — there is no `ts` or
+`tsx` node tag, so `--lang ts` returns *no match* even in a TypeScript repo. Use `--lang js`, or
+`--file .tsx` when you want one extension. (The finer tags `ts`/`tsx`/`jsx` do appear in
+`metrics.json`'s file census and the explorer's language mix, which read the extension.)
 
 `--calls` and `--called-by` are the two directions of one edge — "who calls X" and "what does X
 call" — and are the cheapest way to answer a connectivity question without a full trace. Ids are
@@ -438,6 +443,12 @@ keeps the cache intact — those nodes are missing, not gone). **0 pending** mea
 - Field values (`kind`, `layer`, `lang`, `desc_source`, and the review `severity`/`rule`/`grade`
   sets) live in `scripts/core/taxonomy.py` and `scripts/review/scan_security.py` — see `templates/TAXONOMY.md`
   for the allowed values, and edit those rather than individual pages.
+- **Dependency and build directories are never scanned**, so they are absent from the graph by
+  design, not by omission: `.git`, `__pycache__`, `venv`, `.venv`, `node_modules`, `.idea`, `data`,
+  `dist`, `build`, `.next`, `.nuxt`, `.svelte-kit`, `.angular`, `.turbo`, `.parcel-cache`,
+  `.gradle`, `.dart_tool`. If asked why a library or a generated file is missing, that is the
+  reason. Note `target`, `out`, `coverage` and `vendor` are *not* skipped — each is a real source
+  directory in some ecosystem — so those may appear.
 - Call resolution is heuristic, not type inference: `self.<dep>.m()` via `__init__` hints or
   assignments, typed params/locals, and same-class `self.m()`. Unresolved calls (libraries,
   stdlib) become no edge and are counted per node as `ext` ("N ext" in the explorer).

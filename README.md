@@ -108,7 +108,7 @@ guessing. Full syntax lives in **[USAGE.md](docs/USAGE.md)**.
 | Any secrets / SQL injection / XSS sinks? | `scan_security.py` |
 | What's rotting? (TODOs, dead code) | `debt.py` |
 | What's tested — and what isn't? | `tests_map.py` |
-| What's been copy-pasted? | `duplicates.py` |
+| What's been copy-pasted? (whole functions, and blocks pasted into different ones) | `duplicates.py` |
 | Where's the churn and who owns it? | `git_insights.py` |
 | How big / complex is each piece? | `metrics.py` |
 | All of it, as one report | `archaeologist.py report` |

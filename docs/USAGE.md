@@ -53,11 +53,15 @@ python .agents/skills/code-archaeologist/scripts/query/search.py --name "payment
 python .agents/skills/code-archaeologist/scripts/query/search.py --doc "refund" --limit 10
 python .agents/skills/code-archaeologist/scripts/query/search.py --layer repository --kind method
 python .agents/skills/code-archaeologist/scripts/query/search.py --calls OrderRepository.save
+python .agents/skills/code-archaeologist/scripts/query/search.py --called-by OrderService.place_order
 python .agents/skills/code-archaeologist/scripts/query/search.py --orphans --format json
 
 # one language at a time: py, js, java, go, csharp, kotlin, rust, swift, scala, groovy,
 # dart, c, cpp, ruby, php, elixir
+# NB: `js` covers .js/.jsx/.ts/.tsx -- there is no `ts` or `tsx` node tag, so
+# `--lang ts` matches nothing. Use `--file .tsx` to pick one extension.
 python .agents/skills/code-archaeologist/scripts/query/search.py --lang java
+python .agents/skills/code-archaeologist/scripts/query/search.py --file .tsx
 ```
 
 Nodes carry `precision` when a specific loss is known — `interface-dispatch`, `overloads` or

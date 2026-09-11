@@ -3585,3 +3585,59 @@ returned 6 nodes across the stack, and the context pack printed **Covered by**.
 `tools/check_docs.py` passes. Grepping the same stale claim across every doc found it once more in
 `docs/USAGE.md` ("Python nodes"), fixed in this commit along with its duplicates comment — per
 principle 6 the fact has one spelling everywhere.
+
+## [84] 2026-09-11 — Grammars reinstalled for 3.13; a doc audit that caught my own error
+
+**Prompt**
+> 1. reinstall grammars for python 3.13 then rebuild sample
+> 2. scan all file update all of it up to date to current/ all new features
+
+**Response**
+**1. Grammars.** `vendor/` did not exist in this checkout at all (last turn's "runtime found but
+not loadable" was `find_spec` seeing a stale path with no importable module). Ran
+`grammars.py --install` under Python 3.13.1 — 18 wheels, all pinned, into `<skill>/vendor`, nothing
+into the user's Python.
+
+Rebuilt the sample, and the result is the strongest check this repo has: `both` then `report`, and
+**`git status` came back completely empty**. Every committed artifact reproduced byte-for-byte, so
+the install is correct *and* constraint 2 held across a different interpreter than the one that
+generated them. Every number in CLAUDE.md's expected block matched reality: structure 25/22, flow
+53/33 with 16 endpoints and 0 pending, 529 lines across 22 files (py 126, java 102, csharp 90,
+ts 90, go 66, js 28, tsx 27), grades D(69)/D(68), 2 markers, 7 dead nodes, 4/49 named by a test,
+1 cluster / 4 duplicated lines / 0 blocks. `check` says `stale: false`; `brief` prints no `SKIPPED`
+and no `UNPINNED`.
+
+Full suite, runnable here for the first time: **21/21** languages, **27** graph checks on each map,
+**31/31** self-test assertions shown to fail on broken input, **33/33** regressions, oracle **0
+disagreements** on both the sample and the skill's own 28 files, `compileall`, `check_docs`.
+
+**2. The audit.** Pushed it into scripts rather than reading prose (principle 5). A flag auditor
+pulled every `scripts/....py --flag` out of all five docs and checked it against that script's
+`add_argument` calls: **135 flag uses, 0 real problems** (the 3 hits are pip's own flags quoted
+inside a sentence). A second check parsed CLAUDE.md's hand-written 21-language fixture table and
+diffed it against `tests/fixtures/langs/expected.json`: **matches exactly**, which is the table
+most likely to drift and had not. Grepped every doc for obsolete concepts (`js_bridge`,
+`js_extract.js`, `lang_extract`, `@babel/parser`, `node_modules`, `approx`, "zero external
+dependencies") — every hit is deliberate *historical narrative* explaining what was replaced, not
+a stale claim. TAXONOMY.md already documents `precision`, `declaration`, `signatures`, `ambiguous`,
+`routes`-as-a-list with `ANY`, `http` and `ext`.
+
+The docs were in far better shape than a "scan everything" request usually finds. Four real gaps:
+
+1. **I introduced a bug last turn and this caught it.** My new `--lang` list in SKILL.md included
+   `ts` and `tsx`. Testing it: `search.py --lang ts` returns **no match**. Node `lang` is coarser
+   than the file census — every JS/JSX/TS/TSX node is tagged `js`, and `ts`/`tsx`/`jsx` exist only
+   in `metrics.json`'s census and the explorer's language mix. Left uncorrected it would have sent
+   an agent to "no TypeScript here" in a TypeScript repo. Rewrote it with the real set, the
+   explicit warning, and the `--file .tsx` workaround (verified: returns OrderCard + StatusBadge).
+   USAGE.md's list had been right all along; I had trusted my own edit over the existing doc.
+2. `--called-by` was missing from USAGE.md (the only search flag not documented there), plus the
+   same `--lang` trap note.
+3. README's duplicates row said only "What's been copy-pasted?" — no hint that phase 9 added
+   block-level detection.
+4. `SKIP_DIRS` lived only in CLAUDE.md. An agent asked "why is this library not in the graph" or
+   "how big is this codebase" had nothing to answer from, so the Notes section now lists the
+   skipped directories *and* the four deliberately-absent names (`target`, `out`, `coverage`,
+   `vendor`).
+
+No code changed; `data/` is untouched, which is itself the byte-identity evidence above.
