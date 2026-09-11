@@ -3219,3 +3219,82 @@ Before answering I checked what the plan cannot show. Every phase and finding in
 
 I recommended doing 1 and 2 now, since neither needs a decision; 3 next, with their choice of
 repositories; and 4 when they want to ship. No code changed.
+
+## [73] 2026-09-11 — Explorer check, history, and real-repository validation: ten bugs fixed
+
+**Prompt**
+> do 1 and 2 and other that need to update from our feature improvement and fixed
+> then
+> number three you already tested on srs-eol-ssytem right? if not test it if yes continue test on rootform clinic
+>
+> if you spot any bug from number 3 fix it
+>
+> ignore number 4 since we will not publish
+
+(mid-turn) > after finish dont forget to update READMEmd and PRESENTATION if you not update yet
+
+**Response**
+**1 — explorer.** Rebuilt the sample (byte-identical) and exercised `data/explorer.html` in the
+preview pane by bare-name probes: both maps (25/22, 52/32), all seven views with no errors, the
+search box, the blast toggle, the Patterns tab and drill-through from it into a node. The viewer's
+two inline scripts parse as classic scripts (`vm.Script`). **Not done:** the same walk on a
+real-repository page. The pane refused every page larger than the sample's 0.3 MB (0.5 and 1.6 MB
+both failed, as did the sample path once overwritten with the larger page, which was then
+restored with `git checkout`). As a substitute, the copied-block data such a page renders was checked: every
+`places[].id` names a real node (0 unknown of 102).
+
+**2 — history and stale docs.** `docs/PROJECT_HISTORY.md` gained *Phase 5 — Graph as many
+languages as possible* (52 commits, 09-09 → 09-11), written as an after-the-fact summary and saying
+so; *At a glance* updated (it still claimed "zero external Python deps"). Stale bits fixed in
+passing: `TAXONOMY.md` listed five `lang` values, `ts_extract.py`'s docstring and CLI said
+"Java/Go/C#", two import comments likewise.
+
+**3 — real repositories.** Yes, srs-eol-system had been tested (6d timing, phase 9), so I moved on
+to rootform-clinic (Next.js + NestJS + Python), read-only through `tools/time_build.py --keep` into
+the scratchpad, then re-ran srs-eol-system with the fixes. Ten silent bugs, all fixed:
+
+1. an axios instance **imported** from the file that creates it was never an HTTP call (0 calls,
+   no cross-stack edge) -- `extract_js_files` now parses every file first, and an import resolving
+   to exactly one exporting file binds the name (relative, or path suffix after `@/`);
+2. tree-sitter-typescript puts the `await` **inside** the callee of `await api.get<T>(url)` --
+   `_callee_parts` unwraps it (12 → 86 of 86 calls seen);
+3. an unknown URL normalised to `/` and linked to `GET /` -- **two wrong edges**; a URL with no
+   literal segment now links nowhere;
+4. `@patch("subprocess.run")` was a PATCH route (4 phantom routes) -- a route path must start `/`;
+5. `login` / `Login` in two files kept bare ids and shared a note file -- `ids.SharedNames` groups
+   by lowercase name; a single definition still resolves through `target`;
+6. `check_graph.py --graph` read the sample's report beside another install's graph (12 false
+   findings) -- it reads the report beside the graph;
+7. (oracle over the skill's own scripts) Python string escapes read raw -- `py_extract.string_value`
+   decodes them unless the literal is raw;
+8. (srs) the axios instance came from a **factory** -- `_instance_factories` (6 → 99 calls seen);
+9. (srs) a same-file `const API_BASE_URL = "/<resource>"` + `${API_BASE_URL}/list` -- same-file
+   string consts substitute (`_FILE_CONSTS`, set per file);
+10. (srs) the `/api` prefix lived in the client's `baseURL` -- `_within_route`, the mirror of the
+    suffix fallback, only when the call's first segment is literal and the match unique.
+
+Regression cases `r28`–`r32` cover all but 6 and 7 (7 is the oracle run); each was shown to **fail
+on the old code** by stashing `scripts/` and re-running (27/32 on the old code, 32/32 on the new).
+
+Results: rootform 0 → **74** frontend→backend edges (all 74 exact matches), 100 → 96 routes,
+`check_graph` clean on both maps; srs-eol-system 0 → **84** edges (all through the new
+client-prefix rule, spot-checked as `/x` → `/api/x`), structure clean. The unlinked remainder on
+both is variable URLs (`ENDPOINT[section]`, `${process.env...}/login`), dropped on purpose.
+
+**Recorded, not fixed** (needs a decision): `check_graph` c13 on srs-eol-system flags an overload
+set whose folded node has **one overload's range and every overload's calls**. No single range is
+right for two separated definitions, so it is *Found while implementing* #8 in the roadmap, with
+options and a recommendation (a per-overload `ranges` list).
+
+Verified: sample graphs byte-identical after every change; 32/32 regressions; `check_graph` both
+maps plus `--self-test` 30/30; oracle 0 disagreements on both file sets; 21/21 `check_langs` rows;
+`compileall`; `check_docs`. The README cross-stack paragraph, its language-support section (which
+rows have met real code), PRESENTATION's cross-stack card and a new *Honest limitations* entry,
+CLAUDE.md and the roadmap header were updated in the same commit. **4 — release:** ignored, as asked.
+Nothing in either real repository was written to; only aggregate figures are recorded here.
+
+**A miss, caught before the commit:** my first drafts named srs-eol-system's code -- its
+route base in `build_flow`/`js_ts_extract` comments, `r32`'s test data, the history table and
+this entry, a factory name, and three method names in finding #8 -- against the standing rule
+that only aggregate figures from that repository are recorded. All were replaced with generic
+equivalents (`/orders`, "a factory", "a one-line overload ...") and a grep confirmed none remain.

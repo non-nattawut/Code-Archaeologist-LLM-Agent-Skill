@@ -12,7 +12,7 @@ sets — change the taxonomy instead).
 | `{{name}}` | any entity id | Class or component name, or `<Module>Module` for a file's module-level functions. |
 | `{{kind}}` | `class`, `component`, `module` | What the entity is. `component` is a JS/TS function that returns JSX. |
 | `{{layer}}` | `controller`, `service`, `repository`, `model`, `client`, `config`, `ui`, `test`, `function`, `module`, `unknown` | Architectural role (inferred from name/decorators; `test` wins for anything in a test file, and a `component` is always `ui`). |
-| `{{lang}}` | `py`, `js`, `java`, `go`, `csharp` | Source language. `js` covers `.js/.jsx/.ts/.tsx`. |
+| `{{lang}}` | `py`, `js`, `java`, `go`, `csharp`, `kotlin`, `rust`, `swift`, `scala`, `groovy`, `dart`, `c`, `cpp`, `ruby`, `php`, `elixir` | Source language. `js` covers `.js/.jsx/.ts/.tsx`. |
 | `{{source}}` | `<area>/<path>` | Source file, prefixed with its root area (e.g. `backend/order_service.py`). |
 | `{{summary}}` | free text | Docstring / description. |
 | `{{bases}}`, `{{decorators}}`, `{{methods}}`, `{{references}}` | lists | `[[wikilinks]]` where the target is a known entity, else inline code. |
@@ -24,7 +24,7 @@ sets — change the taxonomy instead).
 | `entity` | `Class.method` or `function` | The method/function node id. |
 | `kind` | `method`, `function`, `endpoint`, `component`, `test` | `endpoint` = a route handler (flow root); `component` = a function that returns JSX. Both are entry points: something outside the graph calls them, so neither counts as dead code. |
 | `layer` | same set as above | Role of the owning class/file. |
-| `lang` | `py`, `js`, `java`, `go`, `csharp` | Source language. |
+| `lang` | same set as `{{lang}}` above | Source language. |
 | `precision` | a list of `interface-dispatch`, `overloads`, `name-matched` (present only when non-empty) | **Named** precision losses for this node's outgoing edges. Absent means nothing *nameable* was lost — never that the edges are complete. See *Precision* below. |
 | `declaration` | `true` (present only when true) | A signature with no body (interface member, `abstract` method). Its **Calls** section is always empty because there is no body to call from — that says nothing about whether the implementations are used. |
 | `desc_source` | `docstring`, `ai`, `auto` | Where "What it does" came from (see hybrid descriptions). |

@@ -533,7 +533,11 @@ def load_ctx(kind: str, graph_path: str | None = None, roots=None) -> Ctx:
     with open(graph_path, "r", encoding="utf-8") as fh:
         graph = json.load(fh)
     report = {}
-    rep_path = os.path.join(DATA_DIR, "report", kind, "architecture_report.json")
+    # The report beside *this* graph (<data>/<map>/<graph> -> <data>/report/<map>/), not
+    # always the repo's: with --graph pointing into another install, c15/c16 compared a
+    # real repository's graph against the sample's report.
+    data_dir = os.path.dirname(os.path.dirname(os.path.abspath(graph_path)))
+    rep_path = os.path.join(data_dir, "report", kind, "architecture_report.json")
     if os.path.exists(rep_path):
         with open(rep_path, "r", encoding="utf-8") as fh:
             report = json.load(fh)

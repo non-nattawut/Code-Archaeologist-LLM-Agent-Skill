@@ -75,7 +75,12 @@ method + normalized path, so **one trace runs from a button click to the databas
 read from seven framework shapes — FastAPI, Flask, Express, Nest, Spring, ASP.NET and the Go
 routers (gin/chi/mux) — so a React click can be traced into Java or Go, not just Python. Where the
 path does not match exactly, a unique suffix still links (so an `/api` mount prefix works) and an
-ambiguous one is left alone.
+ambiguous one is left alone — in both directions, so a prefix held in the client's axios
+`baseURL` works as well as one mounted on the server. An axios instance created once and imported
+everywhere (`services/api.ts` exporting `axios.create(...)`, directly or from a factory) is
+followed across files, and a same-file `const API_BASE_URL = "/orders"` is read as its value
+inside `${API_BASE_URL}/list`. A call whose URL is otherwise a variable (`get(ENDPOINT[section])`)
+links nowhere, because it says nothing about where it goes.
 
 ---
 
@@ -188,6 +193,11 @@ the grammar: Kotlin, Rust, Swift, Scala, Dart, C and C++ declare their types, so
 field or parameter resolves as it does in Java; Ruby, PHP, Elixir and Groovy usually do not, so
 their nodes say `name-matched`, and a call through an untyped object is dropped. Routes are read
 only for the frameworks named above; any other framework's handlers are ordinary nodes.
+
+How far each row is proven differs. Python, JS/TS (a Next.js + NestJS app) and Java have been
+built on real repositories, and `tools/check_graph.py` passes on those graphs; each such run found
+bugs no fixture had, and every one is now a case in `tools/check_regressions.py`. The other
+languages and the four route tables pass hand-written fixtures only.
 
 Every language with a graph is **parsed by the same engine**: Java, Go and C# moved off a
 hand-written textual scan, JS/TS off `@babel/parser`, and Python off the standard library's `ast`,

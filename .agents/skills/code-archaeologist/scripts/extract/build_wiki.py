@@ -34,7 +34,7 @@ import console  # noqa: E402  (stdout must survive a non-UTF-8 console)
 from js_ts_extract import find_js_files, extract_js_files, frontend_degraded  # noqa: E402  (frontend, degrades to a no-op)
 import py_extract as px  # noqa: E402  (Python, via tree-sitter)
 from ids import SharedNames  # noqa: E402  (one id rule for both maps)
-from ts_extract import find_lang_files, extract_lang_files  # noqa: E402  (Java/Go/C#, via tree-sitter)
+from ts_extract import find_lang_files, extract_lang_files  # noqa: E402  (13 languages, via tree-sitter)
 
 from taxonomy import SKIP_DIRS  # noqa: E402  (one definition of "not source")
 

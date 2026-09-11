@@ -18,12 +18,13 @@ How this project went from an empty repo to its current state.
 | | |
 | --- | --- |
 | Repo | `Code-Archaeologist-LLM-Agent-Skill` |
-| Commits | 59 |
-| Span | 2026-09-02 → 2026-09-09 (8 days) |
-| Cadence | 44 commits exploring · 8 commits working a written plan |
-| Current HEAD | `e229280` — *Find copy-pasted functions, even when the names were changed* |
+| Commits | 119 |
+| Span | 2026-09-02 → 2026-09-11 (10 days) |
+| Cadence | 44 commits exploring · 8 working the first plan · 52 working the second (`c0bec8a` on) |
+| Current HEAD | *Validate on a real repository: six silent bugs, all fixed* (2026-09-11) |
 | Skill location | `.agents/skills/code-archaeologist/` |
-| Hard constraint held throughout | Zero external Python deps (stdlib only, 3.10+) |
+| Hard constraint held throughout | Deterministic output — same source, same bytes. "Zero external Python deps" held until phase 5, and was traded knowingly for one parser (tree-sitter) |
+| Languages with a graph | 17 (at the end of phase 4: Python and JS/TS, plus Java/Go/C# as an approximate tier) |
 
 The idea never changed: **build a deterministic map of a codebase so an agent answers architecture
 questions by querying a graph and reading a handful of notes, instead of scanning source.** Every
@@ -234,6 +235,126 @@ resource-*loading* references. Phase 5's plan had the clone detector derive its 
 instead `build_flow.py` was taught to record the `end` line it already had and was discarding, so
 the new pass reads ranges from the graph like every other review pass — avoiding both a new
 cross-category import and a re-run of the Node extractor.
+
+---
+
+## Phase 5 — Graph as many languages as possible (2026-09-09 → 09-11, 52 commits)
+
+*Written 2026-09-11, at the end of the arc, from the roadmap's status ledger, the commit bodies and
+`docs/prompt.md` entries [41]–[73] -- contemporaneous records, but this section itself is a
+summary written after the fact.*
+
+After a short run of explorer polish (movable panes, a way back from a mangled layout), `c0bec8a`
+**replaced the roadmap** with one goal in its title: *graph as many languages as possible.* It was
+worked the same way as phase 4 -- `docs/ROADMAP_PLAN.md`, one commit per phase, a status ledger
+moved in the same commit as the work -- but it was a different kind of plan. Phase 4 added
+features; this one replaced the engine underneath every feature, and then had to prove nothing
+had moved.
+
+### Deciding before building (09-09)
+
+The first eight commits changed no code. They settled, in writing, what the port would and would
+not be: **one engine** (tree-sitter, through its Python binding), **Node out of the runtime**
+entirely, grammars **installed on demand** rather than shipped, `ast` kept forever as a
+**differential oracle** rather than as a second engine (`d1886ed`), and a **deletion order made
+structural** (`c87d2ae`): nothing old is deleted before its replacement has been diffed against
+it. A Node `web-tree-sitter` alternative was measured and rejected (`12cc81f`). The cost was
+stated rather than hidden: "zero Python dependencies" would stop being true.
+
+### The port, in six deletion steps (09-10)
+
+| Phase / step | Commit | What happened |
+| --- | --- | --- |
+| 1 | `e8464f8` | A call through an interface resolves to the declaration (`declaration: true`), and stops there -- no guess at the implementation |
+| 2, step 1 | `8974c27` | Java/Go/C# read from a parse tree. Diffed against the regex extractor: identical ids and edges; three real bugs in the port caught by the diff |
+| 1b | `67d4df4` | Every wheel installs into `<skill>/vendor/`, never the user's Python (`--target --only-binary :all: --no-cache-dir`) |
+| 2 | `e7bfb09` | `lang_extract.py` deleted |
+| 3 | `fd9c7d8` | JS/TS off `@babel/parser` -- graphs **byte-identical** |
+| 4 | `df5fb0b` | Node leaves the runtime: `js_extract.js`, `js_bridge.py`, the skill's `package.json` |
+| 5 + 6 | `7283cf4` | Python onto tree-sitter; `ast` only in `tools/check_py_oracle.py` -- 0 disagreements |
+| 2g | `7f40370` | A fixture per language (`tests/fixtures/langs/`); its first run found that **every filename-based test convention had silently failed** |
+| 2d | `fd67e49` | `approx: true` on three languages replaced by one global caveat plus named per-node losses (`precision`) -- after measuring the proposed `exact`/`sparse` split and rejecting it (`b6c55e2`) |
+
+The pattern that made it safe: every replacement kept its predecessor's exact output contract, so
+each step could be proved by **diffing the graph** instead of by reading code.
+
+### Trusting the result (09-11)
+
+- **Phase 3** (`f904891`) ran everything old against the new engine: five fixes, one recorded
+  finding -- and one *fake* bug, a Tests checkbox that "did nothing" only because the probe had
+  re-run the page's script in a shadow scope. The method was written into `CLAUDE.md` so it is not
+  repeated.
+- **Phase 4** (`b44b909`) built `tools/check_graph.py`: invariants any correct graph satisfies,
+  metamorphic checks that inject a cycle or an orphan and demand it be reported, and a
+  `--self-test` that breaks each check once to prove it can fail. On a real corpus it found two
+  silent bugs: security findings pinned to the wrong node (99 of 152 on the skill's own code), and
+  every `main()` merged into one node (72 false edges, resolved by `15a7208`).
+- **Phase 5** (`cc4d0af`) closed the two limits phase 4 left: shared names in the structure map,
+  and a toolbar that clipped below ~1270px (now ~987px).
+
+### Feature-complete (09-11)
+
+`e5fd2a5` removed the README's "What's next" -- the user's instruction was that the skill be
+complete, silent bugs allowed but no missing features -- and planned four more phases:
+
+- **6** made adding a language safe: exact grammar pins (`16b6f62`), 2-, 3- and 4-byte UTF-8 in
+  every fixture (`6553498`), metrics for every language keyed by graph id (`bf588e7`), and a timing
+  run on a real repository, which crashed on Windows' 260-character path limit (`758e522`).
+- **7** (`9be5825`) graphed eleven more languages through one shared walker -- seventeen in all.
+- **8** (`82a1cf4`) read routes from Django, Rails, Laravel and Phoenix route tables.
+- **9** (`619f3ce`) found copied blocks inside different functions, and on the way unified five
+  drifted copies of "which directories are not source" -- none had skipped `.next/`, which made up
+  228 of 2,521 flow nodes on a real repository.
+- The last two open findings, both the user's decisions, shipped in `918f47f`: every node's range
+  starts at its first decorator, and copied blocks are grouped by shape.
+
+### After the plan: a second real repository
+
+The plan was finished, but its eleven new languages had only met fixtures written by the same
+hand as the code. The first real Next.js + NestJS + Python repository run through the finished
+skill (read-only, from a throwaway install) found **six silent bugs** -- none crashed, and
+all of them had passed every fixture:
+
+| Bug | Effect on that repository |
+| --- | --- |
+| An axios instance imported from the one file that creates it was never recognised | 0 frontend HTTP calls, no cross-stack edge at all |
+| tree-sitter-typescript parses `await api.get<T>(url)` with the `await` inside the callee | even once imported, only 12 of 86 calls had a name or a URL |
+| A URL that is a variable normalised to `/` | two calls linked to the app's `GET /` handler: wrong edges, not missing ones |
+| `@patch("subprocess.run")` (unittest.mock) read as a PATCH route | 4 phantom routes on test methods |
+| `login` and `Login` in different files kept bare ids | one note file overwrote the other on Windows |
+| `check_graph.py --graph` compared against the sample's report | 12 false findings from the checker itself |
+
+After the fixes: 74 frontend-to-backend edges where there had been none, 96 routes, and
+`check_graph` clean on both maps. The oracle, run over the skill's own scripts, turned up a
+seventh: Python string escapes were read raw (`\\w` as two backslashes).
+
+Re-running the Java + Next.js repository from 6d with those fixes found **three more** in the
+same pass, because its frontend is written differently:
+
+| Bug | Effect on that repository |
+| --- | --- |
+| The axios instance came out of a factory (a function calling `axios.create` inside and returning it) | 6 of 97 API calls seen |
+| Services named their base once in a same-file string const and wrote `${API_BASE_URL}/list` | 89 calls read as `:API_BASE_URL/list`, linking nowhere |
+| The `/api` prefix lived in the client's `baseURL`, not the server's mount | even resolved, `/x/list` never met `/api/x/list`; the suffix rule only ran one way |
+
+Each of the ten became a regression case (`r28`–`r32`) or an oracle run, and each case was shown
+to fail on the old code first. One thing was **not** fixed: an overload set folded into one node
+carries every overload's calls but one overload's range, which `check_graph` c13 flagged on the
+Java code. No single range is right for two definitions apart, so it is recorded as the roadmap's
+*Found while implementing* #8, for a decision.
+
+What the arc established:
+
+**A diff is the strongest test there is.** Every port was accepted on byte-identical graphs, not
+on reading the new code. Keeping an old engine alive long enough to diff against was the whole
+point of the deletion order.
+
+**A check must be shown to fail.** `check_graph --self-test` and the stash-and-rerun of every new
+regression case exist because a detector that reports nothing looks exactly like a clean codebase.
+
+**Fixtures prove what you thought of; a real repository finds what you didn't.** Every real-code
+run in this arc -- MAX_PATH, `.next/`, the six above -- found something no fixture had. The
+README and the presentation now say which languages have met real code and which have not.
 
 ---
 

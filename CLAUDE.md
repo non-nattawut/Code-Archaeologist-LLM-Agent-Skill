@@ -33,7 +33,9 @@ language moved to tree-sitter. Adding a producer means adding an `extract_*_enti
 `core/ids.py`'s `SharedNames`, used by `build_flow` and `build_wiki` alike,
 pre-scans every definition from all three producers, then qualifies only the ids two or more files
 share -- by file stem, else by path -- compared **case-insensitively**, because each node's note is
-`<id>.md` and `Widgets.X` / `widgets.X` are one file on Windows and macOS. A call to a shared name
+`<id>.md` and `Widgets.X` / `widgets.X` are one file on Windows and macOS. That includes two
+*different* names that differ only by case (`login` in one file, `Login` in another): grouping by
+exact name missed them until a real Next.js repository put the two notes in one file. A call to a shared name
 resolves to the caller's own file's definition, or is dropped (`FlowIds.target`). Before this,
 every `main()` was one node carrying every definition's calls: 72 false edges on the skill's own
 code. `sample_src` has no shared names, so none of its ids changed.
@@ -146,7 +148,10 @@ delete. Nothing else in `core/` may import a skill module.
   any disagreement about what was declared. That is the one reason to keep a stdlib parser around,
   and the only thing in the repo that still imports `ast`.
 - `js_ts_extract.py` reads JS/JSX/TS/TSX from a tree-sitter parse: classes, functions, imports,
-  Express and Nest routes, `fetch`/axios calls, and the JSX rule that makes a function a
+  Express and Nest routes, `fetch`/axios calls (including an axios instance *imported* from the
+  one file that creates it, directly or through a factory function -- `extract_js_files` parses
+  every file before reading any, and an import that resolves to exactly one such file binds the
+  name -- and URLs built on a same-file `const BASE = "/x"`), and the JSX rule that makes a function a
   `kind: component`. It replaced the Node extractor behind that extractor's exact output contract
   (`find_js_files` / `extract_js_files` / `frontend_degraded`), which is why the port could be
   proved by diffing JSON rather than by reading code: the diff reported **identical output** on

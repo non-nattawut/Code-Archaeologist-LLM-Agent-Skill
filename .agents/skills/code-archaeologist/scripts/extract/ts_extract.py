@@ -1276,7 +1276,7 @@ def extract_file(path: str) -> dict | None:
 
 
 def find_lang_files(root: str) -> list[str]:
-    """Every Java/Go/C# file under `root`, in a fixed order (constraint 2)."""
+    """Every file under `root` in one of this module's languages, in a fixed order (constraint 2)."""
     out: list[str] = []
     for dirpath, dirs, names in os.walk(root):
         dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS)
@@ -1302,7 +1302,8 @@ def main(argv=None) -> int:
     import argparse
     import json
     parser = argparse.ArgumentParser(
-        description="Java/Go/C# extraction via tree-sitter (debugging aid; the graph builders call this as a library).")
+        description="Java/Go/C# and the phase-7 languages, extracted via tree-sitter "
+                    "(debugging aid; the graph builders call this as a library).")
     parser.add_argument("--src", nargs="+", default=["./src"], help="One or more source roots")
     args = parser.parse_args(argv)
     records = []

@@ -21,6 +21,8 @@ Repo tool, not part of the installed skill.
 """
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import os
 import re
@@ -547,6 +549,131 @@ def r27_generated_dirs_are_not_source():
                 return f"{fn} defines its own SKIP_DIRS again; import taxonomy.SKIP_DIRS"
 
 
+def _tree(files: dict) -> str:
+    """A temp source tree from {relative path: text}."""
+    d = tempfile.mkdtemp()
+    for rel, text in files.items():
+        full = os.path.join(d, *rel.split("/"))
+        os.makedirs(os.path.dirname(full), exist_ok=True)
+        with open(full, "w", encoding="utf-8") as fh:
+            fh.write(text)
+    return d
+
+
+def r28_mock_patch_is_not_a_route():
+    """real repo: `@patch("subprocess.run")` (unittest.mock) on a Python test was read as
+    a PATCH route -- `patch` is also an HTTP verb, and nothing required a "/"."""
+    d = _tree({
+        "test_tools.py": 'from unittest.mock import patch\n\n\nclass TestTool:\n'
+                         '    @patch("subprocess.run")\n    def test_runs(self, run):\n'
+                         '        assert run\n',
+        "api.py": 'from fastapi import APIRouter\n\nrouter = APIRouter()\n\n\n'
+                  '@router.patch("/items/{item_id}")\ndef update_item(item_id):\n'
+                  '    return item_id\n'})
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        methods, _ = _flow(d)
+    routed = {nid: [(r["method"], r["path"]) for r in info["routes"]]
+              for nid, info in methods.items() if info.get("routes")}
+    if routed != {"update_item": [("PATCH", "/items/{item_id}")]}:
+        return f"expected only update_item's PATCH route, got {routed}"
+
+
+def r29_names_differing_only_by_case():
+    """real repo: `login` (a service) and `Login` (a page) kept bare ids, so their notes
+    were one file on Windows and macOS and one silently overwrote the other."""
+    d = _tree({
+        "src/services/authService.ts": "export function login() {\n  return 1;\n}\n",
+        "src/app/Login.tsx": 'import { login } from "../services/authService";\n\n'
+                             "export function Login() {\n  login();\n  return <div />;\n}\n"})
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        methods, edges = _flow(d)
+    ids_ = sorted(methods)
+    if len({i.lower() for i in ids_}) != len(ids_):
+        return f"two ids differ only by case: {ids_}"
+    lower = {i.split(".")[-1]: i for i in ids_}
+    if (lower.get("Login"), lower.get("login")) not in edges:
+        return f"the call Login -> login was lost once the ids were qualified: {sorted(edges)}"
+
+
+def r30_imported_axios_instance():
+    """real repo: an axios instance is created once and imported everywhere, but only a
+    same-file `axios.create` counted -- a Next.js frontend had 0 HTTP calls and no
+    cross-stack edge."""
+    d = _tree({
+        "web/src/services/http.ts": 'import axios from "axios";\n\n'
+                                    'const http = axios.create({ baseURL: "/api" });\n'
+                                    "export const admin = axios.create();\nexport default http;\n\n"
+                                    # a factory: the instance is made inside a function
+                                    "const make = () => {\n  const i = axios.create();\n"
+                                    "  i.interceptors.request.use((c) => {\n    return c;\n  });\n"
+                                    "  return i;\n};\nexport const made = make();\n",
+        "web/src/services/orders.ts": 'import http, { admin as a, made } from "@/services/http";\n\n'
+                                      # awaited + generic: the await parses *inside* the callee
+                                      'export async function loadOrders() {\n'
+                                      '  const { data } = await http.get<string[]>("/orders");\n'
+                                      '  return data;\n}\n\n'
+                                      "export async function dropOrder(id: string) {\n"
+                                      "  return a.delete(`/orders/${id}`);\n}\n\n"
+                                      "export async function renameOrder(id: string) {\n"
+                                      "  return made.put(`/orders/${id}`);\n}\n",
+        "api/orders.controller.ts": 'import { Controller, Delete, Get, Put } from "@nestjs/common";\n\n'
+                                    '@Controller("orders")\nexport class OrdersController {\n'
+                                    "  @Get()\n  list() {\n    return [];\n  }\n\n"
+                                    '  @Delete(":id")\n  remove() {\n    return 1;\n  }\n\n'
+                                    '  @Put(":id")\n  update() {\n    return 2;\n  }\n}\n'})
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        _, edges = build_flow.analyze([d])
+    http = {(s, t) for s, t, kind in edges if kind == "http"}
+    want = {("loadOrders", "OrdersController.list"), ("dropOrder", "OrdersController.remove"),
+            ("renameOrder", "OrdersController.update")}
+    if http != want:
+        return f"expected {sorted(want)}, got {sorted(http)}"
+
+
+def r31_unknown_url_links_nowhere():
+    """real repo: a call whose URL is a variable (`get(ENDPOINT[section])`) normalized to
+    `/` and was linked to the app's `GET /` handler -- a wrong edge, not a missing one."""
+    d = _tree({
+        "web/api.ts": 'import axios from "axios";\n\nconst ENDPOINT = { blog: "/blog" };\n\n'
+                      "export async function getPosts(section) {\n"
+                      "  return axios.get(ENDPOINT[section]);\n}\n\n"
+                      "export async function getOne(id) {\n  return axios.get(`${id}`);\n}\n",
+        "api/app.controller.ts": 'import { Controller, Get } from "@nestjs/common";\n\n'
+                                 "@Controller()\nexport class AppController {\n"
+                                 '  @Get()\n  getHello() {\n    return "hi";\n  }\n\n'
+                                 '  @Get(":id")\n  getById() {\n    return 1;\n  }\n}\n'})
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        _, edges = build_flow.analyze([d])
+    http = sorted((s, t) for s, t, kind in edges if kind == "http")
+    if http:
+        return f"a URL with no literal segment was linked: {http}"
+
+
+def r32_const_base_and_client_prefix():
+    """real repo: services wrote `${API_BASE_URL}/list` with a same-file string const base,
+    through an axios baseURL ending in `/api` -- 89 calls read as `:API_BASE_URL/list`, and
+    even resolved, `/orders/list` never met the route `/api/orders/list`."""
+    d = _tree({
+        "web/orders.ts": 'import axios from "axios";\n\nconst API_BASE_URL = "/orders";\n\n'
+                         "export async function listOrders() {\n"
+                         "  return axios.get(`${API_BASE_URL}/list`);\n}\n\n"
+                         "export async function login(base) {\n"
+                         "  return axios.post(`${base}/login`);\n}\n",
+        "api/OrderController.java": "package demo;\n\n"
+                                    '@RestController\n@RequestMapping("/api/orders")\n'
+                                    "public class OrderController {\n"
+                                    '    @GetMapping("/list")\n    public String list() {\n'
+                                    '        return "";\n    }\n\n'
+                                    '    @PostMapping("/auth/login")\n    public String login() {\n'
+                                    '        return "";\n    }\n}\n'})
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        _, edges = build_flow.analyze([d])
+    http = {(s, t) for s, t, kind in edges if kind == "http"}
+    if http != {("listOrders", "OrderController.list")}:
+        return (f"expected only listOrders -> OrderController.list (an unknown base must not "
+                f"link), got {sorted(http)}")
+
+
 CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_append,
          r05_duplicates_declarations, r06_orphan_guard, r07_flask_routes,
          r08_missing_parser_is_visible, r09_no_absolute_paths, r10_brief_agrees_with_check,
@@ -555,7 +682,10 @@ CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_app
          r17_owner_respects_end, r18_same_name_in_two_files, r19_reports_are_reproducible,
          r20_structure_shared_names, r21_grammars_are_pinned, r22_metrics_by_graph_id,
          r23_long_node_paths, r24_route_table_handlers, r25_copied_blocks,
-         r26_graph_path_on_another_drive, r27_generated_dirs_are_not_source]
+         r26_graph_path_on_another_drive, r27_generated_dirs_are_not_source,
+         r28_mock_patch_is_not_a_route, r29_names_differing_only_by_case,
+         r30_imported_axios_instance, r31_unknown_url_links_nowhere,
+         r32_const_base_and_client_prefix]
 
 
 def main() -> int:

@@ -1,9 +1,16 @@
 # Graph as many languages as possible
 
 > ## Status: **all nine phases are complete — the skill is feature-complete. The goal in the title is reached: seventeen languages have a graph.**
-> Every planning concern is closed, and every *Found while implementing* item is resolved — #6
+> Every planning concern is closed, and every *Found while implementing* item from the plan is
+> resolved (#8, found afterwards on a real repository, is open and awaiting a decision) — #6
 > (every range starts at its first decorator) and #7 (copied blocks grouped by shape) were decided
 > by the user on 2026-09-11 and shipped the same day.
+>
+> **After the plan (2026-09-11): real-repository validation.** The finished skill was run,
+> read-only, on a Next.js + NestJS + Python repository and re-run on the Java + Next.js one used
+> in 6d. It found ten silent bugs no fixture had -- all fixed, each a regression case `r28`–`r32`
+> or an oracle run -- and one needing a decision, recorded as *Found while implementing* #8
+> (open). The record is in `docs/PROJECT_HISTORY.md` and `docs/prompt.md` [73].
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
@@ -1759,6 +1766,28 @@ prediction was wrong for a visible reason: the same boilerplate occurs as severa
 variants — a 212-token run in 2 places, 205 tokens in 3, 88 tokens in 4 — and each maximal run is
 a different shape, so each keeps its entry. Folding nested variants into their longest form would
 be a further step; it is not needed for the list to be readable and was not done.
+
+### 8. An overload set's node has the range of one overload and the calls of all — found after the plan, 2026-09-11
+
+**What.** Ids carry no arity, so a Java/C# overload set folds into one node (`signatures` records
+the fold). Its `calls` are the union of every overload's calls, but its `source`..`end` is the
+range of **one** of them. On a real Java repository, `tools/check_graph.py` c13 flagged exactly
+this: a one-line overload that only delegates to its sibling, whose node carried two calls made
+only by that sibling -- defined elsewhere in the file, with another method between them. The
+same mismatch reaches every range reader: metrics measure one overload, `duplicates.py` compares
+one body, `scan_security`/`debt` attribute only the recorded overload's lines.
+
+**Why it is not just a fix.** There is no single right range for two non-adjacent definitions.
+Spanning first-start..last-end swallows whatever sits between them (it would be measured and
+compared as part of the overload set); keeping one range and dropping the other overload's calls
+loses real edges; a list of ranges changes the node schema every range reader consumes.
+
+**Options.** (a) Record `ranges: [[start, end], ...]` beside `source`/`end` (which keep the first
+overload), and teach `locate`, `duplicates`, `owner_of` and c13 to read the list. (b) Span
+first..last and accept the swallow. (c) Leave it, and make c13 accept a callee named in any
+overload's text -- honest about edges, still wrong for metrics. **Recommendation: (a)** -- it is the
+only option that is right for every reader, and `signatures` already establishes that a folded
+node carries per-overload detail.
 
 ---
 

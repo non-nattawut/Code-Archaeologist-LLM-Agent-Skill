@@ -34,7 +34,9 @@ other language (hard constraint 1).
 from __future__ import annotations
 
 import os
+import re
 import sys
+import unicodedata
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from paths import SKILL_ROOT  # noqa: E402,F401  (also puts sibling script dirs on sys.path)
@@ -279,17 +281,49 @@ def docstring_of(node) -> str:
     literal = first.named_children[0]
     if literal.type != "string":
         return ""
-    content = [c for c in literal.children if c.type == "string_content"]
-    return "".join(text(c) for c in content)
+    return string_value(literal)
 
 
 # --- expressions --------------------------------------------------------------
 
+_SIMPLE_ESCAPES = {"\\": "\\", "'": "'", '"': '"', "a": "\a", "b": "\b", "f": "\f",
+                   "n": "\n", "r": "\r", "t": "\t", "v": "\v", "\n": ""}
+_ESCAPE = re.compile(r"\\(N\{[^}]*\}|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|[0-7]{1,3}|.)",
+                     re.S)
+
+
+def _unescape(raw: str) -> str:
+    """A non-raw literal's escapes decoded the way Python does; unknown ones (`\\w`) kept."""
+    def one(m):
+        e = m.group(1)
+        if e in _SIMPLE_ESCAPES:
+            return _SIMPLE_ESCAPES[e]
+        if e[0] in "xuU":
+            return chr(int(e[1:], 16))
+        if e[0] == "N":
+            try:
+                return unicodedata.lookup(e[2:-1])
+            except KeyError:
+                return m.group(0)
+        if e[0] in "01234567":
+            return chr(int(e, 8))
+        return m.group(0)
+    return _ESCAPE.sub(one, raw)
+
+
 def string_value(node) -> str:
-    """The text of a string literal, or "" for anything else."""
+    """The value of a string literal, or "" for anything else.
+
+    tree-sitter hands back the source text, escapes and all; `ast` -- the oracle --
+    hands back the value. Undecoded, a docstring holding `\\\\w` read as two
+    backslashes (the oracle's one disagreement on the skill's own code).
+    """
     if node is None or node.type != "string":
         return ""
-    return "".join(text(c) for c in node.children if c.type == "string_content")
+    raw = "".join(text(c) for c in node.children if c.type == "string_content")
+    start = next((c for c in node.children if c.type == "string_start"), None)
+    prefix = text(start).rstrip("'\"").lower() if start is not None else ""
+    return raw if "r" in prefix else _unescape(raw)
 
 
 def call_args(node):

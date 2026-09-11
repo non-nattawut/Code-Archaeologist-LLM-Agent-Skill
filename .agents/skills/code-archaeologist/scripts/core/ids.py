@@ -44,18 +44,25 @@ class SharedNames:
         self.defined: dict[str, set[str]] = {}
         for name, rel in defs:
             self.defined.setdefault(name, set()).add(rel)
+        # Grouped ignoring case: `login` in one file and `Login` in another are two
+        # names but one note file on Windows and macOS, so they are qualified exactly
+        # like one name two files share. Grouping by exact name missed them (found on
+        # a real Next.js repository: a `login` service beside a `Login` page).
+        groups: dict[str, list[tuple[str, str]]] = {}
+        for name, rels in self.defined.items():
+            groups.setdefault(name.lower(), []).extend((name, r) for r in rels)
         self.qualified: dict[tuple[str, str], str] = {}
-        taken = {n.lower() for n in self.defined}
-        for name in sorted(n for n, rels in self.defined.items() if len(rels) > 1):
-            rels = sorted(self.defined[name])
+        taken = set(groups)
+        for key in sorted(k for k, group in groups.items() if len(group) > 1):
+            group = sorted(groups[key])
             # The shortest qualifier under which every definition is distinct, and
             # none clashes with an id that already exists -- ignoring case.
             for level in range(3):
-                ids = [f"{_qualifiers(r)[level]}.{name}" for r in rels]
+                ids = [f"{_qualifiers(r)[level]}.{n}" for n, r in group]
                 low = [i.lower() for i in ids]
                 if len(set(low)) == len(low) and not taken.intersection(low):
                     break
-            self.qualified.update(zip(((name, r) for r in rels), ids))
+            self.qualified.update(zip(group, ids))
             taken.update(i.lower() for i in ids)
 
     def id(self, name: str, rel: str) -> str:
@@ -64,12 +71,13 @@ class SharedNames:
 
     def target(self, name: str, from_rel: str) -> str | None:
         """The id a reference to `name` from `from_rel` means, or None if it cannot be told."""
-        if len(self.defined.get(name, ())) < 2:
-            return name
+        rels = self.defined.get(name, ())
+        if len(rels) < 2:     # one definition: unambiguous, even if a case twin qualified it
+            return self.qualified.get((name, next(iter(rels))), name) if rels else name
         return self.qualified.get((name, from_rel))
 
     def shared(self) -> list[str]:
-        return sorted(n for n, rels in self.defined.items() if len(rels) > 1)
+        return sorted({n for n, _ in self.qualified})
 
     def report(self, what: str, limit: int = 5) -> None:
         """One line naming what was qualified -- never silent, never one line per name."""
@@ -79,6 +87,6 @@ class SharedNames:
         shown = "; ".join(f"{n} -> {', '.join(sorted(self.qualified[(n, r)] for r in self.defined[n]))}"
                           for n in shared[:limit])
         more = f" (+{len(shared) - limit} more)" if len(shared) > limit else ""
-        print(f"  ! {len(shared)} {what}(s) are defined in more than one file, so each definition is"
+        print(f"  ! {len(shared)} {what}(s) are defined in more than one file (ignoring case), so each definition is"
               f" qualified by its file: {shown}{more}. A reference to one of them from a file that"
               " does not define it is dropped rather than guessed.", file=sys.stderr)

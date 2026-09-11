@@ -35,6 +35,7 @@ the rest of the graph still builds (hard constraint 1).
 from __future__ import annotations
 
 import os
+import posixpath
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -176,10 +177,39 @@ def _doc_for(node, decorators) -> str:
 
 # --- literals -----------------------------------------------------------------
 
+# The current file's top-level `const X = "/literal"` strings, set by `_extract_tree`
+# before anything in the file is read. A service module routinely names its base
+# once (`const API_BASE_URL = "/orders"`) and writes `${API_BASE_URL}/list` in every
+# call; read as `:API_BASE_URL/list`, 89 of a real frontend's calls linked nowhere.
+_FILE_CONSTS: dict = {}
+
+
+def _string_consts(program) -> dict:
+    """`name -> value` for every top-level `const name = "string"` in one file."""
+    out = {}
+    for raw in program.named_children:
+        node = _unwrap_export(raw)
+        if node is None or node.type != "lexical_declaration" or node.child(0) is None \
+                or node.child(0).type != "const":
+            continue
+        for dec in _named(node, "variable_declarator"):
+            name, value = _field(dec, "name"), _field(dec, "value")
+            if name is not None and name.type == "identifier" and value is not None \
+                    and value.type == "string":
+                out[_text(name)] = _url_of(value)
+    return out
+
+
 def _url_of(node) -> str:
-    """A route-ish path from a string or template literal, else ""."""
+    """A route-ish path from a string or template literal, else "".
+
+    A same-file string constant stands for its value (`_FILE_CONSTS`), as the whole
+    argument or inside `${...}`; any other substitution becomes a `:name` segment.
+    """
     if node is None:
         return ""
+    if node.type == "identifier":
+        return _FILE_CONSTS.get(_text(node), "")
     if node.type == "string":
         return "".join(_text(c) for c in node.children if c.type == "string_fragment")
     if node.type == "template_string":
@@ -189,8 +219,11 @@ def _url_of(node) -> str:
                 out.append(_text(c))
             elif c.type == "template_substitution":
                 inner = c.named_children[0] if c.named_children else None
-                out.append(":" + (_text(inner) if inner is not None and inner.type == "identifier"
-                                  else "param"))
+                if inner is not None and inner.type == "identifier" and _text(inner) in _FILE_CONSTS:
+                    out.append(_FILE_CONSTS[_text(inner)])
+                else:
+                    out.append(":" + (_text(inner) if inner is not None and inner.type == "identifier"
+                                      else "param"))
         return "".join(out)
     return ""
 
@@ -210,6 +243,12 @@ def _method_from_options(node) -> str:
 def _callee_parts(call):
     """(identifier name, member property name, member object name) for a call."""
     fn = _field(call, "function")
+    # tree-sitter-typescript parses `await api.post<T>(url)` with the await *inside* the
+    # callee: call(function: await(api.post), type_arguments, arguments). Unwrapped, or
+    # every awaited generic call -- the normal typed-axios shape -- lost its name and its
+    # URL (a real frontend registered 12 of 86 axios calls).
+    if fn is not None and fn.type == "await_expression" and fn.named_children:
+        fn = fn.named_children[0]
     if fn is None:
         return "", "", ""
     if fn.type == "identifier":
@@ -238,6 +277,7 @@ def _axios_instances(program) -> set:
     object that happens to have a `.get()`.
     """
     names = {"axios"}
+    factories = _instance_factories(program)
     for raw in program.named_children:
         node = _unwrap_export(raw)
         if node is None or node.type not in ("lexical_declaration", "variable_declaration"):
@@ -246,11 +286,72 @@ def _axios_instances(program) -> set:
             name, value = _field(dec, "name"), _field(dec, "value")
             if name is None or name.type != "identifier" or value is None:
                 continue
-            if value.type == "call_expression":
-                _, prop, obj = _callee_parts(value)
-                if obj == "axios" and prop == "create":
-                    names.add(_text(name))
+            if _is_axios_create(value) or (value.type == "call_expression"
+                                           and _callee_parts(value)[0] in factories):
+                names.add(_text(name))
     return names
+
+
+def _is_axios_create(node) -> bool:
+    return node is not None and node.type == "call_expression" and \
+        _callee_parts(node)[1:] == ("create", "axios")
+
+
+_FUNCTIONS = ("arrow_function", "function_expression", "function", "function_declaration")
+
+
+def _instance_factories(program) -> set:
+    """Top-level functions that return a fresh axios instance.
+
+    `const make = (base) => { const i = axios.create(); ...; return i; }` then
+    `export default make(apiBase)` -- one factory for several base URLs is a normal
+    shape (a real frontend made every one of its 97 API calls through one), and
+    without this rule none of them was an HTTP call.
+    """
+    found: set = set()
+    for raw in program.named_children:
+        node = _unwrap_export(raw)
+        if node is None:
+            continue
+        if node.type == "function_declaration":
+            pairs = [(_field(node, "name"), _field(node, "body"))]
+        elif node.type in ("lexical_declaration", "variable_declaration"):
+            pairs = [(_field(d, "name"), _field(_field(d, "value"), "body"))
+                     for d in _named(node, "variable_declarator")
+                     if _field(d, "value") is not None and _field(d, "value").type in _FUNCTIONS]
+        else:
+            continue
+        for name, body in pairs:
+            if name is not None and body is not None and _returns_instance(body):
+                found.add(_text(name))
+    return found
+
+
+def _returns_instance(body) -> bool:
+    """Does this function body return `axios.create(...)`, directly or through a local?
+
+    Nested functions are not entered: an interceptor's `return config` is not the
+    factory's return value.
+    """
+    if _is_axios_create(body):                                  # `() => axios.create()`
+        return True
+    local: set = set()
+    returned: list = []
+
+    def walk(node) -> None:
+        if node.type == "variable_declarator" and _is_axios_create(_field(node, "value")):
+            ident = _field(node, "name")
+            if ident is not None:
+                local.add(_text(ident))
+        elif node.type == "return_statement" and node.named_children:
+            returned.append(node.named_children[0])
+        for child in node.named_children:
+            if child.type not in _FUNCTIONS:
+                walk(child)
+
+    walk(body)
+    return any(_is_axios_create(r) or (r.type == "identifier" and _text(r) in local)
+               for r in returned)
 
 
 def _collect_calls(root, axios_names: set) -> dict:
@@ -464,6 +565,8 @@ def _import_entry(node) -> dict:
 
 
 def _extract_tree(root, axios_names: set) -> dict:
+    global _FILE_CONSTS
+    _FILE_CONSTS = _string_consts(root)
     out = {"classes": [], "functions": [], "imports": [],
            "routes": _express_routes(root, axios_names)}
 
@@ -505,7 +608,86 @@ def _extract_tree(root, axios_names: set) -> dict:
     return out
 
 
-def extract_file(path: str) -> dict | None:
+def _exported_instances(program, local: set) -> dict:
+    """The axios instances this module exports: {"default": bool, "names": set}.
+
+    Covers `export default api`, `export default axios.create(...)`,
+    `export const api = axios.create(...)` and `export { api as client }`.
+    """
+    out = {"default": False, "names": set()}
+    for raw in program.named_children:
+        if raw.type != "export_statement":
+            continue
+        value, decl = _field(raw, "value"), _field(raw, "declaration")
+        if value is not None:
+            if (value.type == "identifier" and _text(value) in local) or \
+                    (value.type == "call_expression" and _callee_parts(value)[1:] == ("create", "axios")):
+                out["default"] = True
+        elif decl is not None:
+            for dec in _named(decl, "variable_declarator"):
+                name = _field(dec, "name")
+                if name is not None and _text(name) in local:
+                    out["names"].add(_text(name))
+        for clause in _named(raw, "export_clause"):
+            for spec in _named(clause, "export_specifier"):
+                name, alias = _field(spec, "name"), _field(spec, "alias")
+                if name is None or _text(name) not in local:
+                    continue
+                exported = _text(alias if alias is not None else name)
+                if exported == "default":
+                    out["default"] = True
+                else:
+                    out["names"].add(exported)
+    return out
+
+
+def _module_key(path: str) -> str:
+    """A file as an import specifier would name it: no extension, `/index` dropped."""
+    key = os.path.splitext(path)[0].replace("\\", "/")
+    return key[: -len("/index")] if key.endswith("/index") else key
+
+
+def _resolve_import(spec: str, importer: str, keys: set) -> str | None:
+    """The one module key an import specifier names, or None -- never a guess.
+
+    Relative specifiers resolve exactly. Anything else is matched as a path suffix
+    after a bare alias segment (`@/`, `~/`, `#/`), because tsconfig `paths` are not
+    read: `@/services/api` is the file ending in `/services/api`, if exactly one does.
+    """
+    if spec.startswith("."):
+        base = posixpath.dirname(importer.replace("\\", "/"))
+        key = posixpath.normpath(posixpath.join(base, spec))
+        return key if key in keys else None
+    head, _, rest = spec.partition("/")
+    tail = "/" + (rest if head in ("@", "~", "#") and rest else spec)
+    hits = [k for k in keys if k.endswith(tail)]
+    return hits[0] if len(hits) == 1 else None
+
+
+def _imported_instances(program, path: str, exporters: dict, keys: set) -> set:
+    """Local names bound to an axios instance another file exports."""
+    names: set = set()
+    for raw in program.named_children:
+        if raw.type != "import_statement":
+            continue
+        spec = _url_of(_field(raw, "source"))
+        exp = exporters.get(_resolve_import(spec, path, keys)) if spec else None
+        if not exp:
+            continue
+        for clause in _named(raw, "import_clause"):
+            for child in clause.named_children:
+                if child.type == "identifier" and exp["default"]:
+                    names.add(_text(child))
+                elif child.type == "named_imports":
+                    for s in _named(child, "import_specifier"):
+                        name, alias = _field(s, "name"), _field(s, "alias")
+                        if name is not None and _text(name) in exp["names"]:
+                            names.add(_text(alias if alias is not None else name))
+    return names
+
+
+def _parse(path: str):
+    """The tree for one JS/TS file, or None (unknown extension, missing grammar, unreadable)."""
     ext = os.path.splitext(path)[1].lower()
     lang = LANG_BY_EXT.get(ext)
     if lang is None:
@@ -530,19 +712,42 @@ def extract_file(path: str) -> dict | None:
     except OSError as exc:
         print(f"  ! skipped {path}: {exc}", file=sys.stderr)
         return None
-    tree = parser.parse(src)
-    out = _extract_tree(tree.root_node, _axios_instances(tree.root_node))
+    return parser.parse(src)
+
+
+def extract_file(path: str, axios_names: set | None = None) -> dict | None:
+    tree = _parse(path)
+    if tree is None:
+        return None
+    out = _extract_tree(tree.root_node, _axios_instances(tree.root_node) | (axios_names or set()))
     out["file"] = path
     return out
 
 
 def extract_js_files(files: list[str]) -> list[dict]:
-    """The normalized per-file structure for `files` ([] when nothing parses)."""
+    """The normalized per-file structure for `files` ([] when nothing parses).
+
+    An axios instance is usually created once and imported everywhere
+    (`services/api.ts` exports `axios.create(...)`), so every file is parsed before
+    any is read: an import resolving to exactly one file that exports an instance
+    binds that name too. Reading each file alone found 0 HTTP calls in a real
+    Next.js frontend, and so no cross-stack edge at all.
+    """
+    parsed = [(p, t) for p in files for t in [_parse(p)] if t is not None]
+    keys = {_module_key(p) for p, _ in parsed}
+    exporters = {}
+    for path, tree in parsed:
+        exp = _exported_instances(tree.root_node, _axios_instances(tree.root_node) - {"axios"})
+        if exp["default"] or exp["names"]:
+            exporters[_module_key(path)] = exp
     results = []
-    for path in files:
-        entry = extract_file(path)
-        if entry is not None:
-            results.append(entry)
+    for path, tree in parsed:
+        names = _axios_instances(tree.root_node)
+        if exporters:
+            names |= _imported_instances(tree.root_node, path, exporters, keys)
+        out = _extract_tree(tree.root_node, names)
+        out["file"] = path
+        results.append(out)
     return results
 
 

@@ -66,7 +66,7 @@ from taxonomy import infer_layer, is_test_path, precision_of, ROUTE_DECORATOR_RE
 import py_extract as px  # noqa: E402  (Python, via tree-sitter)
 from ids import SharedNames as FlowIds  # noqa: E402  (one id rule for both maps)
 from js_ts_extract import find_js_files, extract_js_files, frontend_degraded   # noqa: E402
-from ts_extract import find_lang_files, extract_lang_files  # noqa: E402  (Java/Go/C#, via tree-sitter)
+from ts_extract import find_lang_files, extract_lang_files  # noqa: E402  (13 languages, via tree-sitter)
 import route_tables  # noqa: E402  (Django / Rails / Laravel / Phoenix route tables)
 
 from taxonomy import SKIP_DIRS  # noqa: E402  (one definition of "not source")
@@ -164,7 +164,9 @@ def _route_of(decorators: list) -> list[dict]:
             continue
         args = px.call_args(call)
         path = px.string_value(args[0]) if args else ""
-        if not path:
+        # A route path starts with "/". Without this, `@patch("subprocess.run")` --
+        # unittest.mock, in a test -- was a PATCH route (found on a real repository).
+        if not path.startswith("/"):
             continue
         if verb in HTTP_VERBS:
             routes.append({"method": verb.upper(), "path": path})
@@ -209,11 +211,12 @@ def _norm_path(path: str) -> str:
 def _api_edges(methods: dict) -> set[tuple[str, str]]:
     """Link frontend HTTP calls to backend route handlers (method + path match).
 
-    Exact `(METHOD, path)` first. Failing that, one documented fallback: a route
-    whose path is a *suffix* of the call's, and only when exactly one route
-    matches. That is what makes a mount prefix work -- a frontend `/api/orders`
-    reaching a handler registered as `/orders` under an `/api` mount -- without
-    guessing when two routes could both be meant.
+    Exact `(METHOD, path)` first. Failing that, two documented fallbacks, each only
+    when exactly one route matches: a route whose path is a *suffix* of the call's
+    -- a frontend `/api/orders` reaching a handler registered as `/orders` under an
+    `/api` mount -- and its mirror, a call whose path is a suffix of the route's --
+    `/orders/list` sent through an axios `baseURL` ending in `/api`, reaching
+    `/api/orders/list`. Neither guesses when two routes could both be meant.
     """
     routes: dict[tuple[str, str], list[str]] = {}
     for nid, info in methods.items():
@@ -224,7 +227,14 @@ def _api_edges(methods: dict) -> set[tuple[str, str]]:
     for nid, info in methods.items():
         for h in info.get("http") or []:
             method, url = h["method"].upper(), _norm_path(h["url"])
-            owners = _owners(routes, method, url) or _suffix_match(routes, method, url)
+            # A URL with no literal segment -- "" from `get(ENDPOINT[s])`, `/*` from
+            # `${base}` -- says nothing about where it goes. Normalized, "" is "/", and
+            # it linked to whichever handler serves `GET /` (found on a real repository).
+            segs = [s for s in url.split("/") if s]
+            if not h["url"] or (segs and all(s == "*" for s in segs)):
+                continue
+            owners = (_owners(routes, method, url) or _suffix_match(routes, method, url)
+                      or _within_route(routes, method, url))
             if owners and len(owners) == 1 and owners[0] != nid:
                 edges.add((nid, owners[0]))
     return edges
@@ -252,6 +262,23 @@ def _suffix_match(routes: dict, method: str, url: str) -> list[str] | None:
     hits: list[str] = []
     for suffix in candidates:
         hits.extend(_owners(routes, method, suffix))
+    return sorted(set(hits)) or None
+
+
+def _within_route(routes: dict, method: str, url: str) -> list[str] | None:
+    """Routes whose path *ends with* `url` in whole segments, same verb.
+
+    The mirror of `_suffix_match`: the prefix lives in the client (an axios
+    `baseURL` ending in `/api`) instead of in the server's mount. Only for a call
+    whose first segment is a literal -- `/*/login`, with its base unknown, says too
+    little to be placed inside a longer route.
+    """
+    parts = url.strip("/").split("/")
+    if not parts[0] or parts[0] == "*":
+        return None
+    tail = "/" + "/".join(parts)
+    hits = [nid for (m, path), owners in routes.items() if m in (method, "ANY")
+            and path != tail and path.endswith(tail) for nid in owners]
     return sorted(set(hits)) or None
 
 
