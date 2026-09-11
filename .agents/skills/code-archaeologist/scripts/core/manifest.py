@@ -151,8 +151,22 @@ def compare(roots=None, path: str = DEFAULT_MANIFEST) -> dict:
         grammar_note = "grammars changed since last build (" + "; ".join(bits) + ")"
         stale = True
 
+    # Keys are "<root-basename>/<relpath>", so renaming or moving a root turns every
+    # file into one deletion plus one addition with nothing actually changed. The
+    # maps *are* stale -- every node's `source` carries the old root name -- but
+    # "source changed" would send someone hunting for an edit that does not exist.
+    def _under_root(keys, table):
+        return {k.split("/", 1)[-1]: table[k] for k in keys}
+    root_moved = (bool(added) and not changed
+                  and _under_root(added, current) == _under_root(deleted, recorded))
+
     if not stale:
         reason = "up to date"
+    elif root_moved:
+        reason = (f"source root moved or renamed: the same {len(added)} file(s), unchanged, "
+                  f"under a new root name - rebuild to update node paths")
+        if grammar_note:
+            reason += f"; {grammar_note}"
     elif grammar_note and not (added or deleted or changed):
         reason = grammar_note
     elif grammar_note:

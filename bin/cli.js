@@ -184,7 +184,6 @@ function writeGitignore(dest) {
   }
   fs.writeFileSync(target, [
     "vendor/",
-    "node_modules/",
     "__pycache__/",
     "*.py[cod]",
     "data/cache/manifest.json",

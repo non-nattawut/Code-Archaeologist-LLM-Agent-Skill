@@ -79,9 +79,8 @@ from paths import DATA_DIR  # noqa: E402  (also puts sibling script dirs on sys.
 Importing `paths` puts `scripts/`, all four category dirs **and `<skill>/vendor`** on `sys.path`,
 which is why sibling imports stay bare (`import taxonomy`), why `import tree_sitter` finds the
 skill's own copy before the user's, and why every script still runs directly from any working
-directory (constraint 3). `extract/js_bridge.py` keeps a `SCRIPT_DIR` of its own on top of that —
-it needs the directory holding `js_extract.js`, not the skill root — and `console.py` and
-`taxonomy.py` need no preamble at all because they touch neither `data/` nor a sibling.
+directory (constraint 3). `console.py` and `taxonomy.py` need no preamble at all because they
+touch neither `data/` nor a sibling.
 
 `paths` is the one exception to "`core/` imports nothing of the skill's": `grammars.py` imports it
 for `VENDOR_DIR`. That is deliberate — `paths` sits *below* the categories, imports nothing itself,
@@ -245,9 +244,8 @@ scrolls.
    it is not required, not checked for, and not installed. The skill has no `package.json`. **Grammars are installed on demand, not shipped**: a repo with no Go pays nothing for
    Go.
    **Every dependency installs inside the skill folder, never into the user's environment.**
-   `npm install` → `<skill>/node_modules`; `pip install --only-binary :all: --no-cache-dir --target
-   vendor` → `<skill>/vendor`. Both are git-ignored, neither can collide with the user's own
-   versions, and deleting the skill folder removes every trace. Keep all three pip flags:
+   `pip install --only-binary :all: --no-cache-dir --target vendor` → `<skill>/vendor`, which is
+   git-ignored, cannot collide with the user's own versions, and disappears with the skill folder. Keep all three pip flags:
    `--target` is the point, `--only-binary :all:` refuses to compile, `--no-cache-dir` stops pip
    writing wheels outside the folder. Because `vendor/` is built for one interpreter version, a
    Python upgrade breaks it — that must surface as a named message telling the user to re-run the
@@ -257,9 +255,9 @@ scrolls.
    is smaller for want of a wheel is indistinguishable from a graph of a smaller codebase — which
    is why `manifest.py` records the installed grammar set and `check` reports a change to it as
    staleness, and why `brief` prints a `SKIPPED` block naming the exact `pip install`.
-   This is a *narrowing* promise, tracked in `docs/ROADMAP_PLAN.md`: the end state is one engine
-   (tree-sitter) with `ast` kept only as a test oracle and Node gone from the runtime entirely.
-   Until then, do not add a fourth engine.
+   That end state was reached in phase 2 (`docs/ROADMAP_PLAN.md`): one engine, tree-sitter, with
+   `ast` kept only as a test oracle and Node gone. **Do not add a second engine** — a new language
+   is a grammar wheel plus a `SPEC` row, never a new parser.
 2. **Deterministic.** Same source in, same bytes out. AI text enters only through
    `apply_descriptions.py` (cached by source hash, docstring wins first, deterministic fallback
    last).
@@ -407,9 +405,16 @@ something else.
 For `templates/viewer.html`, extract the inline `<script>` and parse it as a **classic script**
 (`new vm.Script(code)`) — `node --check` wraps input in a CommonJS function, so it accepts top-level
 `return` that a browser would reject. Then load `data/explorer.html` in a browser and exercise:
-map switch, all seven views, explorer filter, blast toggle, tab drill-through. Note the in-app
-preview pane does not auto-run this page's large inline script; run
-`(0, eval)(document.scripts[1].textContent)` there first, or open it in a real browser.
+map switch, all seven views, explorer filter, blast toggle, tab drill-through.
+
+The in-app preview pane **does** run the page's own script (verified 2026-09-11; an earlier note
+here said it did not). **Do not re-run it with `(0, eval)(document.scripts[1].textContent)`.** An
+indirect eval keeps the app's top-level `let`/`const` private to itself while its `function`s
+overwrite the page's, so you get a second, *shadow* instance: handlers update the shadow's
+`nodes`/`EDGES` while a probe reads the page's untouched originals. In phase 3 that produced a
+convincing fake bug — the Tests checkbox "doing nothing" — which a clean probe then disproved.
+Probe in the page's own scope by bare name instead: `nodes.length`, `EDGES.length`,
+`selectNode(id)`, `setView(v)`, `el("reset").click()`.
 
 If you changed `sample_src/`, regenerate the committed example data (both maps + both reports) in
 the same commit — the repo ships it as the worked example.

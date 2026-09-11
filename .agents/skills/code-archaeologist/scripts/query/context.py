@@ -193,8 +193,13 @@ def render(graph_path: str, node_ids: list[str], depth: int, max_chars: int, as_
         text = json.dumps(pack, indent=2) if as_json else to_markdown(pack)
         if len(text) <= max_chars or cap == NEIGHBOR_CAPS[-1]:
             if len(text) > max_chars:      # cut on a line boundary, not mid-word
-                cut = text[:max_chars]
-                text = cut[:cut.rfind("\n") + 1 or max_chars] + f"\n_[trimmed to {max_chars} chars]_\n"
+                # The notice counts against the budget. It used to be appended after
+                # cutting to `max_chars`, so every trimmed pack overran the "hard"
+                # budget by the notice's own length -- up to 26 chars on the sample.
+                note = f"\n_[trimmed to {max_chars} chars]_\n"
+                room = max(0, max_chars - len(note))
+                cut = text[:room]
+                text = (cut[:cut.rfind("\n") + 1 or room] + note)[:max_chars]
             return text
     return ""
 

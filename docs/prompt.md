@@ -2420,3 +2420,84 @@ so a regression in either is visible), `SKILL.md` operating principle 8, `README
 `docs/USAGE.md`, `docs/PRESENTATION.html`. The plan's finding #2 is marked resolved.
 
 **Phase 2 is complete.** What remains of the roadmap is phases 3 and 4, both verification.
+
+## [63] 2026-09-11 — Phase 3: the regression gate, five fixes and one fake bug
+
+**Prompt**
+> continue
+
+*(the session was cut off mid-turn by a machine restart; nothing from it was committed)*
+
+> continue where you left off, I restarted PC so that why you terminate
+
+**Response**
+Ran the whole Phase 3 surface — pipeline, query tools, review passes, fixtures, explorer,
+degradation, docs. Checked `git status` first: clean, in sync with `d9798b2`, so the restart had
+lost nothing.
+
+**Broken and fixed** (the phase's own rule: a regression found and left is a failure of it):
+
+1. **`context.py --max-chars` overran its "hard" budget by up to 26 chars.** `render()` cut to the
+   budget, then appended `_[trimmed to N chars]_`. Pre-existing. The notice now counts against the
+   budget; re-measured over 54 packs (3 nodes × 9 budgets × md/json) — worst overrun 0.
+2. **The explorer's Reset button threw `TypeError: … reading 'classList'`.** `#backBtn` is not
+   static markup — `backLink()` renders it into the panel only when "back" applies — so
+   `clearSelection()` hit null from any other panel. Pre-existing: `git diff 16cb7b0 HEAD` on
+   `viewer.html` touches only my ten `precision` lines. Null guard; `renderPanel()` redraws anyway.
+3. **`check` on a moved or renamed source root said "source changed since last build"** when
+   nothing had changed — 22 added + 22 deleted + 0 changed, because manifest keys are
+   `<root-basename>/<relpath>`. `stale: true` was right (every node's `source` embeds the root
+   name); the *reason* sent people hunting for an edit that did not exist. Now: "source root moved
+   or renamed: the same 22 file(s), unchanged…". Negative-checked — moved **and** edited still
+   says "source changed", so the new message cannot mask a real edit.
+4. **Stale docs from phase 2**: CLAUDE.md still explained `js_bridge.py`'s `SCRIPT_DIR`, listed
+   `npm install` in constraint 1, and called one-engine "a narrowing promise… until then" — the end
+   state it describes has been reached. `bin/cli.js`'s fallback `.gitignore` still listed
+   `node_modules/`. All corrected.
+5. **CLAUDE.md told the next session to `(0, eval)` the explorer's script in the preview pane.**
+   That is now wrong — the page runs its own script — and actively harmful; see the miss below.
+   Rewritten to say so and to probe by bare name in the page's scope.
+
+**Recorded, not fixed** — *Found while implementing* #4: at 1296px wide the toolbar needs 897px and
+the rails' minimums are 200 + 260, so the toolbar clips at every rail width and `setRail`'s cap
+falls below both floors (any drag snaps a rail to its minimum; the initial 296/376px cannot be
+dragged back to). Layout code unchanged since before phase 1, so not a regression — but every fix
+changes the UI, so it waits for a decision. Recommendation: fold PNG and the zoom trio into an
+overflow menu.
+
+**Verified unchanged:** all 10 documented flow traces and both structure traces, including the
+cross-stack ones and the `getOrderStatus` suffix fallback; `--impact-of` (6 upstream of
+`OrderRepository.save`, cross-stack and test nodes included); `--impact-of-diff` against a real,
+reverted `sample_src` edit (file granularity, as its help says); every `search.py` filter; all
+seven review passes standalone; `check_langs` 6/6; the `ast` oracle at 0 on 34 files; the pipeline
+from another working directory, byte-identical; a build with **Node removed from `PATH`** at full
+size; a missing root exits 2 with both graphs untouched; installer self-test. In the explorer: map
+switch, all seven views, search (Enter), folder row filter, twisty, blast (2 → 7 highlighted),
+Tests (52/32 → 50/30 → 52/32), Reset, drill-through in all three tabs, PNG, console clean,
+classic-script parse.
+
+Two apparent discrepancies that are by design, recorded so nobody re-investigates them:
+`analyze.py` alone grades the flow map **A (93)** while the report says **D (68)** — `--security`
+is optional and folds the four findings in, and the report passes it; and `trace_path.py` defaults
+to the *structure* graph, so a flow id without `--graph` is "unknown node".
+
+**Misses, which cost more time than the bugs did:**
+
+- **A fake bug, very nearly "fixed".** Following CLAUDE.md, I `(0, eval)`'d the explorer's script,
+  then found the Tests checkbox "did nothing": `nodes` stayed 52 even after calling `applyMap`
+  directly with the box unchecked, though `loadMap` visibly filters on it. The page had *already*
+  run its own script. An indirect eval keeps top-level `let`/`const` private to itself while its
+  `function`s overwrite the page's — so `applyMap` updated a shadow instance's `nodes` while my
+  probe read the page's untouched originals. A clean load, probing in the page's own scope, showed
+  the checkbox working perfectly. The instruction that caused it is what fix 5 removes.
+- **My harness crashed, not the skill.** `context.py` wrote an em-dash as byte `0x97` — correct
+  cp874, this console's codepage, exactly as constraint 5 requires — and I decoded it as UTF-8.
+- **Measured the budget through stdout first**, where Windows' `\n` → `\r\n` inflated every count.
+  The honest measurement was `len()` of `render()`'s return value, which is what separated the real
+  26-char overrun from the artefact.
+- Probed search with `input`/`keyup`; it is `keydown` Enter. Probed `setRail('l', …)`; it takes a
+  `RAIL` config. Mistyped one trace target (`OrderPaymentClient.charge` for `PaymentClient.charge`).
+
+**Phase 3 is done.** Phase 4 — auditing every node field and derived feature for silent
+wrongness — is next, and this phase already fed it one lesson: every real bug here was silent,
+and one fake one looked more convincing than all of them.

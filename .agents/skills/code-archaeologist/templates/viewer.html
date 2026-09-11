@@ -1065,7 +1065,10 @@ function selectNode(id, recenter) {
 
 function clearSelection() {
   selected = null; highlightNodes.clear(); highlightLinks.clear();
-  backTo = null; el("backBtn").classList.remove("on");
+  // #backBtn is rendered into the panel by backLink(), so it only exists while a
+  // panel that offers "back" is showing. Reset from any other panel used to throw
+  // on null here; renderPanel() below redraws the panel from `backTo` anyway.
+  backTo = null; el("backBtn")?.classList.remove("on");
   renderPanel(); updateStatus(); repaint();
   if (view === "matrix") renderMatrix();
 }

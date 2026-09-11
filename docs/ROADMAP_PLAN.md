@@ -1,12 +1,12 @@
 # Graph as many languages as possible
 
-> ## Status: **phase 1 and phase 2 are complete.** Phases 3 and 4 are verification, not features.
+> ## Status: **phases 1, 2 and 3 are complete.** Phase 4 — the silent-wrongness audit — is next.
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
 > | 1 — Resolve the edges the textual extractor drops | semantics, no new dependency | **done** | `e8464f8` |
 > | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **done** — 6 deletion steps, 2d and 2g | `8974c27`, `67d4df4`, `e7bfb09`, `fd9c7d8`, `df5fb0b`, `7283cf4`, `7f40370`, `fd67e49` |
-> | 3 — Full regression gate: nothing old may break | does it still run | not started | |
+> | 3 — Full regression gate: nothing old may break | does it still run | **done** — 5 things fixed, 1 recorded (*Found while implementing* #4) | this commit |
 > | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | not started | |
 >
 > ### Where phase 2 actually stands
@@ -803,11 +803,17 @@ toggle, Tests checkbox, reset layout, tab drill-through, PNG export. Console cle
 parse first.
 
 **Degradation** — no Node at all; Node but no `node_modules`; a source root that has moved.
+*(Annotated 2026-09-11: the two Node cases were written before step 4 took Node out of the
+runtime. Their equivalent now is a build with Node removed from `PATH` plus each grammar removed
+from `vendor/` in turn — see CLAUDE.md's degradation table.)*
 
 **Docs** — `tools/check_docs.py`, and every mirror-truth file updated: `CLAUDE.md` (pipeline,
 script inventory, expected numbers, colour and layout rules), `SKILL.md`, `README.md`,
 `docs/USAGE.md`, `templates/TAXONOMY.md`, `docs/PRESENTATION.html` — whose honest-limitations
 section needs the new three-tier story and a corrected per-language claim.
+*(Annotated 2026-09-11: the "three-tier story" was superseded when 2d shipped as option (c) plus
+two named markers — PRESENTATION's limitations now tell the global lower-bound caveat and the
+`precision` reasons instead, updated in `fd67e49`.)*
 
 ### Verify
 
@@ -1073,6 +1079,30 @@ is what `brief` should cite. A wall-clock stamp is a weaker duplicate of that, a
 thing standing between the reports and a constraint the rest of the pipeline already meets.
 Alternative if the stamp is wanted: keep it out of the committed artifacts and print it at the
 console instead.
+
+---
+
+### 4. Below ~1360px wide the toolbar clips even with both rails at their minimum — found in phase 3
+
+**What.** Measured in the preview pane at 1296px wide: `stageMin()` — the toolbar's children,
+summed — is **897px**, and the rails' minimums are 200 + 260px. 200 + 260 + 897 = 1357 > 1296, so
+the toolbar overflows at *every* rail width. Worse, `setRail`'s cap resolves to less than each
+rail's own minimum, so any drag snaps both rails to their floor, and the initial 296 / 376px
+widths cannot be dragged back to.
+
+**Not a regression.** `viewer.html`'s layout code is unchanged since before phase 1 —
+`git diff 16cb7b0 HEAD` on it touches only the ten `precision` lines. CLAUDE.md's layout rules
+already record the pressure: at 1600px the toolbar wants ~930px against a 928px stage. This is that
+pressure crossing the line on a narrower screen.
+
+**Why it is not just a fix.** Every option changes the UI or a promise the layout rules make:
+(a) wrap the toolbar to two rows below a breakpoint — breaks "chrome holds still";
+(b) fold the least-used controls (PNG, the zoom trio) into an overflow menu;
+(c) lower the rail minimums — squeezes the tree and the panel on every screen;
+(d) declare a minimum supported width and say so in the README.
+
+**Recommendation: (b).** It is the only option that keeps a single-row toolbar and both rail
+minimums, and it takes space from the controls used least.
 
 ---
 
