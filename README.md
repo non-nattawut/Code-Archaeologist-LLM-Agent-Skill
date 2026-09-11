@@ -329,19 +329,6 @@ tools/                     check_docs.py · check_langs.py · check_py_oracle.py
 
 ---
 
-## What's next
-
-Everything the earlier roadmap listed has shipped: frontend entities in the structure map,
-route coverage across four frameworks, a graph tier for Java/Go/C#, a fully offline
-viewer, and duplicate-code clusters. What is still open:
-
-- **Django URL-table routes.** Routes are read from decorators today, so a `urlpatterns` table is
-  not picked up and Django views do not link across the stack.
-- **Graphs for dynamic languages.** Ruby, PHP and Elixir are scanned for lines, risk, debt and
-  tests, but have no nodes or edges — their dispatch is hard to read without executing.
-- **Duplicates below function granularity.** Clones are matched whole-body, so a copied block
-  inside two otherwise different functions is missed.
-
 ## License
 
 See [LICENSE](LICENSE).

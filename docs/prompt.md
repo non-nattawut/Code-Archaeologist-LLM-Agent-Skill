@@ -2765,3 +2765,85 @@ phases built the engine, fixtures and checks that adding a language needs. The h
 so too.
 
 Files: `docs/ROADMAP_PLAN.md`, this log. No code changed.
+
+## [69] 2026-09-11 — Phases 6–9: feature-complete, and the README stops promising "next"
+
+**Prompt**
+> add phase 6 to the plan for the open concerns
+
+Two more messages arrived while this turn was running:
+
+> What's next
+> Everything the earlier roadmap listed has shipped: frontend entities in the structure map, route coverage across four frameworks, a graph tier for Java/Go/C#, a fully offline viewer, and duplicate-code clusters. What is still open:
+>
+> * Django URL-table routes. Routes are read from decorators today, so a `urlpatterns` table is not picked up and Django views do not link across the stack.
+> * Graphs for dynamic languages. Ruby, PHP and Elixir are scanned for lines, risk, debt and tests, but have no nodes or edges — their dispatch is hard to read without executing.
+> * Duplicates below function granularity. Clones are matched whole-body, so a copied block inside two otherwise different functions is missed.
+>
+> also check this in readme is ti implement yet, I think Graphs for dynamic languages. already implement since we use tree sitter as engine
+
+> also dont add what need to do next in read me anymore since we will make this skill COMPLETE today (I mean its ok to have some silent bug that we dont found yet but the feature must complete)
+>
+> so add it all to the plan
+
+**Response**
+**The README check first: none of the three is implemented.** For dynamic languages in particular,
+the user's guess was reasonable but wrong. tree-sitter is the engine, but a language gets a graph
+only when its grammar is registered in `grammars.GRAMMAR_MODULES` and it has a `SPEC` row in
+`ts_extract.py`. Today that means Java, Go and C#, plus Python and JS/TS through their own
+extractors. Ruby, PHP and Elixir appear only in `taxonomy.py` and `manifest.py` (file census, test
+filenames). `urlpatterns` appears nowhere in the scripts, and `duplicates.py` hashes whole bodies
+only. The README section had also drifted: it said "four frameworks" (there are seven route
+shapes) and "a graph tier for Java/Go/C#" (the tier was replaced by `precision` in 2d). I
+corrected it first, then deleted the whole section per the second message.
+
+**The plan.** Phases 6–9, under a header saying the goal is feature-complete (silent bugs may
+remain; a known missing feature may not):
+
+- **6 — the four open concerns**, order 6c → 6b → 6a → 6d.
+  - **6c pins every grammar.** One `PINS` table with today's versions. `cli.js` stops keeping its
+    own wheel list.
+  - **6b puts non-ASCII into every fixture.** It also asserts each node's line and doc text.
+  - **6a measures metrics per graph node, by range.**
+  - **6d is a timing tool.** It installs into a temp dir so the committed sample is never
+    overwritten.
+- **7 — graphs for all eleven review-only languages.** The eight typed ones first, then Ruby, PHP
+  and Elixir. Groovy, Ruby, PHP and Elixir are name-matched.
+- **8 — route tables.** Django `urlpatterns`, then Rails, Laravel and Phoenix, which phase 7 makes
+  reachable.
+- **9 — sub-function duplicates.** k-gram winnowing on the existing token shape. It skips regions
+  already inside a whole-body cluster.
+
+**Verified before writing, not assumed:**
+
+- **The five new metrics tables use only real node types.** Every node-type name was checked
+  against the installed grammars with `id_for_node_kind`: 0 missing.
+- **Every grammar phase 7 needs ships a prebuilt Windows wheel.** The PyPI JSON API shows an
+  `abi3` `win_amd64` wheel for all eleven, Groovy and Dart included. Whether each one *loads* under
+  runtime 0.26 is not checked yet; that is phase 7's step 1.
+- **The committed metrics cover almost no non-Python node.** 39 of 52 flow nodes and 20 of 25
+  structure nodes are unmeasured.
+- **The installed versions are read off the machine.** They are the pins in 6c.
+- **Two timing corpora exist on this machine.** `srs-eol-system` has 961 graphable files and
+  `rootform-clinic` has 884. Both are the user's own projects, so the plan asks before using one,
+  and records aggregates only.
+
+**Found while planning.** A latent bug: `metrics.py` keys nodes by bare name with first-wins. Since
+finding #5 and 5a qualify shared names, neither definition of a shared name can match its graph
+node. This is from reading the code and not yet reproduced; 6a's first step is the regression case
+that reproduces it. Also: `LANG_COLORS` has no entry for Java, Go or C#, so they are already grey
+today. And the first draft of the plan said the skill's own code was "~60 files"; a count gave 45,
+corrected before commit.
+
+**Decisions recorded for review, each with a recommendation:**
+
+| Decision | Recommendation |
+| --- | --- |
+| Runtime pin | a bounded range; grammars exact |
+| `end` on structure nodes | add it |
+| Which timing corpus | `srs-eol-system`, aggregates only |
+| Colours | by language family |
+| Routes for Swift, Scala, Dart and C/C++ | none; a stated boundary |
+| A `blocks` list in `duplicates.json` | add it |
+
+Files: `docs/ROADMAP_PLAN.md`, `README.md` (section removed), this log.

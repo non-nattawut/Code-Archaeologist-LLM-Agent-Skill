@@ -1,8 +1,9 @@
 # Graph as many languages as possible
 
-> ## Status: **all five phases are complete, and every recorded finding and limit is resolved.**
-> The goal in the title is not: no language has been added yet, and four open concerns remain
-> (see *What is still not done* below).
+> ## Status: **phases 1–5 are complete, and every recorded finding and limit is resolved. Phases 6–9 are planned, not started.**
+> The goal in the title is not reached: no language has been added yet, and four open concerns
+> remain. Phases 6–9 make the skill feature-complete — the open concerns, all eleven review-only
+> languages, route tables and sub-function duplicates (see *Phases 6–9* below).
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
@@ -11,6 +12,10 @@
 > | 3 — Full regression gate: nothing old may break | does it still run | **done** — 5 things fixed, 1 recorded (*Found while implementing* #4) | `f904891` |
 > | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | **done** — 3 bugs fixed, 1 recorded (#5); 29 checks + 18 regression cases | `b44b909` |
 > | 5 — The two limits phase 4 left: structure-map shared names, the narrow toolbar | close the known gaps | **done** — both closed; toolbar floor ~1270 → ~987px | `cc4d0af` |
+> | 6 — Close the open concerns: pinned grammars, non-ASCII, per-language metrics, timing | make adding a language safe | **planned, not started** — 6c → 6b → 6a → 6d | — |
+> | 7 — A graph for every review-only language (Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir) | the title goal | **planned, not started** | — |
+> | 8 — Route tables: Django `urlpatterns`, Rails, Laravel, Phoenix | cross-stack links for table-routed apps | **planned, not started** | — |
+> | 9 — Duplicates below function granularity | copied blocks, not only copied functions | **planned, not started** | — |
 >
 > ### Where phase 2 actually stands
 >
@@ -77,7 +82,7 @@
 >   needs; no seventh language has been added. 2c beyond the six ported languages is unstarted.
 > - **Four of the eight open concerns are still open** — 3, 5, 7, and 4 in part; see the status
 >   table at the top of *Open concerns*. 1, 2 and 8 are resolved, and 6 only applies once languages
->   are added.
+>   are added. **Phase 6 plans all four**, plus a metrics bug found while writing it.
 > - 2b's supplementary TypeScript query is moot (JS/TS walk the tree directly), and 2f is done
 >   (`lang_extract.py` was deleted at step 2, not kept as a fallback).
 >
@@ -1022,6 +1027,275 @@ now falls back to the absolute path.
 
 ---
 
+## Phases 6–9 — Feature-complete
+
+**Written 2026-09-11. The goal: the skill is feature-complete by the end of these four phases.**
+Silent bugs nobody has found yet may remain; a *known* missing feature may not. So the README's
+"What's next" section was deleted in the commit that wrote these phases, and every item it listed
+is a phase here. Nothing the skill cannot do is left advertised as "next".
+
+| Phase | Closes | Depends on |
+| --- | --- | --- |
+| 6 | the four open concerns: pinned grammars, non-ASCII, per-language metrics, timing | — |
+| 7 | the title goal: a graph for all eleven review-only languages (README: "graphs for dynamic languages") | 6 (pins, metrics tables) |
+| 8 | route *tables*: Django `urlpatterns` (README), and the Rails / Laravel / Phoenix tables phase 7 makes reachable | 7 (Ruby/PHP/Elixir grammars) |
+| 9 | duplicates below function granularity (README) | — (can run beside 6–8) |
+
+Each phase ends with the full verification chain below plus its own checks, and one commit.
+
+---
+
+## Phase 6 — Close the open concerns
+
+Four of the eight planning concerns are open (status table under *Open concerns*). They must close
+before phase 7, because each one gets worse with every language added. Order: **6c → 6b → 6a →
+6d** — pin the grammars first, since 6a's and 6b's tables are written against specific grammar
+versions, and time the finished thing last.
+
+### 6c. Pin every grammar version (concern 5)
+
+**What.** `grammars.install_hint()` and `bin/cli.js --self-test` both install the *latest* of each
+wheel, and they hold **two separate lists** of wheel names (`grammars.PIP_NAMES` and the `wheels`
+array in `cli.js`). A grammar release that renames a node type makes that language report zero
+nodes on every fresh install from that day on. The manifest records the version, but only after
+the damage — it explains the smaller graph, it does not prevent it.
+
+**Fix.** One `PINS` table in `grammars.py`, with the versions installed and verified here today:
+
+| Wheel | Pin |
+| --- | --- |
+| `tree-sitter` (runtime) | `0.26.0` — see the decision below |
+| `tree-sitter-python` | `0.25.0` |
+| `tree-sitter-javascript` | `0.25.0` |
+| `tree-sitter-typescript` | `0.23.2` |
+| `tree-sitter-java` | `0.23.5` |
+| `tree-sitter-go` | `0.25.0` |
+| `tree-sitter-c-sharp` | `0.23.5` |
+
+`install_hint()` emits `name==version`, `cli.js` stops holding its own list and asks `grammars.py`
+for the install arguments, and `check` / `brief` name any installed version that differs from its
+pin. Phase 7 adds its eleven rows to the same table.
+
+**Decision for review — how to pin the runtime.** The grammars are `abi3` wheels, so an exact pin
+installs on any Python ≥ 3.9. The runtime is not: its wheels are per interpreter (`cp314`), and
+with `--only-binary :all:` an exact pin **fails on a Python released after that version**, until
+the pin is bumped. Options: (a) exact runtime pin, and a named message when no wheel exists;
+(b) a bounded range, `tree-sitter>=0.26,<0.27`. **Recommendation: (b).** The drift concern 5 names
+lives in the grammars — node-type names come from the grammar, not the runtime — and a patch
+release of the runtime does not rename anything. The grammars stay exact.
+
+**Verify.** A fresh `vendor/` built from the hint has exactly the pinned versions; `check_langs`
+passes; a deliberately different installed version is named by `check` and `brief`; the installer
+self-test still passes; `cli.js` contains no wheel names.
+
+### 6b. Non-ASCII in every graphed language (concern 4)
+
+**What.** tree-sitter hands back byte offsets. Line numbers come from `start_point.row` and are
+safe; what is not safe is slicing *decoded text* with a byte offset — every character before the
+slice that encodes to more than one byte shifts the slice, silently. `sample_src` has non-ASCII in
+four Python files and one TS file, and those stayed byte-identical through the port. **Java, Go, C#
+and JavaScript have never seen a non-ASCII byte in a test.**
+
+**Fix.** In each `tests/fixtures/langs/<lang>/` fixture: a multi-byte comment and string literal
+*before* the store (so every later offset is shifted), a non-ASCII doc comment on one node, and a
+non-ASCII identifier where the language allows one (all six do). `check_langs.py` currently asserts
+nodes, edges, routes and the test node; add **each node's line and its doc text**, exactly. If a
+shift appears, the extractor is fixed to slice bytes and decode after — never the fixture.
+
+**Verify.** `check_langs` passes with the new columns, and a deliberate sabotage — slicing the
+decoded string with a byte offset — makes it fail (an assertion that cannot fail is worse than none).
+
+### 6a. Per-node metrics for every graphed language (concern 3) — and a key bug found while planning
+
+**What.** `metrics.py` measures Python only. In the committed sample report, **39 of 52 flow nodes
+and 20 of 25 structure nodes have no metrics** (`unmeasured_graph_ids`) — every Java, Go, C# and
+JS/TS node. Its own docstring still gives the old reason ("the JS/TS extractor does not record an
+end line yet"); both extractors have recorded `end` since phase 2.
+
+**Found while writing this phase — a latent bug in the same code.** `metrics.py` keys a node by its
+*bare* name (`name`, `Class.method`) and keeps the first when two files share one
+(`nodes.setdefault`). Since finding #5 and phase 5a, a name defined in two files gets a
+*qualified* graph id (`stem.name`). So on any codebase with a shared name, **neither definition's
+metrics can match its node**: both are reported as unmeasured, and the first one's figures sit
+under a key no graph contains. Read from the code, not yet reproduced — 6a's first step is the
+regression case that reproduces it.
+
+**Fix: measure the graph's nodes, not the file's definitions.** The way `duplicates.py` already
+works: for each graph node, take its `source` (`file:line`) and `end`, find the smallest CST node
+spanning that range in the file's tree, and measure that. Keys are graph ids by construction — the
+qualified-id mismatch and first-wins both disappear — and the only per-language part left is a
+table: decision nodes, boolean operators, block statements, the parameter-list node.
+
+The node-type names for the five new tables were checked against the installed grammars before
+writing this (`Language.id_for_node_kind`), **0 missing**:
+
+| Language | Decisions | Boolean | Params |
+| --- | --- | --- | --- |
+| Java | `if_statement` `for_statement` `enhanced_for_statement` `while_statement` `do_statement` `catch_clause` `ternary_expression` `switch_label` `switch_rule` | `binary_expression` with `&&` `\|\|` | `formal_parameters` |
+| Go | `if_statement` `for_statement` `expression_case` `type_case` `communication_case` | `binary_expression` with `&&` `\|\|` | `parameter_list` |
+| C# | `if_statement` `for_statement` `foreach_statement` `while_statement` `do_statement` `catch_clause` `conditional_expression` `switch_section` `switch_expression_arm` | `binary_expression` with `&&` `\|\|` | `parameter_list` |
+| JS / TS | `if_statement` `for_statement` `for_in_statement` `while_statement` `do_statement` `catch_clause` `ternary_expression` `switch_case` | `binary_expression` with `&&` `\|\|` `??` | `formal_parameters` |
+
+**Decision for review — structure nodes have no `end`.** All 25 structure nodes lack it, so a class
+cannot be located by range. Options: (a) add `end` to structure nodes — a new field in
+`graph.json` and the vault front-matter, so the committed sample data changes; (b) keep measuring
+classes by a name lookup in the file's tree. **Recommendation: (a)** — one field, the same one flow
+nodes already carry, and `scan_security.owner_of` / `debt.py` would then work on the structure map
+by range as well rather than by guess.
+
+**Verify.** Every Python node's metrics are **identical** to today's (the old code is the oracle
+while the port happens, then deleted — the phase 2 pattern). Flow and structure `unmeasured` → 0,
+except `declaration: true` nodes, which get no complexity (no body) and are stated as such. Each
+fixture gets one function with a hand-counted branch structure, asserted in `expected.json`. A new
+regression case: two files each defining `Store.save` — both measured, under their qualified ids.
+
+### 6d. Time it on a real repository (concern 7)
+
+**What.** Never timed. The skill's whole claim is that it is cheaper than reading the source, and
+nobody has checked it on a repo bigger than its own.
+
+**Fix.** `tools/time_build.py` (a repo tool; it does not ship). It installs the skill into a temp
+directory with `bin/cli.js --target` — the build writes to the skill's own `data/`, so running it
+in place would overwrite the committed sample — then times `project`, `flow`, `report` and `brief`
+separately, and records the value ratio: source bytes vs `brief` bytes vs the notes on a typical
+trace.
+
+Three sizes, so growth is visible, not just a total: `sample_src` (22 files), the skill's own code
+(45 files across `scripts/`, `tools/`, `bin/` and the fixtures), and one large repo. Candidates on this machine, counted by extension only:
+`srs-eol-system` — **961** graphable files (419 Java, 278 JS, 181 TSX, 57 TS, 26 Python) — and
+`rootform-clinic` — 884 (349 JS, 308 TS, 198 TSX, 29 Python).
+
+**Decision for review — which corpus, and what may be recorded.** Both are the user's own projects.
+The run only reads them and writes nothing into them. **Recommendation:** `srs-eol-system` (it
+exercises four of the six languages at once), and record only aggregate figures — no file or node
+names from it in this repo.
+
+**Success criterion, set before measuring:** no stage grows faster than the file count across the
+three sizes. A stage that does is a finding, fixed in this phase if the cause is plain.
+
+### Verify (phase 6)
+
+The full chain; the sample graphs byte-identical (only 6a's option (a) changes `graph.json`, by the
+`end` field, and the sample data is regenerated in that commit); the sample report's metrics now
+cover every node; `check_langs` with the new line/doc/complexity columns; two new regression cases
+(metrics under qualified ids; pinned install hint).
+
+---
+
+## Phase 7 — A graph for every review-only language
+
+**The title goal.** Eleven languages get lines, risk, debt and test detection but no nodes and no
+edges: Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++ (typed) and Ruby, PHP, Elixir (dynamic —
+the README's "graphs for dynamic languages"). Since phase 2 each one is a grammar wheel, a `SPEC`
+row and a receiver rule, not a new parser.
+
+**Every wheel exists with a prebuilt `abi3` Windows wheel** — checked on PyPI today, so none needs a
+compiler (hard constraint 1): ruby 0.23.1, php 0.24.1, elixir 0.3.5, kotlin 1.1.0, rust 0.24.2,
+swift 0.7.3, scala 0.26.2, groovy 0.1.2, c 0.24.2, cpp 0.23.4, dart 0.1.0. **Not yet checked: that
+each one loads under runtime 0.26** (the grammar ABI version). That is step 1, and a wheel that does
+not load is recorded and skipped, not forced.
+
+**Per language, in this order** (typed first, because their edges can be checked by type):
+
+1. Pin the wheel (6c's table), register it in `GRAMMAR_MODULES` / `PIP_NAMES`.
+2. A `SPEC` row: class-like, function-like and method declarations, bodies, parameters, doc
+   attachment. PHP and Elixir need the most care — PHP's `<?php` embedding, Elixir's
+   `defmodule` / `def` being macro *calls* in the grammar, not declaration nodes.
+3. A receiver rule. Typed languages resolve through declared field / parameter types, like Java.
+   **Ruby, PHP, Elixir and Groovy** have no declared receiver type in general, so their calls are
+   matched by name — added to `taxonomy.NAME_MATCHED_LANGS`, so every node says `name-matched` and
+   the precision caveat stays true. That is 2d's "sparse" tier, which option (c) already expresses.
+4. Test detection: taxonomy already knows the filename conventions for most of these; add the
+   framework markers (`#[test]`, `@Test` on Kotlin, `describe`/`it` for Ruby, `ExUnit`).
+5. 6a's metrics table for it.
+6. A fixture in `tests/fixtures/langs/<lang>/` (store, a service calling it through a declared field
+   or by name, a test file, a non-ASCII line — 6b) and its `expected.json` row, recorded with
+   `--update` and **read** before it is committed.
+7. Degrade check: rename its grammar out of `vendor/` — one named warning, the rest still builds.
+
+**Routes in this phase:** only where the language's main framework declares them the way an
+existing rule already reads — **Kotlin Spring** (the Java annotation rule) and **Rust actix-web /
+Rocket** attributes (`#[get("/x")]`, the Nest-decorator shape). Table-shaped routing (Rails,
+Laravel, Phoenix) is phase 8.
+
+**Colours (concern 6).** `LANG_COLORS` in `viewer.html` holds `py`, `js`, `jsx`, `ts`, `tsx` and
+`other` — so **Java, Go and C# already fall back to the `other` grey today**, an existing gap this
+phase closes too. Eleven more distinguishable colours on the dark ground is not realistic. **Decision for review.
+Recommendation:** colour by *family* — JVM, native (C/C++/Rust/Swift), dynamic (Ruby/PHP/Elixir/
+Groovy), and so on — with the language name in the node label and the legend grouped, rather than
+eleven near-identical hues.
+
+**Decision for review — routes for the other typed languages** (Swift Vapor, Scala Play, Dart,
+C/C++). Each is a different registration shape, and C/C++ have no dominant web framework at all.
+**Recommendation:** none in phases 7–8; their nodes and edges are the feature, and the README
+states that routes are read for the frameworks it names — a stated boundary, not a missing feature.
+
+**Verify.** `check_langs` covers 17 languages; `check_graph` clean on every fixture's build; the
+sample (`sample_src`, which does **not** grow — CLAUDE.md) byte-identical; every degrade row passes;
+the installer self-test installs the full pinned set.
+
+---
+
+## Phase 8 — Route tables: Django, Rails, Laravel, Phoenix
+
+**What.** Every route the skill reads today is declared *on the handler* — a decorator, annotation
+or attribute — or registered by a call beside it (Express, Go). A **route table** declares them
+somewhere else: Django's `urlpatterns`, Rails' `config/routes.rb`, Laravel's `routes/web.php`,
+Phoenix's `router.ex`. None is picked up, so those views do not link across the stack. Django is
+the README's item; the other three become reachable once phase 7 gives Ruby, PHP and Elixir a graph.
+
+**Fix: one pass for "a table maps a path to a handler reference", then a resolver per framework.**
+
+| Framework | Table | Handler reference | Hard parts |
+| --- | --- | --- | --- |
+| Django | `path("orders/<int:id>/", views.order_detail)` in `urlpatterns` | a dotted name, or `OrderView.as_view()` | `include("app.urls")` prefixes across files; `re_path` regexes |
+| Rails | `get "/orders", to: "orders#index"`, `resources :orders` | `controller#action` | `resources` expands to seven routes; `namespace` / `scope` prefixes |
+| Laravel | `Route::get('/orders', [OrderController::class, 'index'])` | a class + method pair | `Route::prefix(...)->group(...)`; `Route::resource` |
+| Phoenix | `get "/orders", OrderController, :index` in a `scope` | module + atom | `scope "/api"` nesting; `resources` |
+
+A route found this way is attached to the handler node exactly as a decorator route is, so
+cross-stack linking, the endpoint count and the explorer need no change. A handler reference the
+resolver cannot pin to one node (a dynamic string, a variable) is **dropped, not guessed** — the
+rule every other resolver follows.
+
+**Order:** Django first (Python is already graphed, and it is the README item), then Rails, Laravel
+and Phoenix.
+
+**Verify.** A fixture per framework covering the hard parts above (a prefix via `include` /
+`namespace` / `group` / `scope`, one resource expansion, one unresolvable reference that must
+produce no edge), asserted in `expected.json`. `sample_src` unchanged.
+
+---
+
+## Phase 9 — Duplicates below function granularity
+
+**What.** `duplicates.py` hashes each node's *whole* body. A block copied into two otherwise
+different functions changes both bodies' shapes, so it is never found. That is the README's third
+item.
+
+**Fix: fingerprint windows, not bodies** — the standard technique (k-gram winnowing, as in MOSS),
+on the token shape `duplicates.py` already computes. Hash every run of `MIN_TOKENS` (30)
+consecutive normalized tokens in each node, keep the winnowed fingerprints, and join matching runs
+across nodes into maximal regions. Report a region pair only when it is not already inside a
+whole-body cluster, so the two outputs never repeat each other.
+
+It stays on the same side of the same trade as today: it misses rather than invents. A region must
+be at least `MIN_TOKENS` long, and it is aligned to statement boundaries from the CST so that half
+a loop never matches the other half of an unrelated one.
+
+**Decision for review — output format.** A new `blocks` list beside `clusters` in
+`duplicates.json` (each entry: two node ids, their line ranges, the token count), and one more line
+in the report. It is additive — nothing existing moves — but it is a new field, so it is listed
+here. **Recommendation:** add it, and show it in the explorer's PATTERNS tab under the existing
+duplicates list, with no new view.
+
+**Verify.** A planted fixture: one block copied into two different functions, with identifiers
+renamed — must be found; one operator changed — must not; the sample's existing whole-body pair
+(`createOrder` / `createInvoice`) reported once as a cluster and **not** again as a block. Runs in
+the 6d timing, because windowing is the first pass whose cost grows faster than node count.
+
+---
+
 ## Found while implementing
 
 Things noticed while building a step that were **not** obviously fixable — each needs a decision,
@@ -1259,11 +1533,11 @@ this table is the current state.
 | --- | --- | --- |
 | 1 | Resolution parity | **resolved** — step 5: the Python port produced byte-identical graphs, and `tools/check_py_oracle.py` reports 0 disagreements |
 | 2 | Node id collisions | **resolved** — finding #5 (flow) and phase 5a (structure): `core/ids.py` qualifies only names defined in more than one file |
-| 3 | `metrics.py` branch table per language | **open** — per-node complexity/depth/params are still Python only; Java/Go/C#/JS/TS nodes carry no per-node metrics at all, so nothing reports a false 1, but nothing reports anything |
-| 4 | Byte vs character offsets | **partly covered** — `sample_src` has non-ASCII in four Python files and one TS file, and those graphs stayed byte-identical through the port; no Java, Go or C# file with non-ASCII content is exercised |
-| 5 | Grammar versions drift | **half done** — versions are recorded in the manifest and a change makes `check` report stale, and `check_langs.py` would catch a rename; the install command does **not** pin exact versions |
-| 6 | Colours for new languages | **not applicable yet** — no language has been added |
-| 7 | Performance | **open** — never timed on a large repo |
+| 3 | `metrics.py` branch table per language | **open → 6a** — per-node complexity/depth/params are still Python only; Java/Go/C#/JS/TS nodes carry no per-node metrics at all, so nothing reports a false 1, but nothing reports anything |
+| 4 | Byte vs character offsets | **partly covered → 6b** — `sample_src` has non-ASCII in four Python files and one TS file, and those graphs stayed byte-identical through the port; no Java, Go or C# file with non-ASCII content is exercised |
+| 5 | Grammar versions drift | **half done → 6c** — versions are recorded in the manifest and a change makes `check` report stale, and `check_langs.py` would catch a rename; the install command does **not** pin exact versions |
+| 6 | Colours for new languages | **not applicable yet** — no language has been added; it belongs to the phase that adds the first one |
+| 7 | Performance | **open → 6d** — never timed on a large repo |
 | 8 | JSX / `component` detection | **resolved** — step 3: `OrderCard` and `StatusBadge` come out as `kind: component`, byte-identical to Babel |
 
 **1. Resolution parity is unproven.** The spikes proved *declaration* parity for Python (oracle:
