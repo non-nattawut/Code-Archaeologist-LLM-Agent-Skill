@@ -2734,3 +2734,34 @@ comment, and the plan's Phase 5 result and ledger.
 (408 flow nodes = 408 notes, 57 structure nodes = 57 pages); self-test 30/30; regressions 20/20;
 `check_langs` 6/6; oracle 0; `check_docs` OK; browser checks above with a clean console.
 **All five phases are complete, and every recorded finding and limit is resolved.**
+
+## [68] 2026-09-11 — "All finished" checked against the plan: the phases are, the goal is not
+
+**Prompt**
+> now all theplan/ roadmap are finsihed
+
+**Response**
+Checked the claim against `docs/ROADMAP_PLAN.md` itself rather than agreeing from memory. The
+headline table was right: phases 1–5 done, every *Found while implementing* item resolved, `main`
+in sync with origin at `a84bd32`. But two things in the same file contradicted it:
+
+- **Stale status prose.** The status block still said "Nothing has been deleted yet" (all six
+  deletion steps were done), and its "Not done, and not started" paragraph still listed 2d and 2g as
+  open and said "every one of the eight open concerns below is still open". Both were plain false
+  claims, so I rewrote them (principle 7) — the status block is a mirror of current truth, not a
+  record.
+- **The eight open concerns had never been closed out.** I added a status table on top of the
+  section, leaving each concern's original text as written, and checked each state before writing it
+  instead of assuming: 1 (resolution parity), 2 (id collisions) and 8 (JSX detection) are
+  **resolved**; 3 (per-language metrics) is **open** — per-node metrics are still Python only; 4
+  (byte offsets) is **partly covered** — non-ASCII exists in four Python files and one TS file in
+  `sample_src`, none in Java/Go/C#; 5 (grammar drift) is **half done** — versions are recorded and
+  change staleness, but `install_hint()` does not pin exact versions; 6 (colours for new languages)
+  does not apply yet; 7 (performance) was **never timed**.
+
+The main point for the user: the five phases are finished, but **the goal in the plan's title
+("graph as many languages as possible") has not been advanced — languages added: none.** The
+phases built the engine, fixtures and checks that adding a language needs. The headline now says
+so too.
+
+Files: `docs/ROADMAP_PLAN.md`, this log. No code changed.

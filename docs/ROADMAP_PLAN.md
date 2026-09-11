@@ -1,6 +1,8 @@
 # Graph as many languages as possible
 
 > ## Status: **all five phases are complete, and every recorded finding and limit is resolved.**
+> The goal in the title is not: no language has been added yet, and four open concerns remain
+> (see *What is still not done* below).
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
@@ -12,8 +14,8 @@
 >
 > ### Where phase 2 actually stands
 >
-> The deletion order in 2e has six steps. **Nothing has been deleted yet**, which is correct — each
-> old engine is the reference its replacement is checked against.
+> The deletion order in 2e has six steps, **all done**: each old engine was deleted only after its
+> replacement had been checked against it.
 >
 > | Step | What | State |
 > | --- | --- | --- |
@@ -67,18 +69,17 @@
 > lower-bound caveat is now stated once for every language, and `precision` names the losses that
 > can be named.
 >
-> **Not done, and not started** — none of this is blocked, it simply has not been reached:
-> 2b's supplementary query for TypeScript (its shipped `TAGS_QUERY` yields zero captures on real
-> implementation files) — now moot for JS/TS; 2c beyond the ported languages; **2d's `approx` -> `exact`/`sparse`
-> tier rename**, deliberately deferred so step 1 could be verified by equivalence; 2f; and **2g's
-> per-language fixtures and `tools/check_langs.py`, which no language yet has**. Every one of the
-> eight open concerns below is still open — resolution parity for Python (concern 1) is the one
-> that gates step 5, and node id collisions (concern 2) is the one that gets more expensive the
-> longer it is left.
+> **What is still not done** (corrected 2026-09-11, after phase 5 — this paragraph had kept listing
+> 2d and 2g as open long after both shipped):
 >
-> Languages added since the port began: **none.** Step 1 was a like-for-like port of the three that
-> already had graphs, which is what made it checkable; the goal of graphing *more* languages is not
-> advanced until 2g's fixtures exist to keep the supported list honest.
+> - **The goal in this file's title has not been advanced.** Languages added since the port began:
+>   **none.** The five phases built the engine, the fixtures and the checks that adding a language
+>   needs; no seventh language has been added. 2c beyond the six ported languages is unstarted.
+> - **Four of the eight open concerns are still open** — 3, 5, 7, and 4 in part; see the status
+>   table at the top of *Open concerns*. 1, 2 and 8 are resolved, and 6 only applies once languages
+>   are added.
+> - 2b's supplementary TypeScript query is moot (JS/TS walk the tree directly), and 2f is done
+>   (`lang_extract.py` was deleted at step 2, not kept as a fallback).
 >
 > **Phase 2, step 1 outcome — Java/Go/C# ported, nothing deleted.** `ts_extract.py` replaced
 > `lang_extract.py` behind the *same* `find_lang_files` / `extract_lang_files` contract, so both
@@ -133,9 +134,8 @@
 > **Nothing is deleted before the port that replaces it is verified against it** — the old engine
 > is what proves the new one correct, so the deletion order in 2e is structural, not cautious.
 >
-> **Read "Open concerns" before writing code.** Eight items, none blocking, all of them cheaper to
-> decide now than to discover mid-port — node id collisions across twenty languages and the
-> unproven resolution parity being the two that would hurt most.
+> **Read "Open concerns" before adding a language.** Eight items; the status table at its top says
+> which are resolved and which are still open.
 >
 > The six phases of the previous roadmap are finished and this file has been rewritten for the
 > next goal. Their record is **not** lost: `docs/PROJECT_HISTORY.md` carries the narrative and
@@ -1251,6 +1251,20 @@ still keeps the first entity of a shared name and warns, as it always has.
 
 Collected while planning, none of them blocking, all of them things that will bite if nobody
 decides them deliberately. Ordered by how much damage they do if ignored.
+
+**Status after phase 5 (2026-09-11).** The text of each concern below is left as it was written;
+this table is the current state.
+
+| # | Concern | State |
+| --- | --- | --- |
+| 1 | Resolution parity | **resolved** — step 5: the Python port produced byte-identical graphs, and `tools/check_py_oracle.py` reports 0 disagreements |
+| 2 | Node id collisions | **resolved** — finding #5 (flow) and phase 5a (structure): `core/ids.py` qualifies only names defined in more than one file |
+| 3 | `metrics.py` branch table per language | **open** — per-node complexity/depth/params are still Python only; Java/Go/C#/JS/TS nodes carry no per-node metrics at all, so nothing reports a false 1, but nothing reports anything |
+| 4 | Byte vs character offsets | **partly covered** — `sample_src` has non-ASCII in four Python files and one TS file, and those graphs stayed byte-identical through the port; no Java, Go or C# file with non-ASCII content is exercised |
+| 5 | Grammar versions drift | **half done** — versions are recorded in the manifest and a change makes `check` report stale, and `check_langs.py` would catch a rename; the install command does **not** pin exact versions |
+| 6 | Colours for new languages | **not applicable yet** — no language has been added |
+| 7 | Performance | **open** — never timed on a large repo |
+| 8 | JSX / `component` detection | **resolved** — step 3: `OrderCard` and `StatusBadge` come out as `kind: component`, byte-identical to Babel |
 
 **1. Resolution parity is unproven.** The spikes proved *declaration* parity for Python (oracle:
 6 files, 0 disagreements) and the presence of every node type the routes need. They did **not**
