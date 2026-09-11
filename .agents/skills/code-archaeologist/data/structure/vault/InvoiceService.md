@@ -1,7 +1,8 @@
 ---
 entity: InvoiceService
 layer: service
-source: sample_src/services/orders_cs/InvoiceService.cs
+source: sample_src/services/orders_cs/InvoiceService.cs:4
+end: 39
 kind: class
 lang: csharp
 ---

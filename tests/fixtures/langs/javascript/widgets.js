@@ -22,6 +22,22 @@ function placeWidget(item) {
   return saveWidget(item);
 }
 
+// Hand-counted: complexity 6 (1 + for-of, if, &&, if, else if), depth 2, 2 params.
+function grade(score, bonus) {
+  let total = score;
+  for (const b of bonus) {
+    if (b > 0 && total < 100) {
+      total += b;
+    }
+  }
+  if (total > 90) {
+    return "A";
+  } else if (total > 50) {
+    return "B";
+  }
+  return "C";
+}
+
 // Create a widget.
 function createWidgetHandler(req, res) {
   res.json(placeWidget(req.body));

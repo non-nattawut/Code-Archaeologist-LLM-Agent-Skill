@@ -161,9 +161,14 @@ delete. Nothing else in `core/` may import a skill module.
   `end`, which pinned module-level findings on the preceding function — 99 of 152 on the skill's
   own code. `git_insights.py` is one `git log --numstat` pass → churn, owners, hotspot risk.
 - `metrics.py` is line counts per file plus LOC / cyclomatic complexity / nesting depth /
-  parameter count per node, keyed like the graph nodes (per-node figures are Python only:
-  `js_ts_extract.py` and `ts_extract.py` both record `endLine`, but `metrics.py` does not read
-  it yet; its own complexity/depth/params now come off the CST like everything else). `report.py` derives `file_census` from it, so line counts have one definition.
+  parameter count per node **in every graphed language**, measured on the graph's own nodes: a
+  node's `source` + `end` pick its definition out of the file's parse (`locate`), and one
+  `TABLES` row per grammar names its decisions, blocks and definitions. So metrics are keyed by
+  graph id by construction -- until phase 6a they were keyed by *bare* name, first wins, which
+  left 66 of 294 nodes on the skill's own code unmeasurable, and every non-Python node had
+  none. Structure classes and components carry `source: file:line` + `end` for this since 6a;
+  a module group is a whole file and has no range, so it is listed in `unmeasured_graph_ids`
+  with the declarations. `report.py` derives `file_census` from it, so line counts have one definition.
 - `search.py` is the "which nodes are these" filter over one graph (name/doc/layer/kind/lang/file
   plus `--calls` / `--called-by` / `--orphans`). It exists so neither the agent nor a human greps
   source to find a starting node.
@@ -379,6 +384,9 @@ components, four API frameworks, and Java/Go/C# with two deliberate hard cases, 
   them.
 - tests: 2 test files, flow **4/48 nodes named by a test**, and the two test nodes carry
   `layer: test` with call edges into `OrderService.place_order` / `OrderRepository.get`
+- metrics: **51 of 52** flow nodes and **19 of 25** structure nodes measured, across every
+  language; the unmeasured are exactly the declaration `PricingRule.price` and the six
+  `*Module` groups, which have no range
 - 529 lines across 22 files (py 126, java 102, csharp 90, ts 90, go 66, js 28, tsx 27)
 - `archaeologist.py check --src ./sample_src` -> `stale: false` right after a build
 
@@ -440,16 +448,19 @@ A fixture costs one directory and one row. Current expectations, all asserted:
 
 | Language | Nodes | Edges | Routes | Test node |
 | --- | --- | --- | --- | --- |
-| python | 7 | 3 | 1 | yes |
-| java | 5 | 3 | 1 | yes |
-| csharp | 5 | 3 | 1 | yes |
-| go | 6 | 3 | 1 | yes |
-| javascript | 5 | 3 | 1 | yes |
-| typescript | 5 | **0** | 1 | yes |
+| python | 8 | 3 | 1 | yes |
+| java | 6 | 3 | 1 | yes |
+| csharp | 6 | 3 | 1 | yes |
+| go | 7 | 3 | 1 | yes |
+| javascript | 6 | 3 | 1 | yes |
+| typescript | 6 | **0** | 1 | yes |
 
 Each also asserts every node's **line and doc**, and each fixture carries 2-, 3- and 4-byte UTF-8
 before its nodes plus one non-ASCII node name (`größe`) — phase 6b, so a byte offset applied to
-decoded text cannot shift a name silently.
+decoded text cannot shift a name silently. And each asserts every node's **metrics**
+(complexity, depth, params); each fixture's `grade` is counted by hand in its own comment —
+complexity 6, depth 2, 2 params, in all six — so that row is checked against a person rather than
+only against the recorder (phase 6a).
 
 That TypeScript zero is not a broken fixture, it is the honest number: JS/TS call edges are matched
 by **name**, so bare function calls link (JavaScript's 3) and method calls on an object do not

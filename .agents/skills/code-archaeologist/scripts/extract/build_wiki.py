@@ -200,6 +200,7 @@ def _class_entity(node, decorator_nodes, rel: str, imports: set[str], source: st
         "name": px.def_name(node),
         "kind": "class",
         "source": rel,
+        "line": px.line(node), "end": px.end_line(node),
         "bases": bases,
         "decorators": decorators,
         "doc": px.docstring_of(node).strip(),
@@ -235,6 +236,7 @@ def _js_file_entities(res: dict, rel: str) -> list[dict]:
     for cls in res.get("classes", []):
         ents.append({
             "name": cls["name"], "kind": "class", "source": rel, "lang": "js",
+            "line": cls.get("line", 0), "end": cls.get("endLine", 0),
             "bases": cls.get("bases", []), "decorators": [],
             "doc": cls.get("doc", ""),
             "methods": [{"name": m["name"], "doc": m.get("doc", "")}
@@ -251,6 +253,7 @@ def _js_file_entities(res: dict, rel: str) -> list[dict]:
             # one more bullet on the module page.
             ents.append({
                 "name": fn["name"], "kind": "component", "source": rel, "lang": "js",
+                "line": fn.get("line", 0), "end": fn.get("endLine", 0),
                 "bases": [], "decorators": [], "doc": fn.get("doc", ""), "methods": [],
                 "uses": _names_used([fn]),
                 "renders": fn.get("components", []),
@@ -350,6 +353,7 @@ def extract_lang_entities(roots: list[str]) -> list[dict]:
                 entities.append({
                     "name": cls["name"], "kind": "class", "source": rel,
                     "lang": res["lang"],
+                    "line": cls.get("line", 0), "end": cls.get("endLine", 0),
                     "bases": cls.get("bases", []), "decorators": cls.get("decorators", []),
                     "doc": cls.get("doc", ""),
                     "methods": [{"name": m["name"], "doc": m.get("doc", "")}
@@ -432,7 +436,13 @@ def render_entity(ent: dict, known: set[str], template: str, names=None) -> str:
              else "ui" if ent["kind"] == "component"
              else infer_layer(ent.get("bare", ent["name"]), ent["decorators"], ent["bases"]))
     out = out.replace("{{layer}}", layer)
-    out = out.replace("{{source}}", ent["source"])
+    # A class or component has a range, so its page says `file:line` and `end`, like
+    # a flow node (phase 6a): metrics, security attribution and clones can then find
+    # it by range. `ent["source"]` itself stays the bare file -- it is what
+    # SharedNames and the test-path rule are asked about. A module group is a whole
+    # file and keeps no range.
+    out = out.replace("{{source}}", f"{ent['source']}:{ent['line']}" if ent.get("line") else ent["source"])
+    out = out.replace("{{end}}", str(ent["end"]) if ent.get("end") else "")
     out = out.replace("{{kind}}", ent["kind"])
     out = out.replace("{{lang}}", ent.get("lang", "py"))
     out = out.replace("{{summary}}", summary)

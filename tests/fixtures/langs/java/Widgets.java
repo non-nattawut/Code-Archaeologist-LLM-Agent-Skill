@@ -32,6 +32,22 @@ class WidgetService {
     public Widget place(Widget item) {
         return this.store.save(item);
     }
+
+    /** Hand-counted: complexity 6 (1 + for, if, &&, if, else if), depth 2, 2 params. */
+    static String grade(int score, int[] bonus) {
+        int total = score;
+        for (int b : bonus) {
+            if (b > 0 && total < 100) {
+                total += b;
+            }
+        }
+        if (total > 90) {
+            return "A";
+        } else if (total > 50) {
+            return "B";
+        }
+        return "C";
+    }
 }
 
 /** HTTP entry point for widgets. */

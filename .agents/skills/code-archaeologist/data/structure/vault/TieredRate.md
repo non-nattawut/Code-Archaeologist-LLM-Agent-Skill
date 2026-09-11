@@ -1,7 +1,8 @@
 ---
 entity: TieredRate
 layer: unknown
-source: sample_src/services/orders_java/PricingRule.java
+source: sample_src/services/orders_java/PricingRule.java:20
+end: 26
 kind: class
 lang: java
 ---

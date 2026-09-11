@@ -1,7 +1,8 @@
 ---
 entity: OrderController
 layer: controller
-source: sample_src/backend/order_controller.py
+source: sample_src/backend/order_controller.py:9
+end: 23
 kind: class
 lang: py
 ---

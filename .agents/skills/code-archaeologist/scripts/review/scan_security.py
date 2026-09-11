@@ -102,8 +102,9 @@ def iter_source_files(roots):
 def node_index(graph_path: str) -> dict[str, list[tuple[int, int | None, str]]]:
     """file key -> [(start, end, node id), ...] by start, so a finding can name its owner.
 
-    `end` is None for a node with no range -- a structure-map entity, whose
-    `source` is a bare file path -- and such a node owns its whole file.
+    `end` is None for a node with no range -- a structure-map module group, whose
+    `source` is a bare file path -- and such a node owns its whole file. Classes and
+    components carry a range in both maps since phase 6a.
     """
     try:
         with open(graph_path, "r", encoding="utf-8") as fh:

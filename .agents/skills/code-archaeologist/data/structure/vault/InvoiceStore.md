@@ -1,7 +1,8 @@
 ---
 entity: InvoiceStore
 layer: repository
-source: sample_src/services/orders_cs/InvoiceStore.cs
+source: sample_src/services/orders_cs/InvoiceStore.cs:6
+end: 23
 kind: class
 lang: csharp
 ---

@@ -12,7 +12,7 @@
 > | 3 — Full regression gate: nothing old may break | does it still run | **done** — 5 things fixed, 1 recorded (*Found while implementing* #4) | `f904891` |
 > | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | **done** — 3 bugs fixed, 1 recorded (#5); 29 checks + 18 regression cases | `b44b909` |
 > | 5 — The two limits phase 4 left: structure-map shared names, the narrow toolbar | close the known gaps | **done** — both closed; toolbar floor ~1270 → ~987px | `cc4d0af` |
-> | 6 — Close the open concerns: pinned grammars, non-ASCII, per-language metrics, timing | make adding a language safe | **in progress** — 6c done (`16b6f62`), 6b done (this commit; recorded #6); 6a, 6d next | `16b6f62` |
+> | 6 — Close the open concerns: pinned grammars, non-ASCII, per-language metrics, timing | make adding a language safe | **in progress** — 6c done (`16b6f62`), 6b done (`6553498`; recorded #6), 6a done (this commit); 6d next | `16b6f62`, `6553498` |
 > | 7 — A graph for every review-only language (Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir) | the title goal | **planned, not started** | — |
 > | 8 — Route tables: Django `urlpatterns`, Rails, Laravel, Phoenix | cross-stack links for table-routed apps | **planned, not started** | — |
 > | 9 — Duplicates below function granularity | copied blocks, not only copied functions | **planned, not started** | — |
@@ -1177,6 +1177,31 @@ while the port happens, then deleted — the phase 2 pattern). Flow and structur
 except `declaration: true` nodes, which get no complexity (no body) and are stated as such. Each
 fixture gets one function with a hand-counted branch structure, asserted in `expected.json`. A new
 regression case: two files each defining `Store.save` — both measured, under their qualified ids.
+
+**Result — shipped 2026-09-11.** `metrics.py` measures the graph's own nodes: `locate()` picks the
+definition out of the file's parse from `source` + `end` (among definitions ending on the range's
+last line, the one starting closest to its first — so a TS range that opens at a decorator and a
+Java one that opens at the name both land on the method), and `TABLES` holds one row per grammar,
+every node-type name checked against the pinned grammar (0 missing). Two refinements over the table
+above, both from reading the grammars: Java counts `switch_label` but not `switch_rule` (a rule
+*contains* a label, so both would double-count), and a `default:` / `_ =>` case is the fallback,
+not a branch.
+
+**The plan's premise was wrong in one respect, and the approved decision was implemented to its
+intent.** Structure nodes lacked not just `end` but any line: their `source` was a bare path. A
+range needs both, so classes and components now carry `source: file:line` + `end`, exactly like
+flow nodes; module groups stay whole-file. Every reader outside `build_wiki` already split
+`source` on `:` (flow nodes always had a line), so nothing else needed to change, and
+`check_graph` c06/c07 now check structure ranges too.
+
+Measured: **Python figures identical** to the old code at all 294 positions on the skill's own
+code, and 13/13 flow and 5/5 structure nodes on the sample. **The key bug was real and bigger than
+predicted**: 66 of 294 graph ids on the skill's own code could never be matched by the old
+bare-name keying — not only shared names but every module-qualified one (`analyze.main`) — and all
+66 are measured now. Sample: flow 51/52 measured (the declaration `PricingRule.price` is not),
+structure 19/25 (the six module groups are not). Every fixture's hand-counted `grade` comes out
+complexity 6, depth 2, 2 params, in all six languages, now asserted in `expected.json`. New
+regression case r22.
 
 ### 6d. Time it on a real repository (concern 7)
 

@@ -1,7 +1,8 @@
 ---
 entity: PaymentClient
 layer: client
-source: sample_src/backend/payment_client.py
+source: sample_src/backend/payment_client.py:8
+end: 15
 kind: class
 lang: py
 ---

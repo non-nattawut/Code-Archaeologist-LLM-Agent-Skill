@@ -35,6 +35,8 @@ sys.path.insert(0, os.path.join(SKILL, "scripts"))
 import paths  # noqa: E402,F401  (puts the category dirs and vendor/ on sys.path)
 
 import build_flow  # noqa: E402
+import metrics  # noqa: E402
+import scan_security  # noqa: E402
 
 FIXTURES = os.path.join(REPO, "tests", "fixtures", "langs")
 EXPECTED = os.path.join(FIXTURES, "expected.json")
@@ -43,6 +45,11 @@ EXPECTED = os.path.join(FIXTURES, "expected.json")
 def observe(lang_dir: str) -> dict:
     """What the flow map actually makes of one fixture directory."""
     methods, edges = build_flow.analyze([lang_dir])
+    # Phase 6a: per-node metrics for every language, measured by the graph's range.
+    # Each fixture's `grade` is hand-counted (complexity 6, depth 2, 2 params) in
+    # its own comment, so that row is checked against a person, not a recorder.
+    paths = {key: full for full, key in scan_security.iter_source_files([lang_dir])}
+    measured = metrics.node_metrics([dict(i, id=n) for n, i in methods.items()], paths)
     routes = []
     for info in methods.values():
         for r in info.get("routes") or []:
@@ -56,12 +63,14 @@ def observe(lang_dir: str) -> dict:
         # byte offset applied to decoded text shifts exactly these two things.
         "lines": {n: int(i["source"].rsplit(":", 1)[1]) for n, i in sorted(methods.items())},
         "docs": {n: i.get("doc", "") for n, i in sorted(methods.items())},
+        "metrics": {n: [m["complexity"], m["depth"], m["params"]]
+                    for n, m in sorted(measured.items())},
     }
 
 
 def compare(lang: str, want: dict, got: dict) -> list[str]:
     out = []
-    for key in ("nodes", "edges", "routes", "test_nodes", "lines", "docs"):
+    for key in ("nodes", "edges", "routes", "test_nodes", "lines", "docs", "metrics"):
         expected = want.get(key, [])
         actual = got.get(key, [])
         if expected == actual:

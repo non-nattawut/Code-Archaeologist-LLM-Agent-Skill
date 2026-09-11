@@ -1,7 +1,8 @@
 ---
 entity: FlatRate
 layer: unknown
-source: sample_src/services/orders_java/PricingRule.java
+source: sample_src/services/orders_java/PricingRule.java:11
+end: 17
 kind: class
 lang: java
 ---

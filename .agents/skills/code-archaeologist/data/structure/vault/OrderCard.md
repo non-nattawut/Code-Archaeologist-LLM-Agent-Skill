@@ -1,7 +1,8 @@
 ---
 entity: OrderCard
 layer: ui
-source: sample_src/frontend/OrderCard.tsx
+source: sample_src/frontend/OrderCard.tsx:11
+end: 27
 kind: component
 lang: js
 ---

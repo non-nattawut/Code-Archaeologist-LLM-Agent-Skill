@@ -47,37 +47,37 @@ Dead-code ratio 13.5% · cycles 0 · layer violations 0 · security findings 4
 ## Size & complexity
 
 - 22 file(s), 529 lines — 343 code, 84 comment, 102 blank (comment ratio 16%)
-- Complexity is McCabe: 1 + every branch. Python nodes only.
+- Complexity is McCabe: 1 + every branch, in every graphed language. A node with no body (a module group, a declaration) is not measured.
 
 ### Longest nodes
 
 | Node | LOC | Complexity | Location |
 | --- | --- | --- | --- |
+| `OrderCard` | 17 | 2 | `sample_src/frontend/OrderCard.tsx:11` |
+| `NewRouter` | 11 | 1 | `sample_src/services/orders_go/router.go:10` |
+| `OrderWorkflow.place` | 7 | 1 | `sample_src/services/orders_java/OrderWorkflow.java:16` |
+| `InvoiceStore.Put` | 6 | 1 | `sample_src/services/orders_cs/InvoiceStore.cs:11` |
+| `handleOrderEvents` | 6 | 2 | `sample_src/services/orders_go/router.go:23` |
+| `loadOrder` | 6 | 1 | `sample_src/frontend/order_page.ts:8` |
 | `orders` | 6 | 2 | `sample_src/api_flask/order_routes.py:16` |
+| `InvoiceService.Issue` | 5 | 1 | `sample_src/services/orders_cs/InvoiceService.cs:14` |
+| `OrderArchive.save` | 5 | 1 | `sample_src/services/orders_java/OrderArchive.java:13` |
 | `OrderRepository.get` | 5 | 1 | `sample_src/backend/order_repository.py:11` |
-| `PaymentClient.charge` | 5 | 1 | `sample_src/backend/payment_client.py:11` |
-| `OrderRepositoryTest.test_get_returns_the_row` | 4 | 1 | `sample_src/backend/tests/test_orders.py:22` |
-| `OrderService.place_order` | 4 | 1 | `sample_src/backend/order_service.py:13` |
-| `order_detail` | 4 | 1 | `sample_src/api_flask/order_routes.py:25` |
-| `test_place_order_charges_and_saves` | 4 | 2 | `sample_src/backend/tests/test_orders.py:13` |
-| `OrderController.create_order` | 3 | 1 | `sample_src/backend/order_controller.py:16` |
-| `OrderController.get_order` | 3 | 1 | `sample_src/backend/order_controller.py:21` |
-| `OrderRepository.save` | 3 | 1 | `sample_src/backend/order_repository.py:7` |
 
 ### Most complex nodes
 
 | Node | Complexity | LOC | Location |
 | --- | --- | --- | --- |
+| `InvoiceStore.Get` | 2 | 4 | `sample_src/services/orders_cs/InvoiceStore.cs:19` |
+| `OrderCard` | 2 | 17 | `sample_src/frontend/OrderCard.tsx:11` |
+| `TieredRate.price` | 2 | 3 | `sample_src/services/orders_java/PricingRule.java:23` |
+| `handleOrderEvents` | 2 | 6 | `sample_src/services/orders_go/router.go:23` |
 | `orders` | 2 | 6 | `sample_src/api_flask/order_routes.py:16` |
 | `test_place_order_charges_and_saves` | 2 | 4 | `sample_src/backend/tests/test_orders.py:13` |
-| `OrderController.__init__` | 1 | 2 | `sample_src/backend/order_controller.py:12` |
-| `OrderController.create_order` | 1 | 3 | `sample_src/backend/order_controller.py:16` |
-| `OrderController.get_order` | 1 | 3 | `sample_src/backend/order_controller.py:21` |
-| `OrderRepository.get` | 1 | 5 | `sample_src/backend/order_repository.py:11` |
-| `OrderRepository.save` | 1 | 3 | `sample_src/backend/order_repository.py:7` |
-| `OrderRepositoryTest.test_get_returns_the_row` | 1 | 4 | `sample_src/backend/tests/test_orders.py:22` |
-| `OrderService.__init__` | 1 | 3 | `sample_src/backend/order_service.py:9` |
-| `OrderService.find_order` | 1 | 3 | `sample_src/backend/order_service.py:18` |
+| `EventService.Events` | 1 | 3 | `sample_src/services/orders_go/event_service.go:9` |
+| `EventService.Record` | 1 | 3 | `sample_src/services/orders_go/event_service.go:14` |
+| `EventStore.Append` | 1 | 3 | `sample_src/services/orders_go/event_store.go:14` |
+| `EventStore.List` | 1 | 3 | `sample_src/services/orders_go/event_store.go:9` |
 
 ### Largest files
 

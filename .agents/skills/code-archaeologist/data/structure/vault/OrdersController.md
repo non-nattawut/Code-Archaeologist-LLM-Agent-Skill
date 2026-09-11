@@ -1,7 +1,8 @@
 ---
 entity: OrdersController
 layer: controller
-source: sample_src/api_nest/orders.controller.ts
+source: sample_src/api_nest/orders.controller.ts:7
+end: 20
 kind: class
 lang: js
 ---

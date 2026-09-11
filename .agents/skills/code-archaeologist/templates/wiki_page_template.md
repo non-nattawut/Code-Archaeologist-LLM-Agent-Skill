@@ -2,6 +2,7 @@
 entity: {{name}}
 layer: {{layer}}
 source: {{source}}
+end: {{end}}
 kind: {{kind}}
 lang: {{lang}}
 ---

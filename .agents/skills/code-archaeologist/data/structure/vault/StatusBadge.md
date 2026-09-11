@@ -1,7 +1,8 @@
 ---
 entity: StatusBadge
 layer: ui
-source: sample_src/frontend/OrderCard.tsx
+source: sample_src/frontend/OrderCard.tsx:6
+end: 8
 kind: component
 lang: js
 ---

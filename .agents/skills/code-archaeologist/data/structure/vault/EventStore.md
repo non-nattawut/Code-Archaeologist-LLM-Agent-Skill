@@ -1,7 +1,8 @@
 ---
 entity: EventStore
 layer: repository
-source: sample_src/services/orders_go/event_store.go
+source: sample_src/services/orders_go/event_store.go:4
+end: 6
 kind: class
 lang: go
 ---

@@ -2360,15 +2360,185 @@
       }
     },
     "nodes": {
-      "OrderController": {
-        "loc": 15,
+      "EventService.Events": {
+        "loc": 3,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/services/orders_go/event_service.go",
+        "line": 9,
+        "lang": "go"
+      },
+      "EventService.Record": {
+        "loc": 3,
+        "complexity": 1,
+        "depth": 0,
+        "params": 2,
+        "file": "sample_src/services/orders_go/event_service.go",
+        "line": 14,
+        "lang": "go"
+      },
+      "EventStore.Append": {
+        "loc": 3,
+        "complexity": 1,
+        "depth": 0,
+        "params": 2,
+        "file": "sample_src/services/orders_go/event_store.go",
+        "line": 14,
+        "lang": "go"
+      },
+      "EventStore.List": {
+        "loc": 3,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/services/orders_go/event_store.go",
+        "line": 9,
+        "lang": "go"
+      },
+      "FlatRate.price": {
+        "loc": 3,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/services/orders_java/PricingRule.java",
+        "line": 14,
+        "lang": "java"
+      },
+      "GET /go/healthz": {
+        "loc": 3,
+        "complexity": 1,
+        "depth": 0,
+        "params": 2,
+        "file": "sample_src/services/orders_go/router.go",
+        "line": 16,
+        "lang": "go"
+      },
+      "GET /orders/:id/status": {
+        "loc": 3,
+        "complexity": 1,
+        "depth": 0,
+        "params": 2,
+        "file": "sample_src/api_express/order_router.js",
+        "line": 24,
+        "lang": "js"
+      },
+      "InvoiceController.Create": {
+        "loc": 4,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/services/orders_cs/InvoiceController.cs",
+        "line": 17,
+        "lang": "csharp"
+      },
+      "InvoiceController.Find": {
+        "loc": 4,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/services/orders_cs/InvoiceController.cs",
+        "line": 24,
+        "lang": "csharp"
+      },
+      "InvoiceService.Find": {
+        "loc": 4,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/services/orders_cs/InvoiceService.cs",
+        "line": 21,
+        "lang": "csharp"
+      },
+      "InvoiceService.Issue": {
+        "loc": 5,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/services/orders_cs/InvoiceService.cs",
+        "line": 14,
+        "lang": "csharp"
+      },
+      "InvoiceService.Total": {
+        "loc": 4,
+        "complexity": 1,
+        "depth": 0,
+        "params": 2,
+        "file": "sample_src/services/orders_cs/InvoiceService.cs",
+        "line": 35,
+        "lang": "csharp"
+      },
+      "InvoiceStore.Get": {
+        "loc": 4,
+        "complexity": 2,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/services/orders_cs/InvoiceStore.cs",
+        "line": 19,
+        "lang": "csharp"
+      },
+      "InvoiceStore.Put": {
+        "loc": 6,
+        "complexity": 1,
+        "depth": 0,
+        "params": 2,
+        "file": "sample_src/services/orders_cs/InvoiceStore.cs",
+        "line": 11,
+        "lang": "csharp"
+      },
+      "NewRouter": {
+        "loc": 11,
         "complexity": 1,
         "depth": 1,
         "params": 0,
-        "file": "sample_src/backend/order_controller.py",
-        "line": 9,
-        "lang": "py",
-        "in_graph": false
+        "file": "sample_src/services/orders_go/router.go",
+        "line": 10,
+        "lang": "go"
+      },
+      "OrderApiController.create": {
+        "loc": 3,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/services/orders_java/OrderApiController.java",
+        "line": 16,
+        "lang": "java"
+      },
+      "OrderApiController.findOne": {
+        "loc": 3,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/services/orders_java/OrderApiController.java",
+        "line": 22,
+        "lang": "java"
+      },
+      "OrderArchive.get": {
+        "loc": 3,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/services/orders_java/OrderArchive.java",
+        "line": 20,
+        "lang": "java"
+      },
+      "OrderArchive.save": {
+        "loc": 5,
+        "complexity": 1,
+        "depth": 0,
+        "params": 2,
+        "file": "sample_src/services/orders_java/OrderArchive.java",
+        "line": 13,
+        "lang": "java"
+      },
+      "OrderCard": {
+        "loc": 17,
+        "complexity": 2,
+        "depth": 1,
+        "params": 1,
+        "file": "sample_src/frontend/OrderCard.tsx",
+        "line": 11,
+        "lang": "tsx"
       },
       "OrderController.__init__": {
         "loc": 2,
@@ -2377,8 +2547,7 @@
         "params": 2,
         "file": "sample_src/backend/order_controller.py",
         "line": 12,
-        "lang": "py",
-        "in_graph": true
+        "lang": "py"
       },
       "OrderController.create_order": {
         "loc": 3,
@@ -2387,8 +2556,7 @@
         "params": 2,
         "file": "sample_src/backend/order_controller.py",
         "line": 16,
-        "lang": "py",
-        "in_graph": true
+        "lang": "py"
       },
       "OrderController.get_order": {
         "loc": 3,
@@ -2397,18 +2565,7 @@
         "params": 2,
         "file": "sample_src/backend/order_controller.py",
         "line": 21,
-        "lang": "py",
-        "in_graph": true
-      },
-      "OrderRepository": {
-        "loc": 12,
-        "complexity": 1,
-        "depth": 1,
-        "params": 0,
-        "file": "sample_src/backend/order_repository.py",
-        "line": 4,
-        "lang": "py",
-        "in_graph": false
+        "lang": "py"
       },
       "OrderRepository.get": {
         "loc": 5,
@@ -2417,8 +2574,7 @@
         "params": 2,
         "file": "sample_src/backend/order_repository.py",
         "line": 11,
-        "lang": "py",
-        "in_graph": true
+        "lang": "py"
       },
       "OrderRepository.save": {
         "loc": 3,
@@ -2427,18 +2583,7 @@
         "params": 2,
         "file": "sample_src/backend/order_repository.py",
         "line": 7,
-        "lang": "py",
-        "in_graph": true
-      },
-      "OrderRepositoryTest": {
-        "loc": 7,
-        "complexity": 1,
-        "depth": 1,
-        "params": 0,
-        "file": "sample_src/backend/tests/test_orders.py",
-        "line": 19,
-        "lang": "py",
-        "in_graph": false
+        "lang": "py"
       },
       "OrderRepositoryTest.test_get_returns_the_row": {
         "loc": 4,
@@ -2447,18 +2592,7 @@
         "params": 1,
         "file": "sample_src/backend/tests/test_orders.py",
         "line": 22,
-        "lang": "py",
-        "in_graph": true
-      },
-      "OrderService": {
-        "loc": 15,
-        "complexity": 1,
-        "depth": 1,
-        "params": 0,
-        "file": "sample_src/backend/order_service.py",
-        "line": 6,
-        "lang": "py",
-        "in_graph": false
+        "lang": "py"
       },
       "OrderService.__init__": {
         "loc": 3,
@@ -2467,8 +2601,7 @@
         "params": 3,
         "file": "sample_src/backend/order_service.py",
         "line": 9,
-        "lang": "py",
-        "in_graph": true
+        "lang": "py"
       },
       "OrderService.find_order": {
         "loc": 3,
@@ -2477,8 +2610,7 @@
         "params": 2,
         "file": "sample_src/backend/order_service.py",
         "line": 18,
-        "lang": "py",
-        "in_graph": true
+        "lang": "py"
       },
       "OrderService.place_order": {
         "loc": 4,
@@ -2487,18 +2619,43 @@
         "params": 2,
         "file": "sample_src/backend/order_service.py",
         "line": 13,
-        "lang": "py",
-        "in_graph": true
+        "lang": "py"
       },
-      "PaymentClient": {
-        "loc": 8,
+      "OrderWorkflow.find": {
+        "loc": 3,
         "complexity": 1,
-        "depth": 1,
-        "params": 0,
-        "file": "sample_src/backend/payment_client.py",
-        "line": 8,
-        "lang": "py",
-        "in_graph": false
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/services/orders_java/OrderWorkflow.java",
+        "line": 25,
+        "lang": "java"
+      },
+      "OrderWorkflow.place": {
+        "loc": 7,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/services/orders_java/OrderWorkflow.java",
+        "line": 16,
+        "lang": "java"
+      },
+      "OrdersController.create": {
+        "loc": 4,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/api_nest/orders.controller.ts",
+        "line": 10,
+        "lang": "ts"
+      },
+      "OrdersController.findOne": {
+        "loc": 4,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/api_nest/orders.controller.ts",
+        "line": 16,
+        "lang": "ts"
       },
       "PaymentClient.charge": {
         "loc": 5,
@@ -2507,8 +2664,106 @@
         "params": 2,
         "file": "sample_src/backend/payment_client.py",
         "line": 11,
-        "lang": "py",
-        "in_graph": true
+        "lang": "py"
+      },
+      "StatusBadge": {
+        "loc": 3,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/frontend/OrderCard.tsx",
+        "line": 6,
+        "lang": "tsx"
+      },
+      "TieredRate.price": {
+        "loc": 3,
+        "complexity": 2,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/services/orders_java/PricingRule.java",
+        "line": 23,
+        "lang": "java"
+      },
+      "createInvoice": {
+        "loc": 4,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/frontend/api_client.ts",
+        "line": 16,
+        "lang": "ts"
+      },
+      "createOrder": {
+        "loc": 4,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/frontend/api_client.ts",
+        "line": 8,
+        "lang": "ts"
+      },
+      "createOrderHandler": {
+        "loc": 4,
+        "complexity": 1,
+        "depth": 0,
+        "params": 2,
+        "file": "sample_src/api_express/order_router.js",
+        "line": 11,
+        "lang": "js"
+      },
+      "getOrder": {
+        "loc": 4,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/frontend/api_client.ts",
+        "line": 21,
+        "lang": "ts"
+      },
+      "getOrderEvents": {
+        "loc": 4,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/frontend/api_client.ts",
+        "line": 36,
+        "lang": "ts"
+      },
+      "getOrderStatus": {
+        "loc": 4,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/frontend/api_client.ts",
+        "line": 28,
+        "lang": "ts"
+      },
+      "handleOrderEvents": {
+        "loc": 6,
+        "complexity": 2,
+        "depth": 1,
+        "params": 2,
+        "file": "sample_src/services/orders_go/router.go",
+        "line": 23,
+        "lang": "go"
+      },
+      "loadOrder": {
+        "loc": 6,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/frontend/order_page.ts",
+        "line": 8,
+        "lang": "ts"
+      },
+      "loadOrderHistory": {
+        "loc": 3,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/frontend/order_page.ts",
+        "line": 16,
+        "lang": "ts"
       },
       "order_detail": {
         "loc": 4,
@@ -2517,8 +2772,7 @@
         "params": 1,
         "file": "sample_src/api_flask/order_routes.py",
         "line": 25,
-        "lang": "py",
-        "in_graph": true
+        "lang": "py"
       },
       "orders": {
         "loc": 6,
@@ -2527,8 +2781,34 @@
         "params": 0,
         "file": "sample_src/api_flask/order_routes.py",
         "line": 16,
-        "lang": "py",
-        "in_graph": true
+        "lang": "py"
+      },
+      "recordOrderEvent": {
+        "loc": 4,
+        "complexity": 1,
+        "depth": 0,
+        "params": 2,
+        "file": "sample_src/services/orders_go/router.go",
+        "line": 31,
+        "lang": "go"
+      },
+      "saveOrder": {
+        "loc": 3,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/api_express/order_router.js",
+        "line": 17,
+        "lang": "js"
+      },
+      "submitOrder": {
+        "loc": 3,
+        "complexity": 1,
+        "depth": 0,
+        "params": 1,
+        "file": "sample_src/frontend/order_page.ts",
+        "line": 4,
+        "lang": "ts"
       },
       "test_place_order_charges_and_saves": {
         "loc": 4,
@@ -2537,12 +2817,53 @@
         "params": 0,
         "file": "sample_src/backend/tests/test_orders.py",
         "line": 13,
-        "lang": "py",
-        "in_graph": true
+        "lang": "py"
       }
     },
     "top_loc": [
       {
+        "id": "OrderCard",
+        "loc": 17,
+        "complexity": 2,
+        "file": "sample_src/frontend/OrderCard.tsx",
+        "line": 11
+      },
+      {
+        "id": "NewRouter",
+        "loc": 11,
+        "complexity": 1,
+        "file": "sample_src/services/orders_go/router.go",
+        "line": 10
+      },
+      {
+        "id": "OrderWorkflow.place",
+        "loc": 7,
+        "complexity": 1,
+        "file": "sample_src/services/orders_java/OrderWorkflow.java",
+        "line": 16
+      },
+      {
+        "id": "InvoiceStore.Put",
+        "loc": 6,
+        "complexity": 1,
+        "file": "sample_src/services/orders_cs/InvoiceStore.cs",
+        "line": 11
+      },
+      {
+        "id": "handleOrderEvents",
+        "loc": 6,
+        "complexity": 2,
+        "file": "sample_src/services/orders_go/router.go",
+        "line": 23
+      },
+      {
+        "id": "loadOrder",
+        "loc": 6,
+        "complexity": 1,
+        "file": "sample_src/frontend/order_page.ts",
+        "line": 8
+      },
+      {
         "id": "orders",
         "loc": 6,
         "complexity": 2,
@@ -2550,71 +2871,57 @@
         "line": 16
       },
       {
+        "id": "InvoiceService.Issue",
+        "loc": 5,
+        "complexity": 1,
+        "file": "sample_src/services/orders_cs/InvoiceService.cs",
+        "line": 14
+      },
+      {
+        "id": "OrderArchive.save",
+        "loc": 5,
+        "complexity": 1,
+        "file": "sample_src/services/orders_java/OrderArchive.java",
+        "line": 13
+      },
+      {
         "id": "OrderRepository.get",
         "loc": 5,
         "complexity": 1,
         "file": "sample_src/backend/order_repository.py",
         "line": 11
-      },
-      {
-        "id": "PaymentClient.charge",
-        "loc": 5,
-        "complexity": 1,
-        "file": "sample_src/backend/payment_client.py",
-        "line": 11
-      },
-      {
-        "id": "OrderRepositoryTest.test_get_returns_the_row",
-        "loc": 4,
-        "complexity": 1,
-        "file": "sample_src/backend/tests/test_orders.py",
-        "line": 22
-      },
-      {
-        "id": "OrderService.place_order",
-        "loc": 4,
-        "complexity": 1,
-        "file": "sample_src/backend/order_service.py",
-        "line": 13
-      },
-      {
-        "id": "order_detail",
-        "loc": 4,
-        "complexity": 1,
-        "file": "sample_src/api_flask/order_routes.py",
-        "line": 25
-      },
-      {
-        "id": "test_place_order_charges_and_saves",
-        "loc": 4,
-        "complexity": 2,
-        "file": "sample_src/backend/tests/test_orders.py",
-        "line": 13
-      },
-      {
-        "id": "OrderController.create_order",
-        "loc": 3,
-        "complexity": 1,
-        "file": "sample_src/backend/order_controller.py",
-        "line": 16
-      },
-      {
-        "id": "OrderController.get_order",
-        "loc": 3,
-        "complexity": 1,
-        "file": "sample_src/backend/order_controller.py",
-        "line": 21
-      },
-      {
-        "id": "OrderRepository.save",
-        "loc": 3,
-        "complexity": 1,
-        "file": "sample_src/backend/order_repository.py",
-        "line": 7
       }
     ],
     "top_complexity": [
       {
+        "id": "InvoiceStore.Get",
+        "complexity": 2,
+        "loc": 4,
+        "file": "sample_src/services/orders_cs/InvoiceStore.cs",
+        "line": 19
+      },
+      {
+        "id": "OrderCard",
+        "complexity": 2,
+        "loc": 17,
+        "file": "sample_src/frontend/OrderCard.tsx",
+        "line": 11
+      },
+      {
+        "id": "TieredRate.price",
+        "complexity": 2,
+        "loc": 3,
+        "file": "sample_src/services/orders_java/PricingRule.java",
+        "line": 23
+      },
+      {
+        "id": "handleOrderEvents",
+        "complexity": 2,
+        "loc": 6,
+        "file": "sample_src/services/orders_go/router.go",
+        "line": 23
+      },
+      {
         "id": "orders",
         "complexity": 2,
         "loc": 6,
@@ -2629,60 +2936,32 @@
         "line": 13
       },
       {
-        "id": "OrderController.__init__",
-        "complexity": 1,
-        "loc": 2,
-        "file": "sample_src/backend/order_controller.py",
-        "line": 12
-      },
-      {
-        "id": "OrderController.create_order",
+        "id": "EventService.Events",
         "complexity": 1,
         "loc": 3,
-        "file": "sample_src/backend/order_controller.py",
-        "line": 16
-      },
-      {
-        "id": "OrderController.get_order",
-        "complexity": 1,
-        "loc": 3,
-        "file": "sample_src/backend/order_controller.py",
-        "line": 21
-      },
-      {
-        "id": "OrderRepository.get",
-        "complexity": 1,
-        "loc": 5,
-        "file": "sample_src/backend/order_repository.py",
-        "line": 11
-      },
-      {
-        "id": "OrderRepository.save",
-        "complexity": 1,
-        "loc": 3,
-        "file": "sample_src/backend/order_repository.py",
-        "line": 7
-      },
-      {
-        "id": "OrderRepositoryTest.test_get_returns_the_row",
-        "complexity": 1,
-        "loc": 4,
-        "file": "sample_src/backend/tests/test_orders.py",
-        "line": 22
-      },
-      {
-        "id": "OrderService.__init__",
-        "complexity": 1,
-        "loc": 3,
-        "file": "sample_src/backend/order_service.py",
+        "file": "sample_src/services/orders_go/event_service.go",
         "line": 9
       },
       {
-        "id": "OrderService.find_order",
+        "id": "EventService.Record",
         "complexity": 1,
         "loc": 3,
-        "file": "sample_src/backend/order_service.py",
-        "line": 18
+        "file": "sample_src/services/orders_go/event_service.go",
+        "line": 14
+      },
+      {
+        "id": "EventStore.Append",
+        "complexity": 1,
+        "loc": 3,
+        "file": "sample_src/services/orders_go/event_store.go",
+        "line": 14
+      },
+      {
+        "id": "EventStore.List",
+        "complexity": 1,
+        "loc": 3,
+        "file": "sample_src/services/orders_go/event_store.go",
+        "line": 9
       }
     ],
     "top_files": [
@@ -2738,45 +3017,7 @@
       }
     ],
     "unmeasured_graph_ids": [
-      "EventService.Events",
-      "EventService.Record",
-      "EventStore.Append",
-      "EventStore.List",
-      "FlatRate.price",
-      "GET /go/healthz",
-      "GET /orders/:id/status",
-      "InvoiceController.Create",
-      "InvoiceController.Find",
-      "InvoiceService.Find",
-      "InvoiceService.Issue",
-      "InvoiceService.Total",
-      "InvoiceStore.Get",
-      "InvoiceStore.Put",
-      "NewRouter",
-      "OrderApiController.create",
-      "OrderApiController.findOne",
-      "OrderArchive.get",
-      "OrderArchive.save",
-      "OrderCard",
-      "OrderWorkflow.find",
-      "OrderWorkflow.place",
-      "OrdersController.create",
-      "OrdersController.findOne",
-      "PricingRule.price",
-      "StatusBadge",
-      "TieredRate.price",
-      "createInvoice",
-      "createOrder",
-      "createOrderHandler",
-      "getOrder",
-      "getOrderEvents",
-      "getOrderStatus",
-      "handleOrderEvents",
-      "loadOrder",
-      "loadOrderHistory",
-      "recordOrderEvent",
-      "saveOrder",
-      "submitOrder"
+      "PricingRule.price"
     ]
   },
   "debt": {

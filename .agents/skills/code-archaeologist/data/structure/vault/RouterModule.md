@@ -2,6 +2,7 @@
 entity: RouterModule
 layer: controller
 source: sample_src/services/orders_go/router.go
+end: 
 kind: module
 lang: go
 ---

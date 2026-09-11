@@ -1,7 +1,8 @@
 ---
 entity: OrderService
 layer: service
-source: sample_src/backend/order_service.py
+source: sample_src/backend/order_service.py:6
+end: 20
 kind: class
 lang: py
 ---

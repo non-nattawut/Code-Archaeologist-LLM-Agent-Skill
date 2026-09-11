@@ -499,7 +499,7 @@ const FEATURES = [
     cmd:"metrics.py --src ./src",
     qa:[
       ["Why key it like the graph?","So \"what is the most tangled code here\" is a lookup rather than a source read. Metrics that cannot be joined to the graph would just be another file to open."],
-      ["Any gaps?","Per-node metrics are Python-only today, because the JS extractor does not yet record an end line. Frontend files still count toward file totals."]
+      ["Any gaps?","Per-node metrics cover every graphed language: each graph node's range is found in its file's parse and measured with that grammar's table. A node with no body — a module group, an interface signature — is listed as unmeasured rather than given a fake 1."]
     ]
   },
   {
@@ -635,8 +635,6 @@ const LIMITS = [
    "It finds patterns on a line. It cannot follow a tainted value across function boundaries, so it will miss real injections and occasionally flag safe code. Treat it as a fast first pass."],
   ["Idiom detection reads names, not behaviour",
    "\"Singleton\" means the naming claims a singleton. It is a navigation aid, not a verified structural finding."],
-  ["Per-node metrics are Python-only",
-   "<code>node_metrics</code> is an <code>ast.parse</code>, so LOC, cyclomatic complexity, nesting and parameter counts exist for Python nodes only. Both the JS/TS and the Java/Go/C# extractors already record an end line — the metrics pass does not read it yet — so JS/TS, Java, Go and C# files appear in file totals, the language mix and the risk scan, but carry no per-node complexity and cannot rank in the \"most complex\" list."],
   ["Clone detection matches whole bodies",
    "A copied block inside two otherwise different functions is invisible, and editing one copy — even by one operator — splits the pair. A docstring counts as a token too, so documenting one copy and not the other hides it. It is tuned to avoid false positives, so it misses rather than invents."],
   ["The graph is only as fresh as the last build",

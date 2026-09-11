@@ -28,27 +28,37 @@ _None._
 ## Size & complexity
 
 - 22 file(s), 529 lines — 343 code, 84 comment, 102 blank (comment ratio 16%)
-- Complexity is McCabe: 1 + every branch. Python nodes only.
+- Complexity is McCabe: 1 + every branch, in every graphed language. A node with no body (a module group, a declaration) is not measured.
 
 ### Longest nodes
 
 | Node | LOC | Complexity | Location |
 | --- | --- | --- | --- |
+| `InvoiceService` | 36 | 1 | `sample_src/services/orders_cs/InvoiceService.cs:4` |
+| `OrderWorkflow` | 24 | 1 | `sample_src/services/orders_java/OrderWorkflow.java:5` |
+| `InvoiceController` | 23 | 1 | `sample_src/services/orders_cs/InvoiceController.cs:6` |
+| `OrderApiController` | 20 | 1 | `sample_src/services/orders_java/OrderApiController.java:6` |
+| `InvoiceStore` | 18 | 2 | `sample_src/services/orders_cs/InvoiceStore.cs:6` |
+| `OrderCard` | 17 | 2 | `sample_src/frontend/OrderCard.tsx:11` |
+| `OrderArchive` | 16 | 1 | `sample_src/services/orders_java/OrderArchive.java:8` |
 | `OrderController` | 15 | 1 | `sample_src/backend/order_controller.py:9` |
 | `OrderService` | 15 | 1 | `sample_src/backend/order_service.py:6` |
-| `OrderRepository` | 12 | 1 | `sample_src/backend/order_repository.py:4` |
-| `PaymentClient` | 8 | 1 | `sample_src/backend/payment_client.py:8` |
-| `OrderRepositoryTest` | 7 | 1 | `sample_src/backend/tests/test_orders.py:19` |
+| `OrdersController` | 14 | 1 | `sample_src/api_nest/orders.controller.ts:7` |
 
 ### Most complex nodes
 
 | Node | Complexity | LOC | Location |
 | --- | --- | --- | --- |
-| `OrderController` | 1 | 15 | `sample_src/backend/order_controller.py:9` |
-| `OrderRepository` | 1 | 12 | `sample_src/backend/order_repository.py:4` |
-| `OrderRepositoryTest` | 1 | 7 | `sample_src/backend/tests/test_orders.py:19` |
-| `OrderService` | 1 | 15 | `sample_src/backend/order_service.py:6` |
-| `PaymentClient` | 1 | 8 | `sample_src/backend/payment_client.py:8` |
+| `InvoiceStore` | 2 | 18 | `sample_src/services/orders_cs/InvoiceStore.cs:6` |
+| `OrderCard` | 2 | 17 | `sample_src/frontend/OrderCard.tsx:11` |
+| `TieredRate` | 2 | 7 | `sample_src/services/orders_java/PricingRule.java:20` |
+| `EventService` | 1 | 3 | `sample_src/services/orders_go/event_service.go:4` |
+| `EventStore` | 1 | 3 | `sample_src/services/orders_go/event_store.go:4` |
+| `FlatRate` | 1 | 7 | `sample_src/services/orders_java/PricingRule.java:11` |
+| `InvoiceController` | 1 | 23 | `sample_src/services/orders_cs/InvoiceController.cs:6` |
+| `InvoiceService` | 1 | 36 | `sample_src/services/orders_cs/InvoiceService.cs:4` |
+| `OrderApiController` | 1 | 20 | `sample_src/services/orders_java/OrderApiController.java:6` |
+| `OrderArchive` | 1 | 16 | `sample_src/services/orders_java/OrderArchive.java:8` |
 
 ### Largest files
 
@@ -102,7 +112,7 @@ _None._
 | Severity | Rule | Location | Owner | Snippet |
 | --- | --- | --- | --- | --- |
 | high | sql_injection | `sample_src/backend/order_repository.py:15` | `OrderRepository` | `return self.cursor.execute(f"SELECT * FROM orders WHERE id = {order_id}")` |
-| high | hardcoded_secret | `sample_src/backend/payment_client.py:5` | `PaymentClient` | `GATEWAY_API_KEY = "sk_...redacted"` |
+| high | hardcoded_secret | `sample_src/backend/payment_client.py:5` | — | `GATEWAY_API_KEY = "sk_...redacted"` |
 | medium | dangerous_eval | `sample_src/frontend/order_page.ts:11` | `OrderPageModule` | `document.getElementById("order").innerHTML = JSON.stringify(order);` |
 | low | debug_statement | `sample_src/backend/payment_client.py:14` | `PaymentClient` | `print("charging", payload)  # demo smell: debug statement left behind` |
 
@@ -139,20 +149,20 @@ _2 test file(s). Name-based, not execution coverage: a node counts as referenced
 | Node | Layer | Location |
 | --- | --- | --- |
 | `ApiClientModule` | client | `sample_src/frontend/api_client.ts` |
-| `EventService` | service | `sample_src/services/orders_go/event_service.go` |
-| `EventStore` | repository | `sample_src/services/orders_go/event_store.go` |
-| `FlatRate` | unknown | `sample_src/services/orders_java/PricingRule.java` |
-| `InvoiceController` | controller | `sample_src/services/orders_cs/InvoiceController.cs` |
-| `InvoiceService` | service | `sample_src/services/orders_cs/InvoiceService.cs` |
-| `InvoiceStore` | repository | `sample_src/services/orders_cs/InvoiceStore.cs` |
-| `OrderApiController` | controller | `sample_src/services/orders_java/OrderApiController.java` |
-| `OrderArchive` | repository | `sample_src/services/orders_java/OrderArchive.java` |
-| `OrderCard` | ui | `sample_src/frontend/OrderCard.tsx` |
-| `OrderController` | controller | `sample_src/backend/order_controller.py` |
+| `EventService` | service | `sample_src/services/orders_go/event_service.go:4` |
+| `EventStore` | repository | `sample_src/services/orders_go/event_store.go:4` |
+| `FlatRate` | unknown | `sample_src/services/orders_java/PricingRule.java:11` |
+| `InvoiceController` | controller | `sample_src/services/orders_cs/InvoiceController.cs:6` |
+| `InvoiceService` | service | `sample_src/services/orders_cs/InvoiceService.cs:4` |
+| `InvoiceStore` | repository | `sample_src/services/orders_cs/InvoiceStore.cs:6` |
+| `OrderApiController` | controller | `sample_src/services/orders_java/OrderApiController.java:6` |
+| `OrderArchive` | repository | `sample_src/services/orders_java/OrderArchive.java:8` |
+| `OrderCard` | ui | `sample_src/frontend/OrderCard.tsx:11` |
+| `OrderController` | controller | `sample_src/backend/order_controller.py:9` |
 | `OrderPageModule` | ui | `sample_src/frontend/order_page.ts` |
 | `OrderRouterModule` | controller | `sample_src/api_express/order_router.js` |
 | `OrderRoutesModule` | controller | `sample_src/api_flask/order_routes.py` |
-| `OrderWorkflow` | service | `sample_src/services/orders_java/OrderWorkflow.java` |
+| `OrderWorkflow` | service | `sample_src/services/orders_java/OrderWorkflow.java:5` |
 
 ## Dig deeper
 

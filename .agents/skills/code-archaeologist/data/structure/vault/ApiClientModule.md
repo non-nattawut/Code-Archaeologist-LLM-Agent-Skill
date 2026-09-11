@@ -2,6 +2,7 @@
 entity: ApiClientModule
 layer: client
 source: sample_src/frontend/api_client.ts
+end: 
 kind: module
 lang: js
 ---

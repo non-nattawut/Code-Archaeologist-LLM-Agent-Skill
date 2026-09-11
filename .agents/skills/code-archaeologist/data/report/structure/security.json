@@ -15,7 +15,7 @@
       "message": "Credential assigned to a literal value",
       "file": "sample_src/backend/payment_client.py",
       "line": 5,
-      "node": "PaymentClient",
+      "node": null,
       "snippet": "GATEWAY_API_KEY = \"sk_...redacted\""
     },
     {

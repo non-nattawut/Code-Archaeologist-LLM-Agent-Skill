@@ -1,7 +1,8 @@
 ---
 entity: OrderApiController
 layer: controller
-source: sample_src/services/orders_java/OrderApiController.java
+source: sample_src/services/orders_java/OrderApiController.java:6
+end: 25
 kind: class
 lang: java
 ---

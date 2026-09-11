@@ -163,8 +163,8 @@ def c05_source(c):
 
 
 def c06_end_range(c):
-    if c.kind != "flow":
-        return []
+    # Both maps: structure classes and components carry a range since phase 6a. A
+    # module group has no line, so the `line is None` skip below covers it.
     out = []
     for n in c.nodes:
         path, line = split_source(n.get("source"))
@@ -190,18 +190,18 @@ def c07_name_at_source(c):
         lines = c.lines(path)
         if lines is None:
             continue
-        if c.kind == "flow":
-            if line is None:
-                continue
+        if c.kind == "structure" and n.get("kind") == "module":
+            continue                                     # a synthetic "<File>Module" entity
+        if line is not None:
+            # A shared name is file-qualified (`widgets.WidgetStore`); the file spells the
+            # bare name, which is the id's last segment.
             body = c.body(n) or ""
             want = ([r["path"] for r in n.get("routes") or []] if synthetic(n["id"])
                     else [short(n["id"])])
             where = f"{path}:{line}-{n.get('end')}"
+        elif c.kind == "flow":
+            continue                                     # C05 reports a flow node with no line
         else:
-            if n.get("kind") == "module":
-                continue                                 # a synthetic "<File>Module" entity
-            # A shared name is file-qualified (`widgets.WidgetStore`); the file spells the
-            # bare name, which is the id's last segment.
             body, want, where = "\n".join(lines), [short(n["id"])], path
         if want and not any(w in body for w in want):
             out.append(f"{n['id']}: {want[0]!r} does not occur in {where} -- the range points elsewhere")

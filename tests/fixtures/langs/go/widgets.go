@@ -31,6 +31,22 @@ func (s *WidgetService) Place(id string) string {
 	return s.store.Save(id)
 }
 
+// grade is hand-counted: complexity 6 (1 + for, if, &&, if, else if), depth 2, 2 params.
+func grade(score int, bonus []int) string {
+	total := score
+	for _, b := range bonus {
+		if b > 0 && total < 100 {
+			total += b
+		}
+	}
+	if total > 90 {
+		return "A"
+	} else if total > 50 {
+		return "B"
+	}
+	return "C"
+}
+
 // NewRouter wires the widget routes.
 func NewRouter() *http.ServeMux {
 	mux := http.NewServeMux()

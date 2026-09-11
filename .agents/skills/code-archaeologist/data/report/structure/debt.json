@@ -31,7 +31,7 @@
   "dead_nodes": [
     {
       "id": "FlatRate",
-      "source": "sample_src/services/orders_java/PricingRule.java",
+      "source": "sample_src/services/orders_java/PricingRule.java:11",
       "layer": "unknown",
       "kind": "class"
     },
@@ -43,7 +43,7 @@
     },
     {
       "id": "TieredRate",
-      "source": "sample_src/services/orders_java/PricingRule.java",
+      "source": "sample_src/services/orders_java/PricingRule.java:20",
       "layer": "unknown",
       "kind": "class"
     }

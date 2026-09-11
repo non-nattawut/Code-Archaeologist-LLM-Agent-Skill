@@ -346,13 +346,41 @@ def r21_grammars_are_pinned():
         return f"the grammars installed here are not the pinned ones: {grammars.drift()}"
 
 
+def r22_metrics_by_graph_id():
+    """phase 6a: metrics were keyed by bare name, first wins, so a name two files define
+    (qualified in the graph) was never measured -- and no non-Python node was at all."""
+    import contextlib
+    import io
+    import metrics
+    import scan_security
+    d = tempfile.mkdtemp()
+    open(os.path.join(d, "a.py"), "w", encoding="utf-8").write(
+        "class Store:\n    def save(self, x):\n        if x:\n            return 1\n        return 0\n")
+    open(os.path.join(d, "b.py"), "w", encoding="utf-8").write(
+        "class Store:\n    def save(self, x):\n        return x\n")
+    open(os.path.join(d, "c.go"), "w", encoding="utf-8").write(
+        "package c\n\nfunc Pick(a, b int) int {\n\tif a > b {\n\t\treturn a\n\t}\n\treturn b\n}\n")
+    with contextlib.redirect_stderr(io.StringIO()):
+        methods, _ = build_flow.analyze([d])
+    paths = {key: full for full, key in scan_security.iter_source_files([d])}
+    got = metrics.node_metrics([dict(i, id=n) for n, i in methods.items()], paths)
+    want = {"a.Store.save": 2, "b.Store.save": 1, "Pick": 2}
+    for nid, cx in want.items():
+        if nid not in got:
+            return f"{nid} has no metrics; measured {sorted(got)}"
+        if got[nid]["complexity"] != cx:
+            return f"{nid} complexity {got[nid]['complexity']}, expected {cx}"
+    if got["Pick"]["params"] != 2:
+        return f"Go `a, b int` is two parameters, got {got['Pick']['params']}"
+
+
 CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_append,
          r05_duplicates_declarations, r06_orphan_guard, r07_flask_routes,
          r08_missing_parser_is_visible, r09_no_absolute_paths, r10_brief_agrees_with_check,
          r11_test_filename_with_line, r12_crlf_hashes, r13_wrapped_signature,
          r14_context_budget, r15_moved_root_reason, r16_install_hint,
          r17_owner_respects_end, r18_same_name_in_two_files, r19_reports_are_reproducible,
-         r20_structure_shared_names, r21_grammars_are_pinned]
+         r20_structure_shared_names, r21_grammars_are_pinned, r22_metrics_by_graph_id]
 
 
 def main() -> int:

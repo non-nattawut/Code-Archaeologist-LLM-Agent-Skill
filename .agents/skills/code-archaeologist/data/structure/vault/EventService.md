@@ -1,7 +1,8 @@
 ---
 entity: EventService
 layer: service
-source: sample_src/services/orders_go/event_service.go
+source: sample_src/services/orders_go/event_service.go:4
+end: 6
 kind: class
 lang: go
 ---

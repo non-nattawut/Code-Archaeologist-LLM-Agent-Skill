@@ -92,6 +92,10 @@ def build(vault: str, out_dir: str) -> int:
             "source": meta.get("source", ""),
             "doc": summary or "_No description available._",
         }
+        # Classes and components carry a range (`source` is `file:line`); a module
+        # group is a whole file and has none, so it gets no `end` rather than a fake one.
+        if meta.get("end", "").isdigit():
+            nodes[entity]["end"] = int(meta["end"])
         try:
             where = os.path.relpath(path, DATA_DIR)
         except ValueError:

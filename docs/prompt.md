@@ -2908,3 +2908,42 @@ while implementing* #6. The recommendation is to make every language decorator-i
 
 **Verified:** `check_langs` 6/6, regressions 21/21, oracle 0 disagreements on the fixture, graph
 self-test 30/30.
+
+### 6a — per-node metrics for every language, by graph id (third commit)
+
+**What changed:**
+
+- **`metrics.py` measures the graph's own nodes.** `locate()` finds each node's definition in the
+  file's parse from `source` + `end`, and `TABLES` holds one row per grammar. Every node-type name
+  was checked against the pinned grammars: 0 missing.
+- **The plan's premise was wrong in one respect.** Structure nodes lacked not only `end` but any
+  line at all; `source` was a bare path. So, implementing the approved decision to its intent,
+  classes and components now carry `source: file:line` + `end`, and module groups stay
+  whole-file. Before editing I checked every reader of `source`: all of them outside `build_wiki`
+  already split on `:`. Inside `build_wiki`, `SharedNames` and the test rule keep getting the bare
+  file.
+
+**The latent bug predicted while planning was real, and bigger.** 66 of the 294 graph ids on the
+skill's own code could never be matched by the old bare-name keying. That covers every
+module-qualified id (`analyze.main`), not only shared class names. All 294 are measured now.
+
+**Python is identical.** The old `metrics.py`, saved from HEAD, served as the oracle: 294/294
+positions on the skill's code, 13/13 flow and 5/5 structure nodes on the sample.
+
+**Every fixture got a hand-counted `grade`,** and all six come out at complexity 6, depth 2 and 2
+params. They are asserted in `expected.json`, alongside new regression case r22.
+
+**Sample:** flow 51/52 measured and structure 19/25. The unmeasured ones are exactly the declaration
+and the six module groups. `check_graph` passes on both maps, and c06/c07 now check structure
+ranges too.
+
+**One miss of my own.** The first oracle run on the skill's code compared nothing: the check script
+iterated a `{key: full}` dict as `(full, key)`. The "0 compared" gave it away before any
+conclusion was drawn from it. Rerun correctly, it gave the figures above.
+
+**Docs:**
+
+- **CLAUDE.md:** the metrics bullet, the expected numbers and the fixture counts.
+- **The presentation:** the FAQ answer is rewritten, and the "Python-only metrics" limitation is
+  deleted because it is no longer true.
+- **The report** no longer says "Python nodes only".

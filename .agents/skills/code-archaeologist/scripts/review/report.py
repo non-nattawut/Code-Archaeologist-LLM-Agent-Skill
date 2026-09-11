@@ -166,7 +166,8 @@ def to_markdown(data: dict) -> str:
             f"- {t['files']} file(s), {t['lines']:,} lines — {t['code']:,} code, "
             f"{t['comment']:,} comment, {t['blank']:,} blank "
             f"(comment ratio {round(100 * t['comment_ratio'])}%)",
-            "- Complexity is McCabe: 1 + every branch. Python nodes only.",
+            "- Complexity is McCabe: 1 + every branch, in every graphed language. A node with no"
+            " body (a module group, a declaration) is not measured.",
             "",
             "### Longest nodes",
             "",

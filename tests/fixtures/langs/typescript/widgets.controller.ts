@@ -25,6 +25,22 @@ export class WidgetService {
   place(item: object) {
     return new WidgetStore().save(item);
   }
+
+  // Hand-counted: complexity 6 (1 + for-of, if, &&, if, else if), depth 2, 2 params.
+  grade(score: number, bonus: number[]) {
+    let total = score;
+    for (const b of bonus) {
+      if (b > 0 && total < 100) {
+        total += b;
+      }
+    }
+    if (total > 90) {
+      return "A";
+    } else if (total > 50) {
+      return "B";
+    }
+    return "C";
+  }
 }
 
 @Controller("widgets")

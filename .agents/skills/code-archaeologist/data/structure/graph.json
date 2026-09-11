@@ -13,80 +13,90 @@
       "layer": "service",
       "kind": "class",
       "lang": "go",
-      "source": "sample_src/services/orders_go/event_service.go",
-      "doc": "EventService reports what has happened to an order."
+      "source": "sample_src/services/orders_go/event_service.go:4",
+      "doc": "EventService reports what has happened to an order.",
+      "end": 6
     },
     {
       "id": "EventStore",
       "layer": "repository",
       "kind": "class",
       "lang": "go",
-      "source": "sample_src/services/orders_go/event_store.go",
-      "doc": "EventStore is the in-memory event log. Stands in for a real database."
+      "source": "sample_src/services/orders_go/event_store.go:4",
+      "doc": "EventStore is the in-memory event log. Stands in for a real database.",
+      "end": 6
     },
     {
       "id": "FlatRate",
       "layer": "unknown",
       "kind": "class",
       "lang": "java",
-      "source": "sample_src/services/orders_java/PricingRule.java",
-      "doc": "Everything costs the same."
+      "source": "sample_src/services/orders_java/PricingRule.java:11",
+      "doc": "Everything costs the same.",
+      "end": 17
     },
     {
       "id": "InvoiceController",
       "layer": "controller",
       "kind": "class",
       "lang": "csharp",
-      "source": "sample_src/services/orders_cs/InvoiceController.cs",
-      "doc": "HTTP entry point for invoices."
+      "source": "sample_src/services/orders_cs/InvoiceController.cs:6",
+      "doc": "HTTP entry point for invoices.",
+      "end": 28
     },
     {
       "id": "InvoiceService",
       "layer": "service",
       "kind": "class",
       "lang": "csharp",
-      "source": "sample_src/services/orders_cs/InvoiceService.cs",
-      "doc": "Invoice rules: work out the total, then store it."
+      "source": "sample_src/services/orders_cs/InvoiceService.cs:4",
+      "doc": "Invoice rules: work out the total, then store it.",
+      "end": 39
     },
     {
       "id": "InvoiceStore",
       "layer": "repository",
       "kind": "class",
       "lang": "csharp",
-      "source": "sample_src/services/orders_cs/InvoiceStore.cs",
-      "doc": "Where invoices are kept. Stands in for a database."
+      "source": "sample_src/services/orders_cs/InvoiceStore.cs:6",
+      "doc": "Where invoices are kept. Stands in for a database.",
+      "end": 23
     },
     {
       "id": "OrderApiController",
       "layer": "controller",
       "kind": "class",
       "lang": "java",
-      "source": "sample_src/services/orders_java/OrderApiController.java",
-      "doc": "HTTP entry point for the Java side of the order domain."
+      "source": "sample_src/services/orders_java/OrderApiController.java:6",
+      "doc": "HTTP entry point for the Java side of the order domain.",
+      "end": 25
     },
     {
       "id": "OrderArchive",
       "layer": "repository",
       "kind": "class",
       "lang": "java",
-      "source": "sample_src/services/orders_java/OrderArchive.java",
-      "doc": "Where Java orders are kept. Stands in for a JPA repository."
+      "source": "sample_src/services/orders_java/OrderArchive.java:8",
+      "doc": "Where Java orders are kept. Stands in for a JPA repository.",
+      "end": 23
     },
     {
       "id": "OrderCard",
       "layer": "ui",
       "kind": "component",
       "lang": "js",
-      "source": "sample_src/frontend/OrderCard.tsx",
-      "doc": "Loads one order by id and renders it as a card."
+      "source": "sample_src/frontend/OrderCard.tsx:11",
+      "doc": "Loads one order by id and renders it as a card.",
+      "end": 27
     },
     {
       "id": "OrderController",
       "layer": "controller",
       "kind": "class",
       "lang": "py",
-      "source": "sample_src/backend/order_controller.py",
-      "doc": "Handles inbound order requests and delegates to the service layer."
+      "source": "sample_src/backend/order_controller.py:9",
+      "doc": "Handles inbound order requests and delegates to the service layer.",
+      "end": 23
     },
     {
       "id": "OrderPageModule",
@@ -101,16 +111,18 @@
       "layer": "repository",
       "kind": "class",
       "lang": "py",
-      "source": "sample_src/backend/order_repository.py",
-      "doc": "Reads and writes orders to the database."
+      "source": "sample_src/backend/order_repository.py:4",
+      "doc": "Reads and writes orders to the database.",
+      "end": 15
     },
     {
       "id": "OrderRepositoryTest",
       "layer": "test",
       "kind": "class",
       "lang": "py",
-      "source": "sample_src/backend/tests/test_orders.py",
-      "doc": "unittest style: detected the same way, by the file it lives in."
+      "source": "sample_src/backend/tests/test_orders.py:19",
+      "doc": "unittest style: detected the same way, by the file it lives in.",
+      "end": 25
     },
     {
       "id": "OrderRouterModule",
@@ -133,40 +145,45 @@
       "layer": "service",
       "kind": "class",
       "lang": "py",
-      "source": "sample_src/backend/order_service.py",
-      "doc": "Orchestrates order placement, payment, and persistence."
+      "source": "sample_src/backend/order_service.py:6",
+      "doc": "Orchestrates order placement, payment, and persistence.",
+      "end": 20
     },
     {
       "id": "OrderWorkflow",
       "layer": "service",
       "kind": "class",
       "lang": "java",
-      "source": "sample_src/services/orders_java/OrderWorkflow.java",
-      "doc": "Application service: price an order, then archive it."
+      "source": "sample_src/services/orders_java/OrderWorkflow.java:5",
+      "doc": "Application service: price an order, then archive it.",
+      "end": 28
     },
     {
       "id": "OrdersController",
       "layer": "controller",
       "kind": "class",
       "lang": "js",
-      "source": "sample_src/api_nest/orders.controller.ts",
-      "doc": "_No docstring provided._"
+      "source": "sample_src/api_nest/orders.controller.ts:7",
+      "doc": "_No docstring provided._",
+      "end": 20
     },
     {
       "id": "PaymentClient",
       "layer": "client",
       "kind": "class",
       "lang": "py",
-      "source": "sample_src/backend/payment_client.py",
-      "doc": "Talks to the third-party payment gateway."
+      "source": "sample_src/backend/payment_client.py:8",
+      "doc": "Talks to the third-party payment gateway.",
+      "end": 15
     },
     {
       "id": "PricingRule",
       "layer": "unknown",
       "kind": "class",
       "lang": "java",
-      "source": "sample_src/services/orders_java/PricingRule.java",
-      "doc": "How an order's total is calculated."
+      "source": "sample_src/services/orders_java/PricingRule.java:4",
+      "doc": "How an order's total is calculated.",
+      "end": 8
     },
     {
       "id": "RouterModule",
@@ -181,8 +198,9 @@
       "layer": "ui",
       "kind": "component",
       "lang": "js",
-      "source": "sample_src/frontend/OrderCard.tsx",
-      "doc": "Renders one order's status as a coloured badge."
+      "source": "sample_src/frontend/OrderCard.tsx:6",
+      "doc": "Renders one order's status as a coloured badge.",
+      "end": 8
     },
     {
       "id": "TestOrdersModule",
@@ -197,8 +215,9 @@
       "layer": "unknown",
       "kind": "class",
       "lang": "java",
-      "source": "sample_src/services/orders_java/PricingRule.java",
-      "doc": "Bulk orders get a discount."
+      "source": "sample_src/services/orders_java/PricingRule.java:20",
+      "doc": "Bulk orders get a discount.",
+      "end": 26
     }
   ],
   "edges": [

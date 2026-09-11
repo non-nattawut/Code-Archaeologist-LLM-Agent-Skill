@@ -17,6 +17,19 @@ class WidgetStore:
         return 0
 
 
+def grade(score, bonus):
+    """Hand-counted: complexity 6 (1 + for, if, and, if, elif), depth 2, 2 params."""
+    total = score
+    for b in bonus:
+        if b > 0 and total < 100:
+            total += b
+    if total > 90:
+        return "A"
+    elif total > 50:
+        return "B"
+    return "C"
+
+
 class WidgetService:
     """Applies widget rules, then persists."""
 
