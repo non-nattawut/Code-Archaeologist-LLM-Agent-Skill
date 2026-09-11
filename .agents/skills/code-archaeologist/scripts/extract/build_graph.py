@@ -92,7 +92,14 @@ def build(vault: str, out_dir: str) -> int:
             "source": meta.get("source", ""),
             "doc": summary or "_No description available._",
         }
-        registry[entity] = os.path.relpath(path, DATA_DIR).replace("\\", "/")
+        try:
+            where = os.path.relpath(path, DATA_DIR)
+        except ValueError:
+            # A vault on another drive than data/ (Windows) has no relative path at
+            # all; relpath raised and the whole build died. Found by a regression
+            # case whose vault lived in the temp directory on C: while data/ is on D:.
+            where = os.path.abspath(path)
+        registry[entity] = where.replace("\\", "/")
 
         # Wikilinks in the body (exclude front-matter) become outgoing edges.
         for target in WIKILINK_RE.findall(body):

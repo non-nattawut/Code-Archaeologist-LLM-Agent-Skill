@@ -2680,3 +2680,57 @@ first entity of a shared name and warns, as before.
 **Verified:** `check_graph` 26 checks OK on both maps of the sample *and* of the corpus; self-test
 30/30; regressions 19/19; `check_langs` 6/6; oracle 0; `check_docs` OK. **All five findings from
 the four phases are now resolved.**
+
+## [67] 2026-09-11 — Phase 5: the structure map keeps every same-named class, and the toolbar compacts
+
+**Prompt**
+> update the plan with next phase for the remaining limits, then implement the plan
+
+**Response**
+Wrote **Phase 5** into the plan for the two limits that remained after the findings were resolved,
+added its ledger row, then built both.
+
+**5a — shared names in the structure map.** `build_wiki` deduped entities by name, first wins, so a
+class two files define was simply *absent* from the structure map. The flow map had had the same
+shape until finding #5. Rather than copy the fix, I moved `FlowIds` out of `build_flow.py` into a
+pure module, **`core/ids.py`** (`SharedNames`) — it imports nothing, so it belongs below both
+`extract/` builders — and used it from both. `build_wiki` qualifies a shared entity name by its
+file and resolves each base, decorator or import to the referencing file's own definition, or
+leaves it as plain text. A duplicate within *one* file stays first-wins with its warning, since no
+file qualifier can separate it. On the corpus: 5 names qualified, 57 nodes = 57 vault pages, edges
+3 → 7, no cross-file skip lines. `sample_src` byte-identical. New regression case **r20**.
+`check_graph` c07 now reads a structure entity's bare name, because a qualified id is not spelled in
+its file.
+
+**5b — the narrow toolbar.** The three toggles became one element that `fitToolbar()` re-parents
+into the `⋯` menu whenever the toolbar is narrower than the full row, and back when there is room;
+`stageMin()` counts only the compact row, so the rails' cap follows it. Measured at emulated widths:
+compact and fitting at 1000px (needs 527, has 540), full and fitting at 1600px, toggles working from
+inside the menu (Tests: edges 32 → 30) and leaving it open. **The floor went from ~1270px to
+~987px.** I called `fitToolbar()` directly after each resize, because this pane had been throttling
+rendering — which had already starved the zoom animation last turn and could equally starve a
+`ResizeObserver`.
+
+**Misses, both caught by the verification chain rather than by luck:**
+
+- **I broke `build_flow` while moving `FlowIds` out.** I deleted the range from `def _qualifiers` to
+  `def _report_collisions`, but an earlier patch had placed the class *above* `_file_of` and
+  `_claim`, so both went with it. My assertion only checked that the class was in the removed text,
+  not that nothing else was. Every flow build then died with a `NameError` — and the crash also
+  skipped the manifest write, so `check_graph` resolved sources against the wrong roots and reported
+  57 and then 161 findings that were all artefacts. Restored the two helpers; the rerun was clean.
+- **r20 found a real latent crash**: `build_graph`'s registry called
+  `os.path.relpath(path, DATA_DIR)`, which raises on Windows when the vault is on a different drive
+  (the test's temp dir on C:, `data/` on D:). Now falls back to the absolute path.
+
+Also: the first 5b probe read a 0-width viewport because the tab was being replaced mid-navigation;
+discarded, and every figure above comes from the probes after it.
+
+Docs: CLAUDE.md (`ids.py` in the layout and as a bullet, the id paragraph now covering both maps,
+the layout rules rewritten for the compact toolbar and the ~987px floor), README (tree), the CSS
+comment, and the plan's Phase 5 result and ledger.
+
+**Verified:** sample graphs, vault and notes byte-identical; corpus `check_graph` clean on both maps
+(408 flow nodes = 408 notes, 57 structure nodes = 57 pages); self-test 30/30; regressions 20/20;
+`check_langs` 6/6; oracle 0; `check_docs` OK; browser checks above with a clean console.
+**All five phases are complete, and every recorded finding and limit is resolved.**

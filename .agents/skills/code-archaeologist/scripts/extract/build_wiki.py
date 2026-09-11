@@ -32,6 +32,7 @@ from taxonomy import infer_layer, is_test_path  # noqa: E402
 import console  # noqa: E402  (stdout must survive a non-UTF-8 console)
 from js_ts_extract import find_js_files, extract_js_files, frontend_degraded  # noqa: E402  (frontend, degrades to a no-op)
 import py_extract as px  # noqa: E402  (Python, via tree-sitter)
+from ids import SharedNames  # noqa: E402  (one id rule for both maps)
 from ts_extract import find_lang_files, extract_lang_files  # noqa: E402  (Java/Go/C#, via tree-sitter)
 
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules", ".idea", "data"}
@@ -384,24 +385,34 @@ def wikilink(name: str, known: set[str]) -> str:
     return f"[[{name}]]" if name in known else f"`{name}`"
 
 
-def render_entity(ent: dict, known: set[str], template: str) -> str:
+def render_entity(ent: dict, known: set[str], template: str, names=None) -> str:
     references: set[str] = set()
+
+    def resolve(name: str) -> str | None:
+        """The entity a bare name here refers to, or None -- see core/ids.py."""
+        target = names.target(name, ent["source"]) if names is not None else name
+        return target if target in known else None
+
+    def link(name: str) -> str:
+        target = resolve(name)
+        return f"[[{target}]]" if target else f"`{name}`"
 
     bases_md = []
     for b in ent["bases"]:
-        bases_md.append(f"- {wikilink(b, known)}")
-        if b in known:
-            references.add(b)
+        bases_md.append(f"- {link(b)}")
+        if resolve(b):
+            references.add(resolve(b))
     decorators_md = []
     for d in ent["decorators"]:
-        decorators_md.append(f"- {wikilink(d, known)}")
-        if d in known:
-            references.add(d)
+        decorators_md.append(f"- {link(d)}")
+        if resolve(d):
+            references.add(resolve(d))
 
     # Imports that match known entities become references too.
     for imp in ent.get("imports", []):
-        if imp in known and imp != ent["name"]:
-            references.add(imp)
+        target = resolve(imp)
+        if target and target != ent["name"]:
+            references.add(target)
 
     methods_md = []
     for m in ent["methods"]:
@@ -419,7 +430,7 @@ def render_entity(ent: dict, known: set[str], template: str) -> str:
     # letting the name rules override.
     layer = ("test" if is_test_path(ent["source"])
              else "ui" if ent["kind"] == "component"
-             else infer_layer(ent["name"], ent["decorators"], ent["bases"]))
+             else infer_layer(ent.get("bare", ent["name"]), ent["decorators"], ent["bases"]))
     out = out.replace("{{layer}}", layer)
     out = out.replace("{{source}}", ent["source"])
     out = out.replace("{{kind}}", ent["kind"])
@@ -451,19 +462,28 @@ def build(src, vault: str) -> int:
         print("No entities found. Nothing to write.")
         return 0
 
-    # One page per name, and one name per page: two languages now share the
-    # namespace, so a JS OrderService and a Python OrderService would otherwise
-    # silently overwrite each other's vault file. First wins, and extraction order
-    # is fixed, so which one wins never changes between runs.
+    # One page per name, and one name per page. A name two *files* define used to
+    # keep the first entity and skip the rest, so the second class was simply absent
+    # from the structure map. Now each definition is qualified by its file -- the
+    # same rule, and the same code, as the flow map (core/ids.py) -- and a name
+    # defined once keeps its spelling.
+    names = SharedNames((e["name"], e["source"]) for e in entities)
+    for ent in entities:
+        ent["bare"] = ent["name"]
+        ent["name"] = names.id(ent["name"], ent["source"])
+    names.report("structure entity")
+
+    # Two entities of one name in ONE file cannot be told apart by any file
+    # qualifier, so that case stays first-wins, and says so.
     seen: dict[str, str] = {}
     unique: list[dict] = []
     for ent in entities:
-        prior = seen.get(ent["name"])
+        prior = seen.get(ent["name"].lower())
         if prior is not None:
             print(f"  ! skipped duplicate entity {ent['name']} in {ent['source']} "
                   f"(already defined in {prior})")
             continue
-        seen[ent["name"]] = ent["source"]
+        seen[ent["name"].lower()] = ent["source"]
         unique.append(ent)
     entities = unique
 
@@ -477,7 +497,7 @@ def build(src, vault: str) -> int:
 
     written = 0
     for ent in entities:
-        page = render_entity(ent, known, template)
+        page = render_entity(ent, known, template, names)
         # Sanitize filename (entity names are identifiers, but be safe).
         safe = re.sub(r"[^A-Za-z0-9_.-]", "_", ent["name"])
         with open(os.path.join(vault, f"{safe}.md"), "w", encoding="utf-8") as fh:

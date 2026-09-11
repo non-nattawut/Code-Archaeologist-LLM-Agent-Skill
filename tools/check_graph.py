@@ -200,7 +200,9 @@ def c07_name_at_source(c):
         else:
             if n.get("kind") == "module":
                 continue                                 # a synthetic "<File>Module" entity
-            body, want, where = "\n".join(lines), [n["id"]], path
+            # A shared name is file-qualified (`widgets.WidgetStore`); the file spells the
+            # bare name, which is the id's last segment.
+            body, want, where = "\n".join(lines), [short(n["id"])], path
         if want and not any(w in body for w in want):
             out.append(f"{n['id']}: {want[0]!r} does not occur in {where} -- the range points elsewhere")
     return out

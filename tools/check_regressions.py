@@ -298,12 +298,42 @@ def r19_reports_are_reproducible():
             return f"{name} differs between two reports of identical source"
 
 
+def r20_structure_shared_names():
+    """phase 5: a class name two files define kept the first entity and skipped the rest,
+    so the structure map silently lacked the second class."""
+    import contextlib
+    import io
+    import build_graph
+    import build_wiki
+    d = tempfile.mkdtemp()
+    src = os.path.join(d, "src")
+    os.makedirs(src)
+    open(os.path.join(src, "a.py"), "w", encoding="utf-8").write(
+        "class Store:\n    pass\n\n\nclass Service(Store):\n    pass\n")
+    open(os.path.join(src, "b.py"), "w", encoding="utf-8").write(
+        "class Store:\n    pass\n\n\nclass Other(Store):\n    pass\n")
+    vault, out = os.path.join(d, "vault"), os.path.join(d, "out")
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        build_wiki.build([src], vault)
+        build_graph.build(vault, out)
+    g = json.load(open(os.path.join(out, "graph.json"), encoding="utf-8"))
+    ids = {n["id"] for n in g["nodes"]}
+    edges = {(e["source"], e["target"]) for e in g["edges"]}
+    if "Store" in ids:
+        return "a bare Store survives -- one definition was dropped"
+    if not {"a.Store", "b.Store"} <= ids:
+        return f"expected a.Store and b.Store, got {sorted(ids)}"
+    if ("Service", "a.Store") not in edges or ("Other", "b.Store") not in edges:
+        return f"each subclass must link to its own file's Store; edges were {sorted(edges)}"
+
+
 CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_append,
          r05_duplicates_declarations, r06_orphan_guard, r07_flask_routes,
          r08_missing_parser_is_visible, r09_no_absolute_paths, r10_brief_agrees_with_check,
          r11_test_filename_with_line, r12_crlf_hashes, r13_wrapped_signature,
          r14_context_budget, r15_moved_root_reason, r16_install_hint,
-         r17_owner_respects_end, r18_same_name_in_two_files, r19_reports_are_reproducible]
+         r17_owner_respects_end, r18_same_name_in_two_files, r19_reports_are_reproducible,
+         r20_structure_shared_names]
 
 
 def main() -> int:

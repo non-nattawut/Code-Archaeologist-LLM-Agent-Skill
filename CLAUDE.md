@@ -28,7 +28,8 @@ Java/Go/C#, which was honest while those three were read textually and became ar
 language moved to tree-sitter. Adding a producer means adding an `extract_*_entities` in
 `build_wiki.py` and an `_analyze_*` in `build_flow.py`, nothing else.
 
-**Flow ids are bare unless a name is defined in more than one file.** `build_flow.FlowIds`
+**Node ids are bare unless a name is defined in more than one file** -- in *both* maps.
+`core/ids.py`'s `SharedNames`, used by `build_flow` and `build_wiki` alike,
 pre-scans every definition from all three producers, then qualifies only the ids two or more files
 share -- by file stem, else by path -- compared **case-insensitively**, because each node's note is
 `<id>.md` and `Widgets.X` / `widgets.X` are one file on Windows and macOS. A call to a shared name
@@ -65,7 +66,7 @@ the only entrypoint:
 scripts/
   archaeologist.py   the entrypoint
   paths.py           SKILL_ROOT / DATA_DIR / TEMPLATES_DIR, and the sys.path bootstrap
-  core/     taxonomy.py  manifest.py  console.py  grammars.py
+  core/     taxonomy.py  manifest.py  console.py  grammars.py  ids.py
   extract/  build_wiki.py  build_graph.py  build_flow.py  py_extract.py
             js_ts_extract.py  ts_extract.py  apply_descriptions.py
   review/   analyze.py  scan_security.py  git_insights.py  metrics.py  debt.py
@@ -112,6 +113,12 @@ delete. Nothing else in `core/` may import a skill module.
   they disagree exactly when the wheels were built for another Python, so a caller reporting a
   skip must ask `runtime_error()` first — telling someone a grammar is missing when it is sitting
   right there sends them to reinstall what they already have.
+- `ids.py` is the one id rule for both maps: `SharedNames` is given every definition's (name,
+  file) before any node is built, qualifies only the names two or more files define (stem, else
+  path, compared case-insensitively), and resolves a reference to a shared name to the
+  referencing file's own definition or to nothing. Pure logic -- it imports nothing -- so it sits
+  in `core/` below both `extract/` builders. The structure map used to keep the first entity of a
+  shared name and drop the rest; the flow map used to merge them. Neither does now.
 - `py_extract.py` is the Python reader: the `ast` helpers of `build_flow.py`, `build_wiki.py` and
   `metrics.py` translated node-for-node, plus `read_source()`, which normalises newlines because
   `ast` was handed universal-newline text and tree-sitter is handed raw bytes -- without it a CRLF
@@ -232,13 +239,18 @@ scrolls.
   how you give it more.
 - **A rail may never eat the toolbar.** `setRail` caps a drag at what the centre still needs,
   measured by summing the toolbar's children — `clientWidth` would report "exactly what it already
-  has" and let a drag ratchet controls off the right edge a pixel at a time. The toolbar needs
-  about 770-810px (it varies with which labels show), so with both rails at their minimum it fits
-  one row down to about **1270px** wide; at 1600px both rails widen freely. Below ~1270px it clips
-  -- measured in phase 4's review, and the supported floor.
+  has" and let a drag ratchet controls off the right edge a pixel at a time. The cap counts only
+  what the **compact** row needs (~527px): the toggles are left out of `stageMin()` because they
+  can move. With both rails at their minimum the toolbar never clips above about **987px** wide
+  -- measured in phase 5, and the supported floor (it was ~1270px, and ~1360px before that).
+- **The toolbar compacts rather than clipping.** When the toolbar is narrower than the full row
+  (~770px), `fitToolbar()` re-parents `#toggles` (Folders, Blast radius, Tests) into
+  `#menuToggles` at the top of the `⋯` menu, and moves it back as soon as there is room. It moves
+  the *same* elements, so ids, checked state and handlers travel with them; a `ResizeObserver` on
+  the toolbar drives it. Clicking a toggle inside the menu leaves the menu open.
 - **The toolbar row holds only what is used constantly.** Zoom in/out, fit and PNG export live in
-  the `⋯` overflow menu (`#more` / `#moreMenu`), which took the toolbar from ~897px to ~780px and
-  the clipping floor from ~1360px to ~1270px. A new control goes in that menu unless it is used on
+  the `⋯` overflow menu (`#more` / `#moreMenu`), which took the full row from ~897px to ~770px.
+  A new control goes in that menu unless it is used on
   nearly every visit. The menu items keep their old ids (`zoomIn`, `zoomOut`, `zoomFit`, `png`), so
   no handler depends on where a control is drawn.
 - **Below `max-height: 620px`** the rail gives up and scrolls as a whole — a 60px tree is worse

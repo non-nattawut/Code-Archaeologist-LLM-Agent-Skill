@@ -156,10 +156,12 @@
     border: solid var(--bg); border-width: 0 0 1.5px 1.5px; transform: rotate(-45deg); }
   .toolbar label input:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
   .toolbar .sp { margin-left: auto; }
-  /* The overflow menu holds the least-used controls (zoom, fit, PNG). Moving them took
-     the toolbar from ~897px to ~770-810px, so with both rails at their minimum it stays
-     one row down to ~1270px wide (was ~1360px) -- measured, not estimated. It opens down
-     over the stage, amber only while open, and closes on any outside click or Escape. */
+  /* The overflow menu holds the least-used controls (zoom, fit, PNG): that took the full
+     row from ~897px to ~770px. Below that, the compact row (further down) moves the three
+     toggles in here too, needing ~527px -- so with both rails at their minimum the toolbar
+     never clips above ~987px wide (was ~1270px, and ~1360px before the menu). Measured in
+     phase 5, not estimated. The menu opens down over the stage, amber only while open, and
+     closes on an outside click or Escape -- but not when a toggle inside it is clicked. */
   .more { position: relative; display: flex; }
   .more > .tbtn { border-right: none; border-left: 1px solid var(--border); }
   .menu { position: absolute; top: 100%; right: 0; z-index: 30; min-width: 150px;
@@ -167,6 +169,12 @@
   .menu button { display: block; width: 100%; text-align: left; padding: 6px 12px;
     font-size: 12px; color: var(--muted); }
   .menu button:hover { color: var(--text); background: var(--rule); }
+  /* Compact toolbar: when the centre is narrower than the full row, the three toggles
+     move into the menu (the same elements, re-parented), so the row never clips. */
+  .toggles { display: flex; }
+  .menu-toggles:empty { display: none; }
+  .menu-toggles { border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 4px; }
+  .menu label { display: flex; border-left: none; padding: 6px 12px; }
 
   #stage { position: relative; flex: 1; min-height: 0; }
   #graph, #matrix, #treemap { position: absolute; inset: 0; }
@@ -339,15 +347,18 @@ ii.readability=function(t,n){var e=ii(t),r=ii(n);return(Math.max(e.getLuminance(
         d="M13.5 8a5.5 5.5 0 1 1-1.9-4.2M13.5 1.5v3.2h-3.2"/></svg></button>
       <div class="views" id="views"></div>
       <span class="sp"></span>
-      <label><input type="checkbox" id="hulls" checked /> Folders</label>
-      <label><input type="checkbox" id="blast" /> Blast radius</label>
-      <label id="testsToggle" style="display:none"><input type="checkbox" id="showTests" checked /> Tests</label>
+      <span class="toggles" id="toggles">
+        <label><input type="checkbox" id="hulls" checked /> Folders</label>
+        <label><input type="checkbox" id="blast" /> Blast radius</label>
+        <label id="testsToggle" style="display:none"><input type="checkbox" id="showTests" checked /> Tests</label>
+      </span>
       <div class="more" id="more">
         <button class="tbtn" id="moreBtn" title="Zoom, fit and export" aria-haspopup="true"
           aria-expanded="false"><svg width="12" height="12" viewBox="0 0 16 16"
           fill="currentColor"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle
           cx="13" cy="8" r="1.4"/></svg></button>
         <div class="menu" id="moreMenu" hidden>
+          <div class="menu-toggles" id="menuToggles"></div>
           <button id="zoomIn">Zoom in</button>
           <button id="zoomOut">Zoom out</button>
           <button id="zoomFit">Fit to screen</button>
@@ -1361,8 +1372,10 @@ const RAIL = { rszL: { side: "left", v: "--lw", min: 200, max: 560 },
 // current width is - clientWidth would say "exactly what it already has" and let a drag
 // ratchet controls off the right edge one pixel at a time.
 const toolbar = document.querySelector(".toolbar");
+// The toggles do not count: below the full row they move into the overflow menu, so
+// the cap is what the *compact* row needs, and a rail can widen into their space.
 const stageMin = () =>
-  Math.max(360, [...toolbar.children].reduce((w, c) => w + c.offsetWidth, 0));
+  Math.max(360, [...toolbar.children].reduce((w, c) => w + (c.id === "toggles" ? 0 : c.offsetWidth), 0));
 function setRail(cfg, px) {
   const other = el(cfg.side === "left" ? "right" : "left").getBoundingClientRect().width;
   const max = Math.min(cfg.max, document.documentElement.clientWidth - other - stageMin());
@@ -1405,9 +1418,26 @@ const setMore = (open) => {
   el("moreBtn").setAttribute("aria-expanded", String(open));
 };
 el("moreBtn").addEventListener("click", (e) => { e.stopPropagation(); setMore(moreMenu.hidden); });
-moreMenu.addEventListener("click", () => setMore(false));
+moreMenu.addEventListener("click", (e) => { if (!e.target.closest("label")) setMore(false); });
 document.addEventListener("click", (e) => { if (!el("more").contains(e.target)) setMore(false); });
 window.addEventListener("keydown", (e) => { if (e.key === "Escape") setMore(false); });
+
+// Compact toolbar. FULL_NEED is measured while the toggles are in the row, and the row
+// goes compact only when the toolbar is narrower than that -- so it never clips, and it
+// comes back out as soon as there is room. Re-parenting moves the same label elements,
+// so their ids, checked state and handlers go with them.
+let FULL_NEED = 0;
+function fitToolbar() {
+  const home = el("toggles"), slot = el("menuToggles");
+  const compact = toolbar.classList.contains("compact");
+  if (!compact) FULL_NEED = [...toolbar.children].reduce((w, c) => w + c.offsetWidth, 0);
+  const want = toolbar.clientWidth > 0 && toolbar.clientWidth < FULL_NEED;
+  if (want === compact) return;
+  toolbar.classList.toggle("compact", want);
+  const [from, to] = want ? [home, slot] : [slot, home];
+  to.append(...from.children);
+}
+new ResizeObserver(fitToolbar).observe(toolbar);
 
 el("png").addEventListener("click", () => {
   const canvas = el("graph").querySelector("canvas") || el("matrix");

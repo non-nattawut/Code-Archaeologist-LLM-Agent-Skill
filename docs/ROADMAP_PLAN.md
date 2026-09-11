@@ -1,6 +1,6 @@
 # Graph as many languages as possible
 
-> ## Status: **all four phases are complete, and all five *Found while implementing* findings are resolved.**
+> ## Status: **all five phases are complete, and every recorded finding and limit is resolved.**
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
@@ -8,6 +8,7 @@
 > | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **done** — 6 deletion steps, 2d and 2g | `8974c27`, `67d4df4`, `e7bfb09`, `fd9c7d8`, `df5fb0b`, `7283cf4`, `7f40370`, `fd67e49` |
 > | 3 — Full regression gate: nothing old may break | does it still run | **done** — 5 things fixed, 1 recorded (*Found while implementing* #4) | `f904891` |
 > | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | **done** — 3 bugs fixed, 1 recorded (#5); 29 checks + 18 regression cases | `b44b909` |
+> | 5 — The two limits phase 4 left: structure-map shared names, the narrow toolbar | close the known gaps | **done** — both closed; toolbar floor ~1270 → ~987px | this commit |
 >
 > ### Where phase 2 actually stands
 >
@@ -942,6 +943,82 @@ commit -- visible to a user, not only to whoever reads this file.
   unnoticed.
 - Every fix is named in the commit message with what it was producing before, and appended to
   `docs/prompt.md`. A silent bug that is fixed silently teaches nobody anything.
+
+---
+
+## Phase 5 — The two limits phase 4 left
+
+Resolving the five findings left exactly two limits, both stated in the README rather than hidden.
+This phase closes them.
+
+### 5a. The structure map keeps only the first entity of a shared name
+
+**What.** `build_wiki` dedupes entities by name, first wins, and prints `skipped duplicate entity`.
+The flow map had the same shape until finding #5; the structure map never got the fix. A class
+name two files define is therefore *missing* from the structure map entirely — the second
+`WidgetStore`, the second `OrderRepository` in a monorepo — and every reference to it points at
+the first one.
+
+**Fix: the flow map's rule, shared rather than copied.** Move `FlowIds` out of `build_flow.py` into
+a pure module, `core/ids.py` (`SharedNames`), and use it from both maps:
+
+- qualify only the names two or more files define — file stem, else path — compared
+  case-insensitively, because each entity is a vault file `<Entity>.md`;
+- resolve a reference (base, decorator, import) to the *referencing file's own* definition when
+  the name is shared, and otherwise leave it as plain text rather than guess a link;
+- keep a same-file duplicate as first-wins with its warning — two classes of one name in one
+  file cannot be told apart by any file qualifier.
+
+`core/` is the right home: the logic imports nothing, and both `extract/` builders depend on it.
+
+### 5b. Below ~1270px the toolbar clips
+
+**What.** The overflow menu took the toolbar from ~897px to ~780px, but three labelled toggles
+(Folders, Blast radius, Tests) still sit in the row, so with both rails at their minimum it clips
+below ~1270px.
+
+**Fix: a compact toolbar.** Wrap the three toggles in one element. When the toolbar is narrower
+than the full row needs, *re-parent that element* into the `⋯` menu — the same nodes, so ids,
+state and handlers travel with them — and move it back when there is room again. `stageMin()`
+counts only what stays in the row, so the rails' cap follows the compact width instead of pinning
+them at their minimum. Clicking a toggle inside the menu leaves the menu open.
+
+### Verify
+
+- **5a:** `sample_src` is byte-identical (it has no shared entity names). On the corpus, no
+  `skipped duplicate entity` line for names in different files, every shared name qualified, and
+  `check_graph` clean on both maps, including c17 for vault file names. A new regression case: two
+  files each defining `Store` give `a.Store` and `b.Store`, and each file's subclass links to its
+  own `Store`.
+- **5b:** measured in the browser at emulated widths, not estimated: the full row at 1600px, the
+  compact row below the old ~1270px floor, the new floor recorded; the toggles work from inside
+  the menu; no console errors; classic-script parse.
+- Every check the previous phases added still passes.
+
+### Result — shipped 2026-09-11
+
+**5a.** `FlowIds` moved into `core/ids.py` as `SharedNames`, and `build_wiki` now uses it too: a
+name two files define is qualified by its file in the structure map exactly as in the flow map, and
+a base, decorator or import resolves to the referencing file's own definition or stays plain text.
+Same-file duplicates stay first-wins with their warning. Measured: `sample_src` byte-identical; on
+the corpus 5 structure names qualified, **57 nodes = 57 vault pages**, all distinct ignoring case,
+edges 3 → 7, and no cross-file `skipped duplicate entity` line. New regression case r20: two
+`Store` classes in two files, each file's subclass linking to its own. `check_graph` c07 now checks
+a structure entity's *bare* name, since a qualified id is not spelled in its file.
+
+**5b.** The three toggles are one element that `fitToolbar()` re-parents into the `⋯` menu when the
+full row (~770px) does not fit, and back when it does; `stageMin()` counts only the compact row
+(~527px). Measured at emulated widths: at 1000px the row is compact and fits (needs 527, has 540);
+at 1600px the toggles are back in the row and it fits; Tests and Blast radius work from inside the
+menu (edges 32 → 30) and leave it open. The floor where anything clips is now **~987px** (was
+~1270px). No console errors; classic-script parse clean.
+
+**Found and fixed on the way:** moving `FlowIds` out of `build_flow.py` also deleted `_file_of` and
+`_claim`, which an earlier patch had placed inside the removed range — every flow build crashed with
+a `NameError` until the verification chain caught it, and the crash left a stale manifest that made
+`check_graph` look broken too. And r20 exposed a real latent crash: `build_graph`'s registry used
+`os.path.relpath(path, DATA_DIR)`, which raises on Windows when the vault is on another drive; it
+now falls back to the absolute path.
 
 ---
 

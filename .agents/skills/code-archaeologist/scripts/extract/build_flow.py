@@ -63,6 +63,7 @@ def _save_json(path: str, obj) -> None:
 
 from taxonomy import infer_layer, is_test_path, precision_of, ROUTE_DECORATOR_RE  # noqa: E402
 import py_extract as px  # noqa: E402  (Python, via tree-sitter)
+from ids import SharedNames as FlowIds  # noqa: E402  (one id rule for both maps)
 from js_ts_extract import find_js_files, extract_js_files, frontend_degraded   # noqa: E402
 from ts_extract import find_lang_files, extract_lang_files  # noqa: E402  (Java/Go/C#, via tree-sitter)
 
@@ -282,70 +283,6 @@ _COLLISIONS: list[tuple[str, str, str]] = []
 _COLLIDED: set[str] = set()
 
 
-def _qualifiers(rel: str) -> list[str]:
-    """Ways to name a file, shortest first: stem, path without extension, full path."""
-    base = rel.rsplit("/", 1)[-1]
-    stem = base.rsplit(".", 1)[0] if "." in base else base
-    return [stem, rel[: len(rel) - len(base)] + stem, rel]
-
-
-class FlowIds:
-    """Every definition's provisional id and file, and the final id each one gets.
-
-    Built from a pre-scan of all three producers before any node exists, because
-    whether `build` needs qualifying depends on files not yet read.
-    """
-
-    def __init__(self, defs):
-        self.defined: dict[str, set[str]] = {}
-        for prov, rel in defs:
-            self.defined.setdefault(prov, set()).add(rel)
-        self.qualified: dict[tuple[str, str], str] = {}
-        # Compared case-insensitively: each node's note is written to `<id>.md`, and on
-        # Windows and macOS `Widgets.X` (Java) and `widgets.X` (Python) are ONE file,
-        # so the second note would silently overwrite the first.
-        taken = {p.lower() for p in self.defined}
-        for prov in sorted(p for p, rels in self.defined.items() if len(rels) > 1):
-            rels = sorted(self.defined[prov])
-            # The shortest qualifier under which every definition is distinct and
-            # none clashes with an id that already exists. Two `widgets.test`
-            # files in different folders need their paths; most need only a stem.
-            for level in range(3):
-                names = [f"{_qualifiers(r)[level]}.{prov}" for r in rels]
-                low = [n.lower() for n in names]
-                if len(set(low)) == len(low) and not taken.intersection(low):
-                    break
-            self.qualified.update(zip(((prov, r) for r in rels), names))
-            taken.update(n.lower() for n in names)
-
-    def id(self, prov: str, rel: str) -> str:
-        """The id the definition of `prov` in `rel` gets."""
-        return self.qualified.get((prov, rel), prov)
-
-    def target(self, prov: str, caller_rel: str) -> str | None:
-        """The id a call to `prov` from `caller_rel` means, or None if that cannot be told.
-
-        Unambiguous names are unchanged. A name defined in several files resolves to
-        the caller's own file's definition; from any other file it is dropped rather
-        than guessed -- name-based resolution cannot know which one an import meant,
-        and a wrong edge is worse than a missing one.
-        """
-        if len(self.defined.get(prov, ())) < 2:
-            return prov
-        return self.qualified.get((prov, caller_rel))
-
-    def report(self, limit: int = 5) -> None:
-        shared = sorted(p for p, rels in self.defined.items() if len(rels) > 1)
-        if not shared:
-            return
-        shown = "; ".join(f"{p} -> {', '.join(sorted(self.qualified[(p, r)] for r in self.defined[p]))}"
-                          for p in shared[:limit])
-        more = f" (+{len(shared) - limit} more)" if len(shared) > limit else ""
-        print(f"  ! {len(shared)} flow id(s) are defined in more than one file, so each definition is"
-              f" qualified by its file: {shown}{more}. A call to one of them from a file that does"
-              " not define it is dropped rather than guessed.", file=sys.stderr)
-
-
 def _file_of(node: dict) -> str:
     return (node.get("source") or "").rpartition(":")[0]
 
@@ -527,7 +464,7 @@ def analyze(roots: list[str]):
     # `precision` needs the edges, so it is computed here rather than at extraction:
     # two of its three reasons are properties of what a node *calls*, not of the
     # node itself.
-    ids.report()
+    ids.report("flow id")
     _report_collisions()
     for src_id, dst_id, _type in edges:
         methods[src_id]["calls"].append(dst_id)

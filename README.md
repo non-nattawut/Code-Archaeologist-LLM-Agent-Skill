@@ -284,6 +284,7 @@ It has no npm dependencies of its own.
 │   │   ├── taxonomy.py     the one source of truth for kind/layer values
 │   │   ├── manifest.py     what counts as a source file + freshness hashes
 │   │   ├── grammars.py     which tree-sitter grammars are installed, and a parser for each
+│   │   ├── ids.py          node ids: bare, or file-qualified where two files share a name
 │   │   └── console.py      stdout that survives a non-UTF-8 console
 │   │
 │   ├── extract/          source -> graphs + notes
