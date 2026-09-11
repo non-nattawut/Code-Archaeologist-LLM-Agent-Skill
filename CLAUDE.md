@@ -135,8 +135,11 @@ delete. Nothing else in `core/` may import a skill module.
   idioms, and the 0–100 / A–F `health()` score (accepts security counts). Degree-based checks run
   on `app_edges()`, which drops edges touching a `layer: test` node — test calls are coverage, not
   coupling.
-- `scan_security.py` is line-regex over source; every finding is attributed to the node owning that
-  line. `git_insights.py` is one `git log --numstat` pass → churn, owners, hotspot risk.
+- `scan_security.py` is line-regex over source; every finding is attributed to the innermost node
+  whose `source`..`end` range **contains** that line, or to none (`owner_of`, shared with
+  `debt.py`). It used to take "the last node starting at or before the line" and never looked at
+  `end`, which pinned module-level findings on the preceding function — 99 of 152 on the skill's
+  own code. `git_insights.py` is one `git log --numstat` pass → churn, owners, hotspot risk.
 - `metrics.py` is line counts per file plus LOC / cyclomatic complexity / nesting depth /
   parameter count per node, keyed like the graph nodes (per-node figures are Python only:
   `js_ts_extract.py` and `ts_extract.py` both record `endLine`, but `metrics.py` does not read
@@ -374,8 +377,22 @@ python -m compileall -q .agents/skills/code-archaeologist/scripts     # syntax
 python tools/check_docs.py                                            # docs vs code
 python tools/check_langs.py                                           # every language still graphs
 python tools/check_py_oracle.py                                       # ast vs tree-sitter on Python
+python tools/check_graph.py                                           # the graph deserves trust
+python tools/check_graph.py --self-test                               # ...and every check can fail
+python tools/check_regressions.py                                     # every past silent failure
 node bin/cli.js --harness claude --target <tmpdir> --self-test        # installer
 ```
+
+`tools/check_graph.py` asserts what a *correct* graph must satisfy, on any built graph: every
+edge lands on a node, ids are unique, each node's range really contains its own name, each call
+edge's callee is really named inside its caller, `precision` is what the edges imply, the report's
+counts are the graph's, and every security finding lies inside the node it is attributed to. Its
+`D` checks test the analysis *metamorphically* — inject a cycle, an orphan, a hub, a god object or
+a layer violation into a copy of the real graph and require it to be reported — because a detector
+that returns nothing looks exactly like a clean codebase. `--self-test` breaks the input (or swaps
+an analysis function for a broken one) once per assertion and fails if the check stays quiet: an
+assertion that cannot fail is worse than none. `tools/check_regressions.py` holds one named case
+per silent failure this project has had. Both are repo tools; neither ships.
 
 `tools/check_langs.py` is the one to run after touching **any** extractor. Each supported language
 has a fixture under `tests/fixtures/langs/<lang>/` — a store, a service calling it *through a
@@ -487,9 +504,9 @@ produce the answer once, for every future session.
 - Reach for a script or an existing tool first; write ad-hoc analysis in the terminal, not in
   prose you would have to re-derive next time.
 - If you find yourself reading many files to answer one question, that question wants a script.
-- The runtime rule still stands: the skill itself ships **stdlib only** (constraint 1). "Use a
-  library" means use what is already on the machine while developing, never add a dependency to
-  the skill.
+- The runtime rule still stands: the skill ships the standard library plus the tree-sitter wheels
+  constraint 1 names, and **nothing else**. "Use a library" means use what is already on the
+  machine while developing, never add a dependency to the skill.
 - A new script pays for itself the second time it runs. A one-off shell pipeline is fine; copy it
   into `docs/USAGE.md` if it will be wanted again.
 

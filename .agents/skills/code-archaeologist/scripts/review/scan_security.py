@@ -99,33 +99,48 @@ def iter_source_files(roots):
                     yield full, _rel_key(full, root)
 
 
-def node_index(graph_path: str) -> dict[str, list[tuple[int, str]]]:
-    """file key -> [(line, node id), ...] sorted, so a finding can name its owner."""
+def node_index(graph_path: str) -> dict[str, list[tuple[int, int | None, str]]]:
+    """file key -> [(start, end, node id), ...] by start, so a finding can name its owner.
+
+    `end` is None for a node with no range -- a structure-map entity, whose
+    `source` is a bare file path -- and such a node owns its whole file.
+    """
     try:
         with open(graph_path, "r", encoding="utf-8") as fh:
             graph = json.load(fh)
     except (FileNotFoundError, ValueError):
         return {}
-    index: dict[str, list[tuple[int, str]]] = {}
+    index: dict[str, list[tuple[int, int | None, str]]] = {}
     for node in graph.get("nodes", []):
         src = node.get("source") or ""
         path, _, line = src.rpartition(":")
         if not path or not line.isdigit():
             path, line = src, "0"
-        index.setdefault(path, []).append((int(line), node["id"]))
+        end = node.get("end")
+        end = end if isinstance(end, int) and not isinstance(end, bool) and end > 0 else None
+        index.setdefault(path, []).append((int(line), end, node["id"]))
     for entries in index.values():
-        entries.sort()
+        entries.sort(key=lambda e: (e[0], e[2]))
     return index
 
 
 def owner_of(index: dict, file_key: str, line: int) -> str | None:
-    """The last node that starts at or before `line` in the same file."""
+    """The innermost node whose range contains `line`, or None when none does.
+
+    It used to be "the last node that starts at or before `line`", which never
+    looked at where that node *ends* -- so a line after a function closed, in
+    module-level code or in a function whose own node was lost, was pinned on the
+    preceding function. Measured on the skill's own scripts: 99 of 152 findings
+    attributed to a node that does not contain their line. None is the honest
+    answer and already a value every consumer handles: it is what a line above a
+    file's first node always got.
+    """
     owner = None
-    for start, node_id in index.get(file_key, []):
-        if start <= line:
-            owner = node_id
-        else:
+    for start, end, node_id in index.get(file_key, []):
+        if start > line:
             break
+        if end is None or line <= end:
+            owner = node_id
     return owner
 
 

@@ -97,7 +97,14 @@ Repo tools, not part of the installed skill -- they need files (`README.md`, `CL
 python tools/check_docs.py            # every script is documented, every quoted path exists
 python tools/check_langs.py           # every graphed language still produces its nodes and edges
 python tools/check_py_oracle.py       # Python read by tree-sitter agrees with the stdlib `ast`
+python tools/check_graph.py           # every edge real, every range right, every count consistent
+python tools/check_graph.py --self-test   # proves each of those checks can actually fail
+python tools/check_regressions.py     # one case per silent failure this project has had
 ```
+
+`check_graph.py` reads the graphs under `data/` and resolves node sources against the roots the last
+build recorded, so it works on any codebase you have built, not only the sample: build yours, then
+run it. It takes `--map flow|structure` and `--src <roots>` to override either.
 
 `check_langs.py` takes language names to narrow it (`python tools/check_langs.py go java`) and
 `--update` to re-record expectations from what the extractors currently do -- useful, and dangerous

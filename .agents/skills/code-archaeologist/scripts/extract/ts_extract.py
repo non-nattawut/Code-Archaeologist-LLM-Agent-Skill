@@ -448,8 +448,12 @@ def _go_routes(root, src: bytes) -> list[dict]:
         if len(literals) > 1:
             tail = _text(literals[-1], src).strip().split(".")[-1]
             handler = tail if re.fullmatch(r"[A-Za-z_]\w*", tail) else ""
+        # endLine is what gives an inline handler (`mux.HandleFunc("GET /x", func...)`)
+        # a readable range. Without it the endpoint node got `end: 0`, and every pass
+        # that reads ranges -- duplicates first -- quietly filed it as a synthetic node
+        # with no body. Found by tools/check_graph.py (c06), not by anything failing.
         routes.append({"method": verb or "ANY", "path": path, "handler": handler,
-                       "line": _line(call),
+                       "line": _line(call), "endLine": _end_line(_statement_of(call)),
                        "doc": _doc_above(_statement_of(call), src, "go")})
     return routes
 

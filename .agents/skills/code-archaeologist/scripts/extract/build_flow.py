@@ -11,7 +11,7 @@ Each node is a method/function and carries a description of what it does, its
 signature, and its callers/callees. Controller methods are marked as `endpoint`
 roots so request flows have a clear entry point.
 
-Outputs (deterministic, zero dependencies, Python 3.10+):
+Outputs (deterministic; tree-sitter is the only dependency; Python 3.10+):
   data/flow_graph.json   nodes (methods) + edges (calls)
   data/flow/<Node>.md    one note per method/function, with [[wikilinks]]
 
@@ -264,8 +264,51 @@ def _iter_sources(roots: list[str]):
             yield path, root
 
 
+# Flow ids carry no file: a module function is its bare name and a method is
+# `Class.method`. So two `main()`s in two scripts, or two `UserService.get`s in two
+# services, are one id. The later definition has always replaced the earlier --
+# and, worse, inherited its call edges, because pass 2 resolves every definition's
+# calls under the shared id. The graph then shows one `main` whose calls are the
+# union of every `main`'s, which is a false edge for all but one of them.
+# Which one wins is unchanged (the roadmap's open concern 2); what changes is that
+# it is said. The structure map already does this for its entities.
+_COLLISIONS: list[tuple[str, str, str]] = []
+_COLLIDED: set[str] = set()
+
+
+def _file_of(node: dict) -> str:
+    return (node.get("source") or "").rpartition(":")[0]
+
+
+def _claim(methods: dict, nid: str, node: dict) -> None:
+    """`methods[nid] = node`, noting when `nid` already names another file's code.
+
+    Only a clash *across files* is noted: within one file a shared id is the
+    deliberate overload fold (`signatures`), not an accident.
+    """
+    prev = methods.get(nid)
+    if prev is not None and _file_of(prev) != _file_of(node) and nid not in _COLLIDED:
+        _COLLIDED.add(nid)
+        _COLLISIONS.append((nid, _file_of(prev), _file_of(node)))
+    methods[nid] = node
+
+
+def _report_collisions(limit: int = 8) -> None:
+    if not _COLLISIONS:
+        return
+    for nid, first, second in _COLLISIONS[:limit]:
+        print(f"  ! id collision: {nid} is defined in {first} and in {second}", file=sys.stderr)
+    more = len(_COLLISIONS) - limit
+    print(f"  ! {len(_COLLISIONS)} flow id(s) are shared by code in different files"
+          + (f" ({more} not listed)" if more > 0 else "")
+          + ". Ids carry no file, so each is ONE node, and it carries the call edges of every"
+            " definition that shares it -- read those nodes' edges with care.", file=sys.stderr)
+
+
 def analyze(roots: list[str]):
     """Two-pass analysis across one or more source roots (Python + JS/TS)."""
+    _COLLISIONS.clear()
+    _COLLIDED.clear()
     methods: dict[str, dict] = {}          # node_id -> info
     class_methods: dict[str, set[str]] = {}  # ClassName -> {method names}
     func_nodes: dict[str, str] = {}         # module function name -> node_id
@@ -308,7 +351,7 @@ def analyze(roots: list[str]):
                 # source segment from `def` onward. Both are kept: `outer` for the
                 # walk, `m` for the text, so `ext` counts and hashes both match.
                 outer = m.parent if m_decos else m
-                methods[node_id] = {
+                _claim(methods, node_id, {
                     "id": node_id, "name": m_name, "cls": cls_name, "layer": layer,
                     "kind": "endpoint" if is_endpoint else "method",
                     "signature": px.signature(m),
@@ -316,7 +359,7 @@ def analyze(roots: list[str]):
                     "source": f"{rel}:{px.line(m)}", "end": px.end_line(m),
                     "calls": [], "callers": [],
                     "hash": _hash(code), "code": code, "routes": routes,
-                }
+                })
                 local_types = _local_types(outer, attr_types, decl=m)
                 pending.append((node_id, cls_name, {"attr_types": attr_types, "local_types": local_types}, outer))
 
@@ -331,7 +374,7 @@ def analyze(roots: list[str]):
             # asked the same question the class loop already asked.
             routes = _route_of(fn_decos)
             outer = fn.parent if fn_decos else fn
-            methods[node_id] = {
+            _claim(methods, node_id, {
                 "id": node_id, "name": fn_name, "cls": None,
                 "layer": "controller" if routes else "function",
                 "kind": "endpoint" if routes else "function", "signature": px.signature(fn),
@@ -339,7 +382,7 @@ def analyze(roots: list[str]):
                 "source": f"{rel}:{px.line(fn)}", "end": px.end_line(fn),
                 "calls": [], "callers": [],
                 "hash": _hash(code), "code": code, "routes": routes,
-            }
+            })
             local_types = _local_types(outer, {}, decl=fn)
             pending.append((node_id, None, {"attr_types": {}, "local_types": local_types}, outer))
 
@@ -354,14 +397,16 @@ def analyze(roots: list[str]):
 
     # --- Frontend (JS/TS): merge nodes + call edges into the same graph ---
     js_methods, js_edges = _analyze_js(roots)
-    methods.update(js_methods)
+    for nid, node in js_methods.items():
+        _claim(methods, nid, node)
     for s, t in js_edges:
         if s in methods and t in methods and s != t:
             edges.add((s, t, "calls"))
 
     # --- Java / Go / C#: same graph, same shape ---
     lang_methods, lang_edges = _analyze_lang(roots)
-    methods.update(lang_methods)
+    for nid, node in lang_methods.items():
+        _claim(methods, nid, node)
     for s, t in lang_edges:
         if s in methods and t in methods and s != t:
             edges.add((s, t, "calls"))
@@ -379,6 +424,7 @@ def analyze(roots: list[str]):
     # `precision` needs the edges, so it is computed here rather than at extraction:
     # two of its three reasons are properties of what a node *calls*, not of the
     # node itself.
+    _report_collisions()
     for src_id, dst_id, _type in edges:
         methods[src_id]["calls"].append(dst_id)
         methods[dst_id]["callers"].append(src_id)
@@ -430,7 +476,7 @@ def _attach_routes(routes: list[dict], methods: dict, raw_calls: list, make_node
             nid = f'{r["method"]} {r["path"]}'
             node = make_node(nid, dict(r, routes=[route]))
             node["signature"] = nid    # the route is the signature; `nid()` reads as nonsense
-            methods[nid] = node
+            _claim(methods, nid, node)
             raw_calls.append((nid, r.get("calls", [])))
 
 
@@ -449,9 +495,9 @@ def _analyze_js(roots: list[str]):
                 # A function that returns JSX is a React component in both maps --
                 # one meaning, one kind, whichever map you are reading.
                 component = bool(fn.get("jsx"))
-                methods[nid] = _js_node(nid, fn["name"], None,
-                                        "ui" if component else infer_layer(f'{fn["name"]} {stem}'),
-                                        "component" if component else "function", fn, rel)
+                _claim(methods, nid, _js_node(nid, fn["name"], None,
+                                              "ui" if component else infer_layer(f'{fn["name"]} {stem}'),
+                                              "component" if component else "function", fn, rel))
                 func_nodes.add(nid)
                 raw_calls.append((nid, fn.get("calls", [])))
             for cls in res.get("classes", []):
@@ -462,9 +508,9 @@ def _analyze_js(roots: list[str]):
                 for m in cls.get("methods", []):
                     nid = f'{cls["name"]}.{m["name"]}'
                     routed = bool(m.get("routes"))
-                    methods[nid] = _js_node(nid, m["name"], cls["name"],
-                                            "controller" if routed else layer,
-                                            "endpoint" if routed else "method", m, rel)
+                    _claim(methods, nid, _js_node(nid, m["name"], cls["name"],
+                                                  "controller" if routed else layer,
+                                                  "endpoint" if routed else "method", m, rel))
                     raw_calls.append((nid, m.get("calls", [])))
 
             _attach_routes(res.get("routes", []), methods, raw_calls,
@@ -549,15 +595,15 @@ def _analyze_lang(roots: list[str]):
                         # folded into it rather than silently showing the last.
                         node["signatures"] = ((prev.get("signatures") or [prev["signature"]])
                                               + [node["signature"]])
-                    methods[nid] = node
+                    _claim(methods, nid, node)
                     raw_calls.append((nid, m.get("calls", [])))
 
             for fn in res.get("functions", []):
                 nid = fn["name"]
                 func_nodes[fn["name"]] = nid
-                methods[nid] = _lang_node(nid, fn["name"], None,
-                                          infer_layer(f'{fn["name"]} {stem}'),
-                                          "function", fn, rel, lang)
+                _claim(methods, nid, _lang_node(nid, fn["name"], None,
+                                                infer_layer(f'{fn["name"]} {stem}'),
+                                                "function", fn, rel, lang))
                 raw_calls.append((nid, fn.get("calls", [])))
 
             _attach_routes(res.get("routes", []), methods, raw_calls,

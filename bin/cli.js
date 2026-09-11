@@ -280,10 +280,10 @@ async function main() {
   console.log(`  ${py.exe} ${relPosix}/scripts/archaeologist.py report --src ./src   # grade, risks, hotspots`);
   console.log(`  ${py.exe} ${relPosix}/scripts/archaeologist.py brief  --src ./src   # the whole thing in ~35 lines`);
   console.log(`  open ${relPosix}/data/explorer.html`);
-  console.log("\nPython needs no dependencies. Every other language is one tree-sitter wheel,");
-  console.log("installed into the skill folder rather than into your Python:");
+  console.log("\nEvery language, Python included, is one tree-sitter wheel, installed into the");
+  console.log("skill folder rather than into your Python:");
   console.log(`  cd ${relPosix} && pip install --only-binary :all: --no-cache-dir --target vendor \\`);
-  console.log("      tree-sitter tree-sitter-javascript tree-sitter-typescript   # add java/go/c-sharp as needed");
+  console.log("      tree-sitter tree-sitter-python tree-sitter-javascript tree-sitter-typescript   # add java/go/c-sharp as needed");
   console.log("Tip: add --self-test to build the bundled demo now.");
   return 0;
 }

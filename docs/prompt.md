@@ -2501,3 +2501,78 @@ to the *structure* graph, so a flow id without `--graph` is "unknown node".
 **Phase 3 is done.** Phase 4 — auditing every node field and derived feature for silent
 wrongness — is next, and this phase already fed it one lesson: every real bug here was silent,
 and one fake one looked more convincing than all of them.
+
+## [64] 2026-09-11 — Phase 4: the graph is checked, and a bigger corpus found what the sample hid
+
+**Prompt**
+> continue phase 4
+
+**Response**
+Built the two tools the phase asks for, then pointed them at something bigger than `sample_src`,
+which is where everything worth finding was.
+
+**`tools/check_graph.py`** — 16 structural invariants (`C`) on any built graph: edges land on
+nodes, ids are unique, a node's range is read back from its file and must contain its own name,
+a call edge's callee must be *named* inside its caller's range (the precision promise, asserted for
+the first time), `precision` must equal what the edges imply, report counts must equal the graph's,
+and every security finding must lie inside the node it is attributed to. Plus 9 derived checks
+(`D`) that are metamorphic: copy the real graph, inject a cycle / orphan / hub / god object / layer
+violation, and require the analysis to report it; recompute blast radius and every shortest path
+independently; require the duplicate pass to skip declarations and the context pack to respect its
+budget. **`--self-test`** breaks each input on purpose — 29 sabotages, all firing.
+
+**`tools/check_regressions.py`** — one named case for each of the ten silent failures in the phase-4
+table, plus the eight found since (test filenames with `:line`, CRLF hashes, wrapped signatures,
+the context budget, the moved-root reason, the install hint, and this phase's two). 18/18.
+
+**On `sample_src`, one real bug:** the Go inline route `GET /go/healthz` had **`end: 0`** —
+`_go_routes` recorded a start line and no end, so `duplicates.py` quietly filed the endpoint under
+"synthetic node, no body". Fixed in `ts_extract`; the flow graph moved by exactly that one field.
+
+**And one bug in my own checker, which is the lesson of the phase in miniature.** `d02` named its
+probe `__orphan__`. `find_orphans` deliberately exempts dunders, so "an uncalled function is
+reported" was *vacuous* — and the self-test still passed, because its single sabotage tripped d02's
+*other* assertion. It was the real baseline run that exposed it (a D check failing on a healthy
+graph means either the analysis or the probe is wrong). Fixed the probe ids, and every
+two-assertion check now gets one sabotage per assertion.
+
+**Then the corpus** — the skill's own scripts, `tools/`, `bin/` and every fixture, built as one
+graph: **171 findings**. Two root causes, both silent, both invisible on the sample:
+
+1. **`owner_of` never looked at `end`.** A security or debt finding went to "the last node starting
+   at or before its line", so a line after a function closed was pinned on that function: **99 of
+   152 findings** attributed to a node that does not contain them. Fixed (shared by `debt.py`);
+   99 → 0. None is the honest owner and was already handled — it is what a line above a file's first
+   node always got.
+2. **Flow ids carry no file.** Every `main()` in every script is one node, every `build()` another,
+   and the survivor inherits every definition's call edges. **25 shared ids; 72 false call edges**,
+   and I proved rather than assumed that all 72 come from collided ids (all seven callers —
+   `build`, `main`, `extract_file`, `collect`, `compare`, `_doc_above`, `testPlacesThroughTheStore`
+   — are in the collision set). Six of the 25 are my fixtures reusing `Widget*` across languages;
+   nineteen are real script-level collisions. The silence had one right answer: **the build now
+   names every shared id**, capped, as the structure map already did. The id scheme is a contract,
+   so it is recorded as *Found while implementing* #5 with a recommendation — qualify only colliding
+   ids, so no id that is correct today is renamed — and, per this phase's rule, stated in the
+   README's limitations and *What's next* and in PRESENTATION.
+
+Worth recording why `c02_duplicate_ids` could never have caught #2: the collision happens inside
+`build_flow`, before the graph is written, so the output always has unique ids. Only the
+*consequence* (`c13`, false edges) is visible in the artifact; the build-time warning is the real
+detector. A check on the output cannot see a loss that happened before the output existed.
+
+**Stale docs swept up on the way**, all false since phase 2 step 5: the README said "Python needs
+nothing installed" twice and its diagram still said `ast / tree-sitter`; CLAUDE.md's principle 5
+said the skill ships "stdlib only"; `build_flow.py`'s docstring said "zero dependencies";
+PRESENTATION's diagram said `ast /`; and `bin/cli.js` told users "Python needs no dependencies" — a
+line I wrote myself at step 3 and never revisited when step 5 made it false.
+
+**Verified:** both sample maps pass all 25 checks; self-test 29/29; regressions 18/18;
+`check_langs` 6/6; the `ast` oracle at 0 on 34 files; sample graphs byte-identical except the Go
+`end`, sample reports differing only in timestamps. The phase's verify list: `check_graph` passes
+on both maps and is shown to fail (dangling edge, duplicate id, out-of-range `end` among its 17
+input mutations); every check has a recorded negative test; the oracle is at 0 and the JS/TS diff
+is recorded in `fd9c7d8`; every failure in the table has a regression case; every fix is named in
+the commit.
+
+**The roadmap's four phases are complete.** Four findings wait for your review: #1 the fresh-install
+demo builds 12 nodes, #3 report timestamps, #4 the toolbar below ~1360px, #5 the id scheme.

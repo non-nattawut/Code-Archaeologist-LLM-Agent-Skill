@@ -68,7 +68,7 @@
       "signature": "GET /go/healthz",
       "doc": "Liveness probe. No handler function to attach to, so the registration itself becomes the endpoint node.",
       "source": "sample_src/services/orders_go/router.go:16",
-      "end": 0,
+      "end": 18,
       "lang": "go",
       "ext": 0,
       "routes": [

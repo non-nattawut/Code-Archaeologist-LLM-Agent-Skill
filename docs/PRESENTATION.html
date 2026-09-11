@@ -214,8 +214,8 @@
     <h2>How it fits together</h2>
     <div class="pipe"><pre>
    your source                        two graphs                      one page
-  ┌────────────┐  ast /            ┌───────────────┐   analysis    ┌───────────────┐
-  │ .py  .ts   │  tree-sitter      │ <b>structure</b>  ────────────────▶ │ explorer.html │
+  ┌────────────┐  tree-sitter      ┌───────────────┐   analysis    ┌───────────────┐
+  │ .py  .ts   │                   │ <b>structure</b>  ────────────────▶ │ explorer.html │
   │ .jsx .tsx  │ ────────────────▶ │ <b>flow</b>       │   + report    │  (both maps)  │
   │ .java .go  │     extract       └───────────────┘               └───────────────┘
   │ .cs        │                          │
@@ -625,6 +625,8 @@ const FEATURES = [
 const LIMITS = [
   ["Call resolution is heuristic, not type inference",
    "Dynamic dispatch, duck typing, dependency injection by string key and monkey-patching are invisible to it. It chooses precision over recall: every edge shown is real, but some real edges are missing. Say this before someone finds it."],
+  ["Same-named code in different files shares one flow node",
+   "A flow id is a bare function name or <code>Class.method</code> &mdash; it carries no file. So every <code>main()</code> in every script is one node, and that node carries every definition's call edges. The build names each shared id rather than merging silently, and <code>tools/check_graph.py</code> catches the consequence: on the skill's own code it found 25 shared ids and 72 call edges whose callee never appears in the caller's source, every one of them from a collided id. Qualifying only the colliding ids is the planned fix, so no id that is unique today changes."],
   ["Call edges are a lower bound, in every language",
    "All six graphed languages are parsed by tree-sitter, so declarations are exact everywhere. What is partial everywhere is <em>resolution</em>: a call is drawn only when the receiver's type can be read from the source, and anything else is dropped rather than invented, because a wrong edge is worse than a missing one. That caveat is stated once rather than pinned on three languages — it used to be an <code>approx</code> flag on Java, Go and C#, which was honest while those three were read textually and became arbitrary once Python and JS/TS moved to the same parser. What a node carries now is <code>precision</code>, a list of losses that can be <em>named</em>: <code>interface-dispatch</code> (the call stops at an interface, because which implementation runs is not knowable without a type checker), <code>overloads</code> (an overload set folds into one node), and <code>name-matched</code> (JS/TS match calls by name, so calls through an object are dropped — measured at 0 of 3 edges in the TypeScript fixture against 3 of 3 for the typed languages). The remaining eleven of the seventeen languages get the review passes, not a graph."],
   ["Test coverage is name-based, not instrumented",

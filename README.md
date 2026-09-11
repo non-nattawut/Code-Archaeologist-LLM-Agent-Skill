@@ -4,9 +4,9 @@
 
 It scans your code once, builds two graphs plus one note per class/method, and answers
 architecture questions by walking those graphs — not by grepping source. Everything is
-deterministic — real parsers plus graph traversal, no embeddings, no vector DB. Python needs
-nothing installed; other languages each need one parser, and any that is missing is **named and
-skipped**, never silently dropped.
+deterministic — real parsers plus graph traversal, no embeddings, no vector DB. Every language,
+Python included, needs one parser wheel installed into the skill folder, and any that is missing
+is **named and skipped**, never silently dropped.
 
 ```
 "How does a request reach the database?"
@@ -48,10 +48,10 @@ python .claude/skills/code-archaeologist/scripts/archaeologist.py report --src .
 
 Then open `data/explorer.html` — one self-contained page, both maps, works offline from `file://`.
 
-> Scanning anything but Python? Install that language's grammar first, into the skill rather
-> than your Python: `cd .claude/skills/code-archaeologist && pip install --only-binary :all:
-> --no-cache-dir --target vendor tree-sitter tree-sitter-javascript tree-sitter-typescript`. Skip
-> it and those files are left out — the build says so loudly, and names the wheel.
+> Install each language's grammar first — **Python included** — into the skill rather than your
+> Python: `cd .claude/skills/code-archaeologist && pip install --only-binary :all: --no-cache-dir
+> --target vendor tree-sitter tree-sitter-python tree-sitter-javascript tree-sitter-typescript`.
+> Skip one and those files are left out — the build says so loudly, and names the wheel.
 
 ---
 
@@ -125,7 +125,7 @@ needs no arguments — a build records the roots it scanned, and `check` and `br
 ```
    your source                         two graphs                    one page
   ┌───────────┐                     ┌──────────────┐   analysis   ┌──────────────┐
-  │ .py .ts   │  ast / tree-sitter  │ structure    │ ───────────▶ │ explorer.html│
+  │ .py .ts   │  tree-sitter        │ structure    │ ───────────▶ │ explorer.html│
   │ .jsx .tsx │                     │ flow         │   + report   │ (both maps)  │
   │ .java .go │ ─────────────────▶  └──────────────┘              └──────────────┘
   │ .cs       │      extract              │
@@ -198,6 +198,12 @@ Where a loss can be *named*, the node says which: `interface-dispatch`, `overloa
 `name-matched` (JS/TS resolve calls by name, so a call through an object is dropped — measured at
 0 of 3 edges in the TypeScript fixture, against 3 of 3 for the typed languages). `context.py`
 repeats the reason on the node an agent is reading, and the explorer shows it as a chip.
+
+**Flow ids carry no file.** A module function's id is its bare name and a method's is
+`Class.method`, so two `main()`s in two scripts are one node, carrying both definitions' call
+edges. The build names every such id (`! id collision: main is defined in ... and in ...`), so it
+is never silent -- but on a large codebase, read a collided node's edges with care. On the skill's
+own code that is 25 ids.
 
 A call through an interface **resolves to the interface**, not to its implementations. Declaring
 `PricingRule pricing` and calling `pricing.price()` gives you the edge
@@ -315,6 +321,7 @@ Alongside the skill, in the repo but never installed:
 ```
 tests/fixtures/langs/      one small fixture per graphed language + expected.json
 tools/                     check_docs.py · check_langs.py · check_py_oracle.py
+                           check_graph.py (the graph's invariants) · check_regressions.py
 ```
 
 ---
@@ -325,6 +332,9 @@ Everything the earlier roadmap listed has shipped: frontend entities in the stru
 route coverage across four frameworks, a graph tier for Java/Go/C#, a fully offline
 viewer, and duplicate-code clusters. What is still open:
 
+- **File-qualified ids where names collide.** Same-named code in different files shares one flow
+  node today (the build warns). The plan is to qualify only the colliding ids, so every id that is
+  unique now keeps its spelling.
 - **Django URL-table routes.** Routes are read from decorators today, so a `urlpatterns` table is
   not picked up and Django views do not link across the stack.
 - **Graphs for dynamic languages.** Ruby, PHP and Elixir are scanned for lines, risk, debt and

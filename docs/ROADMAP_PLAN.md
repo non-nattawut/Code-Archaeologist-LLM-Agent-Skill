@@ -1,13 +1,13 @@
 # Graph as many languages as possible
 
-> ## Status: **phases 1, 2 and 3 are complete.** Phase 4 — the silent-wrongness audit — is next.
+> ## Status: **all four phases are complete.** Four findings await review in *Found while implementing* (#1, #3, #4, #5; #2 is resolved).
 >
 > | Phase | What it is | State | Commit |
 > | --- | --- | --- | --- |
 > | 1 — Resolve the edges the textual extractor drops | semantics, no new dependency | **done** | `e8464f8` |
 > | 2 — Port to tree-sitter, delete the three old extractors, fixture every language | the structural change | **done** — 6 deletion steps, 2d and 2g | `8974c27`, `67d4df4`, `e7bfb09`, `fd9c7d8`, `df5fb0b`, `7283cf4`, `7f40370`, `fd67e49` |
 > | 3 — Full regression gate: nothing old may break | does it still run | **done** — 5 things fixed, 1 recorded (*Found while implementing* #4) | `f904891` |
-> | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | not started | |
+> | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | **done** — 3 bugs fixed, 1 recorded (#5); 29 checks + 18 regression cases | this commit |
 >
 > ### Where phase 2 actually stands
 >
@@ -1103,6 +1103,34 @@ pressure crossing the line on a narrower screen.
 
 **Recommendation: (b).** It is the only option that keeps a single-row toolbar and both rail
 minimums, and it takes space from the controls used least.
+
+---
+
+### 5. Flow ids carry no file, so same-named code in different files is one node — found in phase 4
+
+**What.** A module function's flow id is its bare name and a method's is `Class.method`. So every
+`main()` in every script is **one node**, and so is every `build()`. The later definition replaces
+the earlier — and inherits its call edges, because pass 2 resolves each definition's calls under
+the shared id. This is open concern 2, measured for the first time.
+
+**Measured on the skill's own code** (scripts, tools, bin and every fixture, built as one graph):
+**25 ids** are shared by code in different files. `tools/check_graph.py`'s `c13` found **72 call
+edges whose callee is never named in the caller's range** — false edges — and every one of them
+comes from a collided id: `build` (34), `main` (30), `extract_file` (3), `collect` (2),
+`compare`, `_doc_above`, `testPlacesThroughTheStore` (1 each). `sample_src` has no collisions,
+which is why nothing showed until the corpus was bigger than the sample.
+
+**What phase 4 changed, and what it did not.** The build now **says so** — one `! id collision`
+line per shared id, capped, plus a total — exactly as the structure map already did for its
+entities. That had one right answer: silence was the bug. What it did **not** change is *which*
+definition wins or the id scheme, because ids are the contract every agent queries by.
+
+**Options.** (a) qualify only colliding ids, by file stem (`tests_map.build`, `report.build`) —
+every unique id keeps its current spelling, so `sample_src` and the CLAUDE.md numbers do not move;
+(b) qualify every module function by file — uniform, but renames ids everywhere; (c) keep the ids
+and drop the merged edges, so a collided node keeps only its own file's calls — honest edges, but
+the other definitions still vanish. **Recommendation: (a).** It is the only option that makes the
+graph correct on large codebases without renaming a single id that is correct today.
 
 ---
 
