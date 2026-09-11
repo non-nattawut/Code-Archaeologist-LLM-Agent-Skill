@@ -138,6 +138,12 @@
     border-radius:4px; padding:2px 6px; font-size:12.5px; color:var(--accent);
   }
   .cmd{display:block; padding:12px 14px; overflow-x:auto; white-space:pre; color:var(--ink)}
+  pre.code{
+    font-family:var(--mono); background:var(--ground); border:1px solid var(--rule);
+    border-radius:5px; padding:14px 16px; margin:0; overflow-x:auto;
+    font-size:12.5px; line-height:1.7; color:var(--ink); white-space:pre;
+  }
+  pre.code .c{color:var(--ink-3)}
   .qa{border-left:2px solid var(--rule-lit); padding:2px 0 2px 15px; margin-bottom:18px}
   .qa .q{color:var(--ink); font-size:13.5px; margin-bottom:5px}
   .qa .a{color:var(--ink-2); font-size:13px}
@@ -390,6 +396,29 @@ archaeologist.py   project | flow | both | check | report | brief   &lt;- ทา
           <td>node อยู่ในภาษาที่จับคู่การเรียกด้วย<em>ชื่อ</em> (JS, TS, JSX, TSX, Ruby, PHP, Elixir, Groovy)</td>
           <td>การเรียกผ่านอ็อบเจ็กต์ที่ไม่มีชนิดข้อมูลประกาศไว้ถูกทิ้ง — วัดได้จริง: fixture ของ TypeScript resolve ได้ 0 จาก 3 edge ขณะที่ภาษาที่มีชนิดข้อมูลได้ 3 จาก 3</td></tr>
     </table></div>
+    <pre class="code" style="margin-top:22px"><span class="c"># sample_src/services/orders_java/OrderWorkflow.java</span>
+private final PricingRule pricing;        // PricingRule เป็น interface
+public Order place(OrderRequest request) {
+    int total = pricing.price(request);   // impl ตัวไหนทำงาน = เรื่องของ runtime
+    return archive.save(request, total);
+}
+
+<span class="c"># node ที่ได้ -- บอกชื่อความสูญเสียไว้ตรง ๆ</span>
+{"id": "OrderWorkflow.place", "lang": "java",
+ "precision": ["interface-dispatch"]}
+
+<span class="c"># edge หยุดที่ interface และไม่แตกไปหา impl ทั้งสองตัว</span>
+{"source": "OrderWorkflow.place", "target": "PricingRule.price", "type": "calls"}
+<span class="c"># ไม่มี edge ไป FlatRate.price หรือ TieredRate.price -- สองตัวนั้นจึงเป็น orphan</span>
+
+<span class="c"># โค้ดที่คำนวณค่านี้: scripts/core/taxonomy.py</span>
+def precision_of(node, targets):
+    reasons = set()
+    if node.get("lang") in NAME_MATCHED_LANGS: reasons.add("name-matched")
+    if node.get("ambiguous"):                  reasons.add("overloads")
+    for t in targets:
+        if t.get("declaration"):               reasons.add("interface-dispatch")
+    return [r for r in PRECISION_REASONS if r in reasons]</pre>
     <p class="note">ก่อนหน้านี้ค่านี้เคยเป็น <code>approx: true</code> ที่แปะบน Java/Go/C# ซึ่งซื่อสัตย์ดี
        ตอนที่สามภาษานั้นถูกอ่านแบบข้อความล้วน แต่กลายเป็นการแบ่งแยกที่ไร้เหตุผลทันทีที่ทุกภาษา
        ย้ายมาใช้ tree-sitter เหมือนกัน — <code>context.py</code> จะย้ำเหตุผลนี้บน node ที่ agent กำลังอ่าน
@@ -567,6 +596,7 @@ const FEATURES = [
     d:"กราฟระดับเอนทิตี: คลาส คอมโพเนนต์ หรือโมดูลไหนอ้างอิง/import อะไรบ้าง",
     how:"เดินอ่านทุกไฟล์ด้วย tree-sitter แล้วดึงแต่ละคลาสออกมา — ชื่อ, docstring, base class, decorator, เมธอด และ import — พร้อมกับ React component ทุกตัว ส่วนฟังก์ชันระดับบนสุดที่เหลือในไฟล์จะถูกรวมเป็นหน้าโมดูลหนึ่งหน้าต่อไฟล์ (<code>&lt;Name&gt;Module</code>) ทุกอย่างกลายเป็นโน้ต Markdown หนึ่งใบที่มี <code>[[wikilink]]</code> ชี้ไปยังเอนทิตีอื่นที่มันเอ่ยถึง จากนั้นรอบที่สองอ่านโน้ตกลับเข้ามาแล้วแปลงทุก wikilink เป็น edge ของกราฟ",
     tech:["tree-sitter","Markdown front-matter","Wikilink regex → edges","หนึ่งหน้าโมดูลต่อหนึ่งไฟล์"],
+    code:"# เข้า: sample_src/backend/order_service.py\nclass OrderService:\n    \"\"\"Orchestrates order placement, payment, and persistence.\"\"\"\n    def __init__(self, repository: OrderRepository, payments: PaymentClient):\n        self.repository = repository\n\n# ออก: data/structure/graph.json\n{\"id\": \"OrderService\", \"layer\": \"service\", \"kind\": \"class\", \"lang\": \"py\",\n \"source\": \"sample_src/backend/order_service.py:6\", \"end\": 20,\n \"doc\": \"Orchestrates order placement, payment, and persistence.\"}\n\n# ออก: data/structure/vault/OrderService.md -- wikilink คือสิ่งที่กลายเป็น edge\n## References\n- [[OrderRepository]]\n- [[PaymentClient]]\n\n# ออก: edges ใน graph.json\n{\"source\": \"OrderService\", \"target\": \"OrderRepository\", \"type\": \"references\"}\n{\"source\": \"OrderService\", \"target\": \"PaymentClient\",  \"type\": \"references\"}",
     cmd:"archaeologist.py project --src ./src",
     qa:[
       ["ทำไมต้องผ่าน Markdown แทนที่จะสร้างกราฟตรง ๆ","เพราะโน้ตคือ<em>ตัวผลิตภัณฑ์</em> ไม่ใช่ของกลางทาง มนุษย์เปิดอ่านใน Obsidian ได้ และเอเจนต์อ่านเฉพาะใบที่อยู่บนเส้นทางที่ trace เจอ ส่วนกราฟได้มาฟรีจากโน้ตเหล่านั้น"],
@@ -579,6 +609,7 @@ const FEATURES = [
     d:"กราฟการเรียกระดับเมธอด — เส้นทางการทำงานจริงที่วิ่งผ่านโค้ดของคุณ",
     how:"ทำสองรอบ รอบแรกทำดัชนีเมธอดและฟังก์ชันทุกตัว พร้อมบันทึกชนิดข้อมูลเท่าที่มองเห็น: แอตทริบิวต์ที่ถูกกำหนดค่าใน <code>__init__</code>, parameter ที่ประกาศชนิด และตัวแปรภายในที่ประกาศชนิด รอบที่สองเดินอ่านเนื้อเมธอดอีกครั้งแล้ว resolve จุดเรียกทุกจุดเทียบกับดัชนีนั้น และจะสร้าง edge ก็ต่อเมื่อปลายทางมีอยู่จริงเท่านั้น ทุก node บันทึกทั้งบรรทัดเริ่ม (<code>source</code>) และบรรทัดจบ (<code>end</code>) ไว้ ซึ่งเป็นเหตุผลที่ pass อื่นอย่าง duplicates และ metrics ไม่ต้องพาร์สซ้ำ",
     tech:["Two-pass AST","Deferred call resolution","ตรวจจับ endpoint เป็นราก","บันทึกช่วงบรรทัดครบ"],
+    code:"# เข้า: sample_src/backend/order_service.py\n    def place_order(self, payload):\n        \"\"\"Charge payment then persist the order.\"\"\"\n        self.payments.charge(payload)\n        return self.repository.save(payload)\n\n# ออก: data/flow/flow_graph.json -- หนึ่ง node ต่อหนึ่งเมธอด พร้อมช่วงบรรทัดครบ\n{\"id\": \"OrderService.place_order\", \"layer\": \"service\", \"kind\": \"method\",\n \"cls\": \"OrderService\", \"signature\": \"place_order(self, payload)\",\n \"source\": \"sample_src/backend/order_service.py:13\", \"end\": 16,\n \"lang\": \"py\", \"ext\": 0}\n\n# ออก: edges -- สองการเรียกที่ resolve ได้จริง\n{\"source\": \"OrderService.place_order\", \"target\": \"PaymentClient.charge\",  \"type\": \"calls\"}\n{\"source\": \"OrderService.place_order\", \"target\": \"OrderRepository.save\", \"type\": \"calls\"}",
     cmd:"archaeologist.py flow --src ./src",
     qa:[
       ["ทำไมต้องสองรอบ","เพราะเมธอดหนึ่งอาจเรียกสิ่งที่ถูกนิยามทีหลังในไฟล์เดียวกัน หรืออยู่ในไฟล์ที่ยังไม่ถูกอ่าน ถ้า resolve ตั้งแต่รอบแรกจะพลาดกรณีเหล่านี้ จุดเรียกจึงถูกพักไว้จนกว่าจะรู้จัก node ครบทุกตัว"],
@@ -591,6 +622,7 @@ const FEATURES = [
     d:"ทุกภาษาที่มีกราฟถูกอ่านด้วยพาร์สเซอร์จริง และพาร์สเซอร์ที่ขาดจะถูกเอ่ยชื่อ ไม่ใช่เงียบ ๆ ข้าม",
     how:"เอนจินเดียว ไม่ใช่หนึ่งตัวต่อหนึ่งตระกูลภาษา: tree-sitter อ่านทั้ง Python, JS/JSX/TS/TSX, Java, Go, C# และอีกสิบเอ็ดภาษา ไม่ต้องใช้ Node เลย (skill ไม่มี <code>package.json</code> ด้วยซ้ำ) ส่วน <code>ast</code> ของไลบรารีมาตรฐานถูกเก็บไว้เป็น oracle เท่านั้น — ไฟล์ Python ทุกไฟล์ถูกพาร์สทั้งสองทางและความไม่ตรงกันใด ๆ ว่าอะไรถูกประกาศบ้างถือเป็นความล้มเหลว ผู้บริโภคร่วมตัวเดียวทำงานกับ <em>field name</em> ของ tree-sitter (<code>name</code>, <code>body</code>, <code>parameters</code>, <code>type</code>) มีเพียงตาราง <code>SPEC</code> กับ <code>SHAPES</code> ที่รู้จักชื่อชนิด node ของแต่ละภาษา",
     tech:["tree-sitter","หนึ่ง wheel ต่อหนึ่งภาษา","<code>ast</code> เป็น differential oracle","ตาราง SPEC / SHAPES","ไม่ต้องใช้ Node"],
+    code:"# service ที่เรียก store ผ่าน field ที่ประกาศชนิด -- เขียนคนละภาษา\n# Java\nprivate final OrderArchive archive;\npublic Order place(OrderRequest request) { return archive.save(request, total); }\n\n# C#\nprivate readonly InvoiceStore _store;\npublic Invoice Issue(InvoiceRequest request) { return _store.Put(request.Id, total); }\n\n# Python\ndef __init__(self, repository: OrderRepository): self.repository = repository\ndef place_order(self, payload):                 return self.repository.save(payload)\n\n# ทั้งสามให้ edge ชนิดเดียวกัน เพราะผ่านต้นไม้แบบเดียวกัน\n{\"source\": \"OrderWorkflow.place\",       \"target\": \"OrderArchive.save\",   \"type\": \"calls\"}\n{\"source\": \"InvoiceService.Issue\",      \"target\": \"InvoiceStore.Put\",    \"type\": \"calls\"}\n{\"source\": \"OrderService.place_order\",  \"target\": \"OrderRepository.save\",\"type\": \"calls\"}",
     cmd:"scripts/core/grammars.py --install typescript java",
     qa:[
       ["ทำไมไม่เขียนพาร์สเซอร์เอง","เคยลองแล้ว ตัวสกัด Java/Go/C# ที่เขียนด้วยมือยาว 754 บรรทัดสำหรับสามภาษา และแต่ละภาษาใหม่ก็กินราคาประมาณเดิมอีกรอบ ส่วน tree-sitter ทำให้ภาษาหนึ่งเหลือแค่ตารางชนิด node เล็ก ๆ บวกกฎการ resolve ตัวรับ ต้นทุนจึงหยุดโตตามจำนวนภาษา"],
@@ -603,6 +635,7 @@ const FEATURES = [
     d:"ทุก dependency ลงในโฟลเดอร์ของ skill เอง ตรึงเวอร์ชัน และถ้าขาดจะบอกคำสั่งแก้ให้ตรง ๆ",
     how:"<code>grammars.py</code> เป็นเจ้าของคำถามว่า \"เครื่องนี้พาร์สภาษา X ได้ไหม\": ตาราง wheel, พาร์สเซอร์ที่แคชแบบ lazy, คำสั่ง <code>pip install</code> ที่ตรงเป๊ะสำหรับสิ่งที่ขาด และเวอร์ชันที่ติดตั้งอยู่สำหรับใส่ manifest มันเป็นตัวติดตั้งเองด้วย และรันด้วยอินเทอร์พรีเตอร์ตัวเดียวกับที่จะรัน skill ไฟล์ลงที่ <code>&lt;skill&gt;/vendor</code> ผ่าน <code>pip install --only-binary :all: --no-cache-dir --target vendor</code> — สามแฟล็กนี้ขาดไม่ได้: <code>--target</code> คือหัวใจ, <code>--only-binary</code> ปฏิเสธการคอมไพล์, <code>--no-cache-dir</code> กัน pip เขียนไฟล์นอกโฟลเดอร์ นอกจากนี้มันยังตอบสองคำถามที่โฟลเดอร์ vendor สร้างขึ้น: <code>origins()</code> บอกว่า grammar นี้โหลดมาจาก vendor หรือจาก site-packages และ <code>runtime_error()</code> เปลี่ยน runtime ที่โหลดไม่ขึ้นให้เป็นประโยคเดียว แทนที่จะเป็น traceback",
     tech:["pip --target vendor","เวอร์ชันตรึงใน PINS","ตรวจ drift ของเวอร์ชัน","find_spec เทียบกับ import จริง"],
+    code:"# ติดตั้ง -- ลงในโฟลเดอร์ skill เท่านั้น ไม่แตะ Python ของผู้ใช้\n$ python scripts/core/grammars.py --install python typescript\n\npython.exe -m pip install --only-binary :all: --no-cache-dir \\\n  --target <skill>/vendor \"tree-sitter>=0.26,<0.27\" \\\n  tree-sitter-python==0.25.0 tree-sitter-typescript==0.23.2\n\n# เวอร์ชันถูกตรึงไว้ที่เดียว: scripts/core/grammars.py\nPINS = {\n    \"tree-sitter\": \">=0.26,<0.27\",\n    \"tree-sitter-python\": \"==0.25.0\",\n    \"tree-sitter-java\": \"==0.23.5\",\n}\n\n# ถ้าขาด -- build ยังสำเร็จ แต่บอกชื่อและคำสั่งแก้ ไม่เงียบ\n! csharp skipped: no tree-sitter grammar installed. Run `pip install ...\n  --target <skill>/vendor tree-sitter-c-sharp` to enable it.",
     cmd:"scripts/core/grammars.py --install        # ทุกภาษา\nscripts/core/grammars.py --print          # แค่แสดงคำสั่ง pip",
     qa:[
       ["ทำไมไม่ใช้ bundle รวมทุกภาษา","ตัวเลือกที่ชัดเจนคือ <code>tree-sitter-language-pack</code> แต่มันดาวน์โหลด grammar ผ่านเครือข่ายตอนใช้ครั้งแรก ซึ่งเท่ากับใส่การเรียกเน็ตเข้าไปในเครื่องมือที่ทั้งชีวิตสัญญาว่าจะทำงานออฟไลน์แบบผลลัพธ์คงที่ wheel รายภาษาฝัง grammar ไว้ในตัว ประมาณ 9.4 MB สำหรับห้าภาษา ไม่ต้องคอมไพล์ ไม่โหลดอะไรตอนรัน"],
@@ -616,6 +649,7 @@ const FEATURES = [
     d:"รู้ได้ว่า self.repo.save() หมายถึง OrderRepository.save โดยไม่ต้องมีเอนจิน type inference",
     how:"ใช้ฮิวริสติกสี่ชั้น เรียงจากถูกที่สุด: <code>self.&lt;attr&gt;.m()</code> resolve ผ่านชนิดข้อมูลของแอตทริบิวต์ที่บันทึกจาก annotation หรือการกำหนดค่าใน <code>__init__</code>; <code>&lt;param&gt;.m()</code> ใช้ annotation ของ parameter; <code>&lt;local&gt;.m()</code> ใช้การกำหนดค่าจาก constructor แบบ <code>x = SomeClass()</code>; และ <code>self.m()</code> resolve ภายในคลาสเดียวกัน ภาษาในกลุ่ม phase 7 เพิ่มกฎอีกหนึ่งข้อที่พวกมันพึ่งพามาก: ตัวรับที่เป็นชื่อชนิดข้อมูลเสียเอง (<code>WidgetStore.save</code> ใน Elixir, <code>Widget::new</code> ใน Rust) resolve ไปยังชนิดนั้น",
     tech:["อ่าน annotation","อนุมานจาก constructor","ทิ้งเมื่อกำกวม","กฎตัวรับรายภาษา"],
+    code:"# 1) self.<attr>.m()  -- อ่านชนิดจาก annotation ใน __init__\ndef __init__(self, repository: OrderRepository):\n    self.repository = repository          # จำไว้ว่า repository : OrderRepository\ndef place_order(self, payload):\n    return self.repository.save(payload)  # -> OrderRepository.save  [ลาก edge]\n\n# 2) <param>.m()   -- อ่านจาก annotation ของพารามิเตอร์\ndef archive(self, repo: OrderRepository): repo.save(x)   # -> OrderRepository.save\n\n# 3) <local>.m()   -- อ่านจากการสร้างอ็อบเจ็กต์\nsvc = OrderService(); svc.place_order(x)                 # -> OrderService.place_order\n\n# 4) self.m()      -- คลาสเดียวกัน\nself.find_order(x)                                       # -> OrderService.find_order\n\n# อ่านชนิดไม่ได้ = ไม่ลาก edge (ไม่เดา)\njson.dumps(payload)        # ออกนอกกราฟ -> นับไว้ที่ฟิลด์ \"ext\" แทน",
     cmd:"— อยู่ภายใน scripts/extract/build_flow.py",
     qa:[
       ["การเรียกที่ resolve ไม่ได้ไปไหน","ถูกทิ้ง การเรียกที่ resolve ไม่ได้ซึ่งวิ่งเข้าไลบรารีภายนอกหรือไลบรารีมาตรฐานจะเพิ่มแต่สัญญาณรบกวนโดยไม่เพิ่มความหมายเชิงสถาปัตยกรรม และ edge ที่ผิดแย่กว่า edge ที่หายไป"],
@@ -628,6 +662,7 @@ const FEATURES = [
     d:"ชื่อซ้ำในหลายไฟล์จะถูกเติมชื่อไฟล์กำกับ ส่วนชื่อที่ไม่ซ้ำยังคงสะกดเดิม",
     how:"<code>core/ids.py</code> คือกฎเดียวที่ใช้ร่วมกันทั้งสองแผนที่ <code>SharedNames</code> รับรายการ (ชื่อ, ไฟล์) ของทุกนิยามจากตัวสกัดทั้งสามตัว<em>ก่อน</em>จะสร้าง node ใด ๆ แล้วเติมคำนำหน้าเฉพาะชื่อที่มีสองไฟล์ขึ้นไปนิยามไว้ — เติมด้วยชื่อไฟล์ ถ้ายังชนก็เติมด้วยพาธ — และเปรียบเทียบแบบ<strong>ไม่สนตัวพิมพ์</strong> เพราะโน้ตของแต่ละ node คือไฟล์ <code>&lt;id&gt;.md</code> และ <code>Widgets.X</code> กับ <code>widgets.X</code> เป็นไฟล์เดียวกันบน Windows และ macOS การเรียกไปยังชื่อที่ซ้ำจะ resolve ไปยังนิยามในไฟล์ของผู้เรียกเอง หรือไม่ก็ถูกทิ้ง",
     tech:["จัดกลุ่มก่อนสร้าง node","เติมคำนำหน้าเฉพาะที่จำเป็น","เทียบแบบไม่สนตัวพิมพ์","ใช้ร่วมกันทั้งสองแผนที่"],
+    code:"# สองไฟล์นิยามชื่อเดียวกัน\n# scripts/review/tests_map.py ->  def build(...)\n# scripts/review/report.py    ->  def build(...)\n\n# id จึงถูกเติมชื่อไฟล์กำกับ -- เฉพาะชื่อที่ซ้ำ ที่เหลือยังเปล่า\ntests_map.build      report.build      place_order      OrderService.place_order\n\n# scripts/core/ids.py -- การเรียกชื่อที่ซ้ำ resolve ไปยังไฟล์ของผู้เรียกเอง\ndef target(self, name, from_rel):\n    \"\"\"id ที่การอ้างถึง `name` จากไฟล์ `from_rel` หมายถึง หรือ None ถ้าบอกไม่ได้\"\"\"\n    rels = self.defined.get(name, ())\n    if len(rels) < 2:                       # นิยามเดียว -> ไม่กำกวม\n        return self.qualified.get((name, next(iter(rels))), name) if rels else name\n    return self.qualified.get((name, from_rel))   # ไม่ใช่ไฟล์ตัวเอง -> None = ทิ้ง\n\n# ก่อนมีกฎนี้: main() ทุกตัวในทุกสคริปต์เป็น node เดียวกัน = edge ปลอม 72 เส้น",
     cmd:"— scripts/core/ids.py",
     qa:[
       ["ปัญหาจริงที่แก้คืออะไร","ก่อนหน้านี้ <code>main()</code> ทุกตัวในทุกสคริปต์กลายเป็น node เดียวที่แบกการเรียกของทุกนิยามรวมกัน — บนโค้ดของ skill เองนั่นคือ <strong>edge ปลอม 72 เส้น</strong> ซึ่ง <code>tools/check_graph.py</code> เป็นคนจับได้"],
@@ -640,6 +675,7 @@ const FEATURES = [
     d:"ชื่อเดียวที่คลาสนิยามซ้ำ จะได้ชนิดของพารามิเตอร์ติดไปใน id",
     how:"ในภาษาที่มี overload (Java, C#, Kotlin, Scala, Swift, C++ และ Groovy ผ่านต้นไม้ของ Java) ชื่อที่คลาสหนึ่งนิยามสองครั้งจะได้ id แยกกัน เช่น <code>InvoiceService.Total(InvoiceRequest)</code> กับ <code>InvoiceService.Total(int,int)</code> ส่วน id อื่นทั้งหมดยังสะกดแบบเปล่า ๆ การเรียกจะเลือก overload จากจำนวน argument ก่อน แล้วจึงจากชนิดของทุก argument เท่าที่ source ระบุ — ค่าคงที่, <code>new X(...)</code> หรือชื่อที่มีชนิดประกาศไว้ สิ่งที่ยังเหลือความกำกวมจะถูกทิ้ง และผู้เรียกบันทึกชุดนั้นไว้ที่ <code>ambiguous</code> พร้อมพก <code>precision: overloads</code>",
     tech:["id มีชนิดพารามิเตอร์","เลือกจากจำนวนแล้วจึงชนิด","ทิ้งเมื่อยังกำกวม","หนึ่ง node หนึ่งช่วงบรรทัด"],
+    code:"# sample_src/services/orders_cs/InvoiceService.cs\npublic int Total(InvoiceRequest request) {\n    return Total(request.Units, request.UnitPrice);   // 2 args -> เลือกตัวล่าง\n}\npublic int Total(int units, int unitPrice) {\n    return units * unitPrice;\n}\n\n# แต่ละ overload เป็น node ของตัวเอง พร้อมช่วงบรรทัดของตัวเอง\n\"InvoiceService.Total(InvoiceRequest)\"\n\"InvoiceService.Total(int,int)\"\n\n# การเรียกเลือก overload จากจำนวน argument ก่อน แล้วจึงจากชนิดที่ source ระบุ\n{\"source\": \"InvoiceService.Issue\",\n \"target\": \"InvoiceService.Total(InvoiceRequest)\", \"type\": \"calls\"}\n{\"source\": \"InvoiceService.Total(InvoiceRequest)\",\n \"target\": \"InvoiceService.Total(int,int)\",        \"type\": \"calls\"}\n\n# ถ้ายังบอกไม่ได้ -> ทิ้งการเรียก และ node บันทึกไว้\n{\"ambiguous\": [\"InvoiceService.Total\"], \"precision\": [\"overloads\"]}",
     cmd:"— scripts/extract/build_flow.py (_pick_overload)",
     qa:[
       ["ก่อนหน้านี้เป็นอย่างไร","ชุด overload ทั้งชุดเป็น node เดียว ที่แบกการเรียกของทุก overload แต่ถือช่วงบรรทัดของ overload เดียว ผลคือ metrics และ findings ที่ผูกกับช่วงนั้นผิดไปด้วย"],
@@ -651,6 +687,7 @@ const FEATURES = [
     d:"@PostMapping, [HttpPost], #[post(...)] และ @app.route ถือเป็นส่วนหนึ่งของตัว handler",
     how:"ช่วงบรรทัดของทุก node เริ่มที่ decorator, annotation หรือ attribute ตัวแรก — ในทุกภาษา และทั้งสองแผนที่ เหตุผลคือ ข้อค้นพบที่ตกบนบรรทัดเหล่านั้น<em>เป็นของ</em> handler ตัวนั้นจริง ๆ เดิมทีมันเริ่มที่บรรทัดชื่อใน Python/Java/C# และเริ่มที่บรรทัด decorator ใน JS/TS ซึ่งไม่สม่ำเสมอ ตอนนี้คอลัมน์ <code>lines</code> ในทุก fixture ตรึงพฤติกรรมนี้ไว้",
     tech:["ช่วงครอบ decorator","สม่ำเสมอทุกภาษา","ตรึงด้วย fixture"],
+    code:"# sample_src/backend/order_controller.py\n15:    @router.post(\"/orders\")          <- ช่วงของ node เริ่มที่บรรทัดนี้\n16:    def create_order(self, payload):\n17:        \"\"\"POST /orders - create a new order.\"\"\"\n18:        return self.service.place_order(payload)\n\n# node จึงครอบ decorator ไปด้วย\n{\"id\": \"OrderController.create_order\", \"kind\": \"endpoint\",\n \"source\": \"sample_src/backend/order_controller.py:15\", \"end\": 18,\n \"routes\": [{\"method\": \"POST\", \"path\": \"/orders\"}]}\n\n# ทำไมถึงสำคัญ: ทุก pass ที่หาเจ้าของบรรทัดใช้ช่วงนี้\n# ถ้าเริ่มที่บรรทัด 16 ข้อค้นพบบนบรรทัด 15 จะไปเกาะฟังก์ชันก่อนหน้าแทน\n# @Service, [HttpPost], #[post(...)] ทำงานแบบเดียวกันทุกภาษา",
     cmd:"— tests/fixtures/langs/*/expected.json",
     qa:[
       ["ทำไมเรื่องนี้ถึงสำคัญ","เพราะทุก pass ที่ระบุเจ้าของบรรทัด — สแกนความปลอดภัย, มาร์กเกอร์หนี้ทางเทคนิค, metrics — ใช้ช่วงนี้ ถ้าช่วงเริ่มผิดหนึ่งบรรทัด ข้อค้นพบก็ไปเกาะฟังก์ชันข้างเคียงแทน"]
@@ -661,6 +698,7 @@ const FEATURES = [
     d:"ต่อ fetch() ในฝั่งหน้าเว็บเข้ากับ route handler ที่ให้บริการมันจริง ๆ",
     how:"route decorator อย่าง <code>@router.post(\"/orders\")</code> ถูกอ่านเอาเมธอดกับพาธ ส่วนการเรียก <code>fetch</code>/axios ในฝั่งหน้าเว็บก็ถูกอ่านแบบเดียวกัน ทั้งสองพาธถูกทำให้เป็นรูปแบบมาตรฐาน เช่น <code>:id</code>, <code>{id}</code> และ <code>&lt;id&gt;</code> ยุบเป็น wildcard เดียวกัน แล้วจับคู่บนคู่ (METHOD, path) ตัว axios instance ถูกไล่ตามจากไฟล์เดียวที่สร้างมันขึ้นมา (ไม่ว่าจะโดยตรงหรือผ่าน factory) ไปยังทุกไฟล์ที่ import มัน และ <code>const API_BASE_URL = \"/orders\"</code> ในไฟล์เดียวกันถูกอ่านเป็นค่าของมันจริง ๆ เมื่อไม่มี route ไหนตรงเป๊ะ ระบบจะถอยไปจับคู่ด้วย suffix ที่ตรงทั้ง segment และไม่ซ้ำ — ได้ทั้งสองทิศทาง ดังนั้น prefix <code>/api</code> จะอยู่ที่ mount ของเซิร์ฟเวอร์หรือใน <code>baseURL</code> ของไคลเอนต์ก็ได้ ส่วน URL ที่ไม่มี segment เป็นค่าคงที่เลยจะไม่เชื่อมกับอะไร ดีกว่าไปเชื่อมกับ <code>GET /</code>",
     tech:["สกัด route decorator","ทำพาธเป็นมาตรฐาน","edge ชนิด HTTP","ไล่ตาม axios instance ข้ามไฟล์"],
+    code:"# หน้าเว็บ: sample_src/frontend/api_client.ts\nexport async function createOrder(payload: object) {\n  const res = await fetch(\"/orders\", { method: \"POST\", ... });\n}\n\n# หลังบ้าน: sample_src/backend/order_controller.py\n@router.post(\"/orders\")\ndef create_order(self, payload): ...\n\n# ทำพาธให้เทียบกันได้ก่อน: scripts/extract/build_flow.py\ndef _norm_path(path):\n    \"\"\":id (Express/Nest), {id} (FastAPI), <id> และ <int:id> (Flask) -> ตัวแทนตัวเดียว\"\"\"\n    path = path.split(\"?\", 1)[0]        # query string ไม่ใช่ส่วนหนึ่งของ route\n\n# จับคู่บน (METHOD, path) แล้วได้ edge ข้าม stack จริง ๆ\n{\"source\": \"createOrder\", \"target\": \"OrderController.create_order\", \"type\": \"http\"}\n\n# trace เส้นเดียวจากปุ่มถึงฐานข้อมูล\nsubmitOrder > createOrder > OrderController.create_order\n            > OrderService.place_order > OrderRepository.save",
     cmd:"archaeologist.py flow --src ./backend ./frontend",
     qa:[
       ["ทำไมเรื่องนี้ถึงสำคัญ","มันคือรอยต่อที่เครื่องมือส่วนใหญ่พลาด ถ้าไม่มีมัน คุณจะได้กราฟที่ขาดออกจากกันสองก้อน แต่ถ้ามี การ trace ครั้งเดียวจะวิ่งจากปุ่มที่ผู้ใช้กดไปจนถึงแถวในฐานข้อมูล"],
@@ -673,6 +711,7 @@ const FEATURES = [
     d:"Django urlpatterns, Rails routes.rb, Laravel routes/*.php และ Phoenix router",
     how:"<code>route_tables.py</code> อ่านเฉพาะตัวตาราง: Django <code>urlpatterns</code> พร้อม prefix จาก <code>include()</code>, พาธแบบ regex และ class-based view (แตกเป็นหนึ่ง route ต่อหนึ่งเมธอด HTTP ที่คลาสนิยาม); Rails <code>routes.rb</code> (<code>resources</code>, <code>namespace</code>, <code>scope</code>, <code>member</code>); Laravel <code>routes/*.php</code> (ทั้งสองรูปแบบของ handler, <code>prefix()-&gt;group</code>, <code>resource</code>); และ Phoenix router (alias ของ <code>scope</code> ที่ซ้อนกัน, <code>resources</code>) จากนั้น <code>build_flow._attach_table_routes</code> ผูกแต่ละ route เข้ากับ node เดียวที่การอ้างอิง <code>(class, method)</code> ระบุไว้ — function view ของ Django ยังถูกตรึงกับไฟล์ที่ import ชี้ไปด้วย — ก่อนรอบ cross-stack จะเริ่ม การอ้างอิงที่ไม่ตรงกับ node ไหนเลยหรือตรงสองตัวจะถูกทิ้งและนับรวมในบรรทัด stderr บรรทัดเดียว ไม่เดา",
     tech:["อ่านตาราง route แยกส่วน","ผูกกลับเข้าหา node เดียว","ทิ้งเมื่อกำกวม","นับสิ่งที่ทิ้งให้เห็น"],
+    code:"# Django: route อยู่คนละไฟล์กับ handler\n# urls.py\nurlpatterns = [\n    path(\"orders/\", views.order_list, name=\"orders\"),\n    path(\"orders/<int:pk>/\", OrderDetail.as_view()),   # -> หนึ่ง route ต่อหนึ่งเมธอด HTTP\n]\n\n# Rails: routes.rb\nresources :orders, only: [:index, :show]\n\n# route_tables.py แค่ *อ่าน* ตาราง ส่วนการผูกกลับทำที่ build_flow\n# _attach_table_routes: ผูกกับ node เดียวที่ (class, method) ระบุเท่านั้น\n# อ้างถึง node ที่ไม่มีจริง หรือตรงสองตัว -> ทิ้ง และนับไว้หนึ่งบรรทัด\n! 1 route-table route(s) name no single handler in the graph,\n  so they are not attached: GET /missing.",
     cmd:"— scripts/extract/route_tables.py",
     qa:[
       ["ต่างจากการอ่าน decorator อย่างไร","decorator อยู่ติดกับ handler จึงรู้ทันทีว่าเป็นของใคร ส่วนตาราง route อยู่คนละไฟล์และอ้างถึง handler ด้วยชื่อ งานที่ยากคือการผูกกลับ ไม่ใช่การอ่าน"],
@@ -684,6 +723,7 @@ const FEATURES = [
     d:"ประโยคสรุปที่เสีย token เฉพาะโค้ดที่เปลี่ยนจริงเท่านั้น",
     how:"คำอธิบายของแต่ละ node ถูกหาแบบถูกที่สุดก่อน: ถ้ามี docstring อยู่แล้วใช้อันนั้น; ถ้าไม่มี ใช้คำสรุปจาก AI ที่แคชไว้ ถ้า hash ของ source ของเมธอดนั้นยังตรงอยู่; ถ้ายังไม่มีอีก เขียนข้อความสำรองแบบคงที่ลงไปก่อนแล้วเข้าคิวรอสรุป คำสรุปถูกคีย์ด้วย SHA-1 ของ source ของเมธอด การแก้เมธอดหนึ่งตัวจึงทำให้เฉพาะรายการนั้นหมดอายุ",
     tech:["SHA-1 ของ source","แคชหมดอายุตามเนื้อหา","ข้อความสำรองแบบคงที่"],
+    code:"# ลำดับการหาคำอธิบาย -- ถูกที่สุดก่อน\n# 1) docstring ที่มีอยู่แล้ว ชนะเสมอ (ฟรี)\ndef place_order(self, payload):\n    \"\"\"Charge payment then persist the order.\"\"\"\n\n# 2) คำสรุปจาก AI ที่แคชไว้ -- ใช้ได้ตราบที่ hash ของ source ยังตรง\n# data/cache/descriptions.json\n{\"OrderService.__init__\": {\"file\": \"sample_src/backend/order_service.py\",\n                           \"hash\": \"f28a779bfcd7\",\n                           \"summary\": \"Wires the service to its dependencies.\"}}\n\n# 3) ข้อความสำรองแบบคงที่ + เข้าคิวรอสรุป\n# data/cache/pending_descriptions.json  (แต่ละรายการมี signature + code)\n\n# ผลลัพธ์ของ sample: 47 docstring, 6 cached-AI, 0 pending\n  descriptions: 47 docstring, 6 cached-AI, 0 pending\n\n# แก้เมธอดเดียว = hash เปลี่ยนเฉพาะเมธอดนั้น = เสีย token เท่าขนาด diff",
     cmd:"scripts/extract/apply_descriptions.py --input summaries.json",
     qa:[
       ["ตัวกราฟเป็น AI สร้างหรือเปล่า","ไม่ และนี่คือเส้นแบ่งที่สำคัญ โครงสร้าง, edge, signature และความสัมพันธ์การเรียก ถูกสกัดออกมาแบบคงที่ทั้งหมด โมเดลเขียนได้แค่ร้อยแก้วบรรทัดเดียว และไม่มีอิทธิพลต่อกราฟเลย"],
@@ -695,6 +735,7 @@ const FEATURES = [
     d:"โฟลเดอร์ dependency, ผลลัพธ์ build และแคชของเฟรมเวิร์ก ถูกตัดออกจากที่เดียว",
     how:"<code>taxonomy.SKIP_DIRS</code> เป็นคำนิยามเดียวว่าโฟลเดอร์ไหนไม่ใช่ source เดิมทีมีสำเนาที่ดูแลด้วยมืออยู่ห้าชุดและมันเลื่อนไปคนละทาง จนผลลัพธ์ของ dev server ของ Next.js (<code>.next/</code>) กลายเป็น 9% ของกราฟการไหลของ repo จริง ที่น่าสนใจคือชื่ออย่าง <code>target</code>, <code>out</code>, <code>coverage</code> และ <code>vendor</code> <em>จงใจ</em>ไม่อยู่ในรายการ เพราะแต่ละชื่อเป็นโฟลเดอร์ source จริงของใครสักคน",
     tech:["รายการเดียว","ตัดแคชของเฟรมเวิร์ก","จงใจไม่ตัดชื่อที่กำกวม"],
+    code:"# scripts/core/taxonomy.py -- คำนิยามเดียวว่าอะไรไม่ใช่ source\nSKIP_DIRS = frozenset({\n    \".git\", \"__pycache__\", \"venv\", \".venv\", \"node_modules\", \".idea\", \"data\",\n    \"dist\", \"build\", \".next\", \".nuxt\", \".svelte-kit\", \".angular\", \".turbo\",\n    \".parcel-cache\", \".gradle\", \".dart_tool\",\n})\n\n# สังเกตว่าชื่อพวกนี้ *จงใจ* ไม่อยู่ในรายการ -- แต่ละชื่อเป็นโฟลเดอร์ source จริงของใครสักคน\n#   target/     (Rust, Maven)      out/        (บางโปรเจกต์)\n#   coverage/                      vendor/     (Go)\n\n# ทำไมถึงต้องมีที่เดียว: เคยมีสำเนาที่ดูแลด้วยมือห้าชุดแล้วเลื่อนไปคนละทาง\n# จนผลลัพธ์ของ dev server ของ Next.js (.next/) กลายเป็น 9% ของกราฟ repo จริง",
     cmd:"— scripts/core/taxonomy.py",
     qa:[
       ["รู้ได้อย่างไรว่ามีปัญหา","รันกับ repo จริง กราฟพองขึ้นผิดปกติ แล้วไล่ย้อนกลับไปเจอว่าเป็นไฟล์ที่เครื่องมือ build เขียนขึ้นเอง นี่คือชนิดของบั๊กที่ fixture ไม่มีวันจับได้"]
@@ -707,6 +748,7 @@ const FEATURES = [
     d:"เส้นทางการเรียกที่สั้นที่สุดระหว่างสอง node ใดก็ได้ — หรือทุกเส้นทาง",
     how:"การค้นแบบกว้างก่อน (BFS) บน adjacency list ให้เส้นทางที่สั้นที่สุด และเพราะ BFS สำรวจตามระยะทาง เส้นทางแรกที่เจอจึงพิสูจน์ได้ว่าสั้นที่สุด ส่วนการค้นแบบลึกก่อนที่มีขอบเขต (bounded DFS) ใช้ไล่เส้นทางเชิงเดี่ยวทั้งหมด โดยจำกัดทั้งจำนวนเส้นทางและความลึก เพื่อไม่ให้กราฟที่หนาแน่นทำให้คำถามค้าง",
     tech:["BFS หาเส้นทางสั้นสุด","DFS แบบมีขอบเขต","ชุด visited กันวนลูป"],
+    code:"# scripts/query/trace_path.py -- BFS ให้เส้นทางสั้นที่สุดโดยพิสูจน์ได้\ndef bfs_shortest(adj, start, goal):\n    if start == goal: return [start]\n    prev = {start: start}\n    q = deque([start])\n    while q:\n        cur = q.popleft()\n        for nxt in adj.get(cur, []):\n            if nxt not in prev:\n                prev[nxt] = cur\n                if nxt == goal:\n                    return _reconstruct(prev, start, goal)\n                q.append(nxt)\n    return None\n\n# ใช้จริง\n$ trace_path.py --graph flow_graph.json \\\n    --from OrderController.create_order --to OrderRepository.save\nOrderController.create_order > OrderService.place_order > OrderRepository.save\n\n# --all ใช้ DFS แบบมีขอบเขต (max_paths=50, max_depth=25) กันกราฟหนาแน่นทำให้ค้าง",
     cmd:"scripts/query/trace_path.py --from OrderController --to OrderRepository",
     qa:[
       ["ดีกว่าให้โมเดลอ่านโค้ดเองตรงไหน","แม่นยำและถูกกว่ามาก การเดินกราฟไม่เสีย token เลยสักตัว โมเดลอ่านเฉพาะโน้ตไม่กี่ใบที่เส้นทางระบุ"],
@@ -718,6 +760,7 @@ const FEATURES = [
     d:"ทุกอย่างที่อยู่เหนือขึ้นไปและจะพัง ถ้าคุณแก้ node นี้",
     how:"กลับทิศทุก edge ของกราฟ (transpose) แล้วรัน BFS ออกจากเป้าหมาย ผลที่ได้คือเซตของผู้เรียกแบบ transitive ไม่ใช่แค่ผู้เรียกโดยตรง แต่รวมทุกอย่างที่เดินมาถึง node นี้ได้ผ่านห่วงโซ่ใด ๆ",
     tech:["Graph transposition","Reverse BFS","Transitive closure"],
+    code:"# scripts/query/trace_path.py -- กลับทิศทุก edge แล้ว BFS ออกไป\ndef impact_of(radj, target):\n    \"\"\"Reverse-BFS: ผู้เรียกทั้งหมดแบบ transitive ของ `target`\"\"\"\n    seen, q = set(), deque([target])\n    while q:\n        cur = q.popleft()\n        for caller in radj.get(cur, []):\n            if caller not in seen:\n                seen.add(caller)\n                q.append(caller)\n    return sorted(seen)\n\n# ใช้จริง -- ข้ามไปถึงฝั่งหน้าเว็บ เพราะ http เป็น edge จริง\n$ trace_path.py --graph flow_graph.json --impact-of PaymentClient.charge\n6 node(s) reach PaymentClient.charge\n  OrderController.create_order\n  OrderService.place_order\n  createOrder\n  orders\n  submitOrder",
     cmd:"scripts/query/trace_path.py --impact-of PaymentClient.charge",
     qa:[
       ["ทำไมไม่แค่ค้นชื่อฟังก์ชันเอา","การค้นข้อความเจอเฉพาะที่เอ่ยถึงโดยตรง แต่อันนี้เจอเซตแบบ transitive — ผู้เรียกที่อยู่ห่างออกไปสามทอดซึ่งไม่มีใครคิดจะ grep หา คือตัวที่พังจริงบน production"],
@@ -729,6 +772,7 @@ const FEATURES = [
     d:"ชี้ไปที่ git diff แล้วมันบอกว่า PR ทั้งก้อนกระทบอะไรบ้าง",
     how:"รัน <code>git diff --name-only</code> (working tree, staged หรือเทียบกับ base ref ใดก็ได้) แม็ปไฟล์ที่เปลี่ยนกลับไปเป็น node ที่อยู่ในไฟล์นั้นด้วยการจับคู่ suffix ของพาธ แล้วรวม (union) รัศมีผลกระทบของทุก node เหล่านั้นเข้าด้วยกัน",
     tech:["อ่าน git diff","แม็ปไฟล์→node ด้วย suffix","รวมเซตผลกระทบ"],
+    code:"# แม็ปไฟล์ที่ git บอกว่าเปลี่ยน -> node -> รวมรัศมีผลกระทบ\n$ git diff --name-only origin/main\nsample_src/backend/order_repository.py\n\n$ trace_path.py --impact-of-diff --base origin/main\n\n# โหมดอื่น\n$ trace_path.py --impact-of-diff             # working tree\n$ trace_path.py --impact-of-diff --staged    # ที่ staged ไว้\n\n# การจับคู่ไฟล์->node ทำบน *suffix* ของพาธพร้อมตรวจขอบ segment\n# node เก็บ source เป็นพาธสัมพัทธ์พร้อม prefix ของ root:\n#   \"sample_src/backend/order_repository.py:7\"\n# จึงถูกต้องไม่ว่า git จะรายงานพาธจากรากของ repo หรือจากโฟลเดอร์ย่อย",
     cmd:"scripts/query/trace_path.py --impact-of-diff --base origin/main",
     qa:[
       ["ใช้จริงตอนไหน","ตอนรีวิว pull request แทนที่จะตัดสิน diff จากบรรทัดที่มันแตะ คุณเห็นพื้นผิวที่มันขยับจริง ๆ ซึ่งมักใหญ่กว่าที่ diff ทำให้รู้สึกมาก"],
@@ -740,6 +784,7 @@ const FEATURES = [
     d:"หา node ด้วยชื่อ, doc, layer, kind, ภาษา หรือด้วยความเชื่อมโยง",
     how:"เป็นตัวกรองบนกราฟหนึ่งชุด ไม่ใช่การค้นข้อความบน source นอกจากฟิลด์ปกติแล้วมันยังเลือกเชิงโครงสร้างได้: ทุกอย่างที่ node นี้เรียก, ทุกอย่างที่เรียก node นี้ หรือทุก node ที่ไม่มีใครเรียกเลย",
     tech:["ตัวกรองกราฟ","เงื่อนไขเชิงความเชื่อมโยง","คืนค่าเป็น node id"],
+    code:"# หา node ด้วยชื่อ / ชั้น / ภาษา -- ไม่ต้อง grep source\n$ search.py --name \"payment|charge\"          # --name, --doc รับ regex\n$ search.py --layer repository --kind method\n$ search.py --file .tsx\n\n# สองทิศของ edge เดียวกัน -- ตอบความเชื่อมโยงโดยไม่ต้อง trace\n$ search.py --called-by OrderService.place_order\nOrderRepository.save  method/repository  order_repository.py:7  Insert a new order row.\nPaymentClient.charge  method/client      payment_client.py:11   Charge the customer.\n\n# กับดักที่ต้องรู้: lang ของ node หยาบกว่าสำมะโนไฟล์\n$ search.py --lang ts      # -> no match (ไม่มี tag ts)\n$ search.py --lang js      # -> ครอบ .js .jsx .ts .tsx ทั้งหมด\n$ search.py --orphans --format json         # node ที่ไม่มีอะไรเรียก",
     cmd:"scripts/query/search.py --name order --layer service\nscripts/query/search.py --calls OrderRepository.save\nscripts/query/search.py --orphans --format json",
     qa:[
       ["มี grep แล้วจะมีอันนี้ทำไม","เพราะมันคืน node id ซึ่งเป็นคีย์ที่คำสั่งอื่นทุกตัวรับเข้าไป มันคือจุดเริ่มของเวิร์กโฟลว์: search เพื่อหา, trace เพื่อเชื่อม, context เพื่อโหลด และเพราะ id อาจถูกเติมชื่อไฟล์นำหน้าเมื่อมีชื่อซ้ำ การค้นจึงปลอดภัยกว่าการพิมพ์ id จากความจำ"],
@@ -751,6 +796,7 @@ const FEATURES = [
     d:"ทุกอย่างที่รู้เกี่ยวกับ node หนึ่งตัว ในบล็อกเดียวที่คุมขนาดไว้แล้ว",
     how:"รวมข้อเท็จจริงจากกราฟ, ขนาดและความซับซ้อน, churn และเจ้าของ, คำอธิบาย, ผู้เรียกและผู้ถูกเรียกชั้นติดกันพร้อมคำอธิบายของแต่ละตัว และข้อค้นพบด้านความเสี่ยงที่ผูกกับ node นั้น แล้วเรนเดอร์ทั้งหมดภายใต้เพดานจำนวนตัวอักษรที่กำหนดตายตัว เพื่อไม่ให้ผลลัพธ์ระเบิด context window ได้",
     tech:["รวมข้อมูลหลายแหล่ง","เพดานตัวอักษรตายตัว","ขยายไปโหนดข้างเคียง"],
+    code:"$ context.py --node OrderService.place_order\n\n# OrderService.place_order\nmethod | service | py | sample_src/backend/order_service.py:13\n     | 4 LOC, cx 1, depth 0 | 1 commit(s), Nattawut Rodthong\n\n`place_order(self, payload)`\nCharge payment then persist the order.\n\n## Calls (2)\n- `OrderRepository.save` - Insert a new order row.\n- `PaymentClient.charge` - Charge the customer for an order.\n\n## Called by (2)\n- `OrderController.create_order` - POST /orders - create a new order.\n- `orders` - List orders, or place a new one - one handler, two verbs.\n\n## Covered by (1 test(s))\n- `test_place_order_charges_and_saves`\n\n# --max-chars คือเพดานจริง: รายชื่อเพื่อนบ้านจะหดลงจนพอดี และบอกว่าตัดไปแล้ว",
     cmd:"scripts/query/context.py --node OrderService.place_order\nscripts/query/context.py --diff --depth 2 --max-chars 8000",
     qa:[
       ["แก้ปัญหาอะไร","มันแทนที่ \"trace แล้วเปิดโน้ตห้าใบ แล้วไปเปิด metrics อีกที\" ด้วยการเรียกครั้งเดียว — รอบการสื่อสารน้อยลงและขนาดผลลัพธ์คาดเดาได้"],
@@ -763,6 +809,7 @@ const FEATURES = [
     d:"ทั้งโค้ดเบสย่อเป็นไดเจสต์ขนาดคงที่ ไม่ว่า repo จะใหญ่แค่ไหน",
     how:"อ่านเฉพาะไฟล์ผลลัพธ์ที่ pass อื่นเขียนไว้แล้ว — ไม่คำนวณอะไรเอง — แล้วพิมพ์จำนวนและเกรดของแต่ละแผนที่, ความสดของข้อมูล, ขนาดและสัดส่วนภาษา, จุดเข้า, และอันดับ node ที่ยาวที่สุด ซับซ้อนที่สุด ถูกแก้บ่อยที่สุด และเสี่ยงที่สุด รวมถึงบล็อก <code>SKIPPED</code> ถ้ามีภาษาที่ถูกข้าม และ <code>UNPINNED</code> ถ้า grammar ที่ติดตั้งไม่ตรงเวอร์ชันที่ตรึงไว้",
     tech:["อ่านเฉพาะ artifact","ขนาดผลลัพธ์คงที่","ไม่คำนวณซ้ำ"],
+    code:"$ archaeologist.py brief\n\nMAPS\n  structure    25 node(s)   22 edge(s)  grade D (69/100)\n  flow         53 node(s)   33 edge(s)  grade D (68/100)  (16 with a named precision loss)\n  freshness  up to date\n  edges      a LOWER BOUND in every language. A call is drawn only when the\n             receiver's type can be read from the source; anything else is\n             dropped rather than guessed. Say so when you answer from them.\n\nSIZE\n  22 file(s), 529 lines (343 code, 84 comment, 102 blank)\n  - py 126, java 102, csharp 90, ts 90, go 66, js 28, tsx 27\n\n# ถ้ามีภาษาที่ถูกข้าม จะมีบล็อกนี้เพิ่ม พร้อมคำสั่งแก้\n  SKIPPED    csharp: no tree-sitter grammar installed, so these files ...\n  UNPINNED   java 0.23.4 (pinned 0.23.5): not the grammar version tested",
     cmd:"archaeologist.py brief --src ./src\nscripts/review/brief.py --map structure --top 3 --json",
     qa:[
       ["ทำไมขนาดคงที่ถึงเป็นประเด็น","เพราะมันคือสิ่งที่เอเจนต์เปิดเซสชันด้วย ไดเจสต์ที่โตตามขนาด repo จะไร้ประโยชน์พอดีกับโค้ดเบสใหญ่ ๆ ที่ต้องการมันมากที่สุด"],
@@ -776,6 +823,7 @@ const FEATURES = [
     d:"วงจรพึ่งพา, โค้ดตาย, การพึ่งพาย้อนทิศ, hub และ god object",
     how:"วงจรมาจากอัลกอริทึม Tarjan หา strongly-connected components ซึ่งเขียนแบบวนซ้ำ (ไม่ใช่เรียกซ้ำ) เพื่อไม่ให้กราฟที่ลึกทำ stack ล้น — component ที่มี node มากกว่าหนึ่งตัวคือวงจรพึ่งพา โหนดกำพร้าคือ node ที่ in-degree เป็นศูนย์และไม่ใช่จุดเข้า การละเมิด layer คือ edge ที่เรียก<em>ย้อนขึ้น</em>สวนลำดับ controller → service → repository/client → model, hub คือ node ที่ fan-in บวก fan-out ถึง 10 และ god object คือคลาสที่มีเมธอดตั้งแต่ 12 ตัว (แผนที่การไหล) หรืออ้างอิงเอนทิตีอื่นตั้งแต่ 8 ตัว (แผนที่โครงสร้าง) การตรวจที่อิงดีกรีทั้งหมดรันบน <code>app_edges()</code> ซึ่งตัด edge ที่แตะ node <code>layer: test</code> ออก เพราะการเรียกจากเทสคือความครอบคลุม ไม่ใช่ coupling",
     tech:["Tarjan SCC แบบวนซ้ำ","วิเคราะห์ in-degree","ลำดับชั้น layer","แยก edge ของเทสออก"],
+    code:"# ลำดับชั้นที่ใช้ตัดสินว่า edge ไหน \"ย้อนทิศ\"\ncontroller -> service -> repository / client -> model\n# เรียกย้อนขึ้น = layer violation (แต่ http edge ถูกยกเว้น -- ข้าม API boundary เป็นทิศที่ถูก)\n\n# เกณฑ์ตั้งชื่อไว้ที่เดียว: scripts/review/analyze.py\nHUB_DEGREE  = 10   # fan_in + fan_out ตั้งแต่เท่านี้ = coupling สูง\nGOD_METHODS = 12   # เมธอดในหนึ่งคลาส (flow graph)\nGOD_FANOUT  =  8   # เอนทิตีที่หนึ่งเอนทิตีอ้างถึง (structure graph)\n\n# วงจรมาจาก Tarjan SCC เขียนแบบวนซ้ำ ไม่ใช่เรียกซ้ำ -- กราฟลึกของ repo จริงทำ stack ล้น\n# การตรวจที่อิงดีกรีรันบน app_edges() ซึ่งตัด edge ที่แตะ node layer: test ออก\n# เพราะการเรียกจากเทสคือความครอบคลุม ไม่ใช่ coupling",
     cmd:"scripts/review/analyze.py --format text",
     qa:[
       ["ทำไมวงจรถึงควรถูกชี้","เพราะเป็น coupling ที่แกะยากที่สุด ไม่มีโมดูลไหนในวงนั้นที่จะทำความเข้าใจ ทดสอบ หรือแยกออกมาได้โดยลำพัง"],
@@ -789,6 +837,7 @@ const FEATURES = [
     d:"ตัวเลขเดียวสำหรับโค้ดเบส พร้อมรายการหักคะแนนทุกบรรทัด",
     how:"เริ่มที่ 100 แล้วหักตามหมวด: โค้ดตาย, วงจร, การละเมิด layer, coupling สูง, god object และข้อค้นพบด้านความปลอดภัย <strong>ทุกหมวดมีเพดาน</strong> มิติเดียวจึงลากคะแนนลงไปทั้งหมดไม่ได้ เกณฑ์คือ A ≥ 90, B ≥ 80, C ≥ 70, D ≥ 60 (ดูตารางเต็มในหัวข้อ \"คะแนนสุขภาพ\" ของหน้านี้)",
     tech:["การหักแบบมีเพดาน","ถ่วงน้ำหนักตามความรุนแรง","แจกแจงให้เห็นทุกบรรทัด"],
+    code:"# scripts/review/analyze.py -- ทั้งหมดอยู่ในสิบบรรทัดนี้\ndeductions = {\n    \"dead_code\":        min(20, round(dead_pct * 0.5)),\n    \"cycles\":           min(24, 8 * len(cycles)),\n    \"layer_violations\": min(16, 4 * len(violations)),\n    \"high_coupling\":    min(12, 3 * len(hubs)),\n    \"god_objects\":      min(12, 3 * len(god_objects)),\n    \"security\":         min(30, 10 * sec.get(\"high\", 0)\n                                + 4 * sec.get(\"medium\", 0) + sec.get(\"low\", 0)),\n}\nscore = max(0, 100 - sum(deductions.values()))\ngrade = next((g for cutoff, g in GRADES if score >= cutoff), \"F\")\n\n# min(...) ทุกบรรทัดคือ \"เพดาน\" -- มิติเดียวลากคะแนนลงทั้งหมดไม่ได้\n# A >= 90, B >= 80, C >= 70, D >= 60, ต่ำกว่านั้น F",
     cmd:"scripts/review/analyze.py   # หรือ: archaeologist.py report",
     qa:[
       ["เกรดเดียวมันไม่ตื้นเกินไปหรือ","ถ้ามีแต่ตัวเลขก็ตื้น ซึ่งเป็นเหตุผลที่รายการแจกแจงไปพร้อมกันเสมอ ตัวเลขเปิดบทสนทนา ส่วนรายการหักคะแนนคือเนื้อหาจริง"],
@@ -801,6 +850,7 @@ const FEATURES = [
     d:"ความลับฝังในโค้ด, SQL injection, จุดรับ eval/innerHTML และเศษโค้ด debug",
     how:"เป็นการกวาดด้วย regular expression ระดับบรรทัด กฎ SQL injection ต้องการสัญญาณสามอย่างบนบรรทัดเดียว — การเรียกที่เป็น query, คีย์เวิร์ด SQL และการต่อสตริง — ซึ่งกด false positive ลงมาก ข้อค้นพบทุกอันถูกผูกกับ node ที่ช่วง <code>source</code>..<code>end</code> ของมัน<em>ครอบ</em>บรรทัดนั้นจริง ๆ ค่าความลับถูกปิดบัง (redact) ก่อนเขียนลงไฟล์ และไฟล์เทส, fixture รวมถึงบรรทัดคอมเมนต์ถูกข้าม ระดับความรุนแรงมีสามชั้น: high (ความลับ, SQL interpolation, dynamic eval), medium (จุดฉีด HTML ดิบ) และ low (คำสั่ง debug ที่ลืมไว้)",
     tech:["regex หลายสัญญาณ","ผูกกับ node ที่ครอบบรรทัด","ปิดบังค่าอัตโนมัติ","ข้ามไฟล์เทส"],
+    code:"# กฎ SQL injection ต้องการสามสัญญาณ *บนบรรทัดเดียว* -- กด false positive ลงมาก\n# scripts/review/scan_security.py\n{\"id\": \"sql_injection\", \"severity\": \"high\",\n \"message\": \"SQL statement built by string interpolation\",\n \"patterns\": [re.compile(r\"(?i)\\b(execute|executemany|query|raw|raw_query)\\s*\\(\"),\n              re.compile(r\"(?i)\\b(select|insert|update|delete|drop)\\b\"),\n              re.compile(r\"\"\"(f[\"'])|(\\$\\{)|([\"']\\s*\\+)|(\\+\\s*[\"'])|(%\\s*[(\\w])|(\\.format\\()\"\"\")]}\n\n# ข้อค้นพบจริงจาก sample -- ผูกกับ node ที่ช่วงบรรทัดครอบบรรทัดนั้น\n{\"rule\": \"sql_injection\", \"severity\": \"high\",\n \"file\": \"sample_src/backend/order_repository.py\", \"line\": 15,\n \"node\": \"OrderRepository.get\",\n \"snippet\": \"return self.cursor.execute(f\\\"SELECT * FROM orders WHERE id = {order_id}\\\")\"}\n\n# ความลับถูกปิดบังก่อนเขียนลงไฟล์ -- รายงาน commit ลง repo ได้โดยไม่สร้างเหตุครั้งที่สอง\n{\"rule\": \"hardcoded_secret\", \"line\": 5, \"node\": null,\n \"snippet\": \"GATEWAY_API_KEY = \\\"sk_...redacted\\\"\"}",
     cmd:"scripts/review/scan_security.py --src ./src",
     qa:[
       ["ใช้แทนเครื่องมือ SAST จริงได้ไหม","ไม่ได้ และไม่ควรขายแบบนั้น มันคือรอบตรวจแรกที่เร็ว โดยมีคุณสมบัติพิเศษหนึ่งอย่าง: ข้อค้นพบผูกกับกราฟ คุณจึงหา blast radius ของความเสี่ยงได้เหมือน node อื่น ๆ"],
@@ -814,6 +864,7 @@ const FEATURES = [
     d:"จำนวนบรรทัด, cyclomatic complexity, ความลึกของการซ้อน และจำนวนพารามิเตอร์ต่อ node",
     how:"จำนวนบรรทัดต่อไฟล์ถูกแยกเป็นโค้ด คอมเมนต์ และบรรทัดว่าง ส่วนรายโหนด cyclomatic complexity คือ 1 บวกทุกการแตกกิ่งในซับทรี — โดย <code>a and b and c</code> นับเป็นสองกิ่งอย่างถูกต้อง และเงื่อนไขใน comprehension ก็ถูกนับด้วย สิ่งสำคัญคือมันวัดบน node ของกราฟเอง: ช่วง <code>source</code> + <code>end</code> ของ node ถูกใช้หยิบนิยามของมันออกมาจากผลพาร์สของไฟล์ (<code>locate</code>) และตาราง <code>TABLES</code> หนึ่งแถวต่อหนึ่ง grammar บอกว่าอะไรนับเป็นการตัดสินใจ บล็อก และนิยาม",
     tech:["Cyclomatic complexity","เดินซับทรีของ AST","คีย์ตรงกับ node ของกราฟ","ตารางรายภาษา"],
+    code:"# วัดบน node ของกราฟเอง -> คีย์ตรงกับ id ที่ query โดยการออกแบบ\n# data/report/flow/metrics.json\n\"OrderService.place_order\": {\n  \"loc\": 4, \"complexity\": 1, \"depth\": 0, \"params\": 2,\n  \"file\": \"sample_src/backend/order_service.py\", \"line\": 13, \"lang\": \"py\"\n}\n\n# ครอบคลุมทุกภาษาที่มีกราฟ ไม่ใช่แค่ Python (ของ sample: 52 จาก 53 node)\nmeasured by lang: py 13, ts 10, java 8, go 8, csharp 8, js 3, tsx 2\n\n# node ที่ไม่มีเนื้อโค้ด = ไม่ถูกยัดค่าปลอม แต่ประกาศตรง ๆ ว่ายังไม่ได้วัด\n\"unmeasured_graph_ids\": [\"PricingRule.price\"]     # signature ของ interface\n\n# cyclomatic = 1 + ทุกการแตกกิ่ง โดย `a and b and c` นับเป็นสองกิ่งอย่างถูกต้อง",
     cmd:"scripts/review/metrics.py --src ./src --top 10",
     qa:[
       ["ทำไมต้องคีย์ให้ตรงกับกราฟ","เพื่อให้คำถาม \"โค้ดส่วนไหนพันกันที่สุด\" เป็นการ lookup ไม่ใช่การอ่าน source metric ที่ join กับกราฟไม่ได้ก็เป็นแค่ไฟล์อีกไฟล์ที่ต้องเปิด"],
@@ -826,6 +877,7 @@ const FEATURES = [
     d:"มาร์กเกอร์ TODO/FIXME/HACK และโค้ดตาย ผูกกับ node ที่เป็นเจ้าของ",
     how:"หามาร์กเกอร์เฉพาะในคอมเมนต์ — สตริงที่บังเอิญมีคำว่า \"todo\" จึงไม่ถูกนับ — แล้วผูกแต่ละอันกับ node ที่เป็นเจ้าของบรรทัดนั้น (ใช้ <code>owner_of</code> ตัวเดียวกับตัวสแกนความปลอดภัย) ส่วนโค้ดตายถูกรายงานสองระดับ: node ที่ไม่มีอะไรเรียก และไฟล์ที่ทุก node ในนั้นตายหมด",
     tech:["จับเฉพาะในคอมเมนต์","ผูกกับ node","สรุปรวมระดับไฟล์"],
+    code:"# หาเฉพาะในคอมเมนต์ -- สตริงที่บังเอิญมีคำว่า todo จึงไม่ถูกนับ\n# data/report/flow/debt.json\n{\"tag\": \"FIXME\",\n \"text\": \"parameterize this query (see the demo smell below)\",\n \"file\": \"sample_src/backend/order_repository.py\", \"line\": 14,\n \"node\": \"OrderRepository.get\"}\n\n# ใช้ owner_of ตัวเดียวกับตัวสแกนความปลอดภัย: node ที่ช่วง source..end *ครอบ* บรรทัดนั้น\n# เดิมใช้ \"node ตัวสุดท้ายที่เริ่มก่อนบรรทัดนี้\" โดยไม่ดู end เลย\n#   -> ข้อค้นพบระดับโมดูลไปเกาะฟังก์ชันก่อนหน้า 99 จาก 152 รายการ\n\n# โค้ดตายรายงานสองระดับ: node ที่ไม่มีใครเรียก และ *ไฟล์ที่ทุก node ตายหมด*\n# ระดับไฟล์คือสิ่งที่ลบได้จริง -- เปลี่ยนรายการยาว ๆ ให้กลายเป็นการลงมือ",
     cmd:"scripts/review/debt.py --src ./src --top 10",
     qa:[
       ["สรุประดับไฟล์สำคัญตรงไหน","ฟังก์ชันตายหนึ่งตัวคือปลายเชือกที่หลุด แต่ไฟล์ที่ตายทั้งไฟล์คือการลบที่คุณทำได้จริง การสรุปรวมเปลี่ยนรายการยาว ๆ ให้กลายเป็นสิ่งที่ลงมือได้"],
@@ -837,6 +889,7 @@ const FEATURES = [
     d:"node ไหนบ้างที่ชุดเทสเอ่ยชื่อถึง — ไม่ต้องมี runner ไม่ต้องติดตั้งอะไร",
     how:"ใช้การจับคู่ชื่อ: <code>Class.method</code> นับว่าถูกครอบคลุมเมื่อไฟล์เทสเอ่ยทั้งสองส่วน ไฟล์เทสถูกรู้จักข้ามภาษาจากพาธ ชื่อไฟล์ และมาร์กเกอร์ของเฟรมเวิร์ก — pytest, Jest/Vitest, JUnit และ Spring, <code>func TestX(t *testing.T)</code> ของ Go, <code>#[test]</code> ของ Rust, <code>[Fact]</code> ของ .NET, RSpec และ PHPUnit — แล้ว node ของมันถูกติดป้าย <code>layer: test</code>",
     tech:["จับคู่ด้วยชื่อ","ตรวจจับข้ามภาษา","ติดป้าย layer: test"],
+    code:"# ไฟล์เทส -- ตรวจจากพาธ ชื่อไฟล์ และมาร์กเกอร์ของเฟรมเวิร์ก\nsample_src/backend/tests/test_orders.py\nsample_src/frontend/order_page.test.ts\n\n# เทสเอ่ยทั้งคลาสและเมธอด -> นับว่าอ้างถึง\ndef test_place_order_charges_and_saves():\n    OrderService(repo, payments).place_order({...})\n\n# ผลของ sample\n{\"summary\": {\"test_files\": 2, \"considered\": 49,\n             \"referenced\": 4, \"unreferenced\": 45, \"referenced_pct\": 8.2}}\n\n# node ของเทสได้ layer: test ซึ่งกันคำตอบผิดทั้งตระกูล\n#   - ไม่ถูกรายงานว่าเป็นโค้ดตาย (runner เรียก ไม่ใช่กราฟ)\n#   - การเรียกของมันไม่ถูกนับเป็น coupling (app_edges ตัดออก)\n#   - แต่ยังโผล่ใน \"Covered by\" ของ context.py และใน --impact-of",
     cmd:"scripts/review/tests_map.py --src ./src --top 15",
     qa:[
       ["นี่คือ coverage จริงไหม","ไม่ และควรพูดข้อนี้ก่อนเป็นอย่างแรก coverage จริงต้องมี instrumentation อันนี้ตอบคนละคำถาม: ส่วนไหนของโค้ดเบสที่ชุดเทส<em>เอ่ยถึง</em>เลยด้วยซ้ำ โดยไม่ต้องตั้งค่าอะไรและใช้ได้กับทุกภาษา"],
@@ -848,6 +901,7 @@ const FEATURES = [
     d:"อะไรเปลี่ยนบ่อยที่สุด ใครเป็นเจ้าของ และจุดนั้นทับกับ coupling ตรงไหน",
     how:"รัน <code>git log --numstat</code> เพียงรอบเดียวเพื่อให้ได้จำนวน commit ต่อไฟล์และผู้เขียนอันดับหนึ่งของแต่ละไฟล์ ค่าความเสี่ยงของจุดร้อนคือ <code>จำนวน commit × (1 + fan_in + fan_out)</code> — โค้ดที่ทั้งเปลี่ยนบ่อย<em>และ</em>มีผู้เรียกเยอะ เมื่ออยู่นอก git repo มันจะให้ข้อมูลว่างแทนที่จะพัง",
     tech:["git log รอบเดียว","จัดอันดับ churn × coupling","degrade อย่างนุ่มนวล"],
+    code:"# git log รอบเดียว -- ไม่เรียกต่อไฟล์ เพราะช้ามากบนประวัติยาว\n$ git log --numstat\n\n# ความเสี่ยงของจุดร้อน = churn x coupling\nrisk = commits * (1 + fan_in + fan_out)\n\n# data/report/flow/insights.json\n{\"node\": \"getOrder\", \"file\": \"sample_src/frontend/api_client.ts\",\n \"commits\": 4, \"owner\": \"Nattawut Rodthong\",\n \"authors\": {\"Nattawut Rodthong\": 2, \"non-nattawut\": 2},\n \"fan_in\": 2, \"fan_out\": 1}\n\n# ทำไมต้องคูณ: สัญญาณเดี่ยวหลอกได้ทั้งคู่\n#   เปลี่ยนบ่อยแต่ไม่มีใครพึ่งพา = ไม่อันตราย\n#   คนพึ่งพาเยอะแต่ไม่เคยเปลี่ยน  = เสถียร\n# ความเสี่ยงอยู่ตรงที่ทั้งสองเป็นจริงพร้อมกัน",
     cmd:"scripts/review/git_insights.py --src ./src --top 10",
     qa:[
       ["ทำไมต้องเอา churn คูณ coupling","เพราะสัญญาณเดี่ยว ๆ หลอกได้ทั้งคู่ ไฟล์ที่เปลี่ยนบ่อยแต่ไม่มีใครพึ่งพาก็ไม่อันตราย ส่วนไฟล์ที่คนพึ่งพาเยอะแต่ไม่เคยเปลี่ยนก็เสถียรดี ความเสี่ยงอยู่ตรงที่ทั้งสองอย่างเป็นจริงพร้อมกัน"],
@@ -860,6 +914,7 @@ const FEATURES = [
     d:"ฟังก์ชันที่ถูกก๊อปวาง และบล็อกที่ถูกก๊อปเข้าไปในฟังก์ชันที่ต่างกัน — เจอแม้เปลี่ยนชื่อทุกตัวแล้ว",
     how:"เนื้อโค้ดแต่ละก้อนถูกลดรูปเหลือ <em>รูปทรงของโทเคน</em>: identifier กลายเป็น <code>ID</code>, ค่าคงที่กลายเป็น <code>LIT</code>, คอมเมนต์และช่องว่างหายไป ส่วนคีย์เวิร์ดและตัวดำเนินการอยู่ครบ เนื้อโค้ดที่รูปทรง hash ตรงกันคือโค้ดเดียวกัน ส่วนบล็อกที่ถูกวางลงในสองฟังก์ชันที่ต่างกันหาเจอด้วย winnowed k-gram fingerprint (K=10, W=21 — ทำให้ทุกช่วงร่วมที่ยาว 30 โทเคนขึ้นไปรับประกันว่ามี fingerprint ร่วมกันอย่างน้อยหนึ่งตัว) ด้วย rolling hash ที่<em>เสถียร</em> เพราะ <code>hash()</code> ของ Python ถูกใส่ salt ต่อโปรเซสและจะทำลายความ deterministic ผลที่จับคู่ได้ถูกขยายจนยาวที่สุดแล้วตัดให้ลงล็อกที่<strong>ขอบบรรทัด</strong>ในทั้งสองฝั่ง ช่วงบรรทัดมาจากกราฟ ไม่มีการพาร์สซ้ำ",
     tech:["ทำโทเคนให้เป็นรูปทรง","จัดกลุ่มด้วย SHA-1","winnowed k-gram","ขั้นต่ำ 30 โทเคน","จัดกลุ่มบล็อกตามรูปทรง"],
+    code:"# ลดรูปเนื้อโค้ดเหลือ \"รูปทรงของโทเคน\" -- ชื่อจึงซ่อนสำเนาไม่ได้\ndef total(items):          |  def sum_all(rows):\n    n = 0                  |      total = 0\n    for i in items:        |      for r in rows:\n        n += i.price       |          total += r.cost\n    return n               |      return total\n\n# ทั้งคู่ยุบเป็นสตริงเดียวกัน\ndef ID ( ID ) : ID = LIT for ID in ID : ID += ID . ID return ID\n\n# คู่จริงใน sample: createInvoice คือ createOrder ที่เปลี่ยนชื่อทุกตัว\n{\"hash\": \"cb11fc74c963\", \"tokens\": 42, \"loc\": 4,\n \"nodes\": [{\"id\": \"createInvoice\", \"source\": \"frontend/api_client.ts:16\"},\n           {\"id\": \"createOrder\",   \"source\": \"frontend/api_client.ts:8\"}]}\n\n# blocks: ท่อนยาว 30+ โทเคนที่ถูกวางในฟังก์ชันที่ต่างกัน -- หาเจอด้วย\n# winnowed k-gram (K=10, W=21) บน rolling hash ที่ *เสถียร*\n# (hash() ของ Python ถูกใส่ salt ต่อโปรเซส และจะทำลายความ deterministic)",
     cmd:"scripts/review/duplicates.py --src ./src --top 10",
     qa:[
       ["ทำไมไม่ diff ข้อความตรง ๆ","เพราะการเปลี่ยนชื่อเอาชนะมันได้ การล้าง identifier ออกคือสิ่งที่ทำให้จับสำเนาที่คนก๊อปแล้วเปลี่ยนชื่อได้ — ซึ่งเป็นสำเนาที่คนทำกันจริง"],
@@ -875,6 +930,7 @@ const FEATURES = [
     d:"ตรวจจับว่าแผนที่ไม่ตรงกับ source แล้ว — ก่อนที่คุณจะเชื่อมัน",
     how:"ทุกครั้งที่ build ระบบบันทึก root ที่สแกนไว้ พร้อม SHA-1 ของไฟล์ source ทุกไฟล์ใต้ root นั้น โดยใช้พาธสัมพัทธ์แบบพกพาได้เป็นคีย์ คำสั่ง <code>check</code> สแกนใหม่แล้วรายงานตรง ๆ ว่าอะไรถูกเพิ่ม เปลี่ยน หรือลบ ระบบใช้ hash ของเนื้อหาแทน timestamp การ clone ใหม่หรือการ touch ไฟล์จึงไม่ทำให้ตื่นตูม และ manifest ยัง<strong>บันทึกชุด grammar ที่ติดตั้งอยู่</strong>ด้วย การเปลี่ยนแปลงของชุดนี้ถูกรายงานว่าเป็นความเก่าเช่นกัน",
     tech:["SHA-1 ของเนื้อหา","คีย์เป็นพาธสัมพัทธ์","แจกแจง เพิ่ม/เปลี่ยน/ลบ","บันทึก root และชุด grammar"],
+    code:"# ทุก build บันทึก root + SHA-1 ของทุกไฟล์ source\n# data/cache/manifest.json\n{\"roots\": [\"sample_src\"],\n \"files\": {\"sample_src/api_express/order_router.js\": \"c82f794bf53f\",\n           \"sample_src/api_flask/order_routes.py\":   \"4bade1461b7b\"},\n \"grammars\": {\"python\": \"0.25.0\", \"java\": \"0.23.5\", \"go\": \"0.25.0\"}}\n\n# grammars อยู่ใน manifest ด้วย -- ถอน grammar ออกก็นับว่าข้อมูลเก่า\n# เพราะกราฟที่เล็กลงเพราะขาดพาร์สเซอร์ หน้าตาเหมือนกราฟของโค้ดเบสที่เล็กจริง\n\n$ archaeologist.py check\n{\"stale\": false, \"reason\": \"up to date\", \"changed\": [], \"added\": [], \"deleted\": []}\n\n# ไม่ต้องใส่ --src ซ้ำ: build จำ root ไว้แล้ว\n# root ที่ย้ายไปจริงจะได้ \"source root(s) not found from here\"\n# ไม่ใช่รายการไฟล์ถูกลบที่แต่งขึ้นมา",
     cmd:"archaeologist.py check",
     qa:[
       ["ทำไมนี่คือฟีเจอร์ที่สำคัญที่สุด","เพราะคำตอบอื่นทุกข้อขึ้นอยู่กับมัน การ trace อย่างมั่นใจบนกราฟที่เก่าแย่กว่าการไม่ตอบเลย เพราะมันผิดและมันดูเหมือนถูก"],
@@ -887,6 +943,7 @@ const FEATURES = [
     d:"source เดิมเข้า ไบต์เดิมออก บนเครื่องไหนก็ตาม",
     how:"node และ edge ถูกเรียงลำดับก่อนเขียน พาธถูกเก็บเป็นแบบสัมพัทธ์ด้วยเครื่องหมาย <code>/</code> ไม่ใช่พาธสัมบูรณ์ ไม่มี artifact ไหนบรรจุเวลานาฬิกา และไม่มีผลลัพธ์จากโมเดลตัวไหนไหลเข้ากราฟเลย ผลคือการ build ซ้ำได้ไฟล์เดิมเป๊ะ แผนที่จึง commit ลง git และรีวิวใน diff ได้",
     tech:["เรียงลำดับผลลัพธ์","เก็บพาธแบบสัมพัทธ์","ไม่มีโมเดลในเส้นทางโครงสร้าง","ไม่มีเวลานาฬิกาใน artifact"],
+    code:"# พิสูจน์ได้ในคำสั่งเดียว: build ใหม่แล้ว diff ต้องว่าง\n$ archaeologist.py both --src ./sample_src\n$ archaeologist.py report --src ./sample_src\n$ git status --short\n                      # <- ว่างเปล่า ทุกไบต์เหมือนเดิม\n\n# สิ่งที่ทำให้เป็นแบบนั้น\n#   1. node และ edge ถูกเรียงลำดับก่อนเขียน\n#   2. พาธเก็บเป็นแบบสัมพัทธ์ด้วย / เสมอ ไม่ใช่พาธสัมบูรณ์ของเครื่อง\n\"source\": \"sample_src/backend/order_service.py:13\"\n#   3. ไม่มี artifact ไหนใส่เวลานาฬิกา (มีเทสรันรายงานสองครั้งแล้ว diff)\n#   4. ไม่มีผลลัพธ์จากโมเดลไหลเข้ากราฟเลย\n\n# ผลพลอยได้: commit กราฟลง git แล้ว diff ดูการเปลี่ยนสถาปัตยกรรมระหว่างสองรีลีสได้",
     cmd:"— เป็นคุณสมบัติ ไม่ใช่คำสั่ง",
     qa:[
       ["เรื่องนี้สำคัญเชิงธุรกิจอย่างไร","มันทำให้ผลลัพธ์ตรวจสอบย้อนหลังได้ คุณ commit กราฟลง repo, diff มันในรอบ code review และเห็นได้ชัดว่าสถาปัตยกรรมเปลี่ยนไปอย่างไรระหว่างสองรีลีส"],
@@ -898,6 +955,7 @@ const FEATURES = [
     d:"ทุกค่า kind, layer และกฎว่าอะไรคือไฟล์เทส ถูกนิยามในไฟล์เดียวเท่านั้น",
     how:"โมดูล taxonomy เดียวเป็นเจ้าของค่า <code>kind</code> ที่อนุญาต (class, method, function, module, endpoint, component, test) และค่า <code>layer</code> (controller, service, repository, model, client, config, ui, test, function, module, unknown) รวมถึงกฎการอนุมาน layer จากชื่อ, ตารางภาษาตามนามสกุลไฟล์, รายการโฟลเดอร์ที่ไม่ใช่ source และนิยามว่าอะไรนับเป็นไฟล์เทส ทุก pass ต้องถามมัน ห้ามเขียนกฎซ้ำเอง",
     tech:["จุดนิยามเดียว","ใช้ร่วมกันทุกตัวสกัด","สะท้อนลงเอกสาร TAXONOMY.md"],
+    code:"# scripts/core/taxonomy.py -- ค่าที่อนุญาต อยู่ที่นี่ที่เดียว\nLAYERS = [\"controller\", \"service\", \"repository\", \"model\", \"client\",\n          \"config\", \"ui\", \"test\", \"function\", \"module\", \"unknown\"]\nKINDS  = [\"class\", \"method\", \"function\", \"module\", \"endpoint\", \"component\", \"test\"]\n\n# อนุมาน layer จากชื่อ -- กฎเดียว ใช้ร่วมกันทุกตัวสกัด\n(re.compile(r\"model|entity|schema|dto|record\", re.I), \"model\"),\n(re.compile(r\"client|gateway|adapter|api\",     re.I), \"client\"),\n(re.compile(r\"component|view|page|screen\",     re.I), \"ui\"),\n\n# และ \"อะไรคือไฟล์เทส\" ก็อยู่ที่นี่ -- ไม่ใช่ที่ตัวสแกนแต่ละตัว\nTEST_DIRS = {\"test\", \"tests\", \"__tests__\", \"spec\", \"specs\", \"testing\"}\nTEST_SUFFIX_RE = re.compile(r\"(Test|Tests|TestCase|TestCases|IT|ITCase|Spec|Specs)\"\n                            r\"\\.(java|kt|kts|cs|scala|groovy|swift)$\")\n\n# ถ้าตัวสแกนความปลอดภัยกับตัวตรวจโค้ดตายเห็นไม่ตรงกันว่าอะไรคือไฟล์เทส\n# รายงานจะขัดแย้งกันเอง -- และรายงานที่ขัดแย้งกันเองจะถูกเพิกเฉย",
     cmd:"— scripts/core/taxonomy.py",
     qa:[
       ["ทำไมเรื่องนี้ถึงคุ้มค่ากับการมีทั้งโมดูล","เพราะทางเลือกอีกทางคือการเลื่อนไหลไปคนละทาง ถ้าตัวสแกนความปลอดภัยกับตัวตรวจโค้ดตายเห็นไม่ตรงกันว่าอะไรคือไฟล์เทส รายงานจะขัดแย้งกันเอง และรายงานที่ขัดแย้งกันเองจะถูกเพิกเฉย"],
@@ -909,6 +967,7 @@ const FEATURES = [
     d:"คอนโซลที่ไม่ใช่ UTF-8, พาธเกิน MAX_PATH, พาธข้ามไดรฟ์ และไฟล์ CRLF",
     how:"สี่กรณีที่เคยทำงานพังจริงและตอนนี้มีคำตอบเดียวต่อกรณี: <strong>คอนโซล</strong> — ทุกอย่างที่สะท้อนข้อความจาก repo ผ่าน <code>console.safe_stdout()</code> ก่อน; <strong>MAX_PATH</strong> — ไฟล์รายโหนดทุกไฟล์ผ่าน <code>paths.long_path()</code>; <strong>ข้ามไดรฟ์</strong> — ฟิลด์ <code>graph</code> ของทุกรายงานผ่าน <code>paths.skill_rel()</code> เพราะ <code>os.path.relpath</code> โยน exception เมื่อสองพาธอยู่คนละไดรฟ์บน Windows; และ <strong>CRLF</strong> — <code>py_extract.read_source()</code> ทำให้ newline เป็นมาตรฐาน เพราะ <code>ast</code> เคยได้ข้อความแบบ universal-newline แต่ tree-sitter รับไบต์ดิบ ถ้าไม่ทำ การ checkout แบบ CRLF จะ hash ทุก node ต่างออกไปและพลาดแคชคำอธิบายแบบเงียบ ๆ",
     tech:["safe_stdout","long_path สำหรับ MAX_PATH","skill_rel ข้ามไดรฟ์","normalize newline"],
+    code:"# 1) คอนโซลที่ไม่ใช่ UTF-8 (cp874 บนเครื่องไทย)\nconsole.safe_stdout()      # ชื่อผู้เขียน git ที่มีสระ ไม่ทำให้ทั้งรอบตาย\n\n# 2) MAX_PATH บน Windows -- ไฟล์รายโหนดทุกไฟล์ผ่านตัวนี้\npaths.long_path(p)         # \\\\?\\ prefix เมื่อจำเป็น\n\n# 3) พาธข้ามไดรฟ์ -- os.path.relpath โยน exception เมื่ออยู่คนละไดรฟ์\npaths.skill_rel(p)         # ใช้กับฟิลด์ graph ของทุกรายงาน\n\n# 4) CRLF -- ast ได้ข้อความแบบ universal-newline แต่ tree-sitter รับไบต์ดิบ\npy_extract.read_source()   # ทำ newline ให้เป็นมาตรฐานก่อน\n# ถ้าไม่ทำ: checkout แบบ CRLF จะ hash ทุก node ต่างออกไป\n#          แล้วพลาดแคชคำอธิบายทั้งหมดแบบเงียบ ๆ\n\n# ทั้งสี่เคสเจอจากการรันบน Windows และบน repo จริง -- ไม่มีเคสไหนโผล่บน fixture",
     cmd:"— scripts/core/console.py · scripts/paths.py",
     qa:[
       ["ทำไมถึงเจอเรื่องพวกนี้","เพราะทดสอบบน Windows เป็นหลักโดยเจตนา และรันกับ repo จริง บั๊กทั้งสี่ตัวไม่มีตัวไหนโผล่บน fixture เลยสักตัว"]
@@ -919,6 +978,7 @@ const FEATURES = [
     d:"ตัวตรวจจับที่พังจะดูเหมือนโค้ดเบสสะอาด — นี่คือชุดเครื่องมือที่แก้ปัญหานั้น",
     how:"<code>tools/check_graph.py</code> ยืนยันเงื่อนไขที่กราฟถูกต้องต้องเป็นจริง และกลุ่มเช็ก <code>D</code> ของมันทดสอบการวิเคราะห์แบบ metamorphic: ฉีดวงจร, โหนดกำพร้า, hub, god object หรือการละเมิด layer ลงในสำเนาของกราฟจริง แล้วบังคับให้มันต้องถูกรายงานออกมา ส่วน <code>--self-test</code> ทำอินพุตให้พังทีละจุดแล้วล้มเหลวถ้าเช็กนั้นยังเงียบ เพราะข้ออ้างที่ไม่มีทางล้มเหลวแย่กว่าไม่มีข้ออ้าง <code>tools/check_regressions.py</code> เก็บหนึ่งเคสต่อหนึ่งความล้มเหลวแบบเงียบที่โปรเจกต์นี้เคยมีจริง และ <code>tools/check_langs.py</code> ตรวจทุกภาษาด้วย fixture ของมันเอง",
     tech:["ตรวจ invariant","ทดสอบแบบ metamorphic","self-test ของตัวตรวจเอง","หนึ่งเคสต่อหนึ่งบั๊กในอดีต"],
+    code:"$ python tools/check_graph.py\nflow:      53 node(s), 33 edge(s), 27 checks -- OK\nstructure: 25 node(s), 22 edge(s), 27 checks -- OK\n\n# เช็กกลุ่ม D ทดสอบการวิเคราะห์แบบ metamorphic:\n# ฉีดวงจร / โหนดกำพร้า / hub / god object ลงในสำเนากราฟจริง แล้ว *บังคับ* ให้ต้องรายงาน\n$ python tools/check_graph.py --self-test\n  PASS  d07_paths                        an impact_of that returns nothing\n  PASS  d08_duplicates_skip_declarations node_bodies that shapes declarations too\n  PASS  d09_context_budget               a render that ignores the budget\n31/31 checks shown to fail on a broken input\n\n# เพราะตัวตรวจจับที่พังจะดูเหมือนโค้ดเบสสะอาด\n# และ \"ผ่าน\" กับ \"ไม่มีอะไรผิด\" หน้าตาเหมือนกันเป๊ะ\n\n$ python tools/check_langs.py        # 21 ภาษา แต่ละภาษามี fixture ของตัวเอง\n$ python tools/check_regressions.py  # 33/33 หนึ่งเคสต่อหนึ่งบั๊กเงียบที่เคยเกิดจริง\n$ python tools/check_py_oracle.py    # ast เทียบ tree-sitter: 0 disagreements",
     cmd:"python tools/check_graph.py\npython tools/check_graph.py --self-test\npython tools/check_langs.py\npython tools/check_regressions.py",
     qa:[
       ["ทำไมตัวตรวจต้องมี self-test","เพราะเช็กที่เขียนผิดจะผ่านเสมอ และ \"ผ่าน\" กับ \"ไม่มีอะไรผิด\" หน้าตาเหมือนกันเป๊ะ self-test ทำลายอินพุตทีละแบบเพื่อพิสูจน์ว่าแต่ละเช็กดังขึ้นได้จริง"],
@@ -933,6 +993,7 @@ const FEATURES = [
     d:"แผนที่ทั้งสองชุดในไฟล์ HTML เดียวที่สมบูรณ์ในตัว ไม่ต้องมีเซิร์ฟเวอร์ ทำงานออฟไลน์",
     how:"ทั้งข้อมูลกราฟ<em>และตัวไลบรารีกราฟเอง</em>ถูกฝังอยู่ในไฟล์ ได้ไฟล์เดียวที่เปิดจาก <code>file://</code> ได้ทั้งที่ปิดเน็ต ไม่มีการโหลดอะไรตอนรัน (<code>force-graph</code> ถูก vendor ไว้แล้ว inline เข้าไปผ่าน placeholder <code>__VENDOR_JS__</code>) หน้าตาเป็นสามแผง: แผงซ้ายมีวงแหวนสุขภาพ, ตัวเลือกการไล่สี, ไทล์สถิติ, สัดส่วนภาษา และ file tree; ตรงกลางเป็นผืนผ้าใบที่มีเจ็ดมุมมองของกราฟเดียวกัน; แผงขวามีแท็บ FILE, PATTERNS และ SECURITY ที่คลิกทะลุถึงกันได้ ทั้งสองแผงข้างลากปรับขนาดได้ และ explorer กินพื้นที่ที่เหลือจากบล็อกด้านบนทั้งหมด",
     tech:["ฝังข้อมูล + ไลบรารี inline","เจ็ดเลย์เอาต์","แผงข้างลากปรับขนาดได้","ไม่มีเครือข่ายเลย"],
+    code:"# scripts/query/build_html.py -- ทั้งไฟล์คือการแทนที่สามจุด\n(template\n   .replace(\"__VENDOR_JS__\", load_vendor_js())   # ตัวไลบรารีกราฟ ฝังลงไปเลย\n   .replace(\"__TITLE__\", title)\n   .replace(\"__MAPS_DATA__\", json.dumps(maps, separators=(\",\", \":\"))))\n\n# ผลคือไฟล์เดียวที่เปิดจาก file:// ตอนปิดเน็ตได้\n$ open data/explorer.html\n\n# ข้อบังคับที่เครื่องตรวจให้: ห้ามมีทรัพยากรภายนอกโผล่กลับเข้ามา\n$ node bin/cli.js --self-test\n# จะล้มเหลวถ้าเจอ <script src>, <link href> หรือ @import\n# แต่ assert ที่ *การโหลดทรัพยากร* ไม่ใช่ที่สตริง \"http\"\n# เพราะ namespace ของ SVG/XML เป็นตัวระบุที่เบราว์เซอร์ไม่เคยไปโหลด",
     cmd:"เปิด data/explorer.html",
     qa:[
       ["ทำไมต้องไฟล์เดียว","เรื่องการส่งต่อ มันคือความต่างระหว่าง \"นี่คือสถาปัตยกรรม\" ที่แนบไปกับอีเมล กับ \"ช่วย deploy service นี้ก่อนแล้วค่อยดูสถาปัตยกรรม\""],
@@ -947,6 +1008,7 @@ const FEATURES = [
     d:"Graph, Treemap, Matrix, Tree, Flow, Cluster, Bundle",
     how:"คำถามแต่ละแบบมีรูปร่างของมันเอง: มุมมอง force-directed แสดงกลุ่มก้อนตามธรรมชาติ, treemap แสดงว่ามวลของโค้ดอยู่ตรงไหน, matrix แสดงความหนาแน่นของการเชื่อมโยง, tree และ flow แสดงลำดับชั้นกับทิศทาง, cluster และ bundle แสดงการรวมกลุ่มและมัดเส้นเชื่อม ทุกมุมมองอ่านข้อมูลชุดเดียวกันและใช้ชุดสีเดียวกัน — และทุกมุมมองอ่าน edge จากตัวแปร <code>EDGES</code> ที่กรอง node เทสออกแล้ว ไม่ใช่จาก <code>GRAPH.edges</code> ดิบ ๆ ปุ่มติ๊ก Tests จึงเรนเดอร์ใหม่ได้ถูกต้องเสมอ",
     tech:["หนึ่งกราฟ เจ็ดเลย์เอาต์","สีชุดเดียวกันทุกมุมมอง","กรองเทสที่ชั้นข้อมูล"],
+    code:"# templates/viewer.html -- เจ็ดมุมมอง อ่านข้อมูลชุดเดียวกัน\nconst VIEWS = [[\"graph\", \"Graph\"], [\"treemap\", \"Treemap\"], [\"matrix\", \"Matrix\"],\n               [\"tree\", \"Tree\"], [\"flow\", \"Flow\"], [\"cluster\", \"Cluster\"],\n               [\"bundle\", \"Bundle\"]];\n\n# ทุกมุมมองต้องอ่าน edge จาก EDGES ที่กรอง node เทสออกแล้ว ไม่ใช่ GRAPH.edges ดิบ\n# ปุ่มติ๊ก Tests จึงเรนเดอร์ใหม่ได้ถูกต้องเสมอ\n\n# สีโฟลเดอร์มาจากดัชนีใน allFolders (ทุกโฟลเดอร์ในแผนที่) ไม่ใช่จากรายการที่มองเห็น\n# ถ้าไล่สีจากรายการที่มองเห็น การซ่อนโฟลเดอร์เทสจะทำให้ทุกโฟลเดอร์หลังจากนั้นเปลี่ยนสี\n# แล้วสีชมพูก็เลิกหมายถึงโฟลเดอร์เดิมจากภาพหนึ่งไปอีกภาพหนึ่ง",
     cmd:"— เลือกจากแถบเครื่องมือใน explorer",
     qa:[
       ["ทำไมสีโฟลเดอร์ต้องมาจากรายการโฟลเดอร์ทั้งหมด","เพราะถ้าไล่สีจากรายการที่มองเห็นอยู่ การซ่อนโฟลเดอร์เทสจะทำให้ทุกโฟลเดอร์หลังจากนั้นเปลี่ยนสี แล้วสีชมพูก็จะไม่ได้หมายถึงโฟลเดอร์เดิมจากภาพหนึ่งไปอีกภาพหนึ่งอีกต่อไป"],
@@ -958,6 +1020,7 @@ const FEATURES = [
     d:"สำมะโนโค้ด, เกรด, กลิ่นไม่ดี, ความเสี่ยงและจุดร้อน รวมเป็น artifact ที่ commit ได้",
     how:"รวมผลของทุก pass — สแกนความปลอดภัย, ข้อมูลจาก git, การวิเคราะห์กราฟ, metrics, หนี้ทางเทคนิค, แผนที่เทส และโค้ดซ้ำ — ออกมาเป็นรายงาน Markdown พร้อม JSON ที่เครื่องอ่านได้ (<code>architecture_report.{md,json}</code> บวก <code>security.json</code> และ <code>insights.json</code>) เขียนหนึ่งชุด<strong>ต่อหนึ่งแผนที่</strong> เพราะ node id ของสองแผนที่ต่างกัน รายงานของแผนที่หนึ่งจึงห้ามถูกนำไปแสดงคู่กับอีกแผนที่หนึ่ง <code>file_census</code> ในรายงานคำนวณมาจาก <code>metrics.py</code> จำนวนบรรทัดจึงมีนิยามเดียวทั้งระบบ",
     tech:["แยกตามแผนที่","ผลลัพธ์ Markdown + JSON","วางลง PR ได้","ไม่มีเวลานาฬิกา"],
+    code:"$ archaeologist.py report --src ./sample_src\n\n  529 line(s) across 22 file(s), longest node OrderCard\n  2 marker(s), 7 dead node(s), 4/49 node(s) named by a test\n  1 duplicate cluster(s), 4 duplicated line(s)\n\n# เขียนหนึ่งชุดต่อหนึ่งแผนที่ -> data/report/<map>/\narchitecture_report.md      # สำหรับคน วางลง PR ได้เลย\narchitecture_report.json    # สำหรับเครื่อง\nsecurity.json  insights.json  metrics.json  debt.json  tests.json  duplicates.json\n\n# ทำไมต้องแยกต่อแผนที่: node id ของสองกราฟไม่เหมือนกัน\n# สตริงเดียวกันจึงหมายถึงคนละสิ่ง -- ผสมกันแล้วจะได้เรื่องไร้สาระที่ฟังดูมั่นใจ\n# โค้ดบังคับกฎนี้ไว้ที่ build_html.report_for()",
     cmd:"archaeologist.py report --src ./src",
     qa:[
       ["ใครคือผู้อ่าน","สามกลุ่มพร้อมกัน: วางลง pull request ให้คนอ่าน, ป้อน JSON ให้แผงต่าง ๆ ใน explorer หรือให้เอเจนต์ตอบคำถาม \"สุขภาพเป็นอย่างไร\" ได้โดยไม่ต้องคำนวณอะไรใหม่"],
@@ -969,6 +1032,7 @@ const FEATURES = [
     d:"หนึ่งโน้ตที่อ่านรู้เรื่องและมี wikilink ต่อหนึ่งคลาสและหนึ่งเมธอด",
     how:"ทุก node ได้โน้ตหนึ่งใบที่มี front-matter เป็นเมตาดาตาและ <code>[[wikilink]]</code> ชี้ไปยังเพื่อนบ้าน — มันทำอะไร, signature เป็นอย่างไร, เรียกอะไร และถูกอะไรเรียก อ่านได้ใน Obsidian หรือโปรแกรมอ่าน Markdown ใด ๆ และเป็นหน่วยที่เอเจนต์อ่านหลังจาก trace เสร็จพอดี",
     tech:["หนึ่งโน้ตต่อหนึ่ง node","wikilink แบบ Obsidian","เมตาดาตาใน front-matter"],
+    code:"# data/flow/notes/OrderService.place_order.md -- ไฟล์จริงหนึ่งใบ\n---\nentity: OrderService.place_order\nkind: method\nlayer: service\nclass: OrderService\nsource: sample_src/backend/order_service.py:13\nlang: py\ndesc_source: docstring\n---\n# OrderService.place_order\n\n## What it does\nCharge payment then persist the order.\n\n## Calls\n- [[OrderRepository.save]]\n- [[PaymentClient.charge]]\n\n## Called by\n- [[OrderController.create_order]]\n- [[orders]]\n- [[test_place_order_charges_and_saves]]\n\n# wikilink คือสิ่งที่ทำให้คำตอบเดินต่อได้ -- และเป็นสิ่งที่กลายเป็น edge ในกราฟ",
     cmd:"data/structure/vault/ · data/flow/notes/",
     qa:[
       ["ทำไมใช้ Markdown แทนฐานข้อมูล","เพราะผู้อ่านทั้งสองฝั่งอ่านมันได้ มนุษย์เปิดดูได้ เอเจนต์อ่านสามใบที่ trace ระบุ และมัน diff ใน git ได้สวยงาม"],
@@ -980,6 +1044,7 @@ const FEATURES = [
     d:"ทุกอย่างที่ pipeline เขียน จัดกลุ่มตามแผนที่",
     how:"โฟลเดอร์ <code>data/</code> ถูกจัดตามแผนที่: <code>structure/</code> เก็บ <code>graph.json</code>, <code>registry.json</code> และ <code>vault/*.md</code>; <code>flow/</code> เก็บ <code>flow_graph.json</code> และ <code>notes/*.md</code>; <code>report/&lt;map&gt;/</code> เก็บผลของรอบรีวิว; <code>cache/</code> เก็บคำสรุปจาก AI และสถานะความสด (แทบไม่ต้องแตะ); และ <code>explorer.html</code> ที่รากคือหน้าเดียวที่รวมทั้งสองแผนที่ไว้ สลับกันได้จากส่วนหัว",
     tech:["จัดกลุ่มตามแผนที่","JSON + Markdown + HTML","commit ลง git ได้ทั้งหมด"],
+    code:"data/\n  explorer.html              # ทั้งสองแผนที่ หน้าเดียว สลับจากส่วนหัว\n  structure/\n    graph.json               # node + edge (เรียงแล้ว -> diff ได้)\n    registry.json\n    vault/OrderService.md    # หนึ่งโน้ตต่อหนึ่งเอนทิตี\n  flow/\n    flow_graph.json\n    notes/OrderService.place_order.md\n  report/\n    structure/  flow/        # หนึ่งชุดต่อหนึ่งแผนที่\n  cache/\n    manifest.json            # root + hash ของ source + ชุด grammar\n    descriptions.json        # คำสรุป AI คีย์ด้วย hash ของ source\n    pending_descriptions.json\n\n# ทั้งหมด commit ลง git ได้ และควรทำ -- เพราะผลลัพธ์เป็น deterministic\n# การ diff กราฟใน code review จึงแสดงว่าสถาปัตยกรรมเปลี่ยนไปอย่างไรจริง ๆ",
     cmd:"data/{structure,flow,report,cache}/ · data/explorer.html",
     qa:[
       ["ควร commit ลง repo ไหม","ได้และมักคุ้ม เพราะผลลัพธ์เป็น deterministic การ diff กราฟใน code review จึงแสดงให้เห็นว่าสถาปัตยกรรมเปลี่ยนไปอย่างไรจริง ๆ"],
@@ -991,6 +1056,7 @@ const FEATURES = [
     d:"คำสั่งเดียวติดตั้ง skill ลงในโปรเจกต์ ไม่ต้อง clone ไม่ต้องมีบัญชี npm",
     how:"<code>bin/cli.js</code> ตรวจว่ามี Python 3.10+ คัดลอก skill เข้าไป และสร้างโฟลเดอร์ทำงาน <code>data/</code> ว่าง ๆ ให้ มันรองรับหลาย harness (<code>agents</code> เป็นค่าเริ่มต้น, <code>claude</code>, <code>cursor</code>, <code>windsurf</code>, <code>zed</code>) หรือระบุที่อยู่เองด้วย <code>--dir</code> และตัวมันเองไม่มี dependency ของ npm เลย โหมด <code>--self-test</code> ติดตั้งลงโฟลเดอร์ชั่วคราว ดึง grammar ของตัวอย่าง แล้ว build จริง เพื่อพิสูจน์ว่าเส้นทางทั้งหมดยังทำงาน",
     tech:["ไม่มี dependency npm","หลาย harness","self-test ติดตั้งจริง","ตรวจว่าไม่มีทรัพยากรภายนอกในหน้า explorer"],
+    code:"# ติดตั้ง -- ไม่ต้อง clone ไม่ต้องมีบัญชี npm\n$ npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --harness claude\n\n# harness ที่รองรับ\nagents  (ค่าเริ่มต้น) -> .agents/skills/code-archaeologist\nclaude                -> .claude/skills/code-archaeologist\ncursor / windsurf / zed\n--dir <path>          -> ระบุที่อยู่เอง\n\n# ตัวติดตั้งเองไม่มี dependency ของ npm เลย\n# มันตรวจว่ามี Python 3.10+ คัดลอก skill เข้าไป และสร้าง data/ ว่าง ๆ ให้\n\n$ npx github:non-nattawut/... --self-test\n# ติดตั้งลงโฟลเดอร์ชั่วคราว ดึง grammar ของตัวอย่าง แล้ว build จริง\n# และล้มเหลวถ้าหน้า explorer มีทรัพยากรภายนอกโผล่กลับเข้ามา",
     cmd:"npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --harness claude",
     qa:[
       ["self-test ตรวจอะไรที่สำคัญที่สุด","มันจะล้มเหลวถ้ามี <code>&lt;script src&gt;</code>, <code>&lt;link href&gt;</code> หรือ <code>@import</code> โผล่กลับเข้ามาในหน้า explorer ซึ่งเป็นวิธีที่คำสัญญา \"ไม่มีเครือข่าย\" ถูกบังคับด้วยเครื่อง ไม่ใช่ด้วยความตั้งใจ"],
@@ -1031,6 +1097,9 @@ const PALETTE = [
 ];
 
 /* ---------------- render ---------------- */
+const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+/* dim whole-line comments, after escaping so the markup cannot come from the code */
+const hi = s => esc(s).replace(/^([ \t]*(?:#|\/\/).*)$/gm, '<span class="c">$1</span>');
 const host = document.getElementById("features");
 CATEGORIES.forEach(([key, label]) => {
   const items = FEATURES.filter(f => f.cat === key);
@@ -1073,6 +1142,7 @@ function open(f){
   document.getElementById("dbody").innerHTML = `
     <div class="blk"><h4>ทำอะไร</h4><p>${f.d}</p></div>
     <div class="blk"><h4>กลไกทำงานอย่างไร</h4><p>${f.how}</p></div>
+    ${f.code ? `<div class="blk"><h4>โค้ดจริง</h4><pre class="code">${hi(f.code)}</pre></div>` : ""}
     <div class="blk"><h4>เทคนิคที่ใช้</h4><div class="tech">${
       f.tech.map(t => `<span class="chip">${t}</span>`).join("")}</div></div>
     <div class="blk"><h4>คำสั่ง</h4><div class="cmd">${f.cmd}</div></div>

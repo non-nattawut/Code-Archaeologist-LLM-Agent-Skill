@@ -3641,3 +3641,61 @@ The docs were in far better shape than a "scan everything" request usually finds
    `vendor`).
 
 No code changed; `data/` is untouched, which is itself the byte-identity evidence above.
+
+## [85] 2026-09-12 — Real code in every panel of the presentation
+
+**Prompt**
+> add code explaining to PRESENTATION.html too not use machanic explain and small technique word
+
+**Response**
+Read it as: the drawers explained the *mechanism* in prose and tagged it with little technique
+chips, but never showed the actual code. So every panel now carries a **โค้ดจริง** block, added
+between "how it works" and the technique chips.
+
+**Nothing in those blocks is invented.** Every snippet is copied from this repo — `sample_src/`,
+the built artifacts under `data/`, or the skill's own scripts — and I pulled each one out and
+read it before writing the block. Real examples used: `OrderService` -> its `graph.json` node ->
+its vault note's wikilinks -> the two `references` edges; `place_order` -> node with
+`source`/`end` -> its two `calls` edges; `OrderWorkflow.place` with the real
+`precision: ["interface-dispatch"]` and the edge that stops at `PricingRule.price`;
+`InvoiceService.Total`'s two overload ids; the real `bfs_shortest` and `impact_of` bodies; the
+`deductions` dict; the real `duplicates.json` cluster (`createInvoice`/`createOrder`, 42 tokens);
+the real security finding including `"sk_...redacted"`; `manifest.json`'s roots/files/grammars;
+the real `metrics.json` entry and `unmeasured_graph_ids`; the actual flow note; `VIEWS`; and
+`build_html`'s three `.replace()` calls.
+
+38 blocks in all — 37 cards plus the static *precision* section, which is markup rather than a
+card and had no code at all. 601 lines of examples.
+
+Mechanics: a `code:` field per entry, rendered through an `esc()` so the snippet can never be
+parsed as markup, then a second pass that dims whole-line comments *after* escaping (so the
+`<span>` can never come from the quoted code). Verified: `html_has_raw_tag` false on every panel,
+and `<int:pk>`, `<-`, `<skill>` and `>=0.26,<0.27` all survive as literal text.
+
+Two things went wrong and were caught rather than shipped:
+
+1. **A bash heredoc mangled the backslashes**, exactly as CLAUDE.md constraint 5 warns. The SQL
+   regex came out as `(?i)(execute|...)` — `\b` silently gone — and a `SyntaxWarning: invalid
+   escape sequence '\s'` was the tell. Redone with the Write tool, and the rule is now *extracted
+   from `scan_security.py` at build time* rather than retyped, so it cannot drift from the source
+   at all.
+2. **Two snippets I wrote from memory did not match reality.** `descriptions.json` uses
+   `file`/`hash`/`summary`, not the `text` key I had assumed; and `TEST_SUFFIX_RE` was abbreviated
+   (missing `TestCases`, `ITCase`, `Specs`, `kts`) while sitting under a heading that says "real
+   code". Both corrected against the source.
+
+A third scare was a false alarm: a check reported the body scrolling sideways, but the viewport
+had collapsed to 0 width after a preset reset, so every element looked wider than the page.
+Re-measured at 1400px and 500px: no overflow at either, and the static block scrolls inside itself
+(`scrollWidth` 706 vs `clientWidth` 630) as the layout rule requires.
+
+Verified: JS still parses as a classic script, `check_docs` OK, all 37 drawers render a code block,
+none overflows the drawer, and no real `<script src>` / `<link href>` / `@import` exists (the three
+grep hits are escaped text and one string inside a `code:` value).
+
+**Flagged, not fixed:** `sample_src/services/orders_cs/InvoiceService.cs` still carries the comment
+"both signatures share one node id, which is one of the reasons this tier is marked approximate".
+Finding #8 gave every overload its own node and the `approx` flag is gone, so that comment now
+describes behaviour that no longer exists. It is a shipped example file and its doc comment becomes
+a node's `doc`, so fixing it means regenerating the committed artifacts — told the user rather than
+doing it unasked.
