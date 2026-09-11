@@ -33,6 +33,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from paths import long_path  # noqa: E402  (a note named after a long id can pass MAX_PATH)
 from paths import DATA_DIR  # noqa: E402  (also puts sibling script dirs on sys.path)
 DEFAULT_FLOW_DIR = os.path.join(DATA_DIR, "flow", "notes")
 DEFAULT_GRAPH = os.path.join(DATA_DIR, "flow", "flow_graph.json")
@@ -789,7 +790,7 @@ def write_vault(methods: dict, flow_dir: str) -> None:
     os.makedirs(flow_dir, exist_ok=True)
     for fn in os.listdir(flow_dir):
         if fn.endswith(".md"):
-            os.remove(os.path.join(flow_dir, fn))
+            os.remove(long_path(os.path.join(flow_dir, fn)))
 
     for info in methods.values():
         calls_md = "\n".join(f"- [[{c}]]" for c in info["calls"]) or "_None._"
@@ -823,7 +824,7 @@ def write_vault(methods: dict, flow_dir: str) -> None:
             f"## Called by\n{callers_md}\n"
             f"{http_md}"
         )
-        with open(os.path.join(flow_dir, f"{_safe(info['id'])}.md"), "w", encoding="utf-8") as fh:
+        with open(long_path(os.path.join(flow_dir, f"{_safe(info['id'])}.md")), "w", encoding="utf-8") as fh:
             fh.write(page)
 
 

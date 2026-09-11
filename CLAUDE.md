@@ -65,7 +65,8 @@ the only entrypoint:
 ```
 scripts/
   archaeologist.py   the entrypoint
-  paths.py           SKILL_ROOT / DATA_DIR / TEMPLATES_DIR, and the sys.path bootstrap
+  paths.py           SKILL_ROOT / DATA_DIR / TEMPLATES_DIR, the sys.path bootstrap, and
+                     long_path() -- every per-node file goes through it (MAX_PATH, phase 6d)
   core/     taxonomy.py  manifest.py  console.py  grammars.py  ids.py
   extract/  build_wiki.py  build_graph.py  build_flow.py  py_extract.py
             js_ts_extract.py  ts_extract.py  apply_descriptions.py
@@ -420,6 +421,7 @@ python tools/check_py_oracle.py                                       # ast vs t
 python tools/check_graph.py                                           # the graph deserves trust
 python tools/check_graph.py --self-test                               # ...and every check can fail
 python tools/check_regressions.py                                     # every past silent failure
+python tools/time_build.py [<corpus> ...]                             # wall time per stage, read-only
 node bin/cli.js --harness claude --target <tmpdir> --self-test        # installer
 ```
 

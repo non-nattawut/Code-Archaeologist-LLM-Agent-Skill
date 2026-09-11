@@ -374,13 +374,37 @@ def r22_metrics_by_graph_id():
         return f"Go `a, b int` is two parameters, got {got['Pick']['params']}"
 
 
+def r23_long_node_paths():
+    """phase 6d: a node's page is named after its id, and a path-qualified id in a deep
+    install passed Windows' MAX_PATH -- open() raised and the whole build died."""
+    import contextlib
+    import io
+    import build_graph
+    import build_wiki
+    d = tempfile.mkdtemp()
+    src = os.path.join(d, "src")
+    os.makedirs(src)
+    name = "Widget" + "X" * 100
+    open(os.path.join(src, "a.py"), "w", encoding="utf-8").write(f"class {name}:\n    pass\n")
+    vault = os.path.join(d, "v" * max(1, 200 - len(d)))
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        build_wiki.build([src], vault)
+        build_graph.build(vault, os.path.join(d, "out"))
+    if len(os.path.join(vault, name + ".md")) <= 260:
+        return "the case no longer exercises a path past MAX_PATH"
+    ids = {n["id"] for n in json.load(open(os.path.join(d, "out", "graph.json"), encoding="utf-8"))["nodes"]}
+    if name not in ids:
+        return f"the long-named entity is missing from the graph: {sorted(ids)}"
+
+
 CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_append,
          r05_duplicates_declarations, r06_orphan_guard, r07_flask_routes,
          r08_missing_parser_is_visible, r09_no_absolute_paths, r10_brief_agrees_with_check,
          r11_test_filename_with_line, r12_crlf_hashes, r13_wrapped_signature,
          r14_context_budget, r15_moved_root_reason, r16_install_hint,
          r17_owner_respects_end, r18_same_name_in_two_files, r19_reports_are_reproducible,
-         r20_structure_shared_names, r21_grammars_are_pinned, r22_metrics_by_graph_id]
+         r20_structure_shared_names, r21_grammars_are_pinned, r22_metrics_by_graph_id,
+         r23_long_node_paths]
 
 
 def main() -> int:

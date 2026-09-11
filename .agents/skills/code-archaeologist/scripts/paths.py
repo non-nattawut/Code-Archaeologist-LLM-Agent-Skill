@@ -42,6 +42,25 @@ VENDOR_DIR = os.path.join(SKILL_ROOT, "vendor")
 CATEGORIES = ("core", "extract", "review", "query")
 
 
+def long_path(path: str) -> str:
+    """`path`, usable past Windows' 260-character MAX_PATH.
+
+    Every node gets a file named after its id -- a vault page, a flow note -- and
+    a name defined in several files is qualified by its *path* when its stem is
+    not enough (core/ids.py). In a monorepo that id is long, and the skill folder
+    already sits a few directories deep, so `open()` failed with a bare
+    FileNotFoundError and the whole build died. Found by tools/time_build.py on a
+    real repository (phase 6d). The `\\\\?\\` prefix lifts the limit; elsewhere, and
+    for short paths, the path is returned unchanged.
+    """
+    if os.name != "nt":
+        return path
+    full = os.path.abspath(path)
+    if len(full) < 240 or full.startswith("\\\\?\\"):
+        return path
+    return "\\\\?\\" + full
+
+
 def _install() -> None:
     """Put scripts/, every category dir and vendor/ on sys.path, nearest-first."""
     for name in reversed(CATEGORIES):

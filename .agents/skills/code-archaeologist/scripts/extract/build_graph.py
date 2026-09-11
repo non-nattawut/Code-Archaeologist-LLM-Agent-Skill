@@ -16,6 +16,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from paths import long_path  # noqa: E402  (a page named after a long id can pass MAX_PATH)
 from paths import DATA_DIR  # noqa: E402  (also puts sibling script dirs on sys.path)
 STRUCTURE_DIR = os.path.join(DATA_DIR, "structure")
 DEFAULT_VAULT = os.path.join(STRUCTURE_DIR, "vault")
@@ -75,7 +76,7 @@ def build(vault: str, out_dir: str) -> int:
     md_files = sorted(f for f in os.listdir(vault) if f.endswith(".md"))
     for fn in md_files:
         path = os.path.join(vault, fn)
-        with open(path, "r", encoding="utf-8") as fh:
+        with open(long_path(path), "r", encoding="utf-8") as fh:
             text = fh.read()
 
         meta = parse_frontmatter(text)

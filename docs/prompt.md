@@ -2947,3 +2947,46 @@ conclusion was drawn from it. Rerun correctly, it gave the figures above.
 - **The presentation:** the FAQ answer is rewritten, and the "Python-only metrics" limitation is
   deleted because it is no longer true.
 - **The report** no longer says "Python nodes only".
+
+### 6d — timing on a real repository, read-only, and the crash it found (fourth commit)
+
+**`tools/time_build.py`** installs the skill into a temp directory and copies this machine's
+`vendor/` in. It times `project`, `flow`, `report` and `brief`, prints aggregates only, and
+snapshots every file of each corpus before and after. Any difference fails the run. That is how
+the user's rule — do not edit any file in `srs-eol-system` — became a checked property instead of
+a promise.
+
+**The first two runs on `srs-eol-system` crashed.** That is what this step exists to find.
+
+1. **`project` died with a bare `FileNotFoundError`.** The corpus defines some names in more than
+   one file, and SharedNames correctly qualified them by *path*, since the stem was not enough.
+   The resulting `<id>.md` paths passed Windows' 260-character `MAX_PATH`. I diagnosed it in a
+   scratchpad install, reading the traceback privately, and nothing from it was recorded. The fix
+   is `paths.long_path()`, which adds the `\?\` prefix where needed. Every write, read and delete
+   of a vault page or flow note goes through it.
+2. **The next run crashed inside my own tool.** `time_build` read note sizes and cleaned up the
+   temp directory without `long_path`.
+
+Regression case r23 builds a 100-character class name into a vault about 200 characters deep. With
+`long_path` stubbed out it raises the original error; with the fix it passes. The sample data did
+not move.
+
+**Result:** `srs-eol-system` has 1,100 graphable files and 13.6 MB of source.
+
+| | Figure |
+| --- | --- |
+| Flow | 2,377 nodes / 2,779 edges |
+| Structure | 725 nodes / 1,077 edges |
+| Full build plus report | 27.7 s |
+| Source vs. brief | 3,212× the size of the 4.3 KB brief |
+
+Per 100 files, every stage gets cheaper as corpora grow, so the success criterion set before
+measuring holds. The corpus snapshot matched.
+
+One miss of my own on the way: restructuring `time_build.main` left the old `--json` tail inside
+the new `_run()`, where `args` does not exist. I spotted it on review and fixed it before the tool
+ran with `--json`.
+
+**Commit boundary.** Phase 7 work was already in the working tree when 6d was ready, so this
+commit is staged file by file. Two Phase 7 docstring edits I had made in `build_flow.py` were
+reverted before staging and re-applied afterwards, so this commit carries 6d only.

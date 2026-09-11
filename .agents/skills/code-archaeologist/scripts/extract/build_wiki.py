@@ -24,6 +24,7 @@ import sys
 # Path resolution (relative to the skill root, not the CWD)
 # ---------------------------------------------------------------------------
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from paths import long_path  # noqa: E402  (a page named after a long id can pass MAX_PATH)
 from paths import DATA_DIR, TEMPLATES_DIR  # noqa: E402  (also puts sibling script dirs on sys.path)
 DEFAULT_VAULT = os.path.join(DATA_DIR, "structure", "vault")
 TEMPLATE_PATH = os.path.join(TEMPLATES_DIR, "wiki_page_template.md")
@@ -503,14 +504,14 @@ def build(src, vault: str) -> int:
     # Clean stale generated pages so re-runs are idempotent.
     for fn in os.listdir(vault):
         if fn.endswith(".md"):
-            os.remove(os.path.join(vault, fn))
+            os.remove(long_path(os.path.join(vault, fn)))
 
     written = 0
     for ent in entities:
         page = render_entity(ent, known, template, names)
         # Sanitize filename (entity names are identifiers, but be safe).
         safe = re.sub(r"[^A-Za-z0-9_.-]", "_", ent["name"])
-        with open(os.path.join(vault, f"{safe}.md"), "w", encoding="utf-8") as fh:
+        with open(long_path(os.path.join(vault, f"{safe}.md")), "w", encoding="utf-8") as fh:
             fh.write(page)
         written += 1
 

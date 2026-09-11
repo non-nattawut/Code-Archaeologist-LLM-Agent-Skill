@@ -12,7 +12,7 @@
 > | 3 — Full regression gate: nothing old may break | does it still run | **done** — 5 things fixed, 1 recorded (*Found while implementing* #4) | `f904891` |
 > | 4 — Audit every graph and node feature for silent wrongness | is what it produced right | **done** — 3 bugs fixed, 1 recorded (#5); 29 checks + 18 regression cases | `b44b909` |
 > | 5 — The two limits phase 4 left: structure-map shared names, the narrow toolbar | close the known gaps | **done** — both closed; toolbar floor ~1270 → ~987px | `cc4d0af` |
-> | 6 — Close the open concerns: pinned grammars, non-ASCII, per-language metrics, timing | make adding a language safe | **in progress** — 6c done (`16b6f62`), 6b done (`6553498`; recorded #6), 6a done (this commit); 6d next | `16b6f62`, `6553498` |
+> | 6 — Close the open concerns: pinned grammars, non-ASCII, per-language metrics, timing | make adding a language safe | **done** — 6c, 6b (recorded #6), 6a, 6d (this commit; found and fixed the MAX_PATH crash) | `16b6f62`, `6553498`, `bf588e7` |
 > | 7 — A graph for every review-only language (Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir) | the title goal | **planned, not started** | — |
 > | 8 — Route tables: Django `urlpatterns`, Rails, Laravel, Phoenix | cross-stack links for table-routed apps | **planned, not started** | — |
 > | 9 — Duplicates below function granularity | copied blocks, not only copied functions | **planned, not started** | — |
@@ -1226,6 +1226,33 @@ names from it in this repo.
 
 **Success criterion, set before measuring:** no stage grows faster than the file count across the
 three sizes. A stage that does is a finding, fixed in this phase if the cause is plain.
+
+**Result — shipped 2026-09-11.** `tools/time_build.py` installs the skill into a temp directory,
+copies this machine's `vendor/` in (offline), times each stage, and **snapshots every file of every
+corpus before and after — any difference fails the run**, which is what makes "read-only" checked
+rather than promised. It prints aggregates only. Measured:
+
+| Corpus | Graphable files | Source | Flow | Structure | project / flow / report / brief | Total | Source ÷ brief |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `sample_src` | 22 | 16 KB | 52 / 32 | 25 / 22 | 1.30 / 0.25 / 0.35 / 0.19 s | 2.1 s | 5.5× |
+| the skill's own code | 46 | 407 KB | 432 / 470 | 59 / 7 | 1.19 / 0.73 / 0.96 / 0.22 s | 3.1 s | 139× |
+| `srs-eol-system` | 1,100 | 13.6 MB | 2,377 / 2,779 | 725 / 1,077 | 9.10 / 4.96 / 13.29 / 0.36 s | **27.7 s** | **3,212×** |
+
+**The criterion holds, and by a wide margin**: per 100 files every stage gets *cheaper* as the
+corpus grows (project 5.9 → 2.6 → 0.83 s, report 1.6 → 2.1 → 1.2 s), because fixed start-up cost
+dominates small corpora. The value claim holds too: on a real repository the brief an agent reads
+first is 4.3 KB against 13.6 MB of source. The corpus snapshot matched before and after. (The
+per-extension count here is 1,100 rather than the 961 counted while planning, because
+`scan_security.iter_source_files` also reads hidden directories such as `.claude/` and `.mjs`/`.cjs`.)
+
+**Found and fixed on the way — the first two runs crashed, which is exactly what this step is
+for.** A name defined in several files is qualified by its *path* when its stem is not enough, and
+in this repository that made node files (`<id>.md`) whose full path passed Windows' 260-character
+`MAX_PATH`: `open()` raised a bare `FileNotFoundError` and **the whole `project` stage died**.
+`paths.long_path()` now prefixes `\\?\` where needed, and every write, read and delete of a vault
+page or flow note goes through it. The second run then crashed in my own tool, which read and
+cleaned up those same files without it. New regression case r23: a 100-character class name in a
+~200-character vault must build, and does not with `long_path` stubbed out.
 
 ### Verify (phase 6)
 
