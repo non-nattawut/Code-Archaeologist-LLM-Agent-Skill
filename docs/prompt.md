@@ -3956,3 +3956,59 @@ Fulfilled all 3 learning requirements:
 2. Verified that all script references match recent renames (`langs_extract.py`).
 3. Ran all test suites: `check_docs.py` (OK), `check_regressions.py` (34/34), `check_graph.py` (27+27 OK), and `check_graph.py --self-test` (33/33).
 4. Staged, committed, and pushed changes to `origin/main`.
+
+## [94] 2026-09-12 — The rename, and dropped calls keep their names
+
+**Prompt**
+> why we not accumulate extrator code into 1 file since it make me kind of confuse
+
+> yes do the rename and commit, also fix bug as you mention before
+>
+> after finish push
+
+**Response**
+Logged after the fact, and out of order: entries 91-93 are a parallel session that committed this
+work along with its own while it was still in my working tree (`10dbedb`, `eb271f7`, both by
+`non-nattawut`). Recording it here so the reasoning is not lost; the code is unchanged by this
+entry.
+
+**Argued against merging the extractors, then fixed what was actually confusing.** 378 + 896 +
+1,462 = 2,736 lines across three files, three parse strategies, and three *independent* skip paths
+(`python skipped`, `frontend skipped`, per-language) -- the file boundary is the degradation
+boundary constraint 1 requires, and one contract per file is what let every port be verified by
+diffing the output graph. But the names were indefensible: `ts_extract.py` meant *tree-sitter* and
+read Java/Go/C#/... while `js_ts_extract.py` next to it is the one that reads TypeScript, and the
+docstring never said which `ts` was meant. Renamed to `langs_extract.py`, matching the contract it
+exports (`find_lang_files` / `extract_lang_files`).
+
+The rename itself: `\bts_extract\b`, because a plain substring replace turns `js_ts_extract` into
+`js_langs_extract`. Only one doc quoted the full path (`docs/USAGE.md:75`), which is what
+`check_docs.py` guards. `docs/prompt.md`, `ROADMAP_PLAN.md` and `PROJECT_HISTORY.md` keep the old
+spelling deliberately -- records of what was done, not descriptions of the present.
+
+**Then the bug named at the end of entry 90:** `ext` counted dropped call sites and threw the names
+away, so `print(...)` -- correctly dropped -- was indistinguishable from a call to a name the graph
+defines, which is a missing edge. Now `_record_dropped` keeps the names and `_split_dropped` keeps
+the ones the graph defines as `unresolved`; `context.py` prints them on the node it hands an agent.
+All three analyzers route through the one recorder rather than each keeping its own counter.
+
+**It paid for itself within minutes, which is the whole argument for measuring.** On `sample_src`
+it finds 4 nodes, all four over-counts (`api.get` is axios, `orders.get` is a Java Map) -- weak
+evidence. Run against the skill's own 390-node graph via `build_flow.analyze()` (no artifacts
+written): 682 edges, 2,782 dropped sites, **207 naming something the graph defines**, and the top
+entries were not noise -- `safe_stdout` x11 is `console.safe_stdout()`, and ~50 more are `px.<fn>()`.
+Python resolves a bare `f()` against the module function table but nothing resolves
+`module.f()`, so a large part of this project's own call graph is missing. Recorded as roadmap
+finding **#11** with the measurement; not fixed, because resolving it by name would invent edges
+(`json.load` vs a node named `load`) and doing it properly means import binding -- the same step 3
+the JS/TS and shared-name gaps need.
+
+Guards, so neither can rot silently: `check_graph.py` **c19** (every `unresolved` name is a real
+node's bare name, never more of them than `ext`, sorted and unique) with two sabotages in the
+self-test, and `check_regressions.py` **r35** (a graph-defined name is listed, a library name is
+not, and no edge is invented). Suite at HEAD: check_docs OK, check_langs 21/21, py_oracle 0,
+check_graph 28+28, --self-test 33/33, regressions 35/35, sample 25/22 D69 + 53/33 D68 unchanged.
+
+One process note worth keeping: writing r35 through a bash heredoc silently turned `\n` inside a
+Python string literal into real newlines and produced a syntax error -- exactly the failure
+CLAUDE.md's constraint 5 warns about. Reverted and rewrote it with the Edit tool.
