@@ -38,7 +38,7 @@ flowchart TD
     IDS["scripts/core/ids.py<br>(SharedNames case-insensitive)"]
     TAXONOMY["scripts/core/taxonomy.py<br>(Layers, Kinds, Precision)"]
     GRAMMARS["scripts/core/grammars.py<br>(Tree-sitter runtime & wheels)"]
-    MANIFEST["scripts/core/manifest.py<br>(Source freshness SHA-256)"]
+    MANIFEST["scripts/core/manifest.py<br>(Source freshness SHA-1)"]
 
     %% Extractors
     BW["scripts/extract/build_wiki.py"]
@@ -136,7 +136,7 @@ flowchart TD
 | `scripts/archaeologist.py` | `scripts/review/report.py` | `build(src, graph_path, out_dir)` | `src` roots, map's graph JSON, output dir | Runs 7 review passes, generates `architecture_report.md` & `.json` |
 | `scripts/archaeologist.py` | `scripts/review/brief.py` | `main(argv)` | CLI args (`--src ...`) | Formats and prints fixed-size token digest of repo state |
 | `scripts/archaeologist.py` | `scripts/core/manifest.py` | `compare(src)` | `src` roots list | Dict of modified/added/deleted files & grammar drift |
-| `scripts/archaeologist.py` | `scripts/core/manifest.py` | `write(src)` | `src` roots list | Computes and saves SHA-256 hashes into `manifest.json` |
+| `scripts/archaeologist.py` | `scripts/core/manifest.py` | `write(src)` | `src` roots list | Computes and saves SHA-1 hashes into `manifest.json` |
 | `scripts/archaeologist.py` | `scripts/query/build_html.py` | `build(sources, out_path)` | Map dict: `{name: (graph, report)}`, output HTML path | Bundles graphs + reports + vendored D3 script into `explorer.html` |
 | `scripts/extract/build_wiki.py` | `scripts/extract/py_extract.py` | `parse()`, `read_source()`, `field()`, `text()`, `walk()` | Python file path / source bytes | Python CST tree nodes, docstrings, classes, functions |
 | `scripts/extract/build_wiki.py` | `scripts/extract/js_ts_extract.py` | `find_js_files()`, `extract_js_files()`, `frontend_degraded()` | Source roots | List of class and component definitions with types |
@@ -193,7 +193,7 @@ flowchart TD
    - Reads `templates/viewer.html` and `templates/vendor/force-graph.min.js`.
    - Inlines graph JSONs and review reports directly into `data/explorer.html`.
 5. **Manifest Snapshot (`scripts/core/manifest.py:write()`):**
-   - Hashes all source files (SHA-256) and records installed grammar versions into `data/cache/manifest.json`.
+   - Hashes all source files (SHA-1, truncated to 12 hex chars) and records installed grammar versions into `data/cache/manifest.json`.
 
 #### Flow 2: Build Flow Map (`archaeologist.py flow --src <roots>`)
 1. **Entrypoint Dispatch:** `scripts/archaeologist.py:run_flow()` is invoked.
@@ -230,7 +230,7 @@ flowchart TD
 
 #### Flow 5: Staleness Check (`archaeologist.py check [--src <roots>]`)
 1. `scripts/archaeologist.py:main()` calls `scripts/core/manifest.py:compare()`.
-2. Re-scans recorded roots, hashes every source file via SHA-256, and checks Tree-sitter grammar versions via `scripts/core/grammars.py:drift()`.
+2. Re-scans recorded roots, hashes every source file via SHA-1, and checks Tree-sitter grammar versions via `scripts/core/grammars.py:drift()`.
 3. Emits JSON listing added, modified, deleted files, and grammar drift. Zero graph parsing required.
 
 #### Flow 6: Orientation Brief (`archaeologist.py brief`)
@@ -307,7 +307,7 @@ python .agents/skills/code-archaeologist/scripts/archaeologist.py brief
 | `scripts/core/ids.py` | ID Generation | **SharedNames:** Groups by `name.lower()` to prevent case collisions on Windows/macOS. Qualifies by stem/path. | Node IDs stay bare unless defined in 2+ files. |
 | `scripts/core/taxonomy.py` | Taxonomy Rules | Defines kinds, layers, skip directories, and `is_test_file()` detection. Computes `precision_of()`. | Single source of truth; never re-implemented inline. |
 | `scripts/core/grammars.py` | Grammar Wheels | Manages pinned Tree-sitter wheels, lazy loading, and `drift()` detection. | Wheels installed on demand into `<skill>/vendor/`. |
-| `scripts/core/manifest.py` | Staleness Check | Computes SHA-256 source and grammar version hashes into `manifest.json`. | Deterministic: no wall-clock timestamps. |
+| `scripts/core/manifest.py` | Staleness Check | Computes SHA-1 source and grammar version hashes into `manifest.json`. | Deterministic: no wall-clock timestamps. |
 | `scripts/core/console.py` | Output Encoding | Safe stdout/stderr wrapper protecting non-UTF-8 terminals (e.g. Windows cp874). | Must be called before echoing external repo strings. |
 
 ### Extraction Engine (Why 3 Extractor Files?)

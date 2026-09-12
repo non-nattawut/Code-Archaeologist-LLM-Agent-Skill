@@ -4238,3 +4238,78 @@ it, since that was not what was asked — naming it rather than doing it silentl
 mirror-current-truth table nor the README — a doc nothing told anyone to maintain, which is
 exactly how it drifted. Added the row, plus the rule that a new command becomes a chip, never a
 second diagram. `tools/check_docs.py` OK.
+
+## [100] 2026-09-12 — Thai translation of the architecture guide; SHA-256 was never true
+
+**Prompt**
+> transalte to Thai
+>
+> (after being asked what to translate, and choosing "the architecture guide, new Thai file")
+>
+> then commit and push
+>
+> the trachnical word you can use english since translate to Thai may weired
+
+**Response**
+
+*Asked first, deliberately.* "Translate to Thai" had two readings an order of magnitude apart —
+restate the last chat summary, or translate a 2129-line document — so I asked rather than guessed.
+The answer was a new sibling file, `docs/ARCHITECTURE_GUIDE.th.html`, leaving the English one
+alone. That matches the precedent already in the repo: `docs/PRESENTATION.html` is Thai.
+
+*Read the precedent before writing a word.* `PRESENTATION.html` already establishes the house
+style, and it decided two things I would otherwise have got wrong: technical terms are left in
+English inline (`deterministic`, `parser`, `wheel`, `token`, `RAG`), and the font stack is
+**system Thai faces only** (`IBM Plex Sans Thai`, `Noto Sans Thai`, `Leelawadee UI`, `Sarabun`,
+Tahoma) at `line-height: 1.85` — because the page must open offline, so a Google Fonts `@import`
+is forbidden the same way it is in the explorer. Thai also needs the extra leading to be readable
+at all.
+
+*The user's mid-turn correction sharpened it.* I had started translating with Thai technical nouns
+(โหนด for node, เอดจ์ for edge, กราฟ for graph, ความซับซ้อนไซโคลมาติก for cyclomatic complexity).
+The message "the technical word you can use english since translate to Thai may weird" arrived
+after two batches, and it is right — that register is how Thai developers actually write. I
+rewrote both finished batches rather than leaving the file in two styles, and carried the rule
+through: Thai is the connective prose, every identifier and algorithm name stays English.
+
+*Method — extract, translate, apply, verify.* Not a hand-retype of 2129 lines. A script pulled out
+every translatable unit (JS prose fields, HTML text nodes, `placeholder` attributes) into
+`strings.json`: **420 unique strings, 26,590 chars**. I wrote the Thai keyed by *index*, never by
+re-typing the English, because the cp874 console mangles the file's en-dashes on the way to stdout
+and retyping from a mangled reading would have silently corrupted them. The apply script then
+substituted through the same regexes used to extract, so only text nodes and the specific JS
+fields were ever touched — 453 substitutions (js=230, html=221, attr=2).
+
+*A bug the first extraction hid.* The initial `>([^<>]+)<` sweep swallowed the entire `<style>`
+block as one 553-line "string". Caught it reading the dump, stripped `<style>` before scanning, and
+the count dropped from 421 units / 49k chars to the real 420 / 26.6k.
+
+*A miss the markup pass could not see.* After applying, the sidebar still said "Called By (Incoming
+Callers)" and "Scripts It Runs, In Order" — those labels are written by `openCommand()` /
+`openSidebar()` at **runtime**, not present in the markup, so no amount of HTML substitution would
+reach them. Found them by scanning JS string literals for English sentences and excluding the data
+tables; seven strings, all fixed. The leftover-English audit then showed only 37 strings with no
+Thai at all, and every one is a deliberate keep — algorithm names (`Tarjan's SCC`, `Winnowing`),
+identifier lists, CLI fragments (`pip install`, `git log --numstat`).
+
+*Another false claim, found on the way.* String [31] read "SHA-256 Source Hash Manifest".
+`manifest.py` line 80 is `hashlib.sha1(fh.read()).hexdigest()[:12]` — SHA-1, truncated to 12 hex
+chars. Seven instances across the English `.html` and `.md`, all fixed before the translation ran,
+so the Thai file inherited the correction rather than propagating the lie into a second language.
+That is the second documentation error this pair of files has produced in two turns (eight invented
+function names last turn), which is more evidence for finding #12.
+
+*Verified.* JS parses as a classic script via `new vm.Script()`; tag balance even on all six
+container tags; `fc-box` 145, `fc-cmd-chip` 14, `fc-phase` 20, `matrix-pill` 56 — identical counts
+to the English file, so nothing structural was lost in translation. In the page's own scope:
+`lang="th"`, the Thai title, 29 cards, 28 boxes, `openCommand('flow')` → 5 ordered chips with Thai
+labels, drill-through to `route_tables.py` restoring the Thai script-view labels, and
+`getComputedStyle(document.body)` confirming the Thai stack and `26.825px` line-height actually
+applied. Asserted no `@import`, no `<link>`, no `<script src>` — the offline guarantee holds.
+`check_docs` OK; the Thai guide's function names audit clean.
+
+*Doc discipline.* Added a row for the Thai file to `CLAUDE.md`'s mirror-current-truth table, with
+the thing that will actually bite: **it is a translation, so it goes stale silently** when the
+English changes. Recorded the two house rules (English identifiers, system fonts only) and the
+invariant that the two files are structurally identical, so the element counts above are a check
+anyone can re-run.

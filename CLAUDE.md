@@ -685,6 +685,7 @@ that nobody rewrites them.
 | `templates/TAXONOMY.md` | anyone adding a field value | a `kind`/`layer`/severity/grade value changes |
 | `docs/PRESENTATION.html` | someone being shown the project (**written in Thai**) | Features, Architecture, Honest limitations or Commands drift |
 | `docs/ARCHITECTURE_GUIDE.{html,md}` | someone learning how the 28 scripts fit together | a script is added/renamed/moved, an inter-script call changes, or a function it names by hand is renamed |
+| `docs/ARCHITECTURE_GUIDE.th.html` | the same reader, **in Thai** | the English guide changes — it is a translation, so it goes stale silently |
 
 `ARCHITECTURE_GUIDE.html` is **one flowchart**, deliberately: BUILD (parses source, rewrites
 artifacts) and QUERY (reads artifacts, never opens a source file), with `check` as the hinge
@@ -694,6 +695,15 @@ two different things. If a command needs explaining, it becomes a chip that open
 sequence in the existing sidebar (`COMMANDS_DATA` / `openCommand()`); **it does not become a
 second diagram.** Both files name functions by hand and nothing checks them — eight were invented
 before anyone noticed (finding #12).
+
+`ARCHITECTURE_GUIDE.th.html` is the Thai translation of the `.html`, structurally identical —
+same ids, same classes, same handlers — so a structural change must be made in **both**, and
+`fc-box` / `fc-cmd-chip` / `fc-phase` counts are expected to match exactly between them. Two
+house rules, both from `docs/PRESENTATION.html`: **every technical identifier stays in English**
+(script and function names, `kind`/`layer` values, algorithm names like *Winnowing* and *Tarjan's
+SCC*, CLI flags — Thai is the connective prose around them), and **fonts are system-only**
+(`IBM Plex Sans Thai`, `Noto Sans Thai`, `Leelawadee UI`, `Sarabun`, Tahoma) at
+`line-height: 1.85`, because the page must open offline. Nothing may add a webfont `@import`.
 
 **Append, never revise** — these are records of what was actually done and thought at the time;
 editing them to match the present is the one way to make them worthless:

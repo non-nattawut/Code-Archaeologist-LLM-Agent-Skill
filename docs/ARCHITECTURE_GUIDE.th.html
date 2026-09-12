@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Code Archaeologist — Complete Architecture & Workflow Guide</title>
+<title>Code Archaeologist — คู่มือสถาปัตยกรรมและเวิร์กโฟลว์ฉบับสมบูรณ์</title>
 <style>
   :root {
     --ground: #08090b;
@@ -22,13 +22,15 @@
     --blue: #6ea8fe;
     --purple: #a371f7;
     --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    /* Thai faces from the system only -- this page must open offline, so no webfont. */
+    --sans: "IBM Plex Sans Thai", "Noto Sans Thai", "Leelawadee UI", "Sarabun",
+            Tahoma, "Segoe UI", system-ui, -apple-system, sans-serif;
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
     margin: 0; background: var(--ground); color: var(--ink);
-    font-family: var(--sans); font-size: 14px; line-height: 1.7;
+    font-family: var(--sans); font-size: 14.5px; line-height: 1.85;
     -webkit-font-smoothing: antialiased;
   }
   a { color: var(--accent); text-decoration: none; }
@@ -490,20 +492,20 @@
       <div id="sbRole" class="sb-val">...</div>
     </div>
     <div class="sb-block">
-      <div class="sb-label">Core Technique &amp; Algorithm</div>
+      <div class="sb-label">เทคนิคหลัก &amp; อัลกอริทึม</div>
       <div id="sbTech" class="sb-code" style="margin-bottom: 4px;">...</div>
       <div id="sbAlgo" class="sb-val">...</div>
     </div>
     <div class="sb-block">
-      <div class="sb-label">Key Architectural Invariant</div>
+      <div class="sb-label">Invariant ทางสถาปัตยกรรมที่สำคัญ</div>
       <div id="sbInvariant" class="sb-val" style="color: var(--accent);">...</div>
     </div>
     <div class="sb-block">
-      <div class="sb-label" id="sbCallersLabel">Called By (Incoming Callers)</div>
+      <div class="sb-label" id="sbCallersLabel">ถูกเรียกโดย (Incoming Callers)</div>
       <div id="sbCallers" class="sb-chip-list"></div>
     </div>
     <div class="sb-block">
-      <div class="sb-label" id="sbCalleesLabel">Calls (Outgoing Callees)</div>
+      <div class="sb-label" id="sbCalleesLabel">เรียกไปยัง (Outgoing Callees)</div>
       <div id="sbCallees" class="sb-chip-list"></div>
     </div>
     <div class="sb-block">
@@ -512,7 +514,7 @@
       <div><span class="sb-code">Outputs:</span> <span id="sbOutputs">...</span></div>
     </div>
     <div class="sb-block">
-      <div class="sb-label">Execution Example</div>
+      <div class="sb-label">ตัวอย่างการรัน</div>
       <div id="sbCmd" class="cmd-box" style="margin: 4px 0 0; padding: 8px 10px; font-size: 11.5px;">...</div>
     </div>
   </div>
@@ -521,16 +523,15 @@
 
 <header>
   <div class="wrap">
-    <div class="hero-tag">Zero-RAG Codebase Documentation Engine</div>
-    <h1>Code Archaeologist Architecture & Workflow</h1>
+    <div class="hero-tag">เอนจินทำเอกสาร codebase แบบ Zero-RAG</div>
+    <h1>สถาปัตยกรรมและเวิร์กโฟลว์ของ Code Archaeologist</h1>
     <p class="hero-p">
-      A complete, deterministic compiler-style pipeline that transforms source code into two queryable graph maps
-      (Structure & Flow), audits them with graph algorithms, and renders an offline single-file viewer.
+      pipeline แบบ compiler ที่ deterministic และครบวงจร แปลง source code เป็น graph map สอง map ที่ query ได้ (Structure และ Flow), ตรวจสอบด้วย graph algorithm แล้ว render ออกมาเป็น viewer ไฟล์เดียวที่ใช้ offline ได้
     </p>
 
     <!-- Visual Pipeline -->
     <div class="pipe-container">
-      <div class="pipe-title">Interactive Pipeline Dataflow (Click any script to inspect)</div>
+      <div class="pipe-title">Dataflow ของ Pipeline แบบ Interactive (คลิกที่ script ใดก็ได้เพื่อดูรายละเอียด)</div>
       <div class="pipeline-grid">
         <!-- Stage 0 -->
         <div class="pipe-stage">
@@ -541,7 +542,7 @@
           </div>
           <div class="pipe-node-pill" onclick="focusCard('paths.py')">
             paths.py
-            <small>Skill Root Bootstrap</small>
+            <small>Bootstrap ราก Skill</small>
           </div>
         </div>
 
@@ -556,11 +557,11 @@
           </div>
           <div class="pipe-node-pill" onclick="focusCard('grammars.py')">
             core/grammars.py
-            <small>Tree-sitter Pinned Wheels</small>
+            <small>Tree-sitter Wheel ที่ตรึงเวอร์ชัน</small>
           </div>
           <div class="pipe-node-pill" onclick="focusCard('py_extract.py')">
             extract/py_extract.py
-            <small>Python CST + Newline Normalizer</small>
+            <small>Python CST + ตัว Normalize Newline</small>
           </div>
           <div class="pipe-node-pill" onclick="focusCard('js_ts_extract.py')">
             extract/js_ts_extract.py
@@ -576,7 +577,7 @@
 
         <!-- Stage 2 -->
         <div class="pipe-stage">
-          <div class="pipe-stage-head"><span>2. Graph Construction</span></div>
+          <div class="pipe-stage-head"><span>2. การสร้าง Graph</span></div>
           <div class="pipe-node-pill" onclick="focusCard('build_wiki.py')">
             build_wiki.py & build_graph.py
             <small>Structure: Classes & Components</small>
@@ -598,7 +599,7 @@
           <div class="pipe-stage-head"><span>3. Review & Audit</span></div>
           <div class="pipe-node-pill" onclick="focusCard('analyze.py')">
             review/analyze.py
-            <small>Tarjan's SCC & Health Score</small>
+            <small>Tarjan's SCC และ Health Score</small>
           </div>
           <div class="pipe-node-pill" onclick="focusCard('duplicates.py')">
             review/duplicates.py
@@ -606,15 +607,15 @@
           </div>
           <div class="pipe-node-pill" onclick="focusCard('scan_security.py')">
             review/scan_security.py
-            <small>Regex + AST Range Ownership</small>
+            <small>Regex + การหาเจ้าของตาม AST Range</small>
           </div>
           <div class="pipe-node-pill" onclick="focusCard('git_insights.py')">
             review/git_insights.py
-            <small>Streaming git log Churn</small>
+            <small>Churn จาก git log แบบ Streaming</small>
           </div>
           <div class="pipe-node-pill" onclick="focusCard('metrics.py')">
             review/metrics.py
-            <small>CST Cyclomatic Complexity</small>
+            <small>Cyclomatic Complexity บน CST</small>
           </div>
         </div>
 
@@ -625,15 +626,15 @@
           <div class="pipe-stage-head"><span>4. Query & UI</span></div>
           <div class="pipe-node-pill" onclick="focusCard('trace_path.py')">
             query/trace_path.py
-            <small>BFS Shortest Path & Blast Radius</small>
+            <small>BFS Shortest Path และ Blast Radius</small>
           </div>
           <div class="pipe-node-pill" onclick="focusCard('search.py')">
             query/search.py
-            <small>Multi-Filter Graph Search</small>
+            <small>ค้น Graph แบบหลาย Filter</small>
           </div>
           <div class="pipe-node-pill" onclick="focusCard('build_html.py')">
             build_html.py & viewer.html
-            <small>Standalone Offline Explorer</small>
+            <small>Explorer แบบ Standalone ใช้ Offline</small>
           </div>
         </div>
       </div>
@@ -643,16 +644,15 @@
 
   <!-- Inter-Script Call Graph & Execution Hierarchy Section -->
   <section class="callgraph-section">
-    <div class="section-eyebrow">Execution Architecture</div>
-    <h2>Inter-Script Call Graph &amp; Execution Hierarchy</h2>
+    <div class="section-eyebrow">สถาปัตยกรรมการทำงาน</div>
+    <h2>Call Graph ระหว่าง Script &amp; ลำดับชั้นการทำงาน</h2>
     <p style="color: var(--ink-2); max-width: 90ch; margin-bottom: 24px;">
-      Explore the precise inter-script invocation graph. Code Archaeologist is composed of 28 focused scripts
-      interacting via deterministic contracts, shared taxonomy, and filesystem artifacts.
+      สำรวจ graph การเรียกระหว่าง script อย่างละเอียด Code Archaeologist ประกอบด้วย 28 script ที่แต่ละตัวทำงานเฉพาะทาง และคุยกันผ่าน contract ที่ deterministic, taxonomy ที่ใช้ร่วมกัน และ artifact บน filesystem
     </p>
 
     <div class="cg-tabs">
-      <button class="cg-tab active" onclick="showCgTab('cg-flowchart', this)">Interactive Visual Flowchart</button>
-      <button class="cg-tab" onclick="showCgTab('cg-matrix', this)">Caller &rarr; Callee Matrix</button>
+      <button class="cg-tab active" onclick="showCgTab('cg-flowchart', this)">Flowchart แบบ Interactive</button>
+      <button class="cg-tab" onclick="showCgTab('cg-matrix', this)">ตาราง Caller &rarr; Callee</button>
     </div>
 
     <!-- Panel 0: The Unified Two-Phase Flowchart -->
@@ -660,22 +660,19 @@
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;">
         <div>
           <span style="font-family: var(--mono); font-size: 11px; text-transform: uppercase; color: var(--accent); font-weight: 600;">
-            The Whole System, One Flowchart
+            ทั้งระบบ ใน Flowchart เดียว
           </span>
           <span style="color: var(--ink-3); font-size: 12px; margin-left: 8px;">
-            (Click any script box for its mechanics, or any command chip for the exact script sequence it runs &mdash; all in the sidebar, zero page scrolling)
+            (คลิกกล่อง script ใดก็ได้เพื่อดูกลไกของมัน หรือคลิก chip ของคำสั่งเพื่อดูลำดับ script ที่มันรันจริง &mdash; ทั้งหมดอยู่ใน sidebar ไม่ต้องเลื่อนหน้าเลย)
           </span>
         </div>
       </div>
 
       <div class="flow-banner">
         <div>
-          <div class="flow-banner-title">Two phases, and one hinge between them</div>
+          <div class="flow-banner-title">สอง phase กับหนึ่งบานพับที่คั่นกลาง</div>
           <div class="flow-banner-desc">
-            Every one of the 28 scripts sits on exactly one side of a single line: <strong>BUILD</strong> parses source and
-            rewrites artifacts; <strong>QUERY</strong> reads those artifacts and <em>never opens a source file</em>. That second
-            half is the Zero-RAG guarantee &mdash; the reason an agent can answer architecture questions in a fixed-size context
-            instead of reading the repository. <code>check</code> is the hinge: the only command that reads source and writes nothing.
+            script ทั้ง 28 ตัวอยู่ฝั่งใดฝั่งหนึ่งของเส้นเดียวเท่านั้น: <strong>BUILD</strong> อ่าน source แล้วเขียน artifact ใหม่ ส่วน <strong>QUERY</strong> อ่าน artifact เหล่านั้น และ <em>ไม่เคยเปิด source file เลย</em>ครึ่งหลังนั่นแหละคือหลักประกัน Zero-RAG &mdash; เหตุผลที่ agent ตอบคำถามเชิงสถาปัตยกรรมได้ใน context ขนาดคงที่ แทนที่จะต้องอ่านทั้ง repository <code>check</code> คือบานพับ: เป็นคำสั่งเดียวที่อ่าน source แต่ไม่เขียนอะไรเลย
           </div>
         </div>
         <div class="flow-banner-cmd">archaeologist.py project | flow | both | report | check | brief</div>
@@ -685,12 +682,12 @@
 
         <!-- ============ ENTRY ============ -->
         <div class="fc-terminal start">
-          <span>&#9654;</span> YOUR SOURCE TREE &mdash; <code style="color:inherit">--src ./backend ./frontend</code>
+          <span>&#9654;</span> SOURCE TREE ของคุณ &mdash; <code style="color:inherit">--src ./backend ./frontend</code>
         </div>
 
         <div class="fc-arrow">
           <div class="fc-arrow-line"></div>
-          <div class="fc-arrow-badge">you run one command; there is only one entrypoint</div>
+          <div class="fc-arrow-badge">คุณรันหนึ่งคำสั่ง และมี entrypoint อยู่แค่ตัวเดียว</div>
           <div class="fc-arrow-head">&darr;</div>
         </div>
 
@@ -699,19 +696,19 @@
             <span class="fc-box-name">archaeologist.py</span>
             <span class="fc-node-badge cat-core">CORE</span>
           </div>
-          <div class="fc-box-desc">The only file at <code>scripts/</code> root, because it is the only entrypoint. Dispatches <code>project</code>, <code>flow</code>, <code>both</code>, <code>report</code>, <code>check</code>, <code>brief</code>.</div>
-          <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+          <div class="fc-box-desc">เป็นไฟล์เดียวที่ <code>scripts/</code> root เพราะเป็น entrypoint ตัวเดียว ทำหน้าที่กระจายคำสั่ง <code>project</code>, <code>flow</code>, <code>both</code>, <code>report</code>, <code>check</code>, <code>brief</code>.</div>
+          <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
         </div>
 
         <div class="fc-arrow">
           <div class="fc-arrow-line"></div>
-          <div class="fc-arrow-badge">import paths &rarr; puts scripts/, all four category dirs and vendor/ on sys.path</div>
+          <div class="fc-arrow-badge">import paths &rarr; ใส่ scripts/, ไดเรกทอรีทั้งสี่ category และ vendor/ ลงใน sys.path</div>
           <div class="fc-arrow-head">&darr;</div>
         </div>
 
         <!-- ============ SHARED FOUNDATION ============ -->
         <div class="fc-fork-container">
-          <div class="fc-fork-label">Shared foundation &mdash; loaded by every command, build or query</div>
+          <div class="fc-fork-label">ฐานร่วม &mdash; ทุกคำสั่งโหลดสิ่งเหล่านี้ ไม่ว่าจะ build หรือ query</div>
           <div class="fc-fork-bar"></div>
           <div class="fc-fork-grid">
             <div class="fc-fork-col">
@@ -720,8 +717,8 @@
                   <span class="fc-box-name">paths.py</span>
                   <span class="fc-node-badge cat-core">CORE</span>
                 </div>
-                <div class="fc-box-desc">Resolves <code>SKILL_ROOT</code> / <code>DATA_DIR</code> so any script runs from any working directory, and wraps every per-node file in <code>long_path()</code> for Windows <code>MAX_PATH</code>.</div>
-                <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+                <div class="fc-box-desc">Resolves <code>SKILL_ROOT</code> / <code>DATA_DIR</code> เพื่อให้ script ใดก็รันได้จาก working directory ใดก็ได้ และห่อไฟล์ราย node ทุกไฟล์ด้วย <code>long_path()</code> สำหรับ <code>MAX_PATH</code>.</div>
+                <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
               </div>
             </div>
             <div class="fc-fork-col">
@@ -730,8 +727,8 @@
                   <span class="fc-box-name">core/taxonomy.py</span>
                   <span class="fc-node-badge cat-core">CORE</span>
                 </div>
-                <div class="fc-box-desc">The single definition of every <code>kind</code>/<code>layer</code> value, <code>SKIP_DIRS</code>, <code>lang_of()</code> and what counts as a test file. Every pass asks; none re-implements.</div>
-                <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+                <div class="fc-box-desc">นิยามเดียวของทุกค่า <code>kind</code>/<code>layer</code> value, <code>SKIP_DIRS</code>, <code>lang_of()</code> และเกณฑ์ว่าไฟล์ไหนนับเป็น test ทุก pass ต้องถาม ไม่มีใคร implement ซ้ำ</div>
+                <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
               </div>
             </div>
             <div class="fc-fork-col">
@@ -740,8 +737,8 @@
                   <span class="fc-box-name">core/console.py</span>
                   <span class="fc-node-badge cat-core">CORE</span>
                 </div>
-                <div class="fc-box-desc"><code>safe_stdout()</code> &mdash; anything echoing repo text (node ids, paths, git author names) passes through here, so one accented name cannot kill a run on a cp874 console.</div>
-                <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+                <div class="fc-box-desc"><code>safe_stdout()</code> &mdash; อะไรก็ตามที่ echo ข้อความจาก repo (node id, path, ชื่อ author ของ git) ต้องผ่านตรงนี้ ชื่อที่มีวรรณยุกต์ตัวเดียวจะได้ไม่ทำให้ทั้ง run พังบน console cp874</div>
+                <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
               </div>
             </div>
           </div>
@@ -750,14 +747,14 @@
 
         <div class="fc-arrow">
           <div class="fc-arrow-line"></div>
-          <div class="fc-arrow-badge">before anything else: are the artifacts still true?</div>
+          <div class="fc-arrow-badge">ก่อนอื่นใด: artifact ยังเป็นจริงอยู่ไหม?</div>
           <div class="fc-arrow-head">&darr;</div>
         </div>
 
         <!-- ============ THE HINGE ============ -->
         <div class="fc-hinge">
           <div class="fc-hinge-head">
-            <span class="fc-hinge-tag">THE HINGE</span>
+            <span class="fc-hinge-tag">บานพับ</span>
             <span class="fc-cmd-chip" onclick="openCommand('check')">archaeologist.py check <small>&rarr; sequence</small></span>
           </div>
           <div class="fc-hinge-body">
@@ -766,19 +763,17 @@
                 <span class="fc-box-name">core/manifest.py</span>
                 <span class="fc-node-badge cat-core">CORE</span>
               </div>
-              <div class="fc-box-desc">SHA-1 of every source file under the recorded roots, plus the installed grammar set, compared against <code>data/cache/manifest.json</code>.</div>
-              <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+              <div class="fc-box-desc">SHA-1 ของทุก source file ใต้ roots ที่บันทึกไว้ บวกกับชุด grammar ที่ติดตั้งอยู่ เทียบกับ <code>data/cache/manifest.json</code>.</div>
+              <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
             </div>
             <div class="fc-hinge-note">
-              <strong>The only command that reads source and writes nothing.</strong>
-              It belongs to neither phase &mdash; it exists to tell you which phase you are entitled to be in.
-              A changed grammar set counts as staleness too: a graph that is smaller for want of a wheel is
-              indistinguishable from a graph of a smaller codebase.
+              <strong>คำสั่งเดียวที่อ่าน source แต่ไม่เขียนอะไรเลย</strong>
+              มันไม่สังกัด phase ไหนเลย &mdash; มันมีไว้บอกว่าคุณมีสิทธิ์อยู่ใน phase ไหน ชุด grammar ที่เปลี่ยนไปก็นับเป็น stale ด้วย เพราะ graph ที่เล็กลงเพราะขาด wheel หน้าตาเหมือนกันเป๊ะกับ graph ของ codebase ที่เล็กกว่า
             </div>
           </div>
           <div class="fc-hinge-branch">
-            <div class="fc-branch-arm bad"><code>stale: true</code> &rarr; rebuild first (Phase 1)</div>
-            <div class="fc-branch-arm ok"><code>stale: false</code> &rarr; skip straight to Phase 2</div>
+            <div class="fc-branch-arm bad"><code>stale: true</code> &rarr; ต้อง build ใหม่ก่อน (Phase 1)</div>
+            <div class="fc-branch-arm ok"><code>stale: false</code> &rarr; ข้ามไป Phase 2 ได้เลย</div>
           </div>
         </div>
 
@@ -792,7 +787,7 @@
           <div class="fc-phase-head">
             <div>
               <div class="fc-phase-title">PHASE 1 &middot; BUILD</div>
-              <div class="fc-phase-sub">Parses source. Rewrites artifacts wholesale &mdash; there is no incremental path, by design: node ids depend on the whole corpus.</div>
+              <div class="fc-phase-sub">อ่าน source แล้วเขียน artifact ใหม่ทั้งยวง &mdash; ไม่มีเส้นทาง incremental โดยเจตนา เพราะ node id ขึ้นอยู่กับทั้ง corpus</div>
             </div>
             <div class="fc-cmd-chips">
               <span class="fc-cmd-chip" onclick="openCommand('project')">project<small>&rarr;</small></span>
@@ -803,24 +798,24 @@
           </div>
 
           <!-- Stage A -->
-          <div class="fc-stage-label">Stage A &mdash; parse: one engine, three producers, seventeen languages</div>
+          <div class="fc-stage-label">Stage A &mdash; parse: หนึ่งเอนจิน สาม producer สิบเจ็ดภาษา</div>
           <div class="fc-box" data-script="grammars.py" onclick="openSidebar('grammars.py')">
             <div class="fc-box-top">
               <span class="fc-box-name">core/grammars.py</span>
               <span class="fc-node-badge cat-core">CORE</span>
             </div>
-            <div class="fc-box-desc">Owns "can this machine parse language X": lazy cached <code>parser_for(lang)</code>, the version <code>PINS</code>, and the exact <code>pip install</code> for anything missing. A missing grammar warns <em>by name</em> and skips those files &mdash; never silently.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+            <div class="fc-box-desc">ดูแลคำถามว่า "เครื่องนี้ parse ภาษา X ได้ไหม": lazy cache <code>parser_for(lang)</code>, เวอร์ชันใน <code>PINS</code>, และคำสั่ง <code>pip install</code> ที่ตรงเป๊ะสำหรับตัวที่ขาด ถ้า grammar ขาดจะเตือน <em>by name</em> แล้ว skip ไฟล์เหล่านั้น &mdash; ไม่มีทางเงียบ</div>
+            <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
           </div>
 
           <div class="fc-arrow">
             <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">parser_for(lang) &rarr; a tree-sitter CST per file</div>
+            <div class="fc-arrow-badge">parser_for(lang) &rarr; CST ของ tree-sitter หนึ่งชุดต่อไฟล์</div>
             <div class="fc-arrow-head">&darr;</div>
           </div>
 
           <div class="fc-fork-container">
-            <div class="fc-fork-label">Three producers &mdash; adding a language is a grammar wheel plus a SPEC row, never a new engine</div>
+            <div class="fc-fork-label">สาม producer &mdash; การเพิ่มภาษาคือ grammar wheel หนึ่งตัวบวกหนึ่งแถวใน SPEC ไม่ใช่การเพิ่มเอนจินใหม่</div>
             <div class="fc-fork-bar"></div>
             <div class="fc-fork-grid">
               <div class="fc-fork-col">
@@ -829,8 +824,8 @@
                     <span class="fc-box-name">extract/py_extract.py</span>
                     <span class="fc-node-badge cat-extract">EXTRACT</span>
                   </div>
-                  <div class="fc-box-desc">Python. <code>read_source()</code> normalises newlines, so a CRLF checkout cannot hash every node differently and silently miss the description cache.</div>
-                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+                  <div class="fc-box-desc">Python. <code>read_source()</code> normalize newline เพื่อไม่ให้ checkout แบบ CRLF ทำให้ทุก node hash ต่างออกไปและพลาด description cache แบบเงียบ ๆ</div>
+                  <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
                 </div>
               </div>
               <div class="fc-fork-col">
@@ -839,8 +834,8 @@
                     <span class="fc-box-name">extract/js_ts_extract.py</span>
                     <span class="fc-node-badge cat-extract">EXTRACT</span>
                   </div>
-                  <div class="fc-box-desc">JS/JSX/TS/TSX &mdash; four extensions, three grammars (<code>.tsx</code> needs <code>tsx</code>). Express/Nest routes, <code>fetch</code>/axios calls, and the JSX rule that makes a function a <code>kind: component</code>.</div>
-                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+                  <div class="fc-box-desc">JS/JSX/TS/TSX &mdash; สี่นามสกุล สาม grammar (<code>.tsx</code> needs <code>tsx</code>), route ของ Express/Nest, การเรียก <code>fetch</code>/axios และกฎ JSX ที่ทำให้ function กลายเป็น <code>kind: component</code>.</div>
+                  <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
                 </div>
               </div>
               <div class="fc-fork-col">
@@ -849,8 +844,8 @@
                     <span class="fc-box-name">extract/langs_extract.py</span>
                     <span class="fc-node-badge cat-extract">EXTRACT</span>
                   </div>
-                  <div class="fc-box-desc">The other fourteen: Java, Go, C#, Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir. One shared consumer works in tree-sitter <em>field</em> names; only <code>SPEC</code>/<code>SHAPES</code> know node-type spellings.</div>
-                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+                  <div class="fc-box-desc">อีกสิบสี่ภาษา: Java, Go, C#, Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir ตัว consumer ตัวเดียวที่ใช้ร่วมกันทำงานบนชื่อ <em>field</em> names; only <code>SPEC</code>/<code>SHAPES</code> รู้ว่า node type สะกดอย่างไร</div>
+                  <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
                 </div>
               </div>
             </div>
@@ -859,7 +854,7 @@
 
           <div class="fc-arrow">
             <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">declarations, bodies, param types, receivers &mdash; but never resolution</div>
+            <div class="fc-arrow-badge">declaration, body, type ของ parameter, receiver &mdash; แต่ไม่เคยให้ resolution</div>
             <div class="fc-arrow-head">&darr;</div>
           </div>
 
@@ -868,30 +863,30 @@
               <span class="fc-box-name">core/ids.py &mdash; <code>SharedNames</code></span>
               <span class="fc-node-badge cat-core">CORE</span>
             </div>
-            <div class="fc-box-desc">Pre-scans <em>every</em> definition from all three producers <strong>before any node is built</strong>, then qualifies only the names two or more files share &mdash; compared case-insensitively, because each note is <code>&lt;id&gt;.md</code>. This whole-corpus dependency is exactly why the build cannot be incremental.</div>
-              <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+            <div class="fc-box-desc">Pre-scans <em>every</em> definition จาก producer ทั้งสาม <strong>ก่อนที่ node ใดจะถูกสร้าง</strong>, แล้วจึง qualify เฉพาะชื่อที่ไฟล์ตั้งแต่สองไฟล์ขึ้นไปใช้ร่วมกัน &mdash; เทียบแบบไม่สนตัวพิมพ์เล็กใหญ่ เพราะ note แต่ละใบคือ <code>&lt;id&gt;.md</code>. การที่มันขึ้นกับทั้ง corpus แบบนี้คือเหตุผลที่ build เป็น incremental ไม่ได้</div>
+              <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
           </div>
 
           <!-- Stage B -->
-          <div class="fc-stage-label">Stage B &mdash; build the two maps (same producers, different node grain)</div>
+          <div class="fc-stage-label">Stage B &mdash; สร้าง map ทั้งสอง (producer ชุดเดียวกัน แต่ระดับความละเอียดของ node ต่างกัน)</div>
           <div class="fc-fork-container">
             <div class="fc-fork-bar"></div>
             <div class="fc-fork-grid">
 
               <!-- Structure column -->
               <div class="fc-fork-col">
-                <div class="fc-col-tag">STRUCTURE MAP &mdash; classes, components, module groups</div>
+                <div class="fc-col-tag">STRUCTURE MAP &mdash; class, component, กลุ่ม module</div>
                 <div class="fc-box" data-script="build_wiki.py" onclick="openSidebar('build_wiki.py')">
                   <div class="fc-box-top">
                     <span class="fc-box-name">extract/build_wiki.py</span>
                     <span class="fc-node-badge cat-extract">EXTRACT</span>
                   </div>
-                  <div class="fc-box-desc">Writes one Markdown page per entity into <code>data/structure/vault/</code>, with front-matter (<code>layer</code>, <code>source</code>, <code>end</code>) and <code>[[wikilinks]]</code> for references. Wipes stale pages first.</div>
-                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+                  <div class="fc-box-desc">เขียนหนึ่งหน้า Markdown ต่อหนึ่ง entity ลงใน <code>data/structure/vault/</code>, พร้อม front-matter (<code>layer</code>, <code>source</code>, <code>end</code>) and <code>[[wikilinks]]</code> สำหรับการอ้างอิง และลบหน้าที่ตกค้างทิ้งก่อนเสมอ</div>
+                  <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
                 </div>
                 <div class="fc-arrow">
                   <div class="fc-arrow-line"></div>
-                  <div class="fc-arrow-badge">vault/*.md &mdash; not the source again</div>
+                  <div class="fc-arrow-badge">vault/*.md &mdash; ไม่ใช่ source อีกรอบ</div>
                   <div class="fc-arrow-head">&darr;</div>
                 </div>
                 <div class="fc-box" data-script="build_graph.py" onclick="openSidebar('build_graph.py')">
@@ -899,25 +894,25 @@
                     <span class="fc-box-name">extract/build_graph.py</span>
                     <span class="fc-node-badge cat-extract">EXTRACT</span>
                   </div>
-                  <div class="fc-box-desc">Parses the vault pages it was just handed: <code>[[wikilinks]]</code> become edges, front-matter becomes node metadata. Emits <code>graph.json</code> + <code>registry.json</code>.</div>
-                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+                  <div class="fc-box-desc">parse หน้า vault ที่เพิ่งถูกส่งมาให้: <code>[[wikilinks]]</code> กลายเป็น edge ส่วน front-matter กลายเป็น metadata ของ node แล้วปล่อยออกมาเป็น <code>graph.json</code> + <code>registry.json</code>.</div>
+                  <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
                 </div>
               </div>
 
               <!-- Flow column -->
               <div class="fc-fork-col">
-                <div class="fc-col-tag">FLOW MAP &mdash; methods and functions</div>
+                <div class="fc-col-tag">FLOW MAP &mdash; method และ function</div>
                 <div class="fc-box" data-script="build_flow.py" onclick="openSidebar('build_flow.py')">
                   <div class="fc-box-top">
                     <span class="fc-box-name">extract/build_flow.py</span>
                     <span class="fc-node-badge cat-extract">EXTRACT</span>
                   </div>
-                  <div class="fc-box-desc">Node per method, overloads included. Resolves a call only when the receiver's type is readable from source; picks an overload by argument count then stated types. What stays ambiguous is <strong>dropped and named</strong>, never guessed.</div>
-                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+                  <div class="fc-box-desc">หนึ่ง node ต่อหนึ่ง method รวม overload ด้วย จะ resolve การ call ก็ต่อเมื่ออ่าน type ของ receiver จาก source ได้ และเลือก overload จากจำนวน argument แล้วจึงดู type ที่ระบุไว้ ส่วนที่ยังกำกวมจะถูก <strong>drop พร้อมเก็บชื่อไว้</strong>, ไม่มีการเดา</div>
+                  <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
                 </div>
                 <div class="fc-arrow">
                   <div class="fc-arrow-line"></div>
-                  <div class="fc-arrow-badge">nodes now exist &mdash; only now can a table route find its handler</div>
+                  <div class="fc-arrow-badge">node เกิดขึ้นแล้ว &mdash; ตอนนี้เท่านั้นที่ route ใน table จะหา handler เจอ</div>
                   <div class="fc-arrow-head">&darr;</div>
                 </div>
                 <div class="fc-box" data-script="route_tables.py" onclick="openSidebar('route_tables.py')">
@@ -925,12 +920,12 @@
                     <span class="fc-box-name">extract/route_tables.py</span>
                     <span class="fc-node-badge cat-extract">EXTRACT</span>
                   </div>
-                  <div class="fc-box-desc">Routes declared <em>away</em> from their handler: Django <code>urlpatterns</code>, Rails <code>routes.rb</code>, Laravel <code>routes/*.php</code>, Phoenix routers. It only <em>reads</em> &mdash; <code>build_flow</code> calls <code>read(roots)</code> and attaches each route to the one node it names, dropping any reference matching zero or two nodes.</div>
-                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+                  <div class="fc-box-desc">route ที่ประกาศ <em>away</em> จาก handler ของมัน: Django <code>urlpatterns</code>, Rails <code>routes.rb</code>, Laravel <code>routes/*.php</code>, router ของ Phoenix มันแค่ <em>reads</em> &mdash; <code>build_flow</code> calls <code>read(roots)</code> เท่านั้น และ attach แต่ละ route เข้ากับ node ตัวเดียวที่มันระบุ ส่วน reference ที่ match ศูนย์หรือสอง node จะถูก drop</div>
+                  <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
                 </div>
                 <div class="fc-arrow">
                   <div class="fc-arrow-line"></div>
-                  <div class="fc-arrow-badge">routes are read here &rarr; frontend fetch linked to backend handler</div>
+                  <div class="fc-arrow-badge">route ถูกอ่านตรงนี้ &rarr; fetch จาก frontend ถูกเชื่อมเข้ากับ handler ฝั่ง backend</div>
                   <div class="fc-arrow-head">&darr;</div>
                 </div>
                 <div class="fc-box" data-script="apply_descriptions.py" onclick="openSidebar('apply_descriptions.py')">
@@ -938,8 +933,8 @@
                     <span class="fc-box-name">extract/apply_descriptions.py</span>
                     <span class="fc-node-badge cat-extract">EXTRACT</span>
                   </div>
-                  <div class="fc-box-desc">The one door AI text enters by, and it is optional: docstring &rarr; cached summary whose source hash still matches &rarr; deterministic fallback. The build never blocks on it.</div>
-                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+                  <div class="fc-box-desc">ประตูเดียวที่ข้อความจาก AI เข้ามาได้ และเป็นทางเลือก: docstring &rarr; summary ที่ cache ไว้และ source hash ยังตรง &rarr; fallback แบบ deterministic ตัว build ไม่เคยรอมัน</div>
+                  <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
                 </div>
               </div>
             </div>
@@ -947,19 +942,19 @@
           </div>
 
           <!-- Stage C -->
-          <div class="fc-stage-label">Stage C &mdash; review passes (<code>report</code> only; everything here needs a built graph <em>and</em> the source)</div>
+          <div class="fc-stage-label">Stage C &mdash; review pass (<code>report</code> เท่านั้น ทุกอย่างตรงนี้ต้องใช้ทั้ง graph ที่ build แล้ว <em>and</em> source)</div>
           <div class="fc-box" data-script="report.py" onclick="openSidebar('report.py')" style="width: 420px;">
             <div class="fc-box-top">
               <span class="fc-box-name">review/report.py</span>
               <span class="fc-node-badge cat-review">REVIEW</span>
             </div>
-            <div class="fc-box-desc">Joins seven passes into <code>data/report/&lt;map&gt;/</code>. <strong>One report per map</strong> &mdash; node ids differ between maps, so a report from the other map must never be embedded.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+            <div class="fc-box-desc">รวม 7 pass เข้าไว้ใน <code>data/report/&lt;map&gt;/</code>. <strong>หนึ่ง report ต่อหนึ่ง map</strong> &mdash; node id ต่างกันระหว่าง map จึงห้ามเอา report ข้าม map มา embed เด็ดขาด</div>
+            <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
           </div>
 
           <div class="fc-arrow">
             <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">fans out to seven independent passes</div>
+            <div class="fc-arrow-badge">แตกออกเป็น 7 pass ที่เป็นอิสระต่อกัน</div>
             <div class="fc-arrow-head">&darr;</div>
           </div>
 
@@ -968,45 +963,45 @@
             <div class="fc-review-grid">
               <div class="fc-box sm" data-script="analyze.py" onclick="openSidebar('analyze.py')">
                 <div class="fc-box-top"><span class="fc-box-name">analyze.py</span><span class="fc-node-badge cat-review">REVIEW</span></div>
-                <div class="fc-box-desc">Graph-only: cycles, orphans, layer violations, hubs, god objects, and the 0&ndash;100 / A&ndash;F health score. Degree checks run on <code>app_edges()</code>, which drops test edges.</div>
+                <div class="fc-box-desc">ใช้เฉพาะ graph: cycle, orphan, layer violation, hub, god object และ health score 0&ndash;100 / A&ndash;F การตรวจจาก degree รันบน <code>app_edges()</code>, ซึ่งตัด edge ของ test ทิ้ง</div>
               </div>
               <div class="fc-box sm" data-script="scan_security.py" onclick="openSidebar('scan_security.py')">
                 <div class="fc-box-top"><span class="fc-box-name">scan_security.py</span><span class="fc-node-badge cat-review">REVIEW</span></div>
-                <div class="fc-box-desc">Line regex over source; every finding is attributed to the innermost node whose range <em>contains</em> that line &mdash; not to the nearest node above it.</div>
+                <div class="fc-box-desc">regex ทีละบรรทัดบน source โดย finding ทุกอันถูกผูกกับ node ชั้นในสุดที่ range ของมัน <em>contains</em> บรรทัดนั้น &mdash; ไม่ใช่ node ที่อยู่เหนือขึ้นไปใกล้ที่สุด</div>
               </div>
               <div class="fc-box sm" data-script="metrics.py" onclick="openSidebar('metrics.py')">
                 <div class="fc-box-top"><span class="fc-box-name">metrics.py</span><span class="fc-node-badge cat-review">REVIEW</span></div>
-                <div class="fc-box-desc">LOC, complexity, nesting, params &mdash; measured on the graph's own nodes via each node's <code>source</code>+<code>end</code>, so metrics are keyed by graph id by construction.</div>
+                <div class="fc-box-desc">LOC, complexity, nesting, params &mdash; วัดบน node ของ graph เองผ่าน <code>source</code>+<code>end</code>ของแต่ละ node ดังนั้น metric จึง key ด้วย graph id โดยโครงสร้าง</div>
               </div>
               <div class="fc-box sm" data-script="git_insights.py" onclick="openSidebar('git_insights.py')">
                 <div class="fc-box-top"><span class="fc-box-name">git_insights.py</span><span class="fc-node-badge cat-review">REVIEW</span></div>
-                <div class="fc-box-desc">One <code>git log --numstat</code> pass &rarr; churn, owners, hotspot risk.</div>
+                <div class="fc-box-desc">One <code>git log --numstat</code> pass เดียว &rarr; churn, owner, hotspot risk</div>
               </div>
               <div class="fc-box sm" data-script="debt.py" onclick="openSidebar('debt.py')">
                 <div class="fc-box-top"><span class="fc-box-name">debt.py</span><span class="fc-node-badge cat-review">REVIEW</span></div>
-                <div class="fc-box-desc">Comment markers plus orphan nodes and files. A heuristic on purpose &mdash; it reports, it does not feed the grade.</div>
+                <div class="fc-box-desc">marker ใน comment บวกกับ node และไฟล์ที่เป็น orphan เป็น heuristic โดยเจตนา &mdash; มันรายงาน ไม่ได้ตัดสิน</div>
               </div>
               <div class="fc-box sm" data-script="tests_map.py" onclick="openSidebar('tests_map.py')">
                 <div class="fc-box-top"><span class="fc-box-name">tests_map.py</span><span class="fc-node-badge cat-review">REVIEW</span></div>
-                <div class="fc-box-desc">Which nodes a test file names. Also a heuristic, and also kept out of the grade.</div>
+                <div class="fc-box-desc">ไฟล์ test ระบุถึง node ไหนบ้าง ก็เป็น heuristic เช่นกัน และไม่ถูกนับเข้า grade</div>
               </div>
               <div class="fc-box sm" data-script="duplicates.py" onclick="openSidebar('duplicates.py')">
                 <div class="fc-box-top"><span class="fc-box-name">duplicates.py</span><span class="fc-node-badge cat-review">REVIEW</span></div>
-                <div class="fc-box-desc">Token-shape hashing (identifiers &rarr; <code>ID</code>) so a renamed copy still matches, plus winnowed k-grams for 30-token blocks. Reads ranges from the graph &mdash; never re-parses.</div>
+                <div class="fc-box-desc">hash จากรูปทรงของ token (identifier &rarr; <code>ID</code>) เพื่อให้สำเนาที่ถูก rename ยัง match กันได้ บวกกับ winnowed k-gram สำหรับ block ขนาด 30 token อ่าน range จาก graph &mdash; ไม่เคย parse ซ้ำ</div>
               </div>
             </div>
             <div class="fc-merge-bar"></div>
           </div>
 
           <!-- Stage D -->
-          <div class="fc-stage-label">Stage D &mdash; render the human view</div>
+          <div class="fc-stage-label">Stage D &mdash; render หน้าจอสำหรับคน</div>
           <div class="fc-box" data-script="build_html.py" onclick="openSidebar('build_html.py')" style="width: 420px;">
             <div class="fc-box-top">
               <span class="fc-box-name">query/build_html.py</span>
               <span class="fc-node-badge cat-query">QUERY</span>
             </div>
-            <div class="fc-box-desc">Deliberately thin: loads <code>templates/viewer.html</code>, substitutes <code>__TITLE__</code>, <code>__MAPS_DATA__</code> and the vendored <code>force-graph</code>, and writes <strong>one</strong> self-contained <code>explorer.html</code> holding both maps. No <code>&lt;script src&gt;</code>, no network, opens from <code>file://</code>.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+            <div class="fc-box-desc">บางโดยเจตนา: โหลด <code>templates/viewer.html</code>, substitutes <code>__TITLE__</code>, <code>__MAPS_DATA__</code> และ force-graph ที่ vendor ไว้ <code>force-graph</code>, แล้วเขียน <strong>one</strong> self-contained <code>explorer.html</code> ไฟล์เดียวที่เก็บทั้งสอง map ไม่มี <code>&lt;script src&gt;</code>, ไม่มี network, เปิดจาก <code>file://</code>.</div>
+            <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
           </div>
         </div>
 
@@ -1017,7 +1012,7 @@
 
         <!-- ============ THE ARTIFACT BOUNDARY ============ -->
         <div class="fc-boundary">
-          <div class="fc-boundary-title">THE ARTIFACT BOUNDARY &mdash; the only thing that crosses</div>
+          <div class="fc-boundary-title">เส้นแบ่ง ARTIFACT &mdash; มีแค่สิ่งเหล่านี้ที่ข้ามฝั่งได้</div>
           <div class="fc-boundary-grid">
             <span class="fc-artifact">data/structure/graph.json &middot; registry.json &middot; vault/*.md</span>
             <span class="fc-artifact">data/flow/flow_graph.json &middot; notes/*.md</span>
@@ -1026,14 +1021,13 @@
             <span class="fc-artifact">data/explorer.html</span>
           </div>
           <div class="fc-boundary-note">
-            Deterministic by constraint: same source in, same bytes out. No artifact carries a wall-clock time,
-            which is what lets a rebuild be idempotent and a diff be meaningful.
+            deterministic ตามข้อบังคับ: source เดิมเข้า ไบต์เดิมออก ไม่มี artifact ไหนแบก wall-clock time ซึ่งเป็นสิ่งที่ทำให้ build ซ้ำแล้วได้ผลเดิม และทำให้ diff มีความหมาย
           </div>
         </div>
 
         <div class="fc-arrow">
           <div class="fc-arrow-line"></div>
-          <div class="fc-arrow-badge">from here on, no script opens a source file</div>
+          <div class="fc-arrow-badge">จากตรงนี้ไป ไม่มี script ตัวไหนเปิด source file อีกเลย</div>
           <div class="fc-arrow-head">&darr;</div>
         </div>
 
@@ -1042,7 +1036,7 @@
           <div class="fc-phase-head">
             <div>
               <div class="fc-phase-title">PHASE 2 &middot; QUERY</div>
-              <div class="fc-phase-sub">Reads artifacts. Computes nothing, parses nothing, writes nothing. This is where an agent actually spends its context.</div>
+              <div class="fc-phase-sub">อ่าน artifact ไม่คำนวณ ไม่ parse ไม่เขียน นี่คือจุดที่ agent ใช้ context จริง ๆ</div>
             </div>
             <div class="fc-cmd-chips">
               <span class="fc-cmd-chip" onclick="openCommand('brief')">brief<small>&rarr;</small></span>
@@ -1050,7 +1044,7 @@
             </div>
           </div>
 
-          <div class="fc-stage-label">Open a session with the digest, then narrow &mdash; each step is bounded in size</div>
+          <div class="fc-stage-label">เปิด session ด้วย digest แล้วค่อยแคบลง &mdash; ทุกขั้นจำกัดขนาดไว้หมด</div>
 
           <div class="fc-fork-container">
             <div class="fc-fork-bar"></div>
@@ -1061,8 +1055,8 @@
                     <span class="fc-box-name">review/brief.py</span>
                     <span class="fc-node-badge cat-review">REVIEW</span>
                   </div>
-                  <div class="fc-box-desc"><strong>1. Orient.</strong> The fixed-size digest to open a session with &mdash; ~4.3&nbsp;KB against 13.6&nbsp;MB of source on a real repository. Anything expensive belongs upstream of it, never inside it.</div>
-                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+                  <div class="fc-box-desc"><strong>1. Orient.</strong> digest ขนาดคงที่สำหรับเปิด session &mdash; ~4.3&nbsp;KB เทียบกับ source 13.6&nbsp;MB บน repository จริง อะไรที่แพงต้องอยู่ต้นน้ำ ไม่ใช่ข้างในนี้</div>
+                  <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
                 </div>
               </div>
               <div class="fc-fork-col">
@@ -1071,8 +1065,8 @@
                     <span class="fc-box-name">query/search.py</span>
                     <span class="fc-node-badge cat-query">QUERY</span>
                   </div>
-                  <div class="fc-box-desc"><strong>2. Locate.</strong> Filter one graph by name/doc/layer/kind/lang/file, or by <code>--calls</code> / <code>--called-by</code> / <code>--orphans</code>. It exists so nobody greps source to find a starting node.</div>
-                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+                  <div class="fc-box-desc"><strong>2. Locate.</strong> filter หนึ่ง graph ด้วย name/doc/layer/kind/lang/file หรือด้วย <code>--calls</code> / <code>--called-by</code> / <code>--orphans</code>. มันมีอยู่เพื่อไม่ให้ใครต้อง grep source เพื่อหา node ตั้งต้น</div>
+                  <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
                 </div>
               </div>
               <div class="fc-fork-col">
@@ -1081,8 +1075,8 @@
                     <span class="fc-box-name">query/trace_path.py</span>
                     <span class="fc-node-badge cat-query">QUERY</span>
                   </div>
-                  <div class="fc-box-desc"><strong>3. Trace.</strong> <code>--from/--to</code> BFS path, <code>--impact-of</code> blast radius, <code>--impact-of-diff</code> to map a git diff onto nodes. Works on either graph.</div>
-                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+                  <div class="fc-box-desc"><strong>3. Trace.</strong> <code>--from/--to</code> BFS path, <code>--impact-of</code> blast radius, <code>--impact-of-diff</code> เพื่อ map git diff ลงบน node ใช้ได้กับ graph ทั้งสอง</div>
+                  <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
                 </div>
               </div>
               <div class="fc-fork-col">
@@ -1091,8 +1085,8 @@
                     <span class="fc-box-name">query/context.py</span>
                     <span class="fc-node-badge cat-query">QUERY</span>
                   </div>
-                  <div class="fc-box-desc"><strong>4. Read.</strong> The per-node pack &mdash; graph facts plus metrics, risk and insights for one node and its neighbours, rendered under a hard <code>--max-chars</code> budget.</div>
-                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+                  <div class="fc-box-desc"><strong>4. Read.</strong> pack ราย node &mdash; ข้อเท็จจริงจาก graph บวก metric, risk และ insight ของ node หนึ่งตัวกับเพื่อนบ้าน render ภายใต้ budget ที่ตายตัว <code>--max-chars</code> budget.</div>
+                  <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
                 </div>
               </div>
             </div>
@@ -1100,7 +1094,7 @@
           </div>
 
           <div class="fc-phase-foot">
-            A human takes the other exit: open <code>data/explorer.html</code> from <code>file://</code> &mdash; both maps, seven views, no server and no network.
+            คนใช้ทางออกอีกทาง: เปิด <code>data/explorer.html</code> from <code>file://</code> &mdash; ทั้งสอง map, เจ็ดมุมมอง, ไม่ต้องมี server และไม่ต้องมี network
           </div>
         </div>
 
@@ -1110,7 +1104,7 @@
         </div>
 
         <div class="fc-terminal end">
-          <span>&#10003;</span> ANSWER &mdash; from the graph and the notes on the returned path, never from scanning source
+          <span>&#10003;</span> คำตอบ &mdash; มาจาก graph และ note บน path ที่ได้คืนมา ไม่ใช่จากการ scan source
         </div>
 
       </div>
@@ -1120,20 +1114,20 @@
     <div id="cg-matrix" class="cg-panel">
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 12px;">
         <span style="font-family: var(--mono); font-size: 11px; text-transform: uppercase; color: var(--ink-3);">
-          Filter Matrix Interactions:
+          กรองความสัมพันธ์ในตาราง:
         </span>
-        <input type="text" id="matrixFilterInput" placeholder="Search caller, callee, or function..." 
+        <input type="text" id="matrixFilterInput" placeholder="ค้นหา caller, callee หรือ function..." 
                oninput="filterMatrix()" class="search-input" style="max-width: 320px; padding: 6px 10px; font-size: 12px;">
       </div>
       <div class="matrix-wrap">
         <table class="matrix-table" id="matrixTable">
           <thead>
             <tr>
-              <th>Caller Script</th>
-              <th>Callee Script</th>
-              <th>Function / Symbol Called</th>
-              <th>Arguments &amp; Data Passed</th>
-              <th>Purpose &amp; Side Effect</th>
+              <th>Script ผู้เรียก</th>
+              <th>Script ที่ถูกเรียก</th>
+              <th>Function / Symbol ที่ถูกเรียก</th>
+              <th>Argument &amp; ข้อมูลที่ส่งไป</th>
+              <th>จุดประสงค์ &amp; ผลข้างเคียง</th>
             </tr>
           </thead>
           <tbody>
@@ -1141,190 +1135,190 @@
               <td><span class="matrix-pill" onclick="focusCard('archaeologist.py')">scripts/archaeologist.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('build_wiki.py')">scripts/extract/build_wiki.py</span></td>
               <td><span class="matrix-fn">build(src, vault_dir)</span></td>
-              <td><code>src</code> roots, output vault path</td>
-              <td>Scans source files, emits Markdown notes to <code>vault/*.md</code></td>
+              <td><code>src</code> roots และ path ของ vault ปลายทาง</td>
+              <td>scan source file แล้วปล่อย Markdown note ไปที่ <code>vault/*.md</code></td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('archaeologist.py')">scripts/archaeologist.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('build_graph.py')">scripts/extract/build_graph.py</span></td>
               <td><span class="matrix-fn">build(vault_dir, out_dir)</span></td>
-              <td>Vault directory, structure directory</td>
-              <td>Parses wikilinks &amp; metadata, writes <code>graph.json</code> &amp; <code>registry.json</code></td>
+              <td>ไดเรกทอรี vault, ไดเรกทอรี structure</td>
+              <td>parse wikilink &amp; metadata แล้วเขียน <code>graph.json</code> &amp; <code>registry.json</code></td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('archaeologist.py')">scripts/archaeologist.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
               <td><span class="matrix-fn">build(src, notes_dir, graph_path)</span></td>
-              <td><code>src</code> roots, notes dir, graph JSON path</td>
-              <td>Resolves two-pass calls, writes <code>notes/*.md</code> &amp; <code>flow_graph.json</code></td>
+              <td><code>src</code> roots, ไดเรกทอรี notes, path ของ graph JSON</td>
+              <td>resolve call สอง pass แล้วเขียน <code>notes/*.md</code> &amp; <code>flow_graph.json</code></td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('archaeologist.py')">scripts/archaeologist.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('report.py')">scripts/review/report.py</span></td>
               <td><span class="matrix-fn">build(src, graph_path, out_dir)</span></td>
-              <td><code>src</code> roots, map's graph JSON, output dir</td>
-              <td>Runs 7 review passes, generates <code>architecture_report.md</code> &amp; <code>.json</code></td>
+              <td><code>src</code> roots, graph JSON ของ map, ไดเรกทอรีปลายทาง</td>
+              <td>รัน review pass ทั้ง 7 แล้วสร้าง <code>architecture_report.md</code> &amp; <code>.json</code></td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('archaeologist.py')">scripts/archaeologist.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('brief.py')">scripts/review/brief.py</span></td>
               <td><span class="matrix-fn">main(argv)</span></td>
               <td>CLI args (<code>--src ...</code>)</td>
-              <td>Formats and prints fixed-size token digest of repo state</td>
+              <td>format แล้ว print digest ขนาดคงที่ของสถานะ repo</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('archaeologist.py')">scripts/archaeologist.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('manifest.py')">scripts/core/manifest.py</span></td>
               <td><span class="matrix-fn">compare(src) / write(src)</span></td>
-              <td><code>src</code> roots list</td>
-              <td>Detects source staleness / writes SHA-1 hashes into <code>manifest.json</code></td>
+              <td><code>src</code> list ของ roots</td>
+              <td>ตรวจว่า source stale หรือยัง / เขียน SHA-1 hash ลงใน <code>manifest.json</code></td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('archaeologist.py')">scripts/archaeologist.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('build_html.py')">scripts/query/build_html.py</span></td>
               <td><span class="matrix-fn">build(sources, out_path)</span></td>
-              <td>Map dict <code>{name: (graph, report)}</code>, output path</td>
-              <td>Bundles graphs + reports + vendored D3 script into <code>explorer.html</code></td>
+              <td>dict ของ map <code>{name: (graph, report)}</code>, path ปลายทาง</td>
+              <td>รวม graph + report + D3 script ที่ vendor ไว้ เข้าเป็น <code>explorer.html</code></td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('build_wiki.py')">scripts/extract/build_wiki.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('py_extract.py')">scripts/extract/py_extract.py</span></td>
               <td><span class="matrix-fn">parse(), read_source(), field(), text()</span></td>
-              <td>Python file path / source bytes</td>
-              <td>Extracts Python CST tree nodes, docstrings, classes, functions</td>
+              <td>path ของไฟล์ Python / source bytes</td>
+              <td>extract node ของ Python CST tree, docstring, class, function</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('build_wiki.py')">scripts/extract/build_wiki.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('js_ts_extract.py')">scripts/extract/js_ts_extract.py</span></td>
               <td><span class="matrix-fn">find_js_files(), extract_js_files()</span></td>
               <td>Source roots</td>
-              <td>List of class and component definitions with types</td>
+              <td>list ของ class และ component definition พร้อม type</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('build_wiki.py')">scripts/extract/build_wiki.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('langs_extract.py')">scripts/extract/langs_extract.py</span></td>
               <td><span class="matrix-fn">find_lang_files(), extract_lang_files()</span></td>
               <td>Source roots</td>
-              <td>List of class/struct/interface and method definitions for 15 langs</td>
+              <td>list ของ class/struct/interface และ method definition สำหรับ 15 ภาษา</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('build_wiki.py')">scripts/extract/build_wiki.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('ids.py')">scripts/core/ids.py</span></td>
               <td><span class="matrix-fn">SharedNames((name, source))</span></td>
-              <td>Name/file pairs</td>
-              <td>Disambiguates duplicate names case-insensitively (<code>stem/path</code>)</td>
+              <td>คู่ name/file</td>
+              <td>แยกชื่อที่ซ้ำกันแบบไม่สนตัวพิมพ์เล็กใหญ่ (<code>stem/path</code>)</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('build_wiki.py')">scripts/extract/build_wiki.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('taxonomy.py')">scripts/core/taxonomy.py</span></td>
               <td><span class="matrix-fn">infer_layer(), is_test_path(), SKIP_DIRS</span></td>
-              <td>File path, kind, name</td>
-              <td>Architectural layer assignment (<code>controller</code>, <code>model</code>, <code>test</code>, etc.)</td>
+              <td>path ของไฟล์, kind, name</td>
+              <td>การกำหนด architectural layer (<code>controller</code>, <code>model</code>, <code>test</code>, etc.)</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('py_extract.py')">scripts/extract/py_extract.py</span></td>
               <td><span class="matrix-fn">parse(), read_source(), field(), defs_in()</span></td>
-              <td>Python file path / source bytes</td>
-              <td>Method definitions, AST statements, call expressions</td>
+              <td>path ของไฟล์ Python / source bytes</td>
+              <td>method definition, AST statement, call expression</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('js_ts_extract.py')">scripts/extract/js_ts_extract.py</span></td>
               <td><span class="matrix-fn">find_js_files(), extract_js_files()</span></td>
               <td>Source roots</td>
-              <td>Frontend methods, route endpoints, Axios/fetch API calls</td>
+              <td>method ฝั่ง frontend, route endpoint, การเรียก API ผ่าน Axios/fetch</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('langs_extract.py')">scripts/extract/langs_extract.py</span></td>
               <td><span class="matrix-fn">find_lang_files(), extract_lang_files(), _pick_overload()</span></td>
-              <td>Source roots, candidate methods, caller arg count</td>
-              <td>Methods, call sites, and exact overload resolution</td>
+              <td>source roots, method ที่เป็นตัวเลือก, จำนวน argument ของ caller</td>
+              <td>method, call site และการ resolve overload ที่แม่นยำ</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('route_tables.py')">scripts/extract/route_tables.py</span></td>
               <td><span class="matrix-fn">read(roots)</span></td>
-              <td>Source roots, table file paths</td>
-              <td>Routes from Django <code>urlpatterns</code>, Rails <code>routes.rb</code>, Laravel, Phoenix</td>
+              <td>source roots, path ของไฟล์ table</td>
+              <td>route จาก Django <code>urlpatterns</code>, Rails <code>routes.rb</code>, Laravel, Phoenix</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('ids.py')">scripts/core/ids.py</span></td>
               <td><span class="matrix-fn">SharedNames, bare(id)</span></td>
-              <td>Method name/file pairs, qualified node ID</td>
-              <td>Disambiguates method IDs; strips path qualifier for matching</td>
+              <td>คู่ name/file ของ method, node ID ที่ qualify แล้ว</td>
+              <td>แยก method ID ให้ไม่กำกวม และตัด path qualifier ออกเวลา match</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('taxonomy.py')">scripts/core/taxonomy.py</span></td>
               <td><span class="matrix-fn">infer_layer(), precision_of(), ROUTE_DECORATOR_RE</span></td>
-              <td>Method properties, resolved call dict</td>
-              <td>Computes named precision loss (<code>interface-dispatch</code>, <code>unresolved</code>, etc.)</td>
+              <td>property ของ method, dict ของ call ที่ resolve แล้ว</td>
+              <td>คำนวณ precision loss ที่ระบุชื่อได้ (<code>interface-dispatch</code>, <code>unresolved</code>, etc.)</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('report.py')">scripts/review/report.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('scan_security.py')">scripts/review/scan_security.py</span></td>
               <td><span class="matrix-fn">scan(src, graph_path)</span></td>
-              <td>Source roots, graph path</td>
-              <td>Security findings mapped to owning AST nodes (<code>security.json</code>)</td>
+              <td>source roots, path ของ graph</td>
+              <td>security finding ที่ map เข้ากับ AST node เจ้าของ (<code>security.json</code>)</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('report.py')">scripts/review/report.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('git_insights.py')">scripts/review/git_insights.py</span></td>
               <td><span class="matrix-fn">build(src, graph_path)</span></td>
-              <td>Source roots, graph path</td>
-              <td>Git churn, author ownership, hotspot risk scores (<code>insights.json</code>)</td>
+              <td>source roots, path ของ graph</td>
+              <td>git churn, ownership ของ author, คะแนน hotspot risk (<code>insights.json</code>)</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('report.py')">scripts/review/report.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('analyze.py')">scripts/review/analyze.py</span></td>
               <td><span class="matrix-fn">report(graph_path, sec_summary)</span></td>
-              <td>Graph path, security severity counts</td>
-              <td>Tarjan's SCC cycles, backwards layer calls, god objects, health grade</td>
+              <td>path ของ graph, จำนวน security severity</td>
+              <td>cycle จาก Tarjan's SCC, การเรียกย้อน layer, god object, health grade</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('report.py')">scripts/review/report.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('metrics.py')">scripts/review/metrics.py</span></td>
               <td><span class="matrix-fn">build(src, graph_path, out_file, top_k)</span></td>
-              <td>Source roots, graph path, output JSON</td>
-              <td>Cyclomatic complexity (McCabe), nesting depth, LOC census</td>
+              <td>source roots, path ของ graph, JSON ปลายทาง</td>
+              <td>cyclomatic complexity (McCabe), nesting depth, สำมะโน LOC</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('report.py')">scripts/review/report.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('debt.py')">scripts/review/debt.py</span></td>
               <td><span class="matrix-fn">build(src, graph_path, out_file)</span></td>
-              <td>Source roots, graph path, output JSON</td>
-              <td>Comment markers (TODO/FIXME/HACK) and orphan file inventory</td>
+              <td>source roots, path ของ graph, JSON ปลายทาง</td>
+              <td>marker ใน comment (TODO/FIXME/HACK) และรายการไฟล์ orphan</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('report.py')">scripts/review/report.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('tests_map.py')">scripts/review/tests_map.py</span></td>
               <td><span class="matrix-fn">build(src, graph_path, out_file)</span></td>
-              <td>Source roots, graph path, output JSON</td>
-              <td>Production nodes referenced by test files (<code>tests.json</code>)</td>
+              <td>source roots, path ของ graph, JSON ปลายทาง</td>
+              <td>node ฝั่ง production ที่ถูกอ้างถึงโดยไฟล์ test (<code>tests.json</code>)</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('report.py')">scripts/review/report.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('duplicates.py')">scripts/review/duplicates.py</span></td>
               <td><span class="matrix-fn">build(src, graph_path, out_file)</span></td>
-              <td>Source roots, graph path, output JSON</td>
-              <td>Cloned bodies (token normalization) and blocks (Winnowing $K=10, W=21$)</td>
+              <td>source roots, path ของ graph, JSON ปลายทาง</td>
+              <td>body ที่เป็น clone (token normalization) และ block (Winnowing $K=10, W=21$)</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('debt.py')">scripts/review/debt.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('analyze.py')">scripts/review/analyze.py</span></td>
               <td><span class="matrix-fn">find_orphans(nodes, edges)</span></td>
-              <td>Graph nodes dict, edge list</td>
-              <td>Identifies uncalled nodes and dead files</td>
+              <td>dict ของ graph node, list ของ edge</td>
+              <td>ระบุ node ที่ไม่ถูกเรียก และไฟล์ที่ตายแล้ว</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('context.py')">scripts/query/context.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('trace_path.py')">scripts/query/trace_path.py</span></td>
               <td><span class="matrix-fn">_changed_files(), _nodes_for_files()</span></td>
-              <td>Git diff flags, node sources dict</td>
-              <td>Maps modified git files back to graph node IDs</td>
+              <td>flag ของ git diff, dict ของ node source</td>
+              <td>map ไฟล์ที่ถูกแก้ใน git กลับไปเป็น graph node ID</td>
             </tr>
           </tbody>
         </table>
@@ -1335,11 +1329,11 @@
 
   <!-- Script Cards Section -->
   <section style="padding: 48px 0;">
-    <div class="section-eyebrow">Script Reference Directory</div>
+    <div class="section-eyebrow">สารบัญอ้างอิง Script</div>
     <h2>All 28 Scripts: Mechanics, Algorithms &amp; Invariants</h2>
 
     <div class="filter-bar">
-      <input type="text" id="filterInput" class="search-input" placeholder="Search scripts, algorithms (e.g. Tarjan, Winnowing, BFS, CST, regex)..." oninput="applyFilter()">
+      <input type="text" id="filterInput" class="search-input" placeholder="ค้นหา script, algorithm (เช่น Tarjan, Winnowing, BFS, CST, regex)..." oninput="applyFilter()">
       <button class="filter-btn active" onclick="setCategory('all', this)">All (28)</button>
       <button class="filter-btn" onclick="setCategory('core', this)">Core (5)</button>
       <button class="filter-btn" onclick="setCategory('extract', this)">Extraction (8)</button>
@@ -1360,12 +1354,12 @@ const SCRIPTS_DATA = [
     name: "archaeologist.py",
     cat: "core",
     path: "scripts/archaeologist.py",
-    role: "The single entrypoint for the skill. Dispatches commands: project, flow, both, check, report, brief.",
+    role: "entrypoint เดียวของ skill นี้ ทำหน้าที่กระจายคำสั่ง: project, flow, both, check, report, brief",
     tech: "CLI Subcommand Dispatcher",
-    algorithm: "Subcommand routing via argparse; executes pipeline modules in strict dependency order without circular coupling.",
+    algorithm: "route คำสั่งย่อยด้วย argparse แล้วเรียกโมดูลใน pipeline ตามลำดับ dependency อย่างเคร่งครัด ไม่มี circular coupling",
     inputs: "CLI arguments (--src roots, subcommands)",
-    outputs: "Invokes extractors, review passes, or digests",
-    invariant: "The only file at scripts/ root. No other script should be an entrypoint.",
+    outputs: "เรียก extractor, review pass หรือ digest",
+    invariant: "เป็นไฟล์เดียวที่อยู่ที่ root ของ scripts/ ไม่ควรมี script อื่นเป็น entrypoint",
     cli: "python scripts/archaeologist.py both --src ./src",
     callers: [],
     callees: [
@@ -1382,12 +1376,12 @@ const SCRIPTS_DATA = [
     name: "paths.py",
     cat: "core",
     path: "scripts/paths.py",
-    role: "System path bootstrap and cross-platform path resolution utilities.",
-    tech: "MAX_PATH Normalization & sys.path Bootstrap",
-    algorithm: "Prepends Windows \\\\?\\ long path prefix to avoid MAX_PATH (260 char) truncation; skill_rel() computes cross-drive relative paths.",
-    inputs: "Filesystem paths",
-    outputs: "Exported SKILL_ROOT, DATA_DIR, TEMPLATES_DIR, VENDOR_DIR",
-    invariant: "Sits below categories; imports nothing from skill. Bootstraps sys.path so sibling imports stay bare.",
+    role: "bootstrap sys.path และ utility สำหรับ resolve path ข้ามแพลตฟอร์ม",
+    tech: "MAX_PATH Normalization และ sys.path Bootstrap",
+    algorithm: "เติม prefix ของ Windows long path (\\?\) เพื่อเลี่ยงการถูกตัดที่ MAX_PATH (260 ตัวอักษร) ส่วน skill_rel() คำนวณ relative path ข้าม drive",
+    inputs: "path บน filesystem",
+    outputs: "export SKILL_ROOT, DATA_DIR, TEMPLATES_DIR, VENDOR_DIR",
+    invariant: "อยู่ใต้ทุก category และไม่ import อะไรจาก skill เลย ทำหน้าที่ bootstrap sys.path เพื่อให้ import ระหว่างไฟล์พี่น้องเขียนสั้น ๆ ได้",
     cli: "Imported automatically by all scripts",
     callers: [{ name: "archaeologist.py" }, { name: "build_wiki.py" }, { name: "build_flow.py" }, { name: "build_html.py" }],
     callees: []
@@ -1396,12 +1390,12 @@ const SCRIPTS_DATA = [
     name: "ids.py",
     cat: "core",
     path: "scripts/core/ids.py",
-    role: "Generates collision-free node IDs across both Structure and Flow maps.",
+    role: "สร้าง node ID ที่ไม่ชนกัน ใช้ร่วมกันทั้ง Structure map และ Flow map",
     tech: "Case-Insensitive SharedName Disambiguation",
-    algorithm: "Pre-scans every definition (name, file). Groups by name.lower() to prevent Windows/macOS case collisions (e.g. Login vs login). Qualifies duplicates by stem, then relative path.",
-    inputs: "Iterable of (name, rel_file) definitions",
-    outputs: "Qualified ID strings: bare if unique, qualified if shared",
-    invariant: "Node IDs are bare unless defined in 2+ files. Call to shared name resolves only to caller's own file or dropped.",
+    algorithm: "pre-scan ทุก definition (name, file) ไว้ก่อน แล้ว group ด้วย name.lower() เพื่อกัน case collision บน Windows/macOS (เช่น Login กับ login) ชื่อที่ซ้ำจะถูก qualify ด้วย stem ก่อน แล้วจึงใช้ relative path",
+    inputs: "iterable ของ (name, rel_file) ทุก definition",
+    outputs: "qualified ID: ปล่อย bare ถ้าไม่ซ้ำ และ qualify เมื่อชื่อถูกใช้ร่วมกัน",
+    invariant: "node ID จะ bare เว้นแต่ชื่อนั้นถูก define ในไฟล์ตั้งแต่ 2 ไฟล์ขึ้นไป การ call ชื่อที่ใช้ร่วมกันจะ resolve ได้เฉพาะ definition ในไฟล์ของ caller เอง มิฉะนั้นถูก drop",
     cli: "Imported by builders and tests_map",
     callers: [{ name: "build_wiki.py", fn: "SharedNames" }, { name: "build_flow.py", fn: "SharedNames" }, { name: "tests_map.py", fn: "bare()" }],
     callees: []
@@ -1410,12 +1404,12 @@ const SCRIPTS_DATA = [
     name: "taxonomy.py",
     cat: "core",
     path: "scripts/core/taxonomy.py",
-    role: "Single source of truth for kinds, layers, skip directories, and test detection.",
-    tech: "Canonical Classification & Lower-Bound Precision",
-    algorithm: "Defines KINDS, LAYERS, SKIP_DIRS, and is_test_file (framework markers @Test, [Fact], etc.). Computes precision_of() based on edge losses.",
-    inputs: "Filenames, AST annotations, edge targets",
-    outputs: "Tags (controller, service, repository, etc.), precision flags",
-    invariant: "Every script must ask taxonomy; no inline directory or layer definitions permitted.",
+    role: "single source of truth ของ kind, layer, skip directory และการตรวจว่าไฟล์ไหนเป็น test",
+    tech: "Canonical Classification และ Lower-Bound Precision",
+    algorithm: "define KINDS, LAYERS, SKIP_DIRS และ is_test_file (ดู framework marker เช่น @Test, [Fact]) พร้อมคำนวณ precision_of() จาก edge loss",
+    inputs: "filename, AST annotation, edge target",
+    outputs: "tag (controller, service, repository ฯลฯ) และ precision flag",
+    invariant: "ทุก script ต้องถาม taxonomy ห้าม define directory หรือ layer ไว้ inline ที่อื่น",
     cli: "Imported by extractors and review suite",
     callers: [{ name: "build_wiki.py", fn: "infer_layer()" }, { name: "build_flow.py", fn: "precision_of()" }, { name: "scan_security.py", fn: "is_test_path()" }, { name: "report.py", fn: "PRECISION_NOTES" }],
     callees: []
@@ -1424,12 +1418,12 @@ const SCRIPTS_DATA = [
     name: "grammars.py",
     cat: "core",
     path: "scripts/core/grammars.py",
-    role: "Manages Tree-sitter grammar pins, wheels, and runtime imports.",
-    tech: "On-demand Lazy Parser Loading & Version Pinning",
-    algorithm: "Maintains PINS table. Dynamically loads grammar wheels from <skill>/vendor or site-packages. Computes drift() and detects ABI mismatch.",
-    inputs: "Language name",
-    outputs: "Cached tree_sitter.Parser instance or explicit skip warning",
-    invariant: "Grammars are installed on demand into vendor/. Missing grammar skips files with explicit named pip warning.",
+    role: "ดูแล pin ของ Tree-sitter grammar, ไฟล์ wheel และการ import runtime",
+    tech: "On-demand Lazy Parser Loading และ Version Pinning",
+    algorithm: "ดูแลตาราง PINS โหลด grammar wheel แบบ dynamic จาก <skill>/vendor หรือ site-packages คำนวณ drift() และตรวจจับ ABI mismatch",
+    inputs: "ชื่อภาษา",
+    outputs: "instance ของ tree_sitter.Parser ที่ cache ไว้ หรือ skip warning ที่ระบุชื่อชัดเจน",
+    invariant: "grammar ติดตั้งแบบ on demand ลงใน vendor/ เท่านั้น ถ้า grammar ขาดจะ skip ไฟล์นั้นพร้อมเตือนคำสั่ง pip ที่ต้องรันอย่างเจาะจง",
     cli: "python scripts/core/grammars.py",
     callers: [{ name: "py_extract.py", fn: "parser_for('python')" }, { name: "js_ts_extract.py", fn: "parser_for('javascript')" }, { name: "langs_extract.py", fn: "parser_for(lang)" }, { name: "metrics.py", fn: "parser_for(lang)" }],
     callees: []
@@ -1438,12 +1432,12 @@ const SCRIPTS_DATA = [
     name: "manifest.py",
     cat: "core",
     path: "scripts/core/manifest.py",
-    role: "Tracks source hashes, roots, and parser versions to detect staleness.",
+    role: "เก็บ source hash, roots และ parser version ไว้ตรวจว่า artifact stale หรือยัง",
     tech: "SHA-1 Source Hash Manifest",
-    algorithm: "Iterates all source files under roots, hashes content + grammar version set into manifest.json. check compares current hashes against manifest.",
-    inputs: "Source roots, current grammar versions",
-    outputs: "manifest.json, stale boolean",
-    invariant: "Deterministic: ignores wall-clock time. Hash includes grammar versions so unpinning causes staleness.",
+    algorithm: "ไล่ทุก source file ใต้ roots แล้ว hash เนื้อไฟล์รวมกับชุด grammar version ลง manifest.json จากนั้น check จะเทียบ hash ปัจจุบันกับ manifest",
+    inputs: "source roots และ grammar version ปัจจุบัน",
+    outputs: "manifest.json และค่า stale แบบ boolean",
+    invariant: "deterministic: ไม่สนใจ wall-clock time และ hash รวม grammar version ไว้ด้วย การถอด pin จึงทำให้ stale",
     cli: "python scripts/core/manifest.py --src ./src",
     callers: [{ name: "archaeologist.py", fn: "compare()/write()" }, { name: "brief.py", fn: "compare()" }],
     callees: [{ name: "grammars.py", fn: "drift()" }, { name: "taxonomy.py", fn: "SKIP_DIRS" }]
@@ -1452,12 +1446,12 @@ const SCRIPTS_DATA = [
     name: "console.py",
     cat: "core",
     path: "scripts/core/console.py",
-    role: "Ensures console output survives non-UTF-8 terminals (e.g. Windows cp874).",
+    role: "ทำให้ console output รอดจาก terminal ที่ไม่ใช่ UTF-8 (เช่น cp874 บน Windows)",
     tech: "Encoding-Safe stdout wrapper",
-    algorithm: "Wraps sys.stdout/sys.stderr with fallback error handler; strips unprintable characters if terminal encoding rejects them.",
-    inputs: "Console print strings",
-    outputs: "Terminal-safe ASCII/CP874 output",
-    invariant: "Must be called before echoing external repo text (git author names, comments).",
+    algorithm: "ห่อ sys.stdout/sys.stderr ด้วย fallback error handler และตัดอักขระที่พิมพ์ไม่ได้ทิ้ง เมื่อ encoding ของ terminal ไม่รับ",
+    inputs: "string ที่ print ออก console",
+    outputs: "output แบบ ASCII/CP874 ที่ terminal รับได้แน่นอน",
+    invariant: "ต้องเรียกก่อน echo ข้อความที่มาจาก repo ภายนอก (ชื่อ author ของ git, comment)",
     cli: "Imported to wrap stdout on non-UTF-8 terminals",
     callers: [{ name: "archaeologist.py", fn: "safe_stdout()" }, { name: "report.py", fn: "safe_stdout()" }, { name: "context.py", fn: "safe_stdout()" }],
     callees: []
@@ -1468,12 +1462,12 @@ const SCRIPTS_DATA = [
     name: "build_wiki.py",
     cat: "extract",
     path: "scripts/extract/build_wiki.py",
-    role: "Builds the Structure Map entities and writes initial Markdown vault notes.",
+    role: "สร้าง entity ของ Structure map และเขียน Markdown vault note ชุดแรก",
     tech: "Entity Extraction (Classes, Components, Modules)",
-    algorithm: "Extracts class definitions, React JSX components, and module-level functions into individual Markdown vault notes with metadata frontmatter.",
-    inputs: "Source files across 17 languages",
-    outputs: "data/structure/vault/*.md and registry.json",
-    invariant: "JSX functions get kind: component and layer: ui. Every entity note is <id>.md.",
+    algorithm: "extract class definition, React JSX component และ module-level function ออกมาเป็น Markdown vault note แยกใบ พร้อม metadata frontmatter",
+    inputs: "source file จาก 17 ภาษา",
+    outputs: "data/structure/vault/*.md และ registry.json",
+    invariant: "function ที่คืน JSX จะได้ kind: component และ layer: ui ส่วน note ของทุก entity ตั้งชื่อเป็น <id>.md",
     cli: "python scripts/extract/build_wiki.py --src ./src",
     callers: [{ name: "archaeologist.py", fn: "run_project()" }],
     callees: [
@@ -1488,12 +1482,12 @@ const SCRIPTS_DATA = [
     name: "build_graph.py",
     cat: "extract",
     path: "scripts/extract/build_graph.py",
-    role: "Assembles the Structure dependency graph (which class references which).",
+    role: "ประกอบ Structure dependency graph (class ไหน reference class ไหน)",
     tech: "Reference Resolution Graph Construction",
-    algorithm: "Reads vault Markdown notes, resolves field/import type references between classes/components, and builds an adjacency edge list.",
+    algorithm: "อ่าน Markdown note ใน vault, resolve การอ้างอิง type ผ่าน field/import ระหว่าง class กับ component แล้วสร้าง adjacency edge list",
     inputs: "data/structure/vault/*.md",
-    outputs: "data/structure/graph.json (nodes & edges)",
-    invariant: "Structure edges carry NO precision (they are references, not calls). Test nodes get layer: test.",
+    outputs: "data/structure/graph.json (nodes และ edges)",
+    invariant: "edge ของ Structure ไม่มี precision (เพราะเป็น reference ไม่ใช่ call) ส่วน test node จะได้ layer: test",
     cli: "python scripts/extract/build_graph.py",
     callers: [{ name: "archaeologist.py", fn: "run_project()" }],
     callees: [{ name: "paths.py", fn: "long_path()" }]
@@ -1502,12 +1496,12 @@ const SCRIPTS_DATA = [
     name: "build_flow.py",
     cat: "extract",
     path: "scripts/extract/build_flow.py",
-    role: "Builds the Flow Map (methods, functions, endpoints, call edges, and unresolved calls).",
-    tech: "Receiver Resolution, Overload Picking & Dropped-Call Tracking",
-    algorithm: "Two-pass analysis: Pass 1 registers SharedNames. Pass 2 resolves calls via declared types (_self_attr_types) and selects overloads. Tracks dropped calls via _record_dropped, and classifies calls matching in-graph nodes as unresolved via _split_dropped.",
-    inputs: "Parsed AST/CSTs from py_extract, js_ts_extract, langs_extract",
-    outputs: "data/flow/flow_graph.json, notes/*.md",
-    invariant: "Lower bound: calls followed only through declared types. Dropped calls that match in-graph names are reported in unresolved without inventing false edges (check_graph c19, r35).",
+    role: "สร้าง Flow map (method, function, endpoint, call edge และ call ที่ resolve ไม่ได้)",
+    tech: "Receiver Resolution, Overload Picking และ Dropped-Call Tracking",
+    algorithm: "วิเคราะห์สอง pass: pass 1 ลงทะเบียน SharedNames, pass 2 resolve call ผ่าน declared type (_self_attr_types) และเลือก overload พร้อมบันทึก call ที่ถูก drop ด้วย _record_dropped และจัด call ที่ตรงกับ node ในกราฟให้เป็น unresolved ผ่าน _split_dropped",
+    inputs: "AST/CST ที่ parse แล้วจาก py_extract, js_ts_extract, langs_extract",
+    outputs: "data/flow/flow_graph.json และ notes/*.md",
+    invariant: "เป็น lower bound: ตาม call เฉพาะเมื่ออ่าน declared type ได้ ส่วน call ที่ถูก drop แต่ชื่อตรงกับ node ในกราฟจะรายงานไว้ใน unresolved โดยไม่สร้าง edge เท็จขึ้นมา (check_graph c19, r35)",
     cli: "python scripts/extract/build_flow.py --src ./src",
     callers: [{ name: "archaeologist.py", fn: "run_flow()" }],
     callees: [
@@ -1523,12 +1517,12 @@ const SCRIPTS_DATA = [
     name: "py_extract.py",
     cat: "extract",
     path: "scripts/extract/py_extract.py",
-    role: "Python extractor powered by Tree-sitter CST queries.",
-    tech: "Tree-sitter CST Traversal & CRLF Normalization",
-    algorithm: "read_source() normalizes CRLF newlines so hashes match across OS. Uses CST pattern matching to extract classes, functions, decorators, and calls.",
-    inputs: "Python (.py) source bytes",
-    outputs: "Extracted entities, AST ranges (source..end), call expressions",
-    invariant: "Verified against stdlib ast via check_py_oracle.py (0 disagreements required).",
+    role: "Python extractor ที่ขับด้วย Tree-sitter CST query",
+    tech: "Tree-sitter CST Traversal และ CRLF Normalization",
+    algorithm: "read_source() normalize CRLF newline เพื่อให้ hash ตรงกันข้าม OS แล้วใช้ CST pattern matching เพื่อ extract class, function, decorator และ call",
+    inputs: "source bytes ของ Python (.py)",
+    outputs: "entity ที่ extract ได้, AST range (source..end) และ call expression",
+    invariant: "verify เทียบกับ ast ของ stdlib ด้วย check_py_oracle.py (ต้องได้ 0 disagreements)",
     cli: "Helper module for Python AST/CST operations",
     callers: [{ name: "build_wiki.py", fn: "parse()" }, { name: "build_flow.py", fn: "parse()" }, { name: "metrics.py", fn: "read_source()" }],
     callees: [{ name: "grammars.py", fn: "parser_for('python')" }]
@@ -1537,12 +1531,12 @@ const SCRIPTS_DATA = [
     name: "js_ts_extract.py",
     cat: "extract",
     path: "scripts/extract/js_ts_extract.py",
-    role: "JS/JSX/TS/TSX extractor for classes, functions, routes, and fetch calls.",
-    tech: "Multi-Grammar CST & Cross-Stack Route Detection",
-    algorithm: "Uses javascript, typescript, and tsx grammars. Detects Express/Nest routes, fetch/axios HTTP calls, and JSX component returns. Emits {type, name} calls for typed receivers.",
-    inputs: ".js, .jsx, .ts, .tsx files",
-    outputs: "JSON entity dictionary (classes, functions, routes, calls)",
-    invariant: "Carries precision: name-matched because JS/TS has untyped dynamic receivers.",
+    role: "JS/JSX/TS/TSX extractor สำหรับ class, function, route และ fetch call",
+    tech: "Multi-Grammar CST และ Cross-Stack Route Detection",
+    algorithm: "ใช้ grammar javascript, typescript และ tsx ตรวจจับ route ของ Express/Nest, HTTP call ผ่าน fetch/axios และ function ที่ return JSX พร้อม emit call เป็น {type, name} เมื่อ receiver มี type กำกับ",
+    inputs: "ไฟล์ .js, .jsx, .ts, .tsx",
+    outputs: "JSON entity dictionary (class, function, route, call)",
+    invariant: "มี precision: name-matched เพราะ JS/TS มี dynamic receiver ที่ไม่มี type กำกับ",
     cli: "python scripts/extract/js_ts_extract.py --src ./src",
     callers: [{ name: "build_wiki.py", fn: "find_js_files()" }, { name: "build_flow.py", fn: "extract_js_files()" }],
     callees: [{ name: "grammars.py", fn: "parser_for('javascript')" }]
@@ -1551,12 +1545,12 @@ const SCRIPTS_DATA = [
     name: "langs_extract.py",
     cat: "extract",
     path: "scripts/extract/langs_extract.py",
-    role: "Extractor for 15 compiled & dynamic languages using Tree-sitter (formerly ts_extract.py).",
-    tech: "Table-Driven CST Shape Extraction (SPEC & SHAPES)",
-    algorithm: "Unified CST walker guided by SPEC (Java, Go, C#) and SHAPES tables (Rust, Kotlin, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir). Handles OVERLOADING languages.",
-    inputs: "Source files in 15 languages",
-    outputs: "Declarations, bodies, parameter types, calls, decorator ranges",
-    invariant: "Node range starts at first annotation/decorator line (source..end). Named langs_extract to avoid confusion with TypeScript.",
+    role: "extractor สำหรับ 15 ภาษาทั้ง compiled และ dynamic ด้วย Tree-sitter (เดิมชื่อ ts_extract.py)",
+    tech: "Table-Driven CST Shape Extraction (SPEC และ SHAPES)",
+    algorithm: "CST walker ตัวเดียวที่ถูกนำทางด้วยตาราง SPEC (Java, Go, C#) และ SHAPES (Rust, Kotlin, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir) รองรับภาษาที่มี OVERLOADING",
+    inputs: "source file ใน 15 ภาษา",
+    outputs: "declaration, body, parameter type, call และ decorator range",
+    invariant: "range ของ node เริ่มที่บรรทัด annotation/decorator แรก (source..end) ตั้งชื่อ langs_extract เพื่อไม่ให้สับสนกับ TypeScript",
     cli: "python scripts/extract/langs_extract.py --src ./src",
     callers: [{ name: "build_wiki.py", fn: "find_lang_files()" }, { name: "build_flow.py", fn: "extract_lang_files() & _pick_overload()" }],
     callees: [{ name: "grammars.py", fn: "parser_for(lang)" }]
@@ -1565,12 +1559,12 @@ const SCRIPTS_DATA = [
     name: "route_tables.py",
     cat: "extract",
     path: "scripts/extract/route_tables.py",
-    role: "Extracts API routes defined separately from handler implementations.",
+    role: "extract API route ที่ define แยกจาก handler implementation",
     tech: "Declarative Route Table Parsing",
-    algorithm: "Parses Django urlpatterns, Rails routes.rb, Laravel routes/*.php, and Phoenix routers. Attaches route paths/methods to handler method nodes.",
-    inputs: "Framework router configuration files",
-    outputs: "List of route mappings (method, path, target handler)",
-    invariant: "Unambiguous matching only: if target handler matches 0 or >1 node, route is dropped and counted.",
+    algorithm: "parse urlpatterns ของ Django, routes.rb ของ Rails, routes/*.php ของ Laravel และ router ของ Phoenix แล้ว attach path/method ของ route เข้ากับ node ของ handler method",
+    inputs: "ไฟล์ config ของ framework router",
+    outputs: "list ของ route mapping (method, path, target handler)",
+    invariant: "match เฉพาะที่ไม่กำกวมเท่านั้น: ถ้า target handler ตรงกับ 0 หรือมากกว่า 1 node, route นั้นจะถูก drop และนับไว้",
     cli: "Imported by build_flow for external route tables",
     callers: [{ name: "build_flow.py", fn: "read(roots)" }],
     callees: [{ name: "grammars.py", fn: "parser_for(lang)" }]
@@ -1579,12 +1573,12 @@ const SCRIPTS_DATA = [
     name: "apply_descriptions.py",
     cat: "extract",
     path: "scripts/extract/apply_descriptions.py",
-    role: "Attaches deterministic descriptions or cached AI summaries to nodes.",
-    tech: "Deterministic Description Waterfall & Hash Caching",
-    algorithm: "Waterfall order: 1. In-source docstring (wins first), 2. AI summary cached by source hash in descriptions.json, 3. Deterministic template fallback.",
-    inputs: "Node body, descriptions.json cache",
-    outputs: "Updated node doc / description string",
-    invariant: "AI text enters ONLY through this script; never nondeterministic at runtime.",
+    role: "attach description แบบ deterministic หรือ AI summary ที่ cache ไว้ ให้กับ node",
+    tech: "Deterministic Description Waterfall และ Hash Caching",
+    algorithm: "ลำดับ waterfall: 1. docstring ใน source (ชนะก่อนเสมอ) 2. AI summary ที่ cache ด้วย source hash ใน descriptions.json 3. deterministic template fallback",
+    inputs: "node body และ cache descriptions.json",
+    outputs: "doc / description string ของ node ที่ update แล้ว",
+    invariant: "ข้อความจาก AI เข้าระบบผ่าน script นี้เท่านั้น และตอน runtime ไม่มีความ nondeterministic ใด ๆ",
     cli: "python scripts/extract/apply_descriptions.py --input summaries.json",
     callers: [{ name: "archaeologist.py", fn: "agent enrichment" }],
     callees: [{ name: "paths.py", fn: "DATA_DIR" }]
@@ -1595,12 +1589,12 @@ const SCRIPTS_DATA = [
     name: "analyze.py",
     cat: "review",
     path: "scripts/review/analyze.py",
-    role: "Detects architectural smells and computes the 0–100 / A–F health score.",
-    tech: "Tarjan's SCC & Degree Coupling Analysis",
-    algorithm: "Iterative Tarjan's Strongly Connected Components for cycles; in/out-degree for hubs (fan_in+out >= 10); god objects; health formula with category deduction caps.",
-    inputs: "graph.json or flow_graph.json",
-    outputs: "Analysis dictionary: cycles, orphans, hubs, god objects, health score",
-    invariant: "Degree calculations run on app_edges(), ignoring test nodes so test coverage doesn't inflate coupling.",
+    role: "ตรวจจับ architectural smell และคำนวณ health score 0–100 / A–F",
+    tech: "Tarjan's SCC และ Degree Coupling Analysis",
+    algorithm: "หา cycle ด้วย Tarjan's Strongly Connected Components แบบ iterative ใช้ in/out-degree หา hub (fan_in+out >= 10) และ god object พร้อมสูตร health ที่จำกัดเพดานการหักคะแนนต่อ category",
+    inputs: "graph.json หรือ flow_graph.json",
+    outputs: "analysis dictionary: cycles, orphans, hubs, god objects, health score",
+    invariant: "การคำนวณ degree ทำบน app_edges() ซึ่งไม่นับ test node เพื่อไม่ให้ test coverage ไปพองค่า coupling",
     cli: "python scripts/review/analyze.py --graph data/flow/flow_graph.json",
     callers: [{ name: "report.py", fn: "report()" }, { name: "debt.py", fn: "find_dead()" }],
     callees: [{ name: "console.py", fn: "safe_stdout()" }]
@@ -1609,12 +1603,12 @@ const SCRIPTS_DATA = [
     name: "duplicates.py",
     cat: "review",
     path: "scripts/review/duplicates.py",
-    role: "Detects whole-body code clones and copied blocks across all functions.",
+    role: "ตรวจหา whole-body code clone และ block ที่ถูก copy ข้าม function",
     tech: "1. Token Normalization + 2. Winnowing (K=10, W=21)",
-    algorithm: "Normalizes code: identifiers -> ID, literals -> LIT. Whole-body: SHA-1 of normalized tokens. Blocks: Winnowing algorithm with stable rolling polynomial hash ((1<<61)-1 mod).",
-    inputs: "Flow graph nodes + source files",
-    outputs: "duplicates.json (clone clusters & copied block shapes)",
-    invariant: "Deterministic rolling hash (avoids Python's salted hash()). Skips declaration: true nodes.",
+    algorithm: "normalize โค้ด: identifier -> ID, literal -> LIT ระดับ whole-body ใช้ SHA-1 ของ token ที่ normalize แล้ว ส่วนระดับ block ใช้ Winnowing กับ rolling polynomial hash ที่ stable (mod (1<<61)-1)",
+    inputs: "node ของ Flow graph และ source file",
+    outputs: "duplicates.json (clone cluster และ shape ของ block ที่ถูก copy)",
+    invariant: "rolling hash ให้ผล deterministic (เลี่ยง hash() ของ Python ที่ใส่ salt ต่อ process) และ skip node ที่เป็น declaration: true",
     cli: "python scripts/review/duplicates.py --src ./src",
     callers: [{ name: "report.py", fn: "build()" }],
     callees: [{ name: "scan_security.py", fn: "iter_source_files()" }]
@@ -1623,12 +1617,12 @@ const SCRIPTS_DATA = [
     name: "scan_security.py",
     cat: "review",
     path: "scripts/review/scan_security.py",
-    role: "Fast regex scan for hardcoded secrets, SQL injection, eval, and innerHTML.",
+    role: "regex scan อย่างรวดเร็วเพื่อหา hardcoded secret, SQL injection, eval และ innerHTML",
     tech: "Regex Sweeper + AST Range Containment",
-    algorithm: "Scans non-test files for secret/sink patterns. Maps finding line to innermost graph node where source <= line <= end using owner_of().",
-    inputs: "Source code lines + graph node index",
-    outputs: "security.json with attributed node findings",
-    invariant: "Lines outside any node range are marked file-level (never attributed to preceding function).",
+    algorithm: "scan ไฟล์ที่ไม่ใช่ test หา pattern ของ secret/sink แล้ว map บรรทัดที่พบเข้ากับ node ชั้นในสุดที่ source <= line <= end ด้วย owner_of()",
+    inputs: "บรรทัดของ source code และ index ของ graph node",
+    outputs: "security.json พร้อม finding ที่ระบุ node เจ้าของแล้ว",
+    invariant: "บรรทัดที่อยู่นอก range ของทุก node จะถูกทำเครื่องหมายเป็น file-level (ไม่เคยถูกยัดให้ function ที่อยู่ข้างบน)",
     cli: "python scripts/review/scan_security.py --src ./src",
     callers: [{ name: "report.py", fn: "scan()" }, { name: "debt.py", fn: "owner_of()" }],
     callees: [{ name: "manifest.py", fn: "SOURCE_EXTS" }, { name: "taxonomy.py", fn: "is_test_path()" }]
@@ -1637,12 +1631,12 @@ const SCRIPTS_DATA = [
     name: "git_insights.py",
     cat: "review",
     path: "scripts/review/git_insights.py",
-    role: "Extracts commit churn, code ownership, and hotspot risk from git log.",
-    tech: "Streaming git log --numstat Stream Parsing",
-    algorithm: "Parses git log with \\x01 record delimiters. Aggregates commit count per file and author. Computes risk formula: risk = commits * (1 + fan_in + fan_out).",
-    inputs: "Git commit history",
-    outputs: "insights.json (churn, top authors, ranked hotspots)",
-    invariant: "Single git subprocess call; degrades cleanly to empty data if not a git repository.",
+    role: "extract commit churn, code ownership และ hotspot risk จาก git log",
+    tech: "Streaming git log --numstat Parsing",
+    algorithm: "parse git log โดยใช้ \x01 คั่น record รวมยอด commit ต่อไฟล์และต่อ author แล้วคำนวณสูตร risk = commits * (1 + fan_in + fan_out)",
+    inputs: "commit history ของ Git",
+    outputs: "insights.json (churn, top authors, hotspot ที่จัดอันดับแล้ว)",
+    invariant: "เรียก git เป็น subprocess ครั้งเดียว และถ้าไม่ใช่ git repository ก็ degrade ลงเป็นข้อมูลว่างอย่างเรียบร้อย",
     cli: "python scripts/review/git_insights.py --src ./src",
     callers: [{ name: "report.py", fn: "build()" }],
     callees: [{ name: "manifest.py", fn: "SOURCE_EXTS" }]
@@ -1651,12 +1645,12 @@ const SCRIPTS_DATA = [
     name: "metrics.py",
     cat: "review",
     path: "scripts/review/metrics.py",
-    role: "Measures LOC, cyclomatic complexity, nesting depth, and parameter counts.",
-    tech: "CST Decision-Point Counter per Grammar",
-    algorithm: "Walks Tree-sitter parse of each node (source..end). Uses TABLES per language to count branching decisions (McCabe cyclomatic complexity) and block depth.",
-    inputs: "Source files + graph nodes",
-    outputs: "metrics.json (per-file census and per-node complexity)",
-    invariant: "Keyed by graph node ID by construction; measures every graphed language.",
+    role: "วัด LOC, cyclomatic complexity, nesting depth และจำนวน parameter",
+    tech: "CST Decision-Point Counter แยกตาม Grammar",
+    algorithm: "เดิน Tree-sitter parse ตาม range ของแต่ละ node (source..end) ใช้ตาราง TABLES ต่อภาษาเพื่อนับ branching decision (McCabe cyclomatic complexity) และ block depth",
+    inputs: "source file และ graph node",
+    outputs: "metrics.json (per-file census และ per-node complexity)",
+    invariant: "key ด้วย graph node ID โดยโครงสร้าง และวัดได้ทุกภาษาที่มี graph",
     cli: "python scripts/review/metrics.py --src ./src --graph data/flow/flow_graph.json",
     callers: [{ name: "report.py", fn: "build()" }],
     callees: [{ name: "grammars.py", fn: "parser_for(lang)" }, { name: "scan_security.py", fn: "iter_source_files()" }, { name: "py_extract.py", fn: "read_source()" }]
@@ -1665,12 +1659,12 @@ const SCRIPTS_DATA = [
     name: "debt.py",
     cat: "review",
     path: "scripts/review/debt.py",
-    role: "Identifies comment debt markers (TODO, FIXME, HACK) and dead files.",
+    role: "ระบุ debt marker ใน comment (TODO, FIXME, HACK) และไฟล์ที่ตายแล้ว",
     tech: "Heuristic Debt Scanner",
-    algorithm: "Regex scans comments for TODO/FIXME markers; attributes them to AST nodes via owner_of(). Cross-references files with graph to find dead files.",
-    inputs: "Source files + graph nodes",
-    outputs: "debt.json (markers list, dead nodes, dead files)",
-    invariant: "Heuristic review pass: reports debt but deliberately does not penalize health score.",
+    algorithm: "regex scan comment หา marker TODO/FIXME แล้วผูกเข้ากับ AST node ด้วย owner_of() พร้อม cross-reference ไฟล์กับ graph เพื่อหา dead file",
+    inputs: "source file และ graph node",
+    outputs: "debt.json (list ของ marker, dead node, dead file)",
+    invariant: "เป็น heuristic review pass: รายงาน debt แต่ตั้งใจไม่ให้ไปหักคะแนน health",
     cli: "python scripts/review/debt.py --src ./src",
     callers: [{ name: "report.py", fn: "build()" }],
     callees: [{ name: "analyze.py", fn: "find_orphans()" }, { name: "scan_security.py", fn: "owner_of()" }]
@@ -1679,12 +1673,12 @@ const SCRIPTS_DATA = [
     name: "tests_map.py",
     cat: "review",
     path: "scripts/review/tests_map.py",
-    role: "Maps test files to the application nodes they verify.",
+    role: "map ไฟล์ test เข้ากับ application node ที่มัน verify",
     tech: "Heuristic Test-to-Code Coverage Mapping",
-    algorithm: "Scans test files for references to application class/method names; counts percentage of graph nodes covered by at least one test.",
-    inputs: "Test files + flow graph nodes",
-    outputs: "tests.json (tested node IDs, coverage percentage)",
-    invariant: "Heuristic indicator; nodes in test files are tagged layer: test.",
+    algorithm: "scan ไฟล์ test หาการอ้างถึงชื่อ class/method ของ application แล้วนับเปอร์เซ็นต์ของ graph node ที่มี test อย่างน้อยหนึ่งตัวครอบคลุม",
+    inputs: "ไฟล์ test และ node ของ Flow graph",
+    outputs: "tests.json (node ID ที่มี test, เปอร์เซ็นต์ coverage)",
+    invariant: "เป็นตัวชี้วัดแบบ heuristic ส่วน node ที่อยู่ในไฟล์ test จะถูก tag layer: test",
     cli: "python scripts/review/tests_map.py --src ./src",
     callers: [{ name: "report.py", fn: "build()" }],
     callees: [{ name: "ids.py", fn: "bare()" }, { name: "scan_security.py", fn: "iter_source_files()" }]
@@ -1693,12 +1687,12 @@ const SCRIPTS_DATA = [
     name: "report.py",
     cat: "review",
     path: "scripts/review/report.py",
-    role: "Unifies all review passes into comprehensive markdown and JSON reports.",
+    role: "รวมทุก review pass เข้าเป็น report แบบ Markdown และ JSON ฉบับสมบูรณ์",
     tech: "Multi-Pass Aggregation Engine",
-    algorithm: "Invokes scan_security, git_insights, analyze, metrics, debt, tests_map, duplicates; compiles unified markdown and JSON architecture reports.",
-    inputs: "Data artifacts from all review passes",
+    algorithm: "เรียก scan_security, git_insights, analyze, metrics, debt, tests_map, duplicates แล้วประกอบเป็น architecture report ทั้งแบบ Markdown และ JSON",
+    inputs: "artifact จากทุก review pass",
     outputs: "data/report/<map>/architecture_report.{md,json}",
-    invariant: "One report per map: node IDs differ between maps, so reports are never mixed.",
+    invariant: "หนึ่ง report ต่อหนึ่ง map: node ID ของแต่ละ map ต่างกัน จึงห้ามเอา report ข้าม map มาปนกัน",
     cli: "python scripts/review/report.py --src ./src",
     callers: [{ name: "archaeologist.py", fn: "run_report()" }],
     callees: [
@@ -1715,12 +1709,12 @@ const SCRIPTS_DATA = [
     name: "brief.py",
     cat: "review",
     path: "scripts/review/brief.py",
-    role: "Fixed-size orientation digest for AI agents to read at session start.",
+    role: "orientation digest ขนาดคงที่ ให้ AI agent อ่านตอนเริ่ม session",
     tech: "Zero-Computation Artifact Digest",
-    algorithm: "Reads already-computed JSON artifacts (report, manifest, graph). Formats fixed-budget summary containing grades, smells, and top risks.",
-    inputs: "Existing data/*.json artifacts",
-    outputs: "Fixed-size stdout brief or JSON",
-    invariant: "Computes NOTHING: expensive work belongs upstream. Costs same tokens on 200 files as 5 files.",
+    algorithm: "อ่าน JSON artifact ที่คำนวณไว้แล้ว (report, manifest, graph) แล้ว format เป็นสรุปขนาดจำกัด ที่มีทั้ง grade, smell และ risk อันดับต้น",
+    inputs: "artifact data/*.json ที่มีอยู่แล้ว",
+    outputs: "brief ขนาดคงที่บน stdout หรือ JSON",
+    invariant: "ไม่คำนวณอะไรเลย: งานหนักต้องอยู่ต้นน้ำ ใช้ token เท่ากันไม่ว่าจะ 200 ไฟล์หรือ 5 ไฟล์",
     cli: "python scripts/review/brief.py",
     callers: [{ name: "archaeologist.py", fn: "main()" }],
     callees: [{ name: "manifest.py", fn: "compare()" }, { name: "grammars.py", fn: "versions()" }]
@@ -1731,12 +1725,12 @@ const SCRIPTS_DATA = [
     name: "trace_path.py",
     cat: "query",
     path: "scripts/query/trace_path.py",
-    role: "Graph navigation: shortest path between nodes and blast radius analysis.",
-    tech: "BFS & Reverse-BFS Graph Traversal",
-    algorithm: "--from/--to runs standard BFS queue for shortest path. --impact-of runs reverse BFS on incoming edges to find all transitive callers. --impact-of-diff maps git diff.",
-    inputs: "graph.json / flow_graph.json, node IDs",
-    outputs: "Formatted path string A > B > C or JSON node lists",
-    invariant: "Pure Python stdlib (no NetworkX dependency). Deterministic traversal order.",
+    role: "navigate graph: หา shortest path ระหว่าง node และวิเคราะห์ blast radius",
+    tech: "BFS และ Reverse-BFS Graph Traversal",
+    algorithm: "--from/--to ใช้ BFS queue มาตรฐานหา shortest path, --impact-of ใช้ reverse BFS บน incoming edge เพื่อหา transitive caller ทั้งหมด, --impact-of-diff map จาก git diff",
+    inputs: "graph.json / flow_graph.json และ node ID",
+    outputs: "path ที่ format แล้วเป็น A > B > C หรือ list ของ node แบบ JSON",
+    invariant: "ใช้ Python stdlib ล้วน (ไม่พึ่ง NetworkX) และลำดับการ traverse เป็น deterministic",
     cli: "python scripts/query/trace_path.py --graph <graph.json> --from A --to B",
     callers: [{ name: "context.py", fn: "_changed_files()" }],
     callees: [{ name: "console.py", fn: "safe_stdout()" }]
@@ -1745,12 +1739,12 @@ const SCRIPTS_DATA = [
     name: "search.py",
     cat: "query",
     path: "scripts/query/search.py",
-    role: "Filters and queries graph nodes without grepping source code.",
+    role: "filter และ query node ของ graph โดยไม่ต้อง grep source code",
     tech: "Indexed Multi-Filter Graph Query",
-    algorithm: "Applies conjunct filters (name, doc regex, layer, kind, lang, --calls, --called-by, --orphans) across in-memory graph JSON.",
-    inputs: "Query flags and graph.json",
-    outputs: "Matching node IDs and metadata table",
-    invariant: "The primary tool for finding starting node IDs; replaces grepping raw source.",
+    algorithm: "ใช้ filter แบบ conjunct (name, doc regex, layer, kind, lang, --calls, --called-by, --orphans) บน graph JSON ที่อยู่ใน memory",
+    inputs: "query flag และ graph.json",
+    outputs: "node ID ที่ match พร้อมตาราง metadata",
+    invariant: "เป็นเครื่องมือหลักในการหา node ID ตั้งต้น ใช้แทนการ grep source ดิบ ๆ",
     cli: "python scripts/query/search.py --name Controller --layer controller",
     callers: [],
     callees: [{ name: "console.py", fn: "safe_stdout()" }]
@@ -1759,12 +1753,12 @@ const SCRIPTS_DATA = [
     name: "context.py",
     cat: "query",
     path: "scripts/query/context.py",
-    role: "Packs node metadata, callers, callees, and metrics into a prompt budget.",
+    role: "แพ็ค metadata ของ node, caller, callee และ metric ให้พอดีกับ budget ของ prompt",
     tech: "Budget-Constrained Neighborhood Packing",
-    algorithm: "Collects node facts, direct neighbors, security findings, and churn; trims text to fit strict --max-chars budget for LLM context injection.",
-    inputs: "Node ID, graph.json, review JSONs",
-    outputs: "Compact markdown context pack",
-    invariant: "Never exceeds character budget; prints precision caveats explicitly.",
+    algorithm: "รวบรวมข้อเท็จจริงของ node, neighbor ที่ติดกันโดยตรง, security finding และ churn แล้วตัดข้อความให้พอดี budget --max-chars อย่างเคร่งครัด สำหรับ inject เข้า context ของ LLM",
+    inputs: "node ID, graph.json และ JSON ของ review pass",
+    outputs: "context pack แบบ Markdown ที่กระชับ",
+    invariant: "ไม่เกิน character budget เด็ดขาด และ print คำเตือนเรื่อง precision ออกมาอย่างชัดเจน",
     cli: "python scripts/query/context.py --node <node_id> --max-chars 4000",
     callers: [],
     callees: [{ name: "trace_path.py", fn: "_nodes_for_files()" }, { name: "taxonomy.py", fn: "PRECISION_NOTES" }]
@@ -1773,12 +1767,12 @@ const SCRIPTS_DATA = [
     name: "build_html.py",
     cat: "query",
     path: "scripts/query/build_html.py",
-    role: "Assembles the offline standalone explorer HTML file.",
+    role: "ประกอบไฟล์ explorer HTML แบบ standalone ที่ใช้ offline ได้",
     tech: "Offline Single-File Bundler",
-    algorithm: "Reads templates/viewer.html, embeds graph JSONs (__MAPS_DATA__) and vendored force-graph.js (__VENDOR_JS__) inline; writes data/explorer.html.",
+    algorithm: "อ่าน templates/viewer.html แล้ว embed graph JSON (__MAPS_DATA__) และ force-graph.js ที่ vendor ไว้ (__VENDOR_JS__) แบบ inline จากนั้นเขียน data/explorer.html",
     inputs: "templates/viewer.html, graph.json, flow_graph.json",
     outputs: "data/explorer.html",
-    invariant: "Zero network dependencies: opens via file:// with internet completely disabled.",
+    invariant: "ไม่พึ่ง network เลย: เปิดผ่าน file:// ได้ทั้งที่ปิดอินเทอร์เน็ตสนิท",
     cli: "python scripts/query/build_html.py",
     callers: [{ name: "archaeologist.py", fn: "render_explorer()" }],
     callees: [{ name: "paths.py", fn: "DATA_DIR" }]
@@ -1787,12 +1781,12 @@ const SCRIPTS_DATA = [
     name: "viewer.html",
     cat: "query",
     path: "templates/viewer.html",
-    role: "Three-pane responsive interactive visualization desktop application.",
-    tech: "Force-Graph Simulation & Multi-View Explorer",
-    algorithm: "7 visualization modes (Graph, Treemap, Matrix, Tree, Flow, Cluster, Bundle); D3/force-graph physics; drag-to-pin layout; dynamic toolbar auto-compaction.",
-    inputs: "Inlined JSON maps data",
-    outputs: "Interactive DOM UI",
-    invariant: "Test nodes colored green (#57ab5a) everywhere; quiet chrome (#08090b); zero emoji (SVG icons only).",
+    role: "desktop application สำหรับ visualize แบบ interactive สามแผง responsive",
+    tech: "Force-Graph Simulation และ Multi-View Explorer",
+    algorithm: "7 โหมด visualization (Graph, Treemap, Matrix, Tree, Flow, Cluster, Bundle), physics ของ D3/force-graph, drag เพื่อ pin layout และ toolbar ที่ย่อตัวเองอัตโนมัติ",
+    inputs: "ข้อมูล map แบบ JSON ที่ inline มาแล้ว",
+    outputs: "DOM UI แบบ interactive",
+    invariant: "test node เป็นสีเขียว (#57ab5a) ทุกที่, chrome สีเงียบ (#08090b) และไม่มี emoji เลย (ใช้ SVG icon เท่านั้น)",
     cli: "Rendered template embedded into data/explorer.html",
     callers: [{ name: "build_html.py", fn: "load_template()" }],
     callees: []
@@ -1862,11 +1856,11 @@ const COMMANDS_DATA = {
   project: {
     phase: "BUILD", cat: "extract",
     title: "archaeologist.py project",
-    path: "Phase 1 - Build  |  structure map only",
-    role: "Builds the structure map: one node per class, React component and module function-group. Re-renders the explorer and records the source hashes so `check` can detect drift.",
+    path: "Phase 1 - Build  |  เฉพาะ structure map",
+    role: "สร้าง structure map: หนึ่ง node ต่อหนึ่ง class, React component และกลุ่ม function ระดับ module จากนั้น render explorer ใหม่ และบันทึก source hash ไว้ให้ `check` ตรวจ drift ได้",
     tech: "run_project(src)",
-    algorithm: "Runs strictly in order, bailing on the first non-zero return code. build_graph is handed the vault build_wiki just wrote - it never re-reads source.",
-    invariant: "manifest.write() runs only if every stage returned 0, so a failed build can never be recorded as fresh.",
+    algorithm: "รันตามลำดับอย่างเคร่งครัด และหยุดทันทีที่ return code แรกไม่เป็นศูนย์ โดย build_graph จะได้รับ vault ที่ build_wiki เพิ่งเขียน ไม่ย้อนไปอ่าน source ซ้ำ",
+    invariant: "manifest.write() จะรันก็ต่อเมื่อทุก stage คืนค่า 0 เท่านั้น build ที่ล้มเหลวจึงไม่มีทางถูกบันทึกว่า fresh",
     inputs: "--src roots (source tree)",
     outputs: "data/structure/{vault/*.md, graph.json, registry.json}, data/explorer.html, data/cache/manifest.json",
     cli: "python scripts/archaeologist.py project --src ./backend ./frontend",
@@ -1880,11 +1874,11 @@ const COMMANDS_DATA = {
   flow: {
     phase: "BUILD", cat: "extract",
     title: "archaeologist.py flow",
-    path: "Phase 1 - Build  |  flow map only",
-    role: "Builds the flow map: one node per method or function, call edges where the receiver's type is readable, routes attached, frontend calls linked to backend handlers.",
+    path: "Phase 1 - Build  |  เฉพาะ flow map",
+    role: "สร้าง flow map: หนึ่ง node ต่อหนึ่ง method หรือ function, มี call edge เมื่ออ่าน type ของ receiver ได้, attach route และเชื่อม call จาก frontend เข้ากับ backend handler",
     tech: "run_flow(src)",
-    algorithm: "build_flow does the whole pass itself: three producers -> SharedNames ids -> route_tables.read() attached -> test layer -> cross-stack http edges -> precision. Only then does the explorer re-render.",
-    invariant: "Route tables are attached AFTER the nodes exist and BEFORE the cross-stack pass, because that pass is what reads routes.",
+    algorithm: "build_flow ทำทั้ง pass เองทั้งหมด: producer สามตัว -> SharedNames ids -> attach route_tables.read() -> test layer -> cross-stack http edge -> precision แล้วจึงค่อย render explorer ใหม่",
+    invariant: "route table ถูก attach หลังจาก node เกิดขึ้นแล้ว และก่อน cross-stack pass เพราะ pass นั้นคือตัวที่อ่าน route",
     inputs: "--src roots (source tree)",
     outputs: "data/flow/{flow_graph.json, notes/*.md}, data/explorer.html, data/cache/manifest.json",
     cli: "python scripts/archaeologist.py flow --src ./backend ./frontend",
@@ -1899,13 +1893,13 @@ const COMMANDS_DATA = {
   both: {
     phase: "BUILD", cat: "extract",
     title: "archaeologist.py both",
-    path: "Phase 1 - Build  |  the usual command",
-    role: "Runs project then flow, in that order, and records the manifest once at the end. This is what you normally run.",
+    path: "Phase 1 - Build  |  คำสั่งที่ใช้ตามปกติ",
+    role: "รัน project แล้วตามด้วย flow ตามลำดับนั้น และบันทึก manifest ครั้งเดียวตอนจบ ปกติแล้วนี่คือคำสั่งที่ควรใช้",
     tech: "run_project(src) or run_flow(src)",
-    algorithm: "Python's `or` short-circuits on a non-zero return code, so a failing structure build stops before the flow build starts.",
-    invariant: "The two maps have different node ids by design. They are never merged - the explorer holds both and switches between them.",
+    algorithm: "`or` ของ Python จะ short-circuit เมื่อ return code ไม่เป็นศูนย์ ดังนั้นถ้า structure build ล้ม flow build จะไม่เริ่มเลย",
+    invariant: "map ทั้งสองมี node ID คนละชุดโดยเจตนา และจะไม่ถูก merge กัน explorer เก็บไว้ทั้งคู่แล้วให้สลับดู",
     inputs: "--src roots (source tree)",
-    outputs: "Everything project and flow produce, plus one explorer.html holding both maps",
+    outputs: "ทุกอย่างที่ project และ flow สร้าง บวกกับ explorer.html หนึ่งไฟล์ที่เก็บทั้งสอง map",
     cli: "python scripts/archaeologist.py both --src ./backend ./frontend",
     sequence: [
       { name: "build_wiki.py", fn: "build() - structure" },
@@ -1918,12 +1912,12 @@ const COMMANDS_DATA = {
   report: {
     phase: "BUILD", cat: "review",
     title: "archaeologist.py report",
-    path: "Phase 1 - Build  |  review passes over a built map",
-    role: "Runs the seven review passes over every map that has already been built, writing one report per map, then re-renders the explorer with both reports embedded.",
-    tech: "run_report(src) -> report.build(src, graph, out) per map",
-    algorithm: "Errors out if no map exists yet - it needs a graph AND the source, since scan_security, metrics, git_insights and duplicates all read files.",
-    invariant: "One report per map. Node ids differ between maps, so a report from the other map must never be embedded (build_html.report_for enforces it).",
-    inputs: "--src roots + data/*/graph.json from a previous build",
+    path: "Phase 1 - Build  |  review pass บน map ที่ build ไว้แล้ว",
+    role: "รัน review pass ทั้งเจ็ดบนทุก map ที่ build ไว้แล้ว เขียนหนึ่ง report ต่อหนึ่ง map จากนั้น render explorer ใหม่พร้อม embed ทั้งสอง report",
+    tech: "run_report(src) -> report.build(src, graph, out) ต่อหนึ่ง map",
+    algorithm: "จะ error ถ้ายังไม่มี map เพราะมันต้องใช้ทั้ง graph และ source เนื่องจาก scan_security, metrics, git_insights และ duplicates ล้วนอ่านไฟล์",
+    invariant: "หนึ่ง report ต่อหนึ่ง map เพราะ node ID ต่างกันระหว่าง map จึงห้าม embed report ข้าม map เด็ดขาด (build_html.report_for บังคับไว้)",
+    inputs: "--src roots + data/*/graph.json จาก build ครั้งก่อน",
     outputs: "data/report/<map>/architecture_report.{md,json}, security.json, insights.json",
     cli: "python scripts/archaeologist.py report --src ./backend ./frontend",
     sequence: [
@@ -1941,13 +1935,13 @@ const COMMANDS_DATA = {
   check: {
     phase: "HINGE", cat: "core",
     title: "archaeologist.py check",
-    path: "The hinge  |  neither build nor query",
-    role: "Answers one question: are the artifacts still true? Prints a JSON staleness report and exits. Reads source, writes nothing.",
+    path: "บานพับ  |  ไม่ใช่ทั้ง build และ query",
+    role: "ตอบคำถามเดียว: artifact ยังเป็นจริงอยู่ไหม? print staleness report เป็น JSON แล้วจบ อ่าน source แต่ไม่เขียนอะไรเลย",
     tech: "manifest.compare(src)",
-    algorithm: "SHA-1 of every source file under the recorded roots, plus the set of installed tree-sitter grammars, compared against data/cache/manifest.json. Roots are recorded, so --src is optional.",
-    invariant: "A changed grammar set counts as staleness: a graph that is smaller for want of a wheel is indistinguishable from a graph of a smaller codebase.",
-    inputs: "data/cache/manifest.json + the source tree",
-    outputs: "A JSON report on stdout. No artifact is written.",
+    algorithm: "SHA-1 ของทุก source file ใต้ roots ที่บันทึกไว้ บวกกับชุด Tree-sitter grammar ที่ติดตั้งอยู่ เทียบกับ data/cache/manifest.json เนื่องจาก roots ถูกบันทึกไว้แล้ว --src จึงไม่จำเป็น",
+    invariant: "ชุด grammar ที่เปลี่ยนไปนับเป็น stale ด้วย เพราะ graph ที่เล็กลงเพราะขาด wheel หน้าตาเหมือนกันเป๊ะกับ graph ของ codebase ที่เล็กกว่า",
+    inputs: "data/cache/manifest.json และ source tree",
+    outputs: "report แบบ JSON บน stdout ไม่มี artifact ใดถูกเขียน",
     cli: "python scripts/archaeologist.py check --src ./backend ./frontend",
     sequence: [
       { name: "manifest.py", fn: "compare(src) -> {stale, added, changed, removed}" },
@@ -1957,13 +1951,13 @@ const COMMANDS_DATA = {
   brief: {
     phase: "QUERY", cat: "review",
     title: "archaeologist.py brief",
-    path: "Phase 2 - Query  |  open every session with this",
-    role: "The fixed-size digest an agent should read first: grades, counts, endpoints, hotspots, skipped grammars, unpinned versions. It computes nothing - everything in it was written by an earlier build.",
+    path: "Phase 2 - Query  |  เปิดทุก session ด้วยคำสั่งนี้",
+    role: "digest ขนาดคงที่ที่ agent ควรอ่านก่อนเพื่อน: grade, จำนวน, endpoint, hotspot, grammar ที่ถูก skip และเวอร์ชันที่หลุด pin มันไม่คำนวณอะไรเลย ทุกอย่างในนั้นถูกเขียนไว้แล้วตอน build ครั้งก่อน",
     tech: "brief.main(argv)",
-    algorithm: "Reads the artifacts and formats them. Anything expensive belongs upstream of it, never inside it - that is what keeps its size fixed regardless of repository size.",
-    invariant: "~4.3 KB on a 13.6 MB repository. The size is a property of the format, not of the codebase.",
+    algorithm: "อ่าน artifact แล้ว format ออกมา อะไรที่แพงต้องอยู่ต้นน้ำ ไม่ใช่ข้างในนี้ นั่นคือสิ่งที่ทำให้ขนาดของมันคงที่ไม่ว่า repository จะใหญ่แค่ไหน",
+    invariant: "~4.3 KB บน repository ขนาด 13.6 MB ขนาดของมันเป็นคุณสมบัติของ format ไม่ใช่ของ codebase",
     inputs: "data/*/graph.json, data/report/*, data/cache/manifest.json",
-    outputs: "Formatted digest on stdout. Nothing written.",
+    outputs: "digest ที่ format แล้วบน stdout ไม่เขียนอะไรเลย",
     cli: "python scripts/archaeologist.py brief",
     sequence: [
       { name: "brief.py", fn: "main(argv)" },
@@ -1974,13 +1968,13 @@ const COMMANDS_DATA = {
   query: {
     phase: "QUERY", cat: "query",
     title: "search.py / trace_path.py / context.py",
-    path: "Phase 2 - Query  |  run these directly, not through archaeologist.py",
-    role: "The three retrieval tools, used in order: locate the starting node, trace the path or blast radius, then read a bounded pack for the nodes on that path. None of them opens a source file.",
-    tech: "Graph traversal over the built JSON",
-    algorithm: "search filters one graph; trace_path runs BFS for --from/--to and a reverse reachability for --impact-of; context joins graph facts with metrics, risk and insights under a hard --max-chars budget.",
-    invariant: "The Zero-RAG contract: answer from the graph and the notes on the returned path, never by scanning source.",
-    inputs: "data/structure/graph.json or data/flow/flow_graph.json, plus data/report/*",
-    outputs: "Text on stdout, bounded in size. Nothing written.",
+    path: "Phase 2 - Query  |  รันตรง ๆ ไม่ผ่าน archaeologist.py",
+    role: "เครื่องมือ retrieval สามตัว ใช้ตามลำดับ: หา node ตั้งต้น, trace path หรือ blast radius, แล้วอ่าน pack ที่จำกัดขนาดของ node บน path นั้น ไม่มีตัวไหนเปิด source file เลย",
+    tech: "graph traversal บน JSON ที่ build ไว้",
+    algorithm: "search filter หนึ่ง graph, trace_path รัน BFS สำหรับ --from/--to และ reverse reachability สำหรับ --impact-of, ส่วน context รวมข้อเท็จจริงจาก graph เข้ากับ metric, risk และ insight ภายใต้ budget --max-chars ที่ตายตัว",
+    invariant: "สัญญา Zero-RAG: ตอบจาก graph และจาก note บน path ที่ได้คืนมา ไม่ใช่จากการ scan source",
+    inputs: "data/structure/graph.json หรือ data/flow/flow_graph.json บวกกับ data/report/*",
+    outputs: "ข้อความบน stdout ที่จำกัดขนาด ไม่เขียนอะไรเลย",
     cli: "python scripts/query/trace_path.py --from submitOrder --to OrderArchive.save",
     sequence: [
       { name: "search.py", fn: "1. locate: --name / --layer / --calls / --orphans" },
@@ -2009,10 +2003,10 @@ function openCommand(id) {
 
   // A command has no callers - you type it - and its "callees" are an ordered
   // sequence, so both chip lists are relabelled rather than reused as-is.
-  document.getElementById("sbCallersLabel").textContent = "Invoked By";
+  document.getElementById("sbCallersLabel").textContent = "ถูกเรียกโดย";
   document.getElementById("sbCallers").innerHTML =
-    "<span class='sb-none'>You, from the command line</span>";
-  document.getElementById("sbCalleesLabel").textContent = "Scripts It Runs, In Order";
+    "<span class='sb-none'>คุณเอง จาก command line</span>";
+  document.getElementById("sbCalleesLabel").textContent = "Script ที่มันรัน ตามลำดับ";
   const seq = document.getElementById("sbCallees");
   seq.innerHTML = "";
   item.sequence.forEach((c, i) => {
@@ -2044,8 +2038,8 @@ function openSidebar(name) {
   document.getElementById("sbOutputs").textContent = item.outputs;
   document.getElementById("sbCmd").textContent = item.cli || ("python " + item.path);
   // openCommand() relabels these two blocks; a script view puts them back.
-  document.getElementById("sbCallersLabel").textContent = "Called By (Incoming Callers)";
-  document.getElementById("sbCalleesLabel").textContent = "Calls (Outgoing Callees)";
+  document.getElementById("sbCallersLabel").textContent = "ถูกเรียกโดย (Incoming Callers)";
+  document.getElementById("sbCalleesLabel").textContent = "เรียกไปยัง (Outgoing Callees)";
 
   // Render Callers
   const callersEl = document.getElementById("sbCallers");
@@ -2059,7 +2053,7 @@ function openSidebar(name) {
       callersEl.appendChild(chip);
     });
   } else {
-    callersEl.innerHTML = "<span class='sb-none'>None (Top-level entrypoint or CLI)</span>";
+    callersEl.innerHTML = "<span class='sb-none'>ไม่มี (เป็น entrypoint ระดับบนสุด หรือ CLI)</span>";
   }
 
   // Render Callees
@@ -2074,7 +2068,7 @@ function openSidebar(name) {
       calleesEl.appendChild(chip);
     });
   } else {
-    calleesEl.innerHTML = "<span class='sb-none'>None (Leaf module)</span>";
+    calleesEl.innerHTML = "<span class='sb-none'>ไม่มี (เป็น leaf module)</span>";
   }
 
   // Highlight active node in flowchart
