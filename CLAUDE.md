@@ -15,7 +15,7 @@ reviews them, and renders one browsable page:
 | **Flow** | methods/functions | `build_flow.py` | `data/flow/{flow_graph.json, notes/*.md}` |
 
 Three producers feed both maps -- Python (`py_extract.py`), JS/TS (`js_ts_extract.py`) and
-everything else (`ts_extract.py`: Java, Go, C#, and since phase 7 Kotlin, Rust, Swift, Scala,
+everything else (`langs_extract.py`: Java, Go, C#, and since phase 7 Kotlin, Rust, Swift, Scala,
 Groovy, Dart, C, C++, Ruby, PHP and Elixir) -- and since phase 2 all three are **tree-sitter**.
 There is one parser in the build, and **seventeen languages have a graph**.
 
@@ -47,7 +47,7 @@ be the name line in Python/Java/C# and the decorator line in JS/TS; `tests/fixtu
 `lines` column pins it now.
 
 **Every method is its own node, overloads included** -- in the languages that have them (Java,
-C#, Kotlin, Scala, Swift, C++, and Groovy through Java's tree; `ts_extract.OVERLOADING`). A name a
+C#, Kotlin, Scala, Swift, C++, and Groovy through Java's tree; `langs_extract.OVERLOADING`). A name a
 class defines twice gets its parameter types in its id -- `InvoiceService.Total(InvoiceRequest)`,
 `InvoiceService.Total(int,int)` -- and every other id stays bare (`build_flow._local_names`). A
 call picks its overload by argument count, then by every argument type the source states -- a
@@ -68,7 +68,7 @@ archaeologist.py  project | flow | both | check | report | brief   <- the only e
   flow     -> build_flow ---------------------------------+--> render_explorer()
       both extract through: py_extract.py     (Python,        tree-sitter)
                             js_ts_extract.py  (JS/TS/JSX/TSX, tree-sitter)
-                            ts_extract.py     (13 languages,  tree-sitter)
+                            langs_extract.py     (13 languages,  tree-sitter)
            flow also reads: route_tables.py   (Django/Rails/Laravel/Phoenix tables -> handler nodes)
   report   -> report.py (scan_security + git_insights + analyze + metrics + debt + tests_map
                          + duplicates)
@@ -91,7 +91,7 @@ scripts/
                      and skill_rel() -- every report's `graph` field (cross-drive, phase 9)
   core/     taxonomy.py  manifest.py  console.py  grammars.py  ids.py
   extract/  build_wiki.py  build_graph.py  build_flow.py  py_extract.py
-            js_ts_extract.py  ts_extract.py  route_tables.py  apply_descriptions.py
+            js_ts_extract.py  langs_extract.py  route_tables.py  apply_descriptions.py
   review/   analyze.py  scan_security.py  git_insights.py  metrics.py  debt.py
             tests_map.py  duplicates.py  report.py  brief.py
   query/    trace_path.py  context.py  search.py  build_html.py
@@ -125,7 +125,7 @@ delete. Nothing else in `core/` may import a skill module.
   had drifted, and a Next.js dev server's output became 9% of a real repository's flow graph
   (phase 9). `target`, `out`, `coverage` and `vendor` are deliberately absent: each is a real
   source directory somewhere. It also owns `LANG_BY_EXT` / `lang_of()` -- one answer to "what language is
-  this file", read by `metrics.py` and `ts_extract.py`. And it owns **what counts as a test
+  this file", read by `metrics.py` and `langs_extract.py`. And it owns **what counts as a test
   file** (`is_test_path` / `is_test_file`): path and filename conventions plus framework markers
   (`@Test`, `@SpringBootTest`, `[Fact]`, `#[test]`, `func TestX(t *testing.T)`). Nodes in test
   files get `layer: test`, which is why `analyze.py` never calls them dead code and
@@ -165,7 +165,7 @@ delete. Nothing else in `core/` may import a skill module.
   name -- and URLs built on a same-file `const BASE = "/x"`), and the JSX rule that makes a function a
   `kind: component`. A call carries the **class of its receiver** where the source states it --
   `new X()`, `this`, `this.<typed field>`, or a typed parameter or local -- and `"?"` where it does
-  not, the same shape `ts_extract` emits, so `build_flow` resolves JS/TS the way it resolves Java.
+  not, the same shape `langs_extract` emits, so `build_flow` resolves JS/TS the way it resolves Java.
   Until then the receiver was discarded and class methods were never registered as candidates, so
   **no call could land on a JS/TS class method at all** (the TypeScript fixture: 0 edges of 3).
   It replaced the Node extractor behind that extractor's exact output contract
@@ -175,11 +175,14 @@ delete. Nothing else in `core/` may import a skill module.
   `js_extract.js`, `@babel/parser` 7.29.8) and the diff tool were deleted at step 4, so the
   comparison cannot be re-run -- `fd9c7d8` is its record. Four extensions, three grammars: `.tsx`
   will not parse under the TypeScript language and needs `tsx`.
-- `ts_extract.py` reads Java/Go/C# from a real parse tree, and keeps the same
+- `langs_extract.py` reads Java/Go/C# from a real parse tree, and keeps the same
   `find_lang_files` / `extract_lang_files` contract the textual extractor before it had -- which is
   what let the port be verified by diffing the graph instead of by reading code. That extractor
   (`lang_extract.py`, 788 lines) was deleted at step 2 once the diff was clean; it is in git
-  history if the comparison is ever wanted again. One shared consumer works
+  history if the comparison is ever wanted again. It was called `ts_extract.py` until
+  2026-09-12: `ts` meant *tree-sitter*, but next to `js_ts_extract.py` -- which is the one
+  that reads TypeScript -- it read as the opposite of what it does. The name now matches the
+  contract it exports (`find_lang_files` / `extract_lang_files`). One shared consumer works
   in tree-sitter *field* names (`name`, `body`, `parameters`, `type`); only the `SPEC` table knows
   node-type spellings. Adding a language is a row there plus its receiver rule. tree-sitter gives
   declarations, bodies, param types and doc attachment; it does **not** give resolution, so

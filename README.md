@@ -188,7 +188,7 @@ re-runs it from scratch — along with the current selection and filter.
 | **Routes read** | *on the handler:* FastAPI, Flask, Express, NestJS, Spring (Java and Kotlin), ASP.NET, Go `net/http`, actix-web / Rocket — *from a route table:* Django `urlpatterns` (with `include()` and class-based views), Rails `routes.rb`, Laravel `routes/*.php`, Phoenix routers |
 
 Seventeen languages, one engine: each is a pinned grammar wheel plus a row of node types
-(`ts_extract.SHAPES`), never a new parser. The graph's precision follows the *type system*, not
+(`langs_extract.SHAPES`), never a new parser. The graph's precision follows the *type system*, not
 the grammar: Kotlin, Rust, Swift, Scala, Dart, C and C++ declare their types, so a call through a
 field or parameter resolves as it does in Java; JS/TS resolves one wherever the source states the
 class (`new X()`, `this`, a typed field, parameter or local); Ruby, PHP, Elixir and Groovy usually
@@ -315,7 +315,7 @@ It has no npm dependencies of its own.
 │   │   ├── build_flow.py
 │   │   ├── py_extract.py   Python, parsed with tree-sitter (ast is kept as the oracle)
 │   │   ├── js_ts_extract.py JS/JSX/TS/TSX, parsed with tree-sitter
-│   │   ├── ts_extract.py   Java/Go/C# and eleven more languages, parsed with tree-sitter
+│   │   ├── langs_extract.py   Java/Go/C# and eleven more languages, parsed with tree-sitter
 │   │   ├── route_tables.py Django / Rails / Laravel / Phoenix route tables, read into routes
 │   │   └── apply_descriptions.py
 │   │

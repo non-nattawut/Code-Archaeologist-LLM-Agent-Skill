@@ -264,7 +264,7 @@ archaeologist.py   project | flow | both | check | report | brief   &lt;- ทา
   flow     -> build_flow --------------------------------+--> render_explorer()
        ทั้งสองสกัดผ่าน:  py_extract.py      (Python,        tree-sitter)
                         js_ts_extract.py   (JS/TS/JSX/TSX, tree-sitter)
-                        ts_extract.py      (อีก 13 ภาษา,    tree-sitter)
+                        langs_extract.py      (อีก 13 ภาษา,    tree-sitter)
        flow อ่านเพิ่ม:   route_tables.py    (ตาราง route ของ Django/Rails/Laravel/Phoenix)
 
   report   -> report.py (scan_security + git_insights + analyze + metrics
@@ -295,7 +295,7 @@ archaeologist.py   project | flow | both | check | report | brief   &lt;- ทา
           <td>ทางเข้าเดียว และคำนิยามเดียวว่าไฟล์ของ skill อยู่ที่ไหน (รวม <code>long_path()</code> สำหรับ MAX_PATH บน Windows และ <code>skill_rel()</code> สำหรับพาธข้ามไดรฟ์)</td></tr>
       <tr><td class="k">core/</td><td class="mono">taxonomy.py · manifest.py · console.py · grammars.py · ids.py</td>
           <td>คำศัพท์กลางที่ทุกสคริปต์ใช้ร่วมกัน: ค่า kind/layer, นิยามไฟล์เทส, hash ความสดของข้อมูล, พาร์สเซอร์ที่ติดตั้งอยู่, กฎการตั้ง node id และ stdout ที่ไม่ตายกับคอนโซลที่ไม่ใช่ UTF-8</td></tr>
-      <tr><td class="k">extract/</td><td class="mono">build_wiki.py · build_graph.py · build_flow.py · py_extract.py · js_ts_extract.py · ts_extract.py · route_tables.py · apply_descriptions.py</td>
+      <tr><td class="k">extract/</td><td class="mono">build_wiki.py · build_graph.py · build_flow.py · py_extract.py · js_ts_extract.py · langs_extract.py · route_tables.py · apply_descriptions.py</td>
           <td>source → กราฟ + โน้ต</td></tr>
       <tr><td class="k">review/</td><td class="mono">analyze.py · scan_security.py · git_insights.py · metrics.py · debt.py · tests_map.py · duplicates.py · brief.py · report.py</td>
           <td>กราฟ → ข้อค้นพบ</td></tr>
@@ -310,7 +310,7 @@ archaeologist.py   project | flow | both | check | report | brief   &lt;- ทา
     <div class="eyebrow">ภาษาที่รองรับ</div>
     <h2>สิบเจ็ดภาษา เอนจินเดียว</h2>
     <p class="lede">ทุกภาษาอ่านด้วย tree-sitter เหมือนกันหมด การเพิ่มภาษาใหม่คือการเพิ่ม
-       grammar wheel หนึ่งตัวกับแถวหนึ่งแถวในตาราง <code>ts_extract.SHAPES</code>
+       grammar wheel หนึ่งตัวกับแถวหนึ่งแถวในตาราง <code>langs_extract.SHAPES</code>
        ไม่ใช่การเขียนพาร์สเซอร์ตัวใหม่ — และนั่นคือเหตุผลที่ต้นทุนไม่โตตามจำนวนภาษา</p>
     <div class="tscroll"><table>
       <tr><th>ความสามารถ</th><th>ภาษา</th></tr>

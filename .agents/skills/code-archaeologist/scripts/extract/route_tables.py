@@ -41,7 +41,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from paths import DATA_DIR  # noqa: E402,F401  (puts sibling script dirs on sys.path)
 
 import grammars  # noqa: E402
-from ts_extract import SKIP_DIRS  # noqa: E402  (one definition of "not source")
+from langs_extract import SKIP_DIRS  # noqa: E402  (one definition of "not source")
 
 HTTP_METHOD_NAMES = ("get", "post", "put", "patch", "delete", "head", "options")
 

@@ -45,7 +45,7 @@ import grammars  # noqa: E402
 import manifest  # noqa: E402
 import py_extract as px  # noqa: E402
 import taxonomy  # noqa: E402
-import ts_extract  # noqa: E402
+import langs_extract  # noqa: E402
 
 FIX = os.path.join(REPO, "tests", "fixtures", "langs")
 SAMPLE = os.path.join(REPO, "sample_src")
@@ -84,7 +84,7 @@ def r03_go_map_type():
     for path in (os.path.join(FIX, "go", "widgets.go"),
                  os.path.join(SAMPLE, "services", "orders_go", "event_store.go")):
         src = open(path, encoding="utf-8").read()
-        for cls in ts_extract.extract_file(path)["classes"]:
+        for cls in langs_extract.extract_file(path)["classes"]:
             for field, typ in (cls.get("fields") or {}).items():
                 if typ and (not re.fullmatch(r"[A-Za-z_]\w*", typ) or typ not in src):
                     return f"{cls['name']}.{field} has type {typ!r}, which the source never spells"

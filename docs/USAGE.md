@@ -72,7 +72,7 @@ type, and anything else is dropped rather than guessed, so their edges are a low
 covers. To see what the extractor made of those files directly:
 
 ```bash
-python .agents/skills/code-archaeologist/scripts/extract/ts_extract.py --src ./src
+python .agents/skills/code-archaeologist/scripts/extract/langs_extract.py --src ./src
 python .agents/skills/code-archaeologist/scripts/extract/route_tables.py ./src   # every route a table declares
 ```
 

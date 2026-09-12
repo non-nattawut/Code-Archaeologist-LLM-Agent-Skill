@@ -66,7 +66,7 @@ from taxonomy import infer_layer, is_test_path, precision_of, ROUTE_DECORATOR_RE
 import py_extract as px  # noqa: E402  (Python, via tree-sitter)
 from ids import SharedNames as FlowIds  # noqa: E402  (one id rule for both maps)
 from js_ts_extract import find_js_files, extract_js_files, frontend_degraded   # noqa: E402
-from ts_extract import find_lang_files, extract_lang_files  # noqa: E402  (13 languages, via tree-sitter)
+from langs_extract import find_lang_files, extract_lang_files  # noqa: E402  (13 languages, via tree-sitter)
 import route_tables  # noqa: E402  (Django / Rails / Laravel / Phoenix route tables)
 
 from taxonomy import SKIP_DIRS  # noqa: E402  (one definition of "not source")
@@ -368,7 +368,7 @@ def _local_names(members: list[dict]) -> list[str]:
     Every method is its own node, overloads included. Ids used to carry no parameter
     types, so an overload set was ONE node carrying every overload's calls but only
     one overload's range (finding #8). Only a name the scope defines twice changes;
-    `sig` exists only for the languages with overloading (`ts_extract.OVERLOADING`).
+    `sig` exists only for the languages with overloading (`langs_extract.OVERLOADING`).
     """
     counts: dict[str, int] = {}
     for m in members:
@@ -708,7 +708,7 @@ def _analyze_js(js_files: list, ids: "FlowIds"):
 
 def _lang_node(nid: str, name: str, cls, layer: str, kind: str, data: dict,
                rel: str, lang: str) -> dict:
-    """A flow node from `ts_extract` (Java/Go/C# and the phase-7 languages). Same shape as `_js_node`.
+    """A flow node from `langs_extract` (Java/Go/C# and the phase-7 languages). Same shape as `_js_node`.
 
     It used to carry `approx: True`, which was honest while these three were read
     textually and became arbitrary once every language moved to tree-sitter --
@@ -738,10 +738,10 @@ def _lang_node(nid: str, name: str, cls, layer: str, kind: str, data: dict,
 
 
 def _analyze_lang(lang_files: list, ids: "FlowIds"):
-    """Nodes and call edges for every `ts_extract` language.
+    """Nodes and call edges for every `langs_extract` language.
 
     Two passes for the same reason the Python analyzer needs two: a call can only
-    be resolved once every class and its method names are known. `ts_extract`
+    be resolved once every class and its method names are known. `langs_extract`
     has already turned each receiver into a declared type; this decides whether
     that type is actually in the graph, and drops the call when it is not.
     """

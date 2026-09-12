@@ -34,7 +34,7 @@ import console  # noqa: E402  (stdout must survive a non-UTF-8 console)
 from js_ts_extract import find_js_files, extract_js_files, frontend_degraded  # noqa: E402  (frontend, degrades to a no-op)
 import py_extract as px  # noqa: E402  (Python, via tree-sitter)
 from ids import SharedNames  # noqa: E402  (one id rule for both maps)
-from ts_extract import find_lang_files, extract_lang_files  # noqa: E402  (13 languages, via tree-sitter)
+from langs_extract import find_lang_files, extract_lang_files  # noqa: E402  (13 languages, via tree-sitter)
 
 from taxonomy import SKIP_DIRS  # noqa: E402  (one definition of "not source")
 
@@ -335,7 +335,7 @@ def extract_js_entities(roots: list[str]) -> list[dict]:
 # ---------------------------------------------------------------------------
 def extract_lang_entities(roots: list[str]) -> list[dict]:
     """Classes, structs and modules -- plus a module function-group per file -- for every
-    `ts_extract` language (Java, Go, C# and, since phase 7, eleven more).
+    `langs_extract` language (Java, Go, C# and, since phase 7, eleven more).
 
     References come from *declared types* -- bases, field types, parameter types
     and resolved call receivers -- not from the import list. That is a better

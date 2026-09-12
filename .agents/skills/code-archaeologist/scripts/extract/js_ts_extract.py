@@ -271,7 +271,7 @@ def _args(call) -> list:
 # An edge needs a node id, and a node id is `Class.method`. `store.save()` gives the
 # method; the class has to come from what the source states about `store`. These are
 # the shapes that state it. Everything else is "?" -- dropped, never guessed, which
-# is the same rule `ts_extract` follows for Java/Go/C#.
+# is the same rule `langs_extract` follows for Java/Go/C#.
 
 def _type_name(text: str) -> str:
     """A type annotation reduced to the one class it names, or "".
@@ -485,7 +485,7 @@ def _collect_calls(root, axios_names: set, types: dict | None = None,
 
     Each call carries the class of its receiver (`type`): "" for a bare call, the
     class where the source states it, "?" where it does not. That is the shape
-    `ts_extract` already emits, so `build_flow` resolves JS/TS exactly as it
+    `langs_extract` already emits, so `build_flow` resolves JS/TS exactly as it
     resolves Java/Go/C#. Before this the receiver was discarded and only the name
     survived, which is why no call could ever land on a JS/TS class method.
 

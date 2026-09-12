@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ts_extract.py — declarations and calls for thirteen languages, read from a real parse tree.
+"""langs_extract.py — declarations and calls for thirteen languages, read from a real parse tree.
 
 Java, Go and C# since phase 2 (inline branches, below); since phase 7 also Kotlin,
 Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP and Elixir (`SHAPES`, one
