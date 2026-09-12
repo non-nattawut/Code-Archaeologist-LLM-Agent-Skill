@@ -154,6 +154,60 @@
     background: rgba(227, 179, 65, 0.08); border-left: 2px solid var(--warn);
     padding: 6px 10px; border-radius: 0 4px 4px 0; color: var(--ink-2); font-size: 11.5px;
   }
+
+  /* Call Graph & Execution Flows Section */
+  .callgraph-section { padding: 48px 0; border-bottom: 1px solid var(--rule); }
+  .cg-tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--rule); padding-bottom: 12px; }
+  .cg-tab {
+    background: var(--panel); border: 1px solid var(--rule); border-radius: 5px;
+    padding: 8px 16px; font-family: var(--mono); font-size: 12px; color: var(--ink-2);
+    cursor: pointer; transition: all .12s;
+  }
+  .cg-tab.active, .cg-tab:hover { background: var(--raised); border-color: var(--accent); color: var(--ink); }
+  .cg-panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 24px; display: none; }
+  .cg-panel.active { display: block; }
+  
+  /* Matrix Table */
+  .matrix-wrap { overflow-x: auto; margin-top: 16px; }
+  .matrix-table { width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: left; }
+  .matrix-table th {
+    background: var(--ground); color: var(--ink-3); font-family: var(--mono);
+    font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+    padding: 10px 12px; border-bottom: 1px solid var(--rule-lit);
+  }
+  .matrix-table td { padding: 10px 12px; border-bottom: 1px solid var(--rule); color: var(--ink-2); vertical-align: top; }
+  .matrix-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .matrix-pill {
+    display: inline-block; font-family: var(--mono); font-size: 11px; padding: 2px 7px;
+    border-radius: 4px; background: var(--ground); border: 1px solid var(--rule-lit);
+    color: var(--accent); cursor: pointer;
+  }
+  .matrix-pill:hover { border-color: var(--accent); }
+  .matrix-fn { font-family: var(--mono); font-size: 12px; color: var(--blue); }
+  
+  /* Flow Sequences */
+  .flow-subtabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+  .flow-btn {
+    background: var(--ground); border: 1px solid var(--rule); border-radius: 4px;
+    padding: 6px 12px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3);
+    cursor: pointer; transition: all .12s;
+  }
+  .flow-btn.active, .flow-btn:hover { color: var(--ink); border-color: var(--accent); background: var(--raised); }
+  .flow-detail { display: none; }
+  .flow-detail.active { display: block; }
+  .flow-step-list { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+  .flow-step-item {
+    background: var(--ground); border: 1px solid var(--rule); border-radius: 6px;
+    padding: 14px 18px; display: flex; gap: 16px; align-items: flex-start;
+  }
+  .step-badge {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--accent-dim);
+    color: var(--accent); font-family: var(--mono); font-weight: bold; font-size: 13px;
+    display: flex; align-items: center; justify-content: center; flex: none; margin-top: 2px;
+  }
+  .step-body { flex: 1; }
+  .step-title { font-family: var(--mono); font-size: 13.5px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+  .step-desc { font-size: 13px; color: var(--ink-2); line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -280,7 +334,480 @@
   </div>
 </header>
 
-<main class="wrap">
+  <!-- Inter-Script Call Graph & Execution Hierarchy Section -->
+  <section class="callgraph-section">
+    <div class="section-eyebrow">Execution Architecture</div>
+    <h2>Inter-Script Call Graph &amp; Execution Hierarchy</h2>
+    <p style="color: var(--ink-2); max-width: 90ch; margin-bottom: 24px;">
+      Explore the precise inter-script invocation graph. Code Archaeologist is composed of 28 focused scripts
+      interacting via deterministic contracts, shared taxonomy, and filesystem artifacts.
+    </p>
+
+    <div class="cg-tabs">
+      <button class="cg-tab active" onclick="showCgTab('cg-matrix', this)">Caller &rarr; Callee Matrix</button>
+      <button class="cg-tab" onclick="showCgTab('cg-flows', this)">Step-by-Step Execution Flows</button>
+    </div>
+
+    <!-- Panel 1: Matrix -->
+    <div id="cg-matrix" class="cg-panel active">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 12px;">
+        <span style="font-family: var(--mono); font-size: 11px; text-transform: uppercase; color: var(--ink-3);">
+          Filter Matrix Interactions:
+        </span>
+        <input type="text" id="matrixFilterInput" placeholder="Search caller, callee, or function..." 
+               oninput="filterMatrix()" class="search-input" style="max-width: 320px; padding: 6px 10px; font-size: 12px;">
+      </div>
+      <div class="matrix-wrap">
+        <table class="matrix-table" id="matrixTable">
+          <thead>
+            <tr>
+              <th>Caller Script</th>
+              <th>Callee Script</th>
+              <th>Function / Symbol Called</th>
+              <th>Arguments &amp; Data Passed</th>
+              <th>Purpose &amp; Side Effect</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('archaeologist.py')">scripts/archaeologist.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('build_wiki.py')">scripts/extract/build_wiki.py</span></td>
+              <td><span class="matrix-fn">build(src, vault_dir)</span></td>
+              <td><code>src</code> roots, output vault path</td>
+              <td>Scans source files, emits Markdown notes to <code>vault/*.md</code></td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('archaeologist.py')">scripts/archaeologist.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('build_graph.py')">scripts/extract/build_graph.py</span></td>
+              <td><span class="matrix-fn">build(vault_dir, out_dir)</span></td>
+              <td>Vault directory, structure directory</td>
+              <td>Parses wikilinks &amp; metadata, writes <code>graph.json</code> &amp; <code>registry.json</code></td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('archaeologist.py')">scripts/archaeologist.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
+              <td><span class="matrix-fn">build(src, notes_dir, graph_path)</span></td>
+              <td><code>src</code> roots, notes dir, graph JSON path</td>
+              <td>Resolves two-pass calls, writes <code>notes/*.md</code> &amp; <code>flow_graph.json</code></td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('archaeologist.py')">scripts/archaeologist.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('report.py')">scripts/review/report.py</span></td>
+              <td><span class="matrix-fn">build(src, graph_path, out_dir)</span></td>
+              <td><code>src</code> roots, map's graph JSON, output dir</td>
+              <td>Runs 7 review passes, generates <code>architecture_report.md</code> &amp; <code>.json</code></td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('archaeologist.py')">scripts/archaeologist.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('brief.py')">scripts/review/brief.py</span></td>
+              <td><span class="matrix-fn">main(argv)</span></td>
+              <td>CLI args (<code>--src ...</code>)</td>
+              <td>Formats and prints fixed-size token digest of repo state</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('archaeologist.py')">scripts/archaeologist.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('manifest.py')">scripts/core/manifest.py</span></td>
+              <td><span class="matrix-fn">compare(src) / write(src)</span></td>
+              <td><code>src</code> roots list</td>
+              <td>Detects source staleness / writes SHA-256 hashes into <code>manifest.json</code></td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('archaeologist.py')">scripts/archaeologist.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('build_html.py')">scripts/query/build_html.py</span></td>
+              <td><span class="matrix-fn">build(sources, out_path)</span></td>
+              <td>Map dict <code>{name: (graph, report)}</code>, output path</td>
+              <td>Bundles graphs + reports + vendored D3 script into <code>explorer.html</code></td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('build_wiki.py')">scripts/extract/build_wiki.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('py_extract.py')">scripts/extract/py_extract.py</span></td>
+              <td><span class="matrix-fn">parse(), read_source(), field(), text()</span></td>
+              <td>Python file path / source bytes</td>
+              <td>Extracts Python CST tree nodes, docstrings, classes, functions</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('build_wiki.py')">scripts/extract/build_wiki.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('js_ts_extract.py')">scripts/extract/js_ts_extract.py</span></td>
+              <td><span class="matrix-fn">find_js_files(), extract_js_files()</span></td>
+              <td>Source roots</td>
+              <td>List of class and component definitions with types</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('build_wiki.py')">scripts/extract/build_wiki.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('langs_extract.py')">scripts/extract/langs_extract.py</span></td>
+              <td><span class="matrix-fn">find_lang_files(), extract_lang_files()</span></td>
+              <td>Source roots</td>
+              <td>List of class/struct/interface and method definitions for 15 langs</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('build_wiki.py')">scripts/extract/build_wiki.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('ids.py')">scripts/core/ids.py</span></td>
+              <td><span class="matrix-fn">SharedNames((name, source))</span></td>
+              <td>Name/file pairs</td>
+              <td>Disambiguates duplicate names case-insensitively (<code>stem/path</code>)</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('build_wiki.py')">scripts/extract/build_wiki.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('taxonomy.py')">scripts/core/taxonomy.py</span></td>
+              <td><span class="matrix-fn">infer_layer(), is_test_path(), SKIP_DIRS</span></td>
+              <td>File path, kind, name</td>
+              <td>Architectural layer assignment (<code>controller</code>, <code>model</code>, <code>test</code>, etc.)</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('py_extract.py')">scripts/extract/py_extract.py</span></td>
+              <td><span class="matrix-fn">parse(), read_source(), field(), find_nodes()</span></td>
+              <td>Python file path / source bytes</td>
+              <td>Method definitions, AST statements, call expressions</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('js_ts_extract.py')">scripts/extract/js_ts_extract.py</span></td>
+              <td><span class="matrix-fn">find_js_files(), extract_js_files()</span></td>
+              <td>Source roots</td>
+              <td>Frontend methods, route endpoints, Axios/fetch API calls</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('langs_extract.py')">scripts/extract/langs_extract.py</span></td>
+              <td><span class="matrix-fn">find_lang_files(), extract_lang_files(), _pick_overload()</span></td>
+              <td>Source roots, candidate methods, caller arg count</td>
+              <td>Methods, call sites, and exact overload resolution</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('route_tables.py')">scripts/extract/route_tables.py</span></td>
+              <td><span class="matrix-fn">find_route_tables(), extract_table_routes()</span></td>
+              <td>Source roots, table file paths</td>
+              <td>Routes from Django <code>urlpatterns</code>, Rails <code>routes.rb</code>, Laravel, Phoenix</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('ids.py')">scripts/core/ids.py</span></td>
+              <td><span class="matrix-fn">SharedNames, bare(id)</span></td>
+              <td>Method name/file pairs, qualified node ID</td>
+              <td>Disambiguates method IDs; strips path qualifier for matching</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('taxonomy.py')">scripts/core/taxonomy.py</span></td>
+              <td><span class="matrix-fn">infer_layer(), precision_of(), ROUTE_DECORATOR_RE</span></td>
+              <td>Method properties, resolved call dict</td>
+              <td>Computes named precision loss (<code>interface-dispatch</code>, <code>unresolved</code>, etc.)</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('report.py')">scripts/review/report.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('scan_security.py')">scripts/review/scan_security.py</span></td>
+              <td><span class="matrix-fn">scan(src, graph_path)</span></td>
+              <td>Source roots, graph path</td>
+              <td>Security findings mapped to owning AST nodes (<code>security.json</code>)</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('report.py')">scripts/review/report.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('git_insights.py')">scripts/review/git_insights.py</span></td>
+              <td><span class="matrix-fn">build(src, graph_path)</span></td>
+              <td>Source roots, graph path</td>
+              <td>Git churn, author ownership, hotspot risk scores (<code>insights.json</code>)</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('report.py')">scripts/review/report.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('analyze.py')">scripts/review/analyze.py</span></td>
+              <td><span class="matrix-fn">report(graph_path, sec_summary)</span></td>
+              <td>Graph path, security severity counts</td>
+              <td>Tarjan's SCC cycles, backwards layer calls, god objects, health grade</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('report.py')">scripts/review/report.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('metrics.py')">scripts/review/metrics.py</span></td>
+              <td><span class="matrix-fn">build(src, graph_path, out_file, top_k)</span></td>
+              <td>Source roots, graph path, output JSON</td>
+              <td>Cyclomatic complexity (McCabe), nesting depth, LOC census</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('report.py')">scripts/review/report.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('debt.py')">scripts/review/debt.py</span></td>
+              <td><span class="matrix-fn">build(src, graph_path, out_file)</span></td>
+              <td>Source roots, graph path, output JSON</td>
+              <td>Comment markers (TODO/FIXME/HACK) and orphan file inventory</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('report.py')">scripts/review/report.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('tests_map.py')">scripts/review/tests_map.py</span></td>
+              <td><span class="matrix-fn">build(src, graph_path, out_file)</span></td>
+              <td>Source roots, graph path, output JSON</td>
+              <td>Production nodes referenced by test files (<code>tests.json</code>)</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('report.py')">scripts/review/report.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('duplicates.py')">scripts/review/duplicates.py</span></td>
+              <td><span class="matrix-fn">build(src, graph_path, out_file)</span></td>
+              <td>Source roots, graph path, output JSON</td>
+              <td>Cloned bodies (token normalization) and blocks (Winnowing $K=10, W=21$)</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('debt.py')">scripts/review/debt.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('analyze.py')">scripts/review/analyze.py</span></td>
+              <td><span class="matrix-fn">orphans(nodes, edges)</span></td>
+              <td>Graph nodes dict, edge list</td>
+              <td>Identifies uncalled nodes and dead files</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('context.py')">scripts/query/context.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('trace_path.py')">scripts/query/trace_path.py</span></td>
+              <td><span class="matrix-fn">_changed_files(), _nodes_for_files()</span></td>
+              <td>Git diff flags, node sources dict</td>
+              <td>Maps modified git files back to graph node IDs</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Panel 2: Execution Flows -->
+    <div id="cg-flows" class="cg-panel">
+      <div class="flow-subtabs">
+        <button class="flow-btn active" onclick="showFlow('fl-project', this)">Flow 1: Structure Map</button>
+        <button class="flow-btn" onclick="showFlow('fl-flow', this)">Flow 2: Flow Map</button>
+        <button class="flow-btn" onclick="showFlow('fl-both', this)">Flow 3: Dual Map</button>
+        <button class="flow-btn" onclick="showFlow('fl-report', this)">Flow 4: Architecture Review</button>
+        <button class="flow-btn" onclick="showFlow('fl-check', this)">Flow 5: Staleness Check</button>
+        <button class="flow-btn" onclick="showFlow('fl-brief', this)">Flow 6: Orientation Brief</button>
+        <button class="flow-btn" onclick="showFlow('fl-query', this)">Flow 7: Query &amp; Retrieval</button>
+      </div>
+
+      <!-- Flow 1 -->
+      <div id="fl-project" class="flow-detail active">
+        <h4 style="margin: 0 0 8px; color: var(--accent);">Flow 1: Structure Map (<code>archaeologist.py project --src &lt;roots&gt;</code>)</h4>
+        <p style="color: var(--ink-2); font-size: 13px;">Extracts classes, interfaces, React components, and module functions into a reference graph.</p>
+        <div class="flow-step-list">
+          <div class="flow-step-item">
+            <div class="step-badge">1</div>
+            <div class="step-body">
+              <div class="step-title">Dispatch: archaeologist.py &rarr; build_wiki.py</div>
+              <div class="step-desc"><code>run_project()</code> invokes <code>build_wiki.build(src, vault_dir)</code> with verified source directories.</div>
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <div class="step-badge">2</div>
+            <div class="step-body">
+              <div class="step-title">Multi-Language Extraction</div>
+              <div class="step-desc"><code>build_wiki.py</code> runs <code>px.iter_py_files()</code>, <code>js_ts_extract.find_js_files()</code>, and <code>langs_extract.find_lang_files()</code>. Tree-sitter parsers produce CST trees.</div>
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <div class="step-badge">3</div>
+            <div class="step-body">
+              <div class="step-title">ID Disambiguation &amp; Layer Inference</div>
+              <div class="step-desc"><code>core/ids.py:SharedNames</code> groups names by lowercase to qualify collisions across files. <code>core/taxonomy.py:infer_layer()</code> assigns layers. Notes written to <code>data/structure/vault/*.md</code>.</div>
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <div class="step-badge">4</div>
+            <div class="step-body">
+              <div class="step-title">Graph Assembly: build_graph.py</div>
+              <div class="step-desc"><code>build_graph.build()</code> parses wikilinks <code>[[Target]]</code> and frontmatter metadata from the vault, emitting deterministic <code>graph.json</code> and <code>registry.json</code>.</div>
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <div class="step-badge">5</div>
+            <div class="step-body">
+              <div class="step-title">Explorer Bundling &amp; Manifest Write</div>
+              <div class="step-desc"><code>build_html.build()</code> inlines the graph into <code>data/explorer.html</code>. <code>manifest.write(src)</code> records SHA-256 hashes into <code>manifest.json</code>.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flow 2 -->
+      <div id="fl-flow" class="flow-detail">
+        <h4 style="margin: 0 0 8px; color: var(--accent);">Flow 2: Flow Map (<code>archaeologist.py flow --src &lt;roots&gt;</code>)</h4>
+        <p style="color: var(--ink-2); font-size: 13px;">Extracts method/function nodes, resolves calls against declared types, tracks dropped calls, and builds execution paths.</p>
+        <div class="flow-step-list">
+          <div class="flow-step-item">
+            <div class="step-badge">1</div>
+            <div class="step-body">
+              <div class="step-title">Pass 1: Registration</div>
+              <div class="step-desc"><code>build_flow.py</code> extracts all function/method definitions across Python, JS/TS, and 15 languages, registering them into <code>core/ids.py:SharedNames</code>.</div>
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <div class="step-badge">2</div>
+            <div class="step-body">
+              <div class="step-title">External Route Table Ingestion</div>
+              <div class="step-desc"><code>route_tables.find_route_tables()</code> extracts route endpoints from Django <code>urlpatterns</code>, Rails <code>routes.rb</code>, Laravel, and Phoenix, attaching them to controller handler nodes.</div>
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <div class="step-badge">3</div>
+            <div class="step-body">
+              <div class="step-title">Pass 2: Two-Pass Call Resolution</div>
+              <div class="step-desc">Resolves calls via local typed assignments, parameter annotations, and <code>langs_extract._pick_overload()</code>. Connects frontend fetch/axios calls to backend routes.</div>
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <div class="step-badge">4</div>
+            <div class="step-body">
+              <div class="step-title">Dropped Call Tracking (unresolved)</div>
+              <div class="step-desc"><code>_record_dropped()</code> and <code>_split_dropped()</code> classify dropped calls: calls naming known in-graph nodes are logged in <code>unresolved</code> as investigation clues, avoiding guessing false edges.</div>
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <div class="step-badge">5</div>
+            <div class="step-body">
+              <div class="step-title">Graph Output &amp; HTML Bundling</div>
+              <div class="step-desc">Writes <code>data/flow/notes/*.md</code> and <code>data/flow/flow_graph.json</code>. Re-renders <code>data/explorer.html</code> and updates <code>manifest.json</code>.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flow 3 -->
+      <div id="fl-both" class="flow-detail">
+        <h4 style="margin: 0 0 8px; color: var(--accent);">Flow 3: Dual Map Build (<code>archaeologist.py both --src &lt;roots&gt;</code>)</h4>
+        <p style="color: var(--ink-2); font-size: 13px;">Runs Flow 1 (Structure) followed immediately by Flow 2 (Flow), then writes the unified manifest.</p>
+        <div class="flow-step-list">
+          <div class="flow-step-item">
+            <div class="step-badge">1</div>
+            <div class="step-body">
+              <div class="step-title">Run Flow 1: Structure Map</div>
+              <div class="step-desc">Generates <code>data/structure/graph.json</code> and <code>vault/*.md</code>.</div>
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <div class="step-badge">2</div>
+            <div class="step-body">
+              <div class="step-title">Run Flow 2: Flow Map</div>
+              <div class="step-desc">Generates <code>data/flow/flow_graph.json</code> and <code>notes/*.md</code>.</div>
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <div class="step-badge">3</div>
+            <div class="step-body">
+              <div class="step-title">Unified Offline Explorer &amp; Manifest</div>
+              <div class="step-desc"><code>build_html.py</code> bundles both maps into <code>data/explorer.html</code> with a switch header. <code>manifest.write()</code> seals source hashes.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flow 4 -->
+      <div id="fl-report" class="flow-detail">
+        <h4 style="margin: 0 0 8px; color: var(--accent);">Flow 4: Architecture Review &amp; Health Audit (<code>archaeologist.py report --src &lt;roots&gt;</code>)</h4>
+        <p style="color: var(--ink-2); font-size: 13px;">Executes 7 deterministic review passes and generates an executive architecture report.</p>
+        <div class="flow-step-list">
+          <div class="flow-step-item">
+            <div class="step-badge">1</div>
+            <div class="step-body">
+              <div class="step-title">Dispatcher Loop: report.build() per map</div>
+              <div class="step-desc"><code>archaeologist.py:run_report()</code> runs <code>report.build()</code> for each built map (<code>structure</code>, <code>flow</code>).</div>
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <div class="step-badge">2</div>
+            <div class="step-body">
+              <div class="step-title">Security &amp; Git Churn Scans</div>
+              <div class="step-desc"><code>scan_security.scan()</code> maps regex findings to AST node ranges via <code>owner_of()</code>. <code>git_insights.build()</code> streams <code>git log --numstat</code> to rank hotspots.</div>
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <div class="step-badge">3</div>
+            <div class="step-body">
+              <div class="step-title">Tarjan's SCC &amp; Health Scoring</div>
+              <div class="step-desc"><code>analyze.report()</code> detects circular dependencies via iterative Tarjan's SCC, checks layer violations, and computes an A–F health grade.</div>
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <div class="step-badge">4</div>
+            <div class="step-body">
+              <div class="step-title">Metrics, Debt, Tests &amp; Duplicates</div>
+              <div class="step-desc"><code>metrics.build()</code> measures cyclomatic complexity; <code>debt.build()</code> catalogs TODO markers; <code>tests_map.build()</code> maps test coverage; <code>duplicates.build()</code> winnows copied blocks ($K=10, W=21$).</div>
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <div class="step-badge">5</div>
+            <div class="step-body">
+              <div class="step-title">Report Assembly &amp; Embedding</div>
+              <div class="step-desc">Emits <code>architecture_report.md</code> and <code>.json</code>. Calls <code>build_html.build()</code> to inline reports into <code>data/explorer.html</code>.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flow 5 -->
+      <div id="fl-check" class="flow-detail">
+        <h4 style="margin: 0 0 8px; color: var(--accent);">Flow 5: Staleness Check (<code>archaeologist.py check [--src &lt;roots&gt;]</code>)</h4>
+        <p style="color: var(--ink-2); font-size: 13px;">Deterministic source-freshness check; verifies if working tree files or grammar wheels have changed since the last build.</p>
+        <div class="flow-step-list">
+          <div class="flow-step-item">
+            <div class="step-badge">1</div>
+            <div class="step-body">
+              <div class="step-title">Call: manifest.compare(src)</div>
+              <div class="step-desc">Reads recorded source roots and grammar versions from <code>data/cache/manifest.json</code>.</div>
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <div class="step-badge">2</div>
+            <div class="step-body">
+              <div class="step-title">SHA-256 Hash Comparison &amp; Grammar Drift</div>
+              <div class="step-desc">Re-scans roots, hashes current files, and checks <code>core/grammars.py:drift()</code>. Emits a JSON summary of modified/added/deleted files. Zero graph re-parsing needed.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flow 6 -->
+      <div id="fl-brief" class="flow-detail">
+        <h4 style="margin: 0 0 8px; color: var(--accent);">Flow 6: Orientation Brief (<code>archaeologist.py brief</code>)</h4>
+        <p style="color: var(--ink-2); font-size: 13px;">Instant orientation digest for agents or developers; constant-time execution reading pre-computed JSON files.</p>
+        <div class="flow-step-list">
+          <div class="flow-step-item">
+            <div class="step-badge">1</div>
+            <div class="step-body">
+              <div class="step-title">Dispatch: brief.main()</div>
+              <div class="step-desc">Directly loads <code>manifest.json</code>, <code>graph.json</code>, and <code>architecture_report.json</code>.</div>
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <div class="step-badge">2</div>
+            <div class="step-body">
+              <div class="step-title">Token Digest Output</div>
+              <div class="step-desc">Formats node/edge counts, health grade, top hotspots, entry points, and high-severity risks into a fixed-token text summary.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flow 7 -->
+      <div id="fl-query" class="flow-detail">
+        <h4 style="margin: 0 0 8px; color: var(--accent);">Flow 7: Agent Zero-RAG Retrieval &amp; Query Flows</h4>
+        <p style="color: var(--ink-2); font-size: 13px;">High-speed BFS path tracing, blast radius impact calculation, and token-budgeted context packing.</p>
+        <div class="flow-step-list">
+          <div class="flow-step-item">
+            <div class="step-badge">1</div>
+            <div class="step-body">
+              <div class="step-title">Path Tracing &amp; Blast Radius: trace_path.py</div>
+              <div class="step-desc">Forward BFS finds shortest call paths between nodes. Reverse BFS on incoming edges calculates upstream blast radius for modified nodes or <code>git diff</code> changes.</div>
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <div class="step-badge">2</div>
+            <div class="step-body">
+              <div class="step-title">Context Budget Packing: context.py</div>
+              <div class="step-desc">Gathers node facts, neighbors, security findings, and precision notes; dynamically contracts neighbors using <code>NEIGHBOR_CAPS = (12, 6, 3, 1)</code> to fit within <code>--max-chars</code>.</div>
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <div class="step-badge">3</div>
+            <div class="step-body">
+              <div class="step-title">Multi-Filter Search: search.py</div>
+              <div class="step-desc">Filters graph nodes by name, docstring, layer, route, fan-in/fan-out, or complexity without grepping raw source files.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Scenarios Section -->
   <section class="scenarios-section">
     <div class="section-eyebrow">Operational Scenarios</div>
@@ -772,6 +1299,29 @@ function showScenario(id, btn) {
   document.querySelectorAll(".sc-card").forEach(c => c.classList.remove("active"));
   btn.classList.add("active");
   document.getElementById(id).classList.add("active");
+}
+
+function showCgTab(id, btn) {
+  document.querySelectorAll(".cg-tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".cg-panel").forEach(p => p.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById(id).classList.add("active");
+}
+
+function showFlow(id, btn) {
+  document.querySelectorAll(".flow-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".flow-detail").forEach(d => d.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById(id).classList.add("active");
+}
+
+function filterMatrix() {
+  const q = document.getElementById("matrixFilterInput").value.toLowerCase();
+  const rows = document.querySelectorAll("#matrixTable tbody tr");
+  rows.forEach(r => {
+    const text = r.textContent.toLowerCase();
+    r.style.display = text.includes(q) ? "" : "none";
+  });
 }
 
 // Initial render

@@ -4027,3 +4027,75 @@ Checked recent commits (`b5bf966`, `10dbedb`, `eb271f7`, `3627d0d`):
    - Added Invariant 5: Dropped calls keep their names in `unresolved` as investigation clues without guessing or inventing false edges.
 3. Verified test suite: `check_docs.py` OK, `check_graph.py` 28/28 OK, `check_regressions.py` 35/35 hold.
 4. Committed and pushed to `origin/main`.
+
+## [95] 2026-09-12 — `py_extract` is a helper, not a producer; merge question left open
+
+**Prompt**
+> the reason we split py_extract and ts_js_extract because we have already force user to iunstall
+> these lang so user can get precise graph already right?
+
+> so py extract is hepler not do the things same as langs extract?
+
+> so why name as py extract it make me confuse
+>
+> so then we can merge it js_ts_extract with langs extract since it do the same things rightZ?
+>
+> if yes do it
+
+**Response**
+No code changed this turn. Three questions, two corrected premises, and one decision the user then
+declined to make -- recorded so the next session does not re-derive it.
+
+**Corrected: no grammar is forced.** The premise was that Python and JS/TS are pre-installed, so
+their graphs are precise already. `grammars.py` installs on demand and nothing is mandatory --
+`tree-sitter-python` is as optional as Go's, `py_extract.warn_missing()` exists for exactly that
+case, and CLAUDE.md pins the degraded numbers (18/12 structure, 39/21 flow without it). Nor is
+Python "already precise": finding #11, measured yesterday, is a real hole in it.
+
+**Confirmed, with numbers: `py_extract.py` is not a producer.** `langs_extract` and `js_ts_extract`
+each expose `find_*_files` + `extract_*_files` and hand back finished dicts -- two lines at each
+call site. `py_extract` exposes `parse`, `read_source` and ~25 tree helpers, and the Python
+extraction is done by the consumers: **102 `px.*` call sites** (build_flow 56, build_wiki 25,
+metrics 21). So CLAUDE.md's "three producers" is two producers and a helper library.
+
+Why it is like that: the Python code was written against stdlib `ast`, and phase 2's port had to
+prove it changed nothing -- byte-identical graphs plus `check_py_oracle`. The safest port was a
+node-for-node substitution of `ast` calls for `px` calls *in place*; restructuring at the same time
+would have destroyed the diff that made the port trustworthy. A good reason for how it was done,
+not a reason for it to stay.
+
+What it costs, concretely: fixing `module.f()` resolution (finding #11) for Java means editing
+`langs_extract.py`; for Python it means editing `build_flow.py`, the graph builder. The
+language-specific knowledge is not in the language's file. (`metrics.py` walking trees itself is
+*not* part of this -- it has per-grammar `TABLES` for all seventeen languages by design.)
+
+**Argued against merging `js_ts_extract` into `langs_extract`.** They share a contract, not an
+implementation: 896 lines of bespoke reading (JSX, an axios binding that needs every file parsed
+before any is read, Express/Nest shapes) against 1,462 table-driven lines (`SPEC`/`SHAPES`,
+overloads, 13 grammars) = one 2,358-line file holding two unrelated designs, with both skip
+warnings still needing to stay distinct -- and the asymmetry that caused the confusion untouched.
+
+Offered three paths (make `py_extract` a real producer and move ~150 lines out of the builders;
+rename it `py_tree.py` and keep the asymmetry; merge the other two anyway). The user dismissed the
+question, so nothing was done and nothing was decided.
+
+## [96] 2026-09-12 — Inter-script call graph & execution flows documented
+
+**Prompt**
+> this is not enough what I want to know is which script call which and what flow to do that
+
+**Response**
+1. Mapped out the exact caller-to-callee relationships across all 28 scripts in the repository, including exact function linkages, arguments passed, returned structures, and filesystem side effects.
+2. Formatted this into an explicit caller-to-callee cross-reference matrix and an inter-script Mermaid dependency diagram.
+3. Detailed the step-by-step dataflow sequences for all 7 execution scenarios:
+   - Flow 1: Build Structure Map (`archaeologist.py project`)
+   - Flow 2: Build Flow Map (`archaeologist.py flow`)
+   - Flow 3: Dual Map Build (`archaeologist.py both`)
+   - Flow 4: Architecture Review & Health Audit (`archaeologist.py report`)
+   - Flow 5: Staleness Check (`archaeologist.py check`)
+   - Flow 6: Orientation Brief (`archaeologist.py brief`)
+   - Flow 7: Agent Zero-RAG Retrieval & Query Flows (`trace_path.py`, `context.py`, `search.py`, `apply_descriptions.py`)
+4. Updated `docs/ARCHITECTURE_GUIDE.md` and `docs/ARCHITECTURE_GUIDE.html` (interactive tabs, searchable matrix, and flow timelines).
+5. Verified test suite: `check_docs.py` OK, `check_graph.py` 28/28 OK, `check_regressions.py` 35/35 hold.
+6. Committed and pushed to `origin/main`.
+
