@@ -123,6 +123,7 @@ def build(graph_path: str, node_ids: list[str], depth: int = 1, cap: int = NEIGH
             "routes": node.get("routes"),
             "http": node.get("http"),
             "ext_calls": node.get("ext"),
+            "unresolved": node.get("unresolved") or [],
             "doc": _trim(node.get("doc", "")),
             "metrics": side["metrics"].get(nid, {}),
             "churn": side["churn"].get(nid, {}),
@@ -155,6 +156,12 @@ def to_markdown(pack: dict) -> str:
         for reason in n.get("precision") or []:
             lines += [f"> **{reason}** -- {PRECISION_NOTES.get(reason, '')}. The edges below are"
                       " incomplete for that reason; say so when you answer from this node.", ""]
+        if n.get("unresolved"):
+            # Named, because a count alone could not say whether an edge is missing.
+            lines += [f"> **{len(n['unresolved'])} call(s) here name something this graph defines"
+                      f" but did not resolve**: {', '.join(n['unresolved'])}. Each is either a"
+                      " library call that happens to share the name, or an edge that is missing"
+                      " from below -- the source did not say which.", ""]
         if n.get("signature"):
             lines += [f"`{n['signature']}`", ""]
         lines += [n["doc"] or "_No description._", ""]

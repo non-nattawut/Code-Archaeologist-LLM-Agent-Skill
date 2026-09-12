@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code Archaeologist — Complete Architecture & Workflow Guide</title>
+<style>
+  :root {
+    --ground: #08090b;
+    --panel: #0d0f13;
+    --raised: #12151a;
+    --rule: #1b1f26;
+    --rule-lit: #2a3038;
+    --ink: #e6e9ef;
+    --ink-2: #9aa4b2;
+    --ink-3: #6b7686;
+    --accent: #d99f4a;
+    --accent-dim: rgba(217, 159, 74, 0.15);
+    --ok: #3fb950;
+    --warn: #e3b341;
+    --bad: #f2544b;
+    --blue: #6ea8fe;
+    --purple: #a371f7;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: var(--sans); font-size: 14px; line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+  header { background: var(--panel); border-bottom: 1px solid var(--rule); padding: 48px 0 36px; }
+  .hero-tag {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .16em;
+    color: var(--accent); text-transform: uppercase; margin-bottom: 12px;
+  }
+  h1 { font-family: var(--mono); font-size: 32px; margin: 0 0 12px; letter-spacing: -0.01em; }
+  .hero-p { color: var(--ink-2); max-width: 86ch; font-size: 15px; margin: 0 0 24px; }
+  
+  /* Pipeline Diagram */
+  .pipe-container {
+    background: var(--ground); border: 1px solid var(--rule); border-radius: 8px;
+    padding: 24px; margin: 28px 0 10px; overflow-x: auto;
+  }
+  .pipe-title {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .14em;
+    color: var(--ink-3); text-transform: uppercase; margin-bottom: 18px;
+  }
+  .pipeline-grid {
+    display: flex; gap: 16px; align-items: stretch; min-width: 900px;
+  }
+  .pipe-stage {
+    flex: 1; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px;
+    padding: 16px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .pipe-stage-head {
+    font-family: var(--mono); font-size: 11px; color: var(--accent); font-weight: 600;
+    text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid var(--rule);
+    padding-bottom: 8px; display: flex; justify-content: space-between;
+  }
+  .pipe-node-pill {
+    background: var(--raised); border: 1px solid var(--rule-lit); border-radius: 4px;
+    padding: 8px 10px; font-family: var(--mono); font-size: 12px; color: var(--ink);
+    cursor: pointer; transition: all .15s ease;
+  }
+  .pipe-node-pill:hover { border-color: var(--accent); background: var(--accent-dim); }
+  .pipe-node-pill small { display: block; color: var(--ink-3); font-size: 10px; margin-top: 3px; }
+  .pipe-arrow {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-3); font-size: 20px; font-family: var(--mono);
+  }
+
+  /* Scenarios */
+  .scenarios-section { padding: 48px 0; border-bottom: 1px solid var(--rule); }
+  .section-eyebrow {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .16em;
+    color: var(--ink-3); text-transform: uppercase; margin-bottom: 8px;
+  }
+  h2 { font-size: 22px; margin: 0 0 18px; font-weight: 600; }
+  .scenario-tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--rule); padding-bottom: 12px; }
+  .sc-tab {
+    background: var(--panel); border: 1px solid var(--rule); border-radius: 5px;
+    padding: 8px 16px; font-family: var(--mono); font-size: 12px; color: var(--ink-2);
+    cursor: pointer; transition: all .12s;
+  }
+  .sc-tab.active, .sc-tab:hover { background: var(--raised); border-color: var(--accent); color: var(--ink); }
+  .sc-card {
+    background: var(--panel); border: 1px solid var(--rule); border-radius: 8px;
+    padding: 24px; display: none;
+  }
+  .sc-card.active { display: block; }
+  .cmd-box {
+    background: var(--ground); border: 1px solid var(--rule); border-radius: 6px;
+    padding: 12px 16px; font-family: var(--mono); font-size: 12.5px; color: var(--ink);
+    margin: 12px 0; overflow-x: auto; white-space: pre;
+  }
+  .cmd-box span.c { color: var(--ink-3); }
+
+  /* Controls & Search */
+  .filter-bar {
+    display: flex; gap: 12px; flex-wrap: wrap; margin: 32px 0 20px; align-items: center;
+  }
+  .search-input {
+    flex: 1; min-width: 260px; background: var(--panel); border: 1px solid var(--rule);
+    border-radius: 6px; padding: 10px 14px; font-family: var(--mono); font-size: 13px;
+    color: var(--ink); outline: none; transition: border-color .15s;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .filter-btn {
+    background: var(--panel); border: 1px solid var(--rule); border-radius: 6px;
+    padding: 8px 14px; font-family: var(--mono); font-size: 12px; color: var(--ink-2);
+    cursor: pointer; transition: all .12s;
+  }
+  .filter-btn.active, .filter-btn:hover { border-color: var(--accent); color: var(--ink); background: var(--raised); }
+
+  /* Script Cards Grid */
+  .cards-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; margin: 24px 0 64px;
+  }
+  .card {
+    background: var(--panel); border: 1px solid var(--rule); border-radius: 8px;
+    padding: 20px; display: flex; flex-direction: column; gap: 12px;
+    transition: border-color .15s, background .15s; position: relative;
+  }
+  .card:hover { border-color: var(--rule-lit); background: var(--raised); }
+  .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+  .card-name { font-family: var(--mono); font-size: 15px; font-weight: 600; color: var(--accent); }
+  .card-category {
+    font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+    background: var(--ground); border: 1px solid var(--rule); border-radius: 4px;
+    padding: 2px 7px; color: var(--ink-3);
+  }
+  .card-role { color: var(--ink-2); font-size: 13px; margin: 0; line-height: 1.6; }
+  .tech-badge {
+    background: var(--ground); border: 1px solid var(--rule); border-radius: 4px;
+    padding: 8px 12px; font-size: 12px;
+  }
+  .tech-title { font-family: var(--mono); font-size: 10.5px; color: var(--blue); text-transform: uppercase; margin-bottom: 4px; }
+  .tech-desc { color: var(--ink); font-size: 12.5px; }
+  
+  .details-box {
+    border-top: 1px solid var(--rule); padding-top: 10px; margin-top: auto;
+    font-size: 12px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .details-row { display: flex; gap: 8px; }
+  .details-label { font-family: var(--mono); color: var(--ink-3); width: 75px; flex: none; }
+  .details-val { color: var(--ink-2); flex: 1; word-break: break-word; }
+  .invariant-box {
+    background: rgba(227, 179, 65, 0.08); border-left: 2px solid var(--warn);
+    padding: 6px 10px; border-radius: 0 4px 4px 0; color: var(--ink-2); font-size: 11.5px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="hero-tag">Zero-RAG Codebase Documentation Engine</div>
+    <h1>Code Archaeologist Architecture & Workflow</h1>
+    <p class="hero-p">
+      A complete, deterministic compiler-style pipeline that transforms source code into two queryable graph maps
+      (Structure & Flow), audits them with graph algorithms, and renders an offline single-file viewer.
+    </p>
+
+    <!-- Visual Pipeline -->
+    <div class="pipe-container">
+      <div class="pipe-title">Interactive Pipeline Dataflow (Click any script to inspect)</div>
+      <div class="pipeline-grid">
+        <!-- Stage 0 -->
+        <div class="pipe-stage">
+          <div class="pipe-stage-head"><span>0. Entrypoint</span></div>
+          <div class="pipe-node-pill" onclick="focusCard('archaeologist.py')">
+            archaeologist.py
+            <small>CLI Dispatcher</small>
+          </div>
+          <div class="pipe-node-pill" onclick="focusCard('paths.py')">
+            paths.py
+            <small>Skill Root Bootstrap</small>
+          </div>
+        </div>
+
+        <div class="pipe-arrow">&rarr;</div>
+
+        <!-- Stage 1 -->
+        <div class="pipe-stage">
+          <div class="pipe-stage-head"><span>1. Parsing & IDs</span></div>
+          <div class="pipe-node-pill" onclick="focusCard('ids.py')">
+            core/ids.py
+            <small>SharedNames (Case-Insensitive)</small>
+          </div>
+          <div class="pipe-node-pill" onclick="focusCard('grammars.py')">
+            core/grammars.py
+            <small>Tree-sitter Pinned Wheels</small>
+          </div>
+          <div class="pipe-node-pill" onclick="focusCard('py_extract.py')">
+            extract/py_extract.py
+            <small>Python CST + Newline Normalizer</small>
+          </div>
+          <div class="pipe-node-pill" onclick="focusCard('js_ts_extract.py')">
+            extract/js_ts_extract.py
+            <small>JS/TS AST, Express & JSX</small>
+          </div>
+          <div class="pipe-node-pill" onclick="focusCard('langs_extract.py')">
+            extract/langs_extract.py
+            <small>15 Languages (Java, Go, C#...)</small>
+          </div>
+        </div>
+
+        <div class="pipe-arrow">&rarr;</div>
+
+        <!-- Stage 2 -->
+        <div class="pipe-stage">
+          <div class="pipe-stage-head"><span>2. Graph Construction</span></div>
+          <div class="pipe-node-pill" onclick="focusCard('build_wiki.py')">
+            build_wiki.py & build_graph.py
+            <small>Structure: Classes & Components</small>
+          </div>
+          <div class="pipe-node-pill" onclick="focusCard('build_flow.py')">
+            build_flow.py
+            <small>Flow: Methods, Resolution & Overloads</small>
+          </div>
+          <div class="pipe-node-pill" onclick="focusCard('route_tables.py')">
+            route_tables.py
+            <small>Django/Rails/Laravel/Phoenix</small>
+          </div>
+        </div>
+
+        <div class="pipe-arrow">&rarr;</div>
+
+        <!-- Stage 3 -->
+        <div class="pipe-stage">
+          <div class="pipe-stage-head"><span>3. Review & Audit</span></div>
+          <div class="pipe-node-pill" onclick="focusCard('analyze.py')">
+            review/analyze.py
+            <small>Tarjan's SCC & Health Score</small>
+          </div>
+          <div class="pipe-node-pill" onclick="focusCard('duplicates.py')">
+            review/duplicates.py
+            <small>Winnowing (K=10, W=21)</small>
+          </div>
+          <div class="pipe-node-pill" onclick="focusCard('scan_security.py')">
+            review/scan_security.py
+            <small>Regex + AST Range Ownership</small>
+          </div>
+          <div class="pipe-node-pill" onclick="focusCard('git_insights.py')">
+            review/git_insights.py
+            <small>Streaming git log Churn</small>
+          </div>
+          <div class="pipe-node-pill" onclick="focusCard('metrics.py')">
+            review/metrics.py
+            <small>CST Cyclomatic Complexity</small>
+          </div>
+        </div>
+
+        <div class="pipe-arrow">&rarr;</div>
+
+        <!-- Stage 4 -->
+        <div class="pipe-stage">
+          <div class="pipe-stage-head"><span>4. Query & UI</span></div>
+          <div class="pipe-node-pill" onclick="focusCard('trace_path.py')">
+            query/trace_path.py
+            <small>BFS Shortest Path & Blast Radius</small>
+          </div>
+          <div class="pipe-node-pill" onclick="focusCard('search.py')">
+            query/search.py
+            <small>Multi-Filter Graph Search</small>
+          </div>
+          <div class="pipe-node-pill" onclick="focusCard('build_html.py')">
+            build_html.py & viewer.html
+            <small>Standalone Offline Explorer</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- Scenarios Section -->
+  <section class="scenarios-section">
+    <div class="section-eyebrow">Operational Scenarios</div>
+    <h2>How the System is Used in Practice</h2>
+    <div class="scenario-tabs">
+      <button class="sc-tab active" onclick="showScenario('sc-build', this)">Scenario 1: Build & Ingest</button>
+      <button class="sc-tab" onclick="showScenario('sc-query', this)">Scenario 2: Zero-RAG Query</button>
+      <button class="sc-tab" onclick="showScenario('sc-audit', this)">Scenario 3: Deep Review & Health Audit</button>
+    </div>
+
+    <!-- Scenario 1 Card -->
+    <div id="sc-build" class="sc-card active">
+      <h3>Scenario 1: Codebase Ingestion & Graph Building</h3>
+      <p style="color: var(--ink-2)">
+        The engine scans target source directories, parses every file via Tree-sitter, disambiguates names,
+        resolves calls down to declared types, and writes deterministic JSON graphs and Markdown notes.
+      </p>
+      <div class="cmd-box"><span class="c"># 1. Build both maps from source</span>
+python .agents/skills/code-archaeologist/scripts/archaeologist.py both --src ./sample_src</div>
+      <p style="color: var(--ink-2); font-size: 13px;">
+        <strong>Artifacts Produced:</strong><br>
+        &bull; <code>data/structure/graph.json</code> &amp; <code>vault/*.md</code> (25 nodes, 22 edges)<br>
+        &bull; <code>data/flow/flow_graph.json</code> &amp; <code>notes/*.md</code> (53 nodes, 33 edges, 16 endpoints)<br>
+        &bull; <code>data/explorer.html</code> (Self-contained viewer embedding both graphs and vendored force-graph)
+      </p>
+    </div>
+
+    <!-- Scenario 2 Card -->
+    <div id="sc-query" class="sc-card">
+      <h3>Scenario 2: Zero-RAG Architecture Query & Impact Analysis</h3>
+      <p style="color: var(--ink-2)">
+        An AI agent or engineer asks questions about call paths, blast radius, or component neighbors.
+        Instead of loading 100,000 tokens of raw source code, the agent queries the graph using BFS and reads
+        only the returned notes (~1,500 tokens).
+      </p>
+      <div class="cmd-box"><span class="c"># Trace execution path from frontend handler to repository</span>
+python .agents/skills/code-archaeologist/scripts/query/trace_path.py \
+  --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json \
+  --from submitOrder --to OrderRepository.save
+
+<span class="c"># Blast radius: what breaks if OrderRepository.save changes?</span>
+python .agents/skills/code-archaeologist/scripts/query/trace_path.py \
+  --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json \
+  --impact-of OrderRepository.save</div>
+      <p style="color: var(--ink-2); font-size: 13px;">
+        <strong>Output:</strong> Returns <code>submitOrder > createOrder > OrderController.create_order > OrderService.place_order > OrderRepository.save</code>
+        followed by reading only those 5 note files.
+      </p>
+    </div>
+
+    <!-- Scenario 3 Card -->
+    <div id="sc-audit" class="sc-card">
+      <h3>Scenario 3: Code Health, Smells & Duplicate Audit</h3>
+      <p style="color: var(--ink-2)">
+        Runs 7 analysis passes: Tarjan's SCC cycle detection, Winnowed code clones, regex vulnerability mapping,
+        git churn hotspots, and McCabe complexity metrics, outputting an executive brief and unified report.
+      </p>
+      <div class="cmd-box"><span class="c"># Generate unified architecture report</span>
+python .agents/skills/code-archaeologist/scripts/archaeologist.py report --src ./sample_src
+
+<span class="c"># Read instant orientation brief (fixed-size digest)</span>
+python .agents/skills/code-archaeologist/scripts/archaeologist.py brief</div>
+      <p style="color: var(--ink-2); font-size: 13px;">
+        <strong>Results:</strong> Computes an A-F health grade, spots copy-pasted blocks ($K=10, W=21$), locates cycles,
+        and attributes security findings to exact AST node ranges.
+      </p>
+    </div>
+  </section>
+
+  <!-- Script Cards Section -->
+  <section style="padding: 48px 0;">
+    <div class="section-eyebrow">Script Reference Directory</div>
+    <h2>All 28 Scripts: Mechanics, Algorithms &amp; Invariants</h2>
+
+    <div class="filter-bar">
+      <input type="text" id="filterInput" class="search-input" placeholder="Search scripts, algorithms (e.g. Tarjan, Winnowing, BFS, CST, regex)..." oninput="applyFilter()">
+      <button class="filter-btn active" onclick="setCategory('all', this)">All (28)</button>
+      <button class="filter-btn" onclick="setCategory('core', this)">Core (5)</button>
+      <button class="filter-btn" onclick="setCategory('extract', this)">Extraction (8)</button>
+      <button class="filter-btn" onclick="setCategory('review', this)">Review &amp; Audit (9)</button>
+      <button class="filter-btn" onclick="setCategory('query', this)">Query &amp; Viewer (5)</button>
+    </div>
+
+    <div class="cards-grid" id="cardsGrid">
+      <!-- Generated Cards inserted here -->
+    </div>
+  </section>
+</main>
+
+<script>
+const SCRIPTS_DATA = [
+  // --- Core ---
+  {
+    name: "archaeologist.py",
+    cat: "core",
+    path: "scripts/archaeologist.py",
+    role: "The single entrypoint for the skill. Dispatches commands: project, flow, both, check, report, brief.",
+    tech: "CLI Subcommand Dispatcher",
+    algorithm: "Subcommand routing via argparse; executes pipeline modules in strict dependency order without circular coupling.",
+    inputs: "CLI arguments (--src roots, subcommands)",
+    outputs: "Invokes extractors, review passes, or digests",
+    invariant: "The only file at scripts/ root. No other script should be an entrypoint."
+  },
+  {
+    name: "paths.py",
+    cat: "core",
+    path: "scripts/paths.py",
+    role: "System path bootstrap and cross-platform path resolution utilities.",
+    tech: "MAX_PATH Normalization & sys.path Bootstrap",
+    algorithm: "Prepends Windows \\\\?\\ long path prefix to avoid MAX_PATH (260 char) truncation; skill_rel() computes cross-drive relative paths.",
+    inputs: "Filesystem paths",
+    outputs: "Exported SKILL_ROOT, DATA_DIR, TEMPLATES_DIR, VENDOR_DIR",
+    invariant: "Sits below categories; imports nothing from skill. Bootstraps sys.path so sibling imports stay bare."
+  },
+  {
+    name: "ids.py",
+    cat: "core",
+    path: "scripts/core/ids.py",
+    role: "Generates collision-free node IDs across both Structure and Flow maps.",
+    tech: "Case-Insensitive SharedName Disambiguation",
+    algorithm: "Pre-scans every definition (name, file). Groups by name.lower() to prevent Windows/macOS case collisions (e.g. Login vs login). Qualifies duplicates by stem, then relative path.",
+    inputs: "Iterable of (name, rel_file) definitions",
+    outputs: "Qualified ID strings: bare if unique, qualified if shared",
+    invariant: "Node IDs are bare unless defined in 2+ files. Call to shared name resolves only to caller's own file or dropped."
+  },
+  {
+    name: "taxonomy.py",
+    cat: "core",
+    path: "scripts/core/taxonomy.py",
+    role: "Single source of truth for kinds, layers, skip directories, and test detection.",
+    tech: "Canonical Classification & Lower-Bound Precision",
+    algorithm: "Defines KINDS, LAYERS, SKIP_DIRS, and is_test_file (framework markers @Test, [Fact], etc.). Computes precision_of() based on edge losses.",
+    inputs: "Filenames, AST annotations, edge targets",
+    outputs: "Tags (controller, service, repository, etc.), precision flags",
+    invariant: "Every script must ask taxonomy; no inline directory or layer definitions permitted."
+  },
+  {
+    name: "grammars.py",
+    cat: "core",
+    path: "scripts/core/grammars.py",
+    role: "Manages Tree-sitter grammar pins, wheels, and runtime imports.",
+    tech: "On-demand Lazy Parser Loading & Version Pinning",
+    algorithm: "Maintains PINS table. Dynamically loads grammar wheels from <skill>/vendor or site-packages. Computes drift() and detects ABI mismatch.",
+    inputs: "Language name",
+    outputs: "Cached tree_sitter.Parser instance or explicit skip warning",
+    invariant: "Grammars are installed on demand into vendor/. Missing grammar skips files with explicit named pip warning."
+  },
+  {
+    name: "manifest.py",
+    cat: "core",
+    path: "scripts/core/manifest.py",
+    role: "Tracks source hashes, roots, and parser versions to detect staleness.",
+    tech: "SHA-256 Source Hash Manifest",
+    algorithm: "Iterates all source files under roots, hashes content + grammar version set into manifest.json. check compares current hashes against manifest.",
+    inputs: "Source roots, current grammar versions",
+    outputs: "manifest.json, stale boolean",
+    invariant: "Deterministic: ignores wall-clock time. Hash includes grammar versions so unpinning causes staleness."
+  },
+  {
+    name: "console.py",
+    cat: "core",
+    path: "scripts/core/console.py",
+    role: "Ensures console output survives non-UTF-8 terminals (e.g. Windows cp874).",
+    tech: "Encoding-Safe stdout wrapper",
+    algorithm: "Wraps sys.stdout/sys.stderr with fallback error handler; strips unprintable characters if terminal encoding rejects them.",
+    inputs: "Console print strings",
+    outputs: "Terminal-safe ASCII/CP874 output",
+    invariant: "Must be called before echoing external repo text (git author names, comments)."
+  },
+
+  // --- Extraction ---
+  {
+    name: "build_wiki.py",
+    cat: "extract",
+    path: "scripts/extract/build_wiki.py",
+    role: "Builds the Structure Map entities and writes initial Markdown vault notes.",
+    tech: "Entity Extraction (Classes, Components, Modules)",
+    algorithm: "Extracts class definitions, React JSX components, and module-level functions into individual Markdown vault notes with metadata frontmatter.",
+    inputs: "Source files across 17 languages",
+    outputs: "data/structure/vault/*.md and registry.json",
+    invariant: "JSX functions get kind: component and layer: ui. Every entity note is <id>.md."
+  },
+  {
+    name: "build_graph.py",
+    cat: "extract",
+    path: "scripts/extract/build_graph.py",
+    role: "Assembles the Structure dependency graph (which class references which).",
+    tech: "Reference Resolution Graph Construction",
+    algorithm: "Reads vault Markdown notes, resolves field/import type references between classes/components, and builds an adjacency edge list.",
+    inputs: "data/structure/vault/*.md",
+    outputs: "data/structure/graph.json (nodes & edges)",
+    invariant: "Structure edges carry NO precision (they are references, not calls). Test nodes get layer: test."
+  },
+  {
+    name: "build_flow.py",
+    cat: "extract",
+    path: "scripts/extract/build_flow.py",
+    role: "Builds the Flow Map (methods, functions, endpoints, and call edges).",
+    tech: "Receiver Resolution & Overload Disambiguation",
+    algorithm: "Two-pass analysis: Pass 1 collects all definitions and registers SharedNames. Pass 2 resolves calls via declared types (_self_attr_types) and selects overloads via _pick_overload.",
+    inputs: "Parsed AST/CSTs from py_extract, js_ts_extract, ts_extract",
+    outputs: "data/flow/flow_graph.json, notes/*.md",
+    invariant: "Edges are a LOWER BOUND: calls followed only through declared types. Interface calls stop at declaration: true node."
+  },
+  {
+    name: "py_extract.py",
+    cat: "extract",
+    path: "scripts/extract/py_extract.py",
+    role: "Python extractor powered by Tree-sitter CST queries.",
+    tech: "Tree-sitter CST Traversal & CRLF Normalization",
+    algorithm: "read_source() normalizes CRLF newlines so hashes match across OS. Uses CST pattern matching to extract classes, functions, decorators, and calls.",
+    inputs: "Python (.py) source bytes",
+    outputs: "Extracted entities, AST ranges (source..end), call expressions",
+    invariant: "Verified against stdlib ast via check_py_oracle.py (0 disagreements required)."
+  },
+  {
+    name: "js_ts_extract.py",
+    cat: "extract",
+    path: "scripts/extract/js_ts_extract.py",
+    role: "JS/JSX/TS/TSX extractor for classes, functions, routes, and fetch calls.",
+    tech: "Multi-Grammar CST & Cross-Stack Route Detection",
+    algorithm: "Uses javascript, typescript, and tsx grammars. Detects Express/Nest routes, fetch/axios HTTP calls, and JSX component returns.",
+    inputs: ".js, .jsx, .ts, .tsx files",
+    outputs: "JSON entity dictionary (classes, functions, routes, calls)",
+    invariant: "Carries precision: name-matched because JS/TS has untyped dynamic receivers."
+  },
+  {
+    name: "ts_extract.py",
+    cat: "extract",
+    path: "scripts/extract/ts_extract.py",
+    role: "Extractor for 15 compiled & dynamic languages using Tree-sitter.",
+    tech: "Table-Driven CST Shape Extraction (SPEC & SHAPES)",
+    algorithm: "Unified CST walker guided by SPEC (Java, Go, C#) and SHAPES tables (Rust, Kotlin, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir). Handles OVERLOADING languages.",
+    inputs: "Source files in 15 languages",
+    outputs: "Declarations, bodies, parameter types, calls, decorator ranges",
+    invariant: "Node range starts at first annotation/decorator line (source..end)."
+  },
+  {
+    name: "route_tables.py",
+    cat: "extract",
+    path: "scripts/extract/route_tables.py",
+    role: "Extracts API routes defined separately from handler implementations.",
+    tech: "Declarative Route Table Parsing",
+    algorithm: "Parses Django urlpatterns, Rails routes.rb, Laravel routes/*.php, and Phoenix routers. Attaches route paths/methods to handler method nodes.",
+    inputs: "Framework router configuration files",
+    outputs: "List of route mappings (method, path, target handler)",
+    invariant: "Unambiguous matching only: if target handler matches 0 or >1 node, route is dropped and counted."
+  },
+  {
+    name: "apply_descriptions.py",
+    cat: "extract",
+    path: "scripts/extract/apply_descriptions.py",
+    role: "Attaches deterministic descriptions or cached AI summaries to nodes.",
+    tech: "Deterministic Description Waterfall & Hash Caching",
+    algorithm: "Waterfall order: 1. In-source docstring (wins first), 2. AI summary cached by source hash in descriptions.json, 3. Deterministic template fallback.",
+    inputs: "Node body, descriptions.json cache",
+    outputs: "Updated node doc / description string",
+    invariant: "AI text enters ONLY through this script; never nondeterministic at runtime."
+  },
+
+  // --- Review & Audit ---
+  {
+    name: "analyze.py",
+    cat: "review",
+    path: "scripts/review/analyze.py",
+    role: "Detects architectural smells and computes the 0–100 / A–F health score.",
+    tech: "Tarjan's SCC & Degree Coupling Analysis",
+    algorithm: "Iterative Tarjan's Strongly Connected Components for cycles; in/out-degree for hubs (fan_in+out >= 10); god objects; health formula with category deduction caps.",
+    inputs: "graph.json or flow_graph.json",
+    outputs: "Analysis dictionary: cycles, orphans, hubs, god objects, health score",
+    invariant: "Degree calculations run on app_edges(), ignoring test nodes so test coverage doesn't inflate coupling."
+  },
+  {
+    name: "duplicates.py",
+    cat: "review",
+    path: "scripts/review/duplicates.py",
+    role: "Detects whole-body code clones and copied blocks across all functions.",
+    tech: "1. Token Normalization + 2. Winnowing (K=10, W=21)",
+    algorithm: "Normalizes code: identifiers -> ID, literals -> LIT. Whole-body: SHA-1 of normalized tokens. Blocks: Winnowing algorithm with stable rolling polynomial hash ((1<<61)-1 mod).",
+    inputs: "Flow graph nodes + source files",
+    outputs: "duplicates.json (clone clusters & copied block shapes)",
+    invariant: "Deterministic rolling hash (avoids Python's salted hash()). Skips declaration: true nodes."
+  },
+  {
+    name: "scan_security.py",
+    cat: "review",
+    path: "scripts/review/scan_security.py",
+    role: "Fast regex scan for hardcoded secrets, SQL injection, eval, and innerHTML.",
+    tech: "Regex Sweeper + AST Range Containment",
+    algorithm: "Scans non-test files for secret/sink patterns. Maps finding line to innermost graph node where source <= line <= end using owner_of().",
+    inputs: "Source code lines + graph node index",
+    outputs: "security.json with attributed node findings",
+    invariant: "Lines outside any node range are marked file-level (never attributed to preceding function)."
+  },
+  {
+    name: "git_insights.py",
+    cat: "review",
+    path: "scripts/review/git_insights.py",
+    role: "Extracts commit churn, code ownership, and hotspot risk from git log.",
+    tech: "Streaming git log --numstat Stream Parsing",
+    algorithm: "Parses git log with \\x01 record delimiters. Aggregates commit count per file and author. Computes risk formula: risk = commits * (1 + fan_in + fan_out).",
+    inputs: "Git commit history",
+    outputs: "insights.json (churn, top authors, ranked hotspots)",
+    invariant: "Single git subprocess call; degrades cleanly to empty data if not a git repository."
+  },
+  {
+    name: "metrics.py",
+    cat: "review",
+    path: "scripts/review/metrics.py",
+    role: "Measures LOC, cyclomatic complexity, nesting depth, and parameter counts.",
+    tech: "CST Decision-Point Counter per Grammar",
+    algorithm: "Walks Tree-sitter parse of each node (source..end). Uses TABLES per language to count branching decisions (McCabe cyclomatic complexity) and block depth.",
+    inputs: "Source files + graph nodes",
+    outputs: "metrics.json (per-file census and per-node complexity)",
+    invariant: "Keyed by graph node ID by construction; measures every graphed language."
+  },
+  {
+    name: "debt.py",
+    cat: "review",
+    path: "scripts/review/debt.py",
+    role: "Identifies comment debt markers (TODO, FIXME, HACK) and dead files.",
+    tech: "Heuristic Debt Scanner",
+    algorithm: "Regex scans comments for TODO/FIXME markers; attributes them to AST nodes via owner_of(). Cross-references files with graph to find dead files.",
+    inputs: "Source files + graph nodes",
+    outputs: "debt.json (markers list, dead nodes, dead files)",
+    invariant: "Heuristic review pass: reports debt but deliberately does not penalize health score."
+  },
+  {
+    name: "tests_map.py",
+    cat: "review",
+    path: "scripts/review/tests_map.py",
+    role: "Maps test files to the application nodes they verify.",
+    tech: "Heuristic Test-to-Code Coverage Mapping",
+    algorithm: "Scans test files for references to application class/method names; counts percentage of graph nodes covered by at least one test.",
+    inputs: "Test files + flow graph nodes",
+    outputs: "tests.json (tested node IDs, coverage percentage)",
+    invariant: "Heuristic indicator; nodes in test files are tagged layer: test."
+  },
+  {
+    name: "report.py",
+    cat: "review",
+    path: "scripts/review/report.py",
+    role: "Unifies all review passes into comprehensive markdown and JSON reports.",
+    tech: "Multi-Pass Aggregation Engine",
+    algorithm: "Invokes scan_security, git_insights, analyze, metrics, debt, tests_map, duplicates; compiles unified markdown and JSON architecture reports.",
+    inputs: "Data artifacts from all review passes",
+    outputs: "data/report/<map>/architecture_report.{md,json}",
+    invariant: "One report per map: node IDs differ between maps, so reports are never mixed."
+  },
+  {
+    name: "brief.py",
+    cat: "review",
+    path: "scripts/review/brief.py",
+    role: "Fixed-size orientation digest for AI agents to read at session start.",
+    tech: "Zero-Computation Artifact Digest",
+    algorithm: "Reads already-computed JSON artifacts (report, manifest, graph). Formats fixed-budget summary containing grades, smells, and top risks.",
+    inputs: "Existing data/*.json artifacts",
+    outputs: "Fixed-size stdout brief or JSON",
+    invariant: "Computes NOTHING: expensive work belongs upstream. Costs same tokens on 200 files as 5 files."
+  },
+
+  // --- Query & Visualization ---
+  {
+    name: "trace_path.py",
+    cat: "query",
+    path: "scripts/query/trace_path.py",
+    role: "Graph navigation: shortest path between nodes and blast radius analysis.",
+    tech: "BFS & Reverse-BFS Graph Traversal",
+    algorithm: "--from/--to runs standard BFS queue for shortest path. --impact-of runs reverse BFS on incoming edges to find all transitive callers. --impact-of-diff maps git diff.",
+    inputs: "graph.json / flow_graph.json, node IDs",
+    outputs: "Formatted path string A > B > C or JSON node lists",
+    invariant: "Pure Python stdlib (no NetworkX dependency). Deterministic traversal order."
+  },
+  {
+    name: "search.py",
+    cat: "query",
+    path: "scripts/query/search.py",
+    role: "Filters and queries graph nodes without grepping source code.",
+    tech: "Indexed Multi-Filter Graph Query",
+    algorithm: "Applies conjunct filters (name, doc regex, layer, kind, lang, --calls, --called-by, --orphans) across in-memory graph JSON.",
+    inputs: "Query flags and graph.json",
+    outputs: "Matching node IDs and metadata table",
+    invariant: "The primary tool for finding starting node IDs; replaces grepping raw source."
+  },
+  {
+    name: "context.py",
+    cat: "query",
+    path: "scripts/query/context.py",
+    role: "Packs node metadata, callers, callees, and metrics into a prompt budget.",
+    tech: "Budget-Constrained Neighborhood Packing",
+    algorithm: "Collects node facts, direct neighbors, security findings, and churn; trims text to fit strict --max-chars budget for LLM context injection.",
+    inputs: "Node ID, graph.json, review JSONs",
+    outputs: "Compact markdown context pack",
+    invariant: "Never exceeds character budget; prints precision caveats explicitly."
+  },
+  {
+    name: "build_html.py",
+    cat: "query",
+    path: "scripts/query/build_html.py",
+    role: "Assembles the offline standalone explorer HTML file.",
+    tech: "Offline Single-File Bundler",
+    algorithm: "Reads templates/viewer.html, embeds graph JSONs (__MAPS_DATA__) and vendored force-graph.js (__VENDOR_JS__) inline; writes data/explorer.html.",
+    inputs: "templates/viewer.html, graph.json, flow_graph.json",
+    outputs: "data/explorer.html",
+    invariant: "Zero network dependencies: opens via file:// with internet completely disabled."
+  },
+  {
+    name: "viewer.html",
+    cat: "query",
+    path: "templates/viewer.html",
+    role: "Three-pane responsive interactive visualization desktop application.",
+    tech: "Force-Graph Simulation & Multi-View Explorer",
+    algorithm: "7 visualization modes (Graph, Treemap, Matrix, Tree, Flow, Cluster, Bundle); D3/force-graph physics; drag-to-pin layout; dynamic toolbar auto-compaction.",
+    inputs: "Inlined JSON maps data",
+    outputs: "Interactive DOM UI",
+    invariant: "Test nodes colored green (#57ab5a) everywhere; quiet chrome (#08090b); zero emoji (SVG icons only)."
+  }
+];
+
+function renderCards(cards) {
+  const container = document.getElementById("cardsGrid");
+  container.innerHTML = cards.map(c => `
+    <div class="card" id="card-${c.name}">
+      <div class="card-header">
+        <span class="card-name">${c.name}</span>
+        <span class="card-category">${c.cat}</span>
+      </div>
+      <p class="card-role">${c.role}</p>
+      
+      <div class="tech-badge">
+        <div class="tech-title">Technique &amp; Algorithm</div>
+        <div class="tech-desc">${c.algorithm}</div>
+      </div>
+
+      <div class="details-box">
+        <div class="details-row">
+          <span class="details-label">Input</span>
+          <span class="details-val">${c.inputs}</span>
+        </div>
+        <div class="details-row">
+          <span class="details-label">Output</span>
+          <span class="details-val">${c.outputs}</span>
+        </div>
+        <div class="invariant-box">
+          <strong>Key Invariant:</strong> ${c.invariant}
+        </div>
+      </div>
+    </div>
+  `).join("");
+}
+
+let activeCategory = "all";
+
+function setCategory(cat, btn) {
+  activeCategory = cat;
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  applyFilter();
+}
+
+function applyFilter() {
+  const query = document.getElementById("filterInput").value.toLowerCase();
+  const filtered = SCRIPTS_DATA.filter(c => {
+    const matchesCat = activeCategory === "all" || c.cat === activeCategory;
+    const matchesQuery = !query || 
+      c.name.toLowerCase().includes(query) ||
+      c.role.toLowerCase().includes(query) ||
+      c.algorithm.toLowerCase().includes(query) ||
+      c.invariant.toLowerCase().includes(query);
+    return matchesCat && matchesQuery;
+  });
+  renderCards(filtered);
+}
+
+function focusCard(name) {
+  setCategory("all", document.querySelector(".filter-btn"));
+  document.getElementById("filterInput").value = name;
+  applyFilter();
+  const el = document.getElementById("card-" + name);
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.style.borderColor = "var(--accent)";
+    setTimeout(() => { el.style.borderColor = ""; }, 2000);
+  }
+}
+
+function showScenario(id, btn) {
+  document.querySelectorAll(".sc-tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".sc-card").forEach(c => c.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById(id).classList.add("active");
+}
+
+// Initial render
+renderCards(SCRIPTS_DATA);
+</script>
+</body>
+</html>

@@ -359,6 +359,31 @@ def c17_note_names(c):
     return out
 
 
+def c19_unresolved(c):
+    """`unresolved` names calls this graph could have resolved, and stays within `ext`.
+
+    It is the honest half of a dropped call: a name the graph defines somewhere, that
+    a call site named and the resolver could not place. So every entry must be a real
+    node's bare name -- otherwise it is inventing a target -- and there cannot be more
+    of them than there were dropped call sites in the first place.
+    """
+    if c.kind != "flow":
+        return []
+    known = {short(n["id"]) for n in c.nodes}
+    out = []
+    for n in c.nodes:
+        names = n.get("unresolved") or []
+        unknown = [x for x in names if x not in known]
+        if unknown:
+            out.append(f"{n['id']}: unresolved names nothing this graph defines: {unknown}")
+        if len(names) > n.get("ext", 0):
+            out.append(f"{n['id']}: {len(names)} unresolved name(s) but only {n.get('ext', 0)}"
+                       " dropped call site(s)")
+        if sorted(set(names)) != list(names):
+            out.append(f"{n['id']}: unresolved is not sorted and unique: {names}")
+    return out
+
+
 def c18_ambiguous(c):
     """A call dropped as ambiguous was ambiguous between real overloads.
 
@@ -381,7 +406,8 @@ def c18_ambiguous(c):
 STRUCTURAL = [c01_dangling, c02_duplicate_ids, c03_edge_types, c04_taxonomy, c05_source,
               c06_end_range, c07_name_at_source, c08_declaration_calls, c09_precision,
               c10_signatures, c11_routes, c12_http_edges, c13_call_text, c14_ext,
-              c15_report_counts, c16_security_owner, c17_note_names, c18_ambiguous]
+              c15_report_counts, c16_security_owner, c17_note_names, c18_ambiguous,
+              c19_unresolved]
 
 
 # --- D: derived features, tested by injecting a known defect -------------------
@@ -632,6 +658,11 @@ def _mutations():
          lambda g, r: g["nodes"].append(dict(g["nodes"][0], id=g["nodes"][0]["id"].swapcase()))),
         ("c18_ambiguous", "flow", "a call dropped as ambiguous between overloads that do not exist",
          lambda g, r: g["nodes"][0].__setitem__("ambiguous", ["Nowhere.nothing"])),
+        ("c19_unresolved", "flow", "an unresolved name no node in the graph has",
+         lambda g, r: g["nodes"][0].__setitem__("unresolved", ["nothing_is_called_this"])),
+        ("c19_unresolved", "flow", "more unresolved names than dropped call sites",
+         lambda g, r: (g["nodes"][0].__setitem__("unresolved", [short(g["nodes"][1]["id"])]),
+                       g["nodes"][0].__setitem__("ext", 0))),
     ]
 
 

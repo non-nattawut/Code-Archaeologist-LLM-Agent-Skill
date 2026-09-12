@@ -29,6 +29,14 @@ Java/Go/C#, which was honest while those three were read textually and became ar
 language moved to tree-sitter. Adding a producer means adding an `extract_*_entities` in
 `build_wiki.py` and an `_analyze_*` in `build_flow.py`, nothing else.
 
+**A dropped call keeps its name.** `ext` counts the call sites that did not become edges, and
+used to keep nothing else, so `print(...)` -- correctly dropped, nothing in the graph is called
+that -- was indistinguishable from a call to a name the graph *does* define, which is a missing
+edge. `build_flow._record_dropped` keeps the names and `_split_dropped` keeps those the graph
+defines as `unresolved` (`context.py` prints them on the node). It is name-matched and therefore an
+over-count -- on the skill's own code 207 of 2,782 dropped sites, and 11 of them the *same* real
+gap. Nothing turns it into an edge.
+
 **Node ids are bare unless a name is defined in more than one file** -- in *both* maps.
 `core/ids.py`'s `SharedNames`, used by `build_flow` and `build_wiki` alike,
 pre-scans every definition from all three producers, then qualifies only the ids two or more files
@@ -404,7 +412,9 @@ components, four API frameworks, and Java/Go/C# with two deliberate hard cases, 
   3 Go, 3 C#), of which `OrderCard` and `StatusBadge` are `kind: component` / `layer: ui`.
   Structure nodes carry **no** `precision`: their edges are references, and a reference from a
   declared field is resolved
-- flow graph: **53 nodes / 33 edges, 16 endpoints, 0 pending** descriptions; one node
+- flow graph: **53 nodes / 33 edges, 16 endpoints, 0 pending** descriptions; **4 nodes carry
+  `unresolved`** (all four name `get`, and all four are the honest over-count -- axios's `api.get`,
+  a Java `Map.get` -- which is why the field is a place to look, never an edge); one node
   `declaration: true` (`PricingRule.price`); **16 nodes carry `precision`** -- 15 `name-matched`
   (every JS/TS node), plus exactly one earned by an edge: `OrderWorkflow.place` ->
   `interface-dispatch` (it calls the declaration). If it moves, a named marker has stopped

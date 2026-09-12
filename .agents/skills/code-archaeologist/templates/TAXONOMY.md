@@ -35,7 +35,8 @@ Graph-only node fields (in `flow_graph.json`, not written into the pages):
 
 | Field | Allowed values | Meaning |
 | --- | --- | --- |
-| `ext` | integer | Call sites that leave the graph (library/stdlib); the explorer shows `N ext`. |
+| `ext` | integer | Call sites that did not become an edge (library/stdlib, or unresolvable); the explorer shows `N ext`. |
+| `unresolved` | a list of called names (present only when non-empty) | Of those `ext` sites, the ones naming something this graph **does** define — so an edge may be missing here because the receiver's class could not be read. Matched by name, so it over-counts: a library's `get()` looks the same as the graph's. It never becomes an edge; it says where to look. |
 | `declaration` | `true` (present only when true) | The node is a signature with no body — a Java interface method, an `abstract` method, a C# interface member. It exists so a call through the declared type has something to resolve to. Because it holds no code, `duplicates.py` skips it and `analyze.py` never reports it as dead code. |
 | `signatures` | list of signature strings | Present only when two definitions still share one id: overloads whose parameter types could not be read apart, or a language without overloading defining a name twice (Rust's two `impl` blocks). Overloads whose types can be read are separate nodes. |
 | `ambiguous` | list of overload-set names (`Class.method`) | Present only when a call here names an overload set and no single overload fits the arguments the source states — `render(report, pick())` against `render(Report,int)` and `render(Report,String)`. The call is dropped, not guessed, and the node carries `precision: overloads`. |

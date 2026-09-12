@@ -3803,17 +3803,6 @@ values, the language list for `name-matched`, `declaration: true`, the dead-code
 warning) survives. Verified `python tools/check_docs.py` -> `check_docs: OK`; `git diff --stat` is
 SKILL.md (15/-17) and this log only, with CLAUDE.md back to clean.
 
-## [89] 2026-09-12 — Adopt CLAUDE.md as AGENTS.md
-
-**Prompt**
-> read CLAUDE.md as your AGENTS.md
-
-**Response**
-Read `CLAUDE.md` in full and adopted it as the repository instructions (`AGENTS.md` equivalent) for this session:
-- **Role:** Skill creator and maintainer of the Code Archaeologist skill in `.agents/skills/code-archaeologist/` (building and maintaining the skill, not running it on this repo).
-- **Constraints:** Python 3.10+, tree-sitter engine across all 17 languages, deterministic byte-for-byte outputs, paths anchored from skill root, standalone offline explorer with no external assets, Windows cp874 safe stdout handling.
-- **Principles:** Bound by all 8 working principles, including surgical changes, keeping docs updated in the same commit, and appending every turn to `docs/prompt.md`.
-
 ## [89] 2026-09-12 — Why edges go missing: the diagnosis, measured
 
 **Prompt**
@@ -3930,3 +3919,40 @@ recording which names were dropped, which `ext` still does not.
 
 The report artifacts also moved: my `PRECISION_NOTES` wording, plus git-churn drift in
 `insights.json` from commits made since they were last generated.
+
+## [91] 2026-09-12 — Adopt CLAUDE.md as AGENTS.md
+
+**Prompt**
+> read CLAUDE.md as your AGENTS.md
+
+**Response**
+Read `CLAUDE.md` in full and adopted it as the repository instructions (`AGENTS.md` equivalent) for this session:
+- **Role:** Skill creator and maintainer of the Code Archaeologist skill in `.agents/skills/code-archaeologist/` (building and maintaining the skill, not running it on this repo).
+- **Constraints:** Python 3.10+, tree-sitter engine across all 17 languages, deterministic byte-for-byte outputs, paths anchored from skill root, standalone offline explorer with no external assets, Windows cp874 safe stdout handling.
+- **Principles:** Bound by all 8 working principles, including surgical changes, keeping docs updated in the same commit, and appending every turn to `docs/prompt.md`.
+
+## [92] 2026-09-12 — Visual Workflow Guide & Complete Architectural Deep Dive
+
+**Prompt**
+> make all 3 number as you list
+> 
+> and for number 3 I want to dive deep ALL
+
+**Response**
+Fulfilled all 3 learning requirements:
+1. Built `docs/ARCHITECTURE_GUIDE.html` (and companion IDE artifact): an interactive visual reference guide with pipeline dataflow, scenario tabs, and filterable cards for all 28 scripts detailing techniques, algorithms, inputs/outputs, and design invariants.
+2. Verified hands-on walkthrough on `sample_src/`: executed `both`, `report`, `brief`, and `trace_path.py` (shortest path and reverse-BFS blast radius).
+3. Conducted a complete deep dive into ALL 4 technical domains: Parser & Extraction Engine, Graph Analysis & Code Health, Zero-RAG Retrieval, and Offline Visualization.
+
+## [93] 2026-09-12 — Save Architecture Guide to /docs, commit and push
+
+**Prompt**
+> save guide into /docs then commit and push
+
+**Response**
+1. Saved the comprehensive architecture guide into `/docs`:
+   - `docs/ARCHITECTURE_GUIDE.html`: Offline interactive dashboard with visual pipeline dataflow, scenario tabs, and search-filterable cards for all 28 scripts.
+   - `docs/ARCHITECTURE_GUIDE.md`: Full markdown reference guide documenting the pipeline, operational scenarios, all 28 scripts, and design invariants.
+2. Verified that all script references match recent renames (`langs_extract.py`).
+3. Ran all test suites: `check_docs.py` (OK), `check_regressions.py` (34/34), `check_graph.py` (27+27 OK), and `check_graph.py --self-test` (33/33).
+4. Staged, committed, and pushed changes to `origin/main`.

@@ -64,7 +64,7 @@ def _save_json(path: str, obj) -> None:
 
 from taxonomy import infer_layer, is_test_path, precision_of, ROUTE_DECORATOR_RE  # noqa: E402
 import py_extract as px  # noqa: E402  (Python, via tree-sitter)
-from ids import SharedNames as FlowIds  # noqa: E402  (one id rule for both maps)
+from ids import SharedNames as FlowIds, bare  # noqa: E402  (one id rule for both maps)
 from js_ts_extract import find_js_files, extract_js_files, frontend_degraded   # noqa: E402
 from langs_extract import find_lang_files, extract_lang_files  # noqa: E402  (13 languages, via tree-sitter)
 import route_tables  # noqa: E402  (Django / Rails / Laravel / Phoenix route tables)
@@ -490,8 +490,8 @@ def analyze(roots: list[str]):
     # --- Pass 2: resolve Python call edges ---  (edges carry a type)
     edges: set[tuple[str, str, str]] = set()
     for caller_id, cls_ctx, ctx, fn in pending:
-        targets, external = _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes, ids)
-        methods[caller_id]["ext"] = external
+        targets, dropped = _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes, ids)
+        _record_dropped(methods[caller_id], dropped)
         for target in targets:
             if target != caller_id:
                 edges.add((caller_id, target, "calls"))
@@ -538,6 +538,7 @@ def analyze(roots: list[str]):
     for info in methods.values():
         info["calls"] = sorted(set(info["calls"]))
         info["callers"] = sorted(set(info["callers"]))
+    _split_dropped(methods)
     for info in methods.values():
         reasons = precision_of(info, [methods[c] for c in info["calls"] if c in methods])
         if reasons:
@@ -685,7 +686,7 @@ def _analyze_js(js_files: list, ids: "FlowIds"):
 
     edges: set[tuple[str, str]] = set()
     for owner, calls, rel in raw_calls:
-        external = 0
+        dropped: list[str] = []
         for call in calls:
             name, declared = call["name"], call["type"]
             if declared == "?":                  # receiver present, type unreadable
@@ -699,10 +700,10 @@ def _analyze_js(js_files: list, ids: "FlowIds"):
                 # body does not reach its own methods.
                 target = ids.target(name, rel) if name in func_nodes else None
             if target is None or target not in methods:
-                external += 1               # library, or a name several files define
+                dropped.append(name)        # library, or a name several files define
             elif target != owner:
                 edges.add((owner, target))
-        methods[owner]["ext"] = external
+        _record_dropped(methods[owner], dropped)
     return methods, edges
 
 
@@ -803,7 +804,7 @@ def _analyze_lang(lang_files: list, ids: "FlowIds"):
 
     edges: set[tuple[str, str]] = set()
     for owner, calls, rel in raw_calls:
-        external = 0
+        dropped: list[str] = []
         ambiguous: set[str] = set()
         cls_ctx = methods[owner]["cls"]
         for call in calls:
@@ -833,8 +834,8 @@ def _analyze_lang(lang_files: list, ids: "FlowIds"):
                 if target != owner:
                     edges.add((owner, target))
             else:
-                external += 1
-        methods[owner]["ext"] = external
+                dropped.append(name)
+        _record_dropped(methods[owner], dropped)
         if ambiguous:
             methods[owner]["ambiguous"] = sorted(ambiguous)
     return methods, edges
@@ -861,23 +862,52 @@ def _local_types(fn, seed: dict[str, str], decl=None) -> dict[str, str]:
     return types
 
 
+def _record_dropped(node: dict, dropped: list[str]) -> None:
+    """Keep the names of the calls that did not become edges, not only how many.
+
+    `ext` alone cannot tell two very different things apart: `print(...)` -- nothing
+    in this graph is called that, so dropping it is right -- and a call to a name the
+    graph *does* define, which is a missing edge. One is the boundary of the codebase,
+    the other is the boundary of the resolver, and a reader could not see which was
+    which. `_split_dropped` separates them once every node exists.
+    """
+    node["ext"] = len(dropped)
+    node["_dropped"] = dropped
+
+
+def _split_dropped(methods: dict) -> None:
+    """Turn each node's dropped names into `unresolved`: the ones this graph defines.
+
+    Name-based on purpose, and an over-count on purpose: `save` here may well be a
+    library's `save`. It answers "where might an edge be missing", which is the
+    question `ext` silently refused to answer, and never invents an edge for it.
+    """
+    known = {bare(nid) for nid in methods}
+    for info in methods.values():
+        names = info.pop("_dropped", [])
+        hits = sorted({n for n in names if n in known})
+        if hits:
+            info["unresolved"] = hits
+
+
 def _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes,
-                   ids: "FlowIds") -> tuple[set[str], int]:
-    """Returns (in-graph call targets, number of call sites that stayed external)."""
+                   ids: "FlowIds") -> tuple[set[str], list[str]]:
+    """Returns (in-graph call targets, the names of the call sites that did not resolve)."""
     attr_types, local_types = ctx["attr_types"], ctx["local_types"]
     found: set[str] = set()
-    sites = 0
+    dropped: list[str] = []
 
     def exists(cls_name, method):
         return cls_name in class_methods and method in class_methods[cls_name]
 
     for node in px.calls_in(fn):
         target = None
+        called = ""
         func = px.field(node, "function")
         if func is None:
             continue
         if func.type == "attribute":
-            method = px.text(px.field(func, "attribute"))
+            method = called = px.text(px.field(func, "attribute"))
             base = px.field(func, "object")
             base_name = px.text(base) if base is not None and base.type == "identifier" else ""
             # self.attr.method()
@@ -896,15 +926,16 @@ def _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes,
                     target = f"{cls_name}.{method}"
         elif func.type == "identifier":
             # bare function call to a known module function
-            if px.text(func) in func_nodes:
-                target = func_nodes[px.text(func)]
+            called = px.text(func)
+            if called in func_nodes:
+                target = func_nodes[called]
         if target:
             target = ids.target(target, ctx["rel"])   # a shared name: the caller's own file only
         if target:
             found.add(target)
-        else:
-            sites += 1  # library / stdlib / unresolved: kept as a count, not an edge
-    return found, sites
+        elif called:
+            dropped.append(called)     # library / stdlib / unresolvable: named, not an edge
+    return found, dropped
 
 
 def _auto_summary(info: dict) -> str:
@@ -991,6 +1022,10 @@ def write_graph(methods: dict, edges, graph_path: str) -> None:
                 "source": i["source"], "end": i.get("end", 0),
                 "lang": i.get("lang", "py"),
                 "ext": i.get("ext", 0)}  # call sites that leave the graph (libs/stdlib)
+        if i.get("unresolved"):
+            # Of those `ext` sites, the names this graph defines somewhere: where an
+            # edge may be missing because the receiver's class was not readable.
+            node["unresolved"] = i["unresolved"]
         if i.get("http"):
             node["http"] = i["http"]
         if i.get("routes"):

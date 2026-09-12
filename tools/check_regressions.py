@@ -763,6 +763,29 @@ def r34_js_method_calls_resolve():
         return f"the dropped call is not counted: ext={methods.get('Service.blind', {}).get('ext')}"
 
 
+def r35_dropped_calls_are_named():
+    """`ext` counted dropped calls and threw their names away, so "called `dumps()`" --
+    nothing in the graph is named that, correctly dropped -- looked exactly like "called
+    something this graph defines and could not place", which is a missing edge. The names
+    of the second kind are kept in `unresolved`."""
+    d = _tree({
+        "shop.py": "import json\n\n\nclass Store:\n    def save(self, x):\n        return x\n\n\n"
+                   "class Service:\n    def place(self, store, x):\n"
+                   "        json.dumps(x)\n        return store.save(x)\n"})
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        methods, edges = _flow(d)
+    place = methods.get("Service.place", {})
+    if place.get("ext") != 2:
+        return f"both dropped call sites must still be counted: ext={place.get('ext')}"
+    if place.get("unresolved") != ["save"]:
+        return ("unresolved must name `save` (the graph defines it) and not `dumps` (it does"
+                f" not): {place.get('unresolved')}")
+    if ("Service.place", "Store.save") in edges:
+        return "an edge was invented for the unresolved call"
+    if "_dropped" in place:
+        return "the working list leaked into the node"
+
+
 CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_append,
          r05_duplicates_declarations, r06_orphan_guard, r07_flask_routes,
          r08_missing_parser_is_visible, r09_no_absolute_paths, r10_brief_agrees_with_check,
@@ -775,7 +798,7 @@ CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_app
          r28_mock_patch_is_not_a_route, r29_names_differing_only_by_case,
          r30_imported_axios_instance, r31_unknown_url_links_nowhere,
          r32_const_base_and_client_prefix, r33_overloads_are_separate_nodes,
-         r34_js_method_calls_resolve]
+         r34_js_method_calls_resolve, r35_dropped_calls_are_named]
 
 
 def main() -> int:
