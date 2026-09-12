@@ -4123,4 +4123,33 @@ question, so nothing was done and nothing was decided.
 5. Verified test suite: `check_docs.py` OK, `check_graph.py` (28+28 OK), `check_regressions.py` (35/35 hold).
 6. Committed and pushed to `origin/main`.
 
+## [98] 2026-09-12 — 5 scenario-driven interactive flowcharts covering all 28 scripts
 
+**Prompt**
+> you do it wrong this is not even flow chart, what I want is like
+>
+> archaeologist.py -> brief -> ... etc. inm flow of user ask what is this project
+>
+> like this this is just a accumulate one
+>
+> so now edit to add several flow that I will can understand how it work
+>
+> if 3 flow enough to call all files ok yes do 3 if not enough do more
+
+**Response**
+1. Replaced the static column bucket layout in `#cg-flowchart` with 5 true sequential and branching visual flowchart diagrams (`docs/ARCHITECTURE_GUIDE.html`):
+   - **Flow 1: Orientation Digest ("What is this project?")**:
+     `User / Agent Request` &rarr; `archaeologist.py` &rarr; `paths.py` &rarr; `manifest.py` &rarr; `brief.py` &rarr; `console.py` &rarr; `Instant Orientation Digest`.
+   - **Flow 2: Structure Map ("Map Class Architecture & Dependencies")**:
+     `archaeologist.py` &rarr; `paths.py` & `grammars.py` &rarr; [Parallel Extraction: `py_extract.py`, `js_ts_extract.py`, `langs_extract.py`] &rarr; `ids.py` & `taxonomy.py` &rarr; `build_wiki.py` &rarr; `build_graph.py` &rarr; [Parallel Emission: `build_html.py` + `viewer.html`, `manifest.py`, `console.py`].
+   - **Flow 3: Flow Map ("How Does a Request Flow Through Methods?")**:
+     `archaeologist.py` &rarr; `paths.py` & `grammars.py` &rarr; `route_tables.py` &rarr; [Parallel Method Extraction: `py_extract.py`, `js_ts_extract.py`, `langs_extract.py`] &rarr; `ids.py` & `taxonomy.py` &rarr; `build_flow.py` (two-pass resolution & unresolved dropped calls tracking) &rarr; [Parallel Emission: `build_html.py` + `viewer.html`, `manifest.py`, `console.py`].
+   - **Flow 4: Architecture Review Suite ("Codebase Health & Security Risks")**:
+     `archaeologist.py` &rarr; `paths.py` &rarr; `report.py` (Coordinator) &rarr; [7 Parallel Review Passes: `scan_security.py`, `git_insights.py`, `analyze.py`, `metrics.py`, `debt.py`, `tests_map.py`, `duplicates.py`] &rarr; `report.py` (Grade A-F Synthesis) &rarr; `build_html.py` &rarr; `console.py`.
+   - **Flow 5: Agent Zero-RAG Queries ("Find, Trace & Investigate")**:
+     `Agent Query` &rarr; `search.py` &rarr; `trace_path.py` (BFS pathfinding) &rarr; `context.py` (&le;4000-char context packer) &rarr; `apply_descriptions.py` (docstring enrichment writeback) &rarr; `build_html.py` + `viewer.html` &rarr; `console.py`.
+2. Every single one of the 28 scripts and `templates/viewer.html` is represented with its exact role, data contracts, and transitions across these 5 workflows.
+3. Interactive in-place sidebar activation: clicking any node in any flowchart opens `#scriptSidebar` on the right with complete algorithms, invariants, caller/callee links, and CLI examples, with zero page jump.
+4. Synced changes to IDE artifact `architecture_guide.html`.
+5. Verified test suites: `check_docs.py` OK, `check_graph.py` 28/28 OK, `check_regressions.py` 35/35 hold.
+6. Committed and pushed to `origin/main`.
