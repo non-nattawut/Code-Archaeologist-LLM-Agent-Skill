@@ -684,6 +684,16 @@ that nobody rewrites them.
 | `docs/USAGE.md` | a human running it by hand | any command's form or flags change |
 | `templates/TAXONOMY.md` | anyone adding a field value | a `kind`/`layer`/severity/grade value changes |
 | `docs/PRESENTATION.html` | someone being shown the project (**written in Thai**) | Features, Architecture, Honest limitations or Commands drift |
+| `docs/ARCHITECTURE_GUIDE.{html,md}` | someone learning how the 28 scripts fit together | a script is added/renamed/moved, an inter-script call changes, or a function it names by hand is renamed |
+
+`ARCHITECTURE_GUIDE.html` is **one flowchart**, deliberately: BUILD (parses source, rewrites
+artifacts) and QUERY (reads artifacts, never opens a source file), with `check` as the hinge
+between them. It carried three overlapping taxonomies of the same six commands until 2026-09-12 —
+5 "scenario" diagrams, 7 "execution flows" and 3 "operational scenarios", in which *Flow 1* meant
+two different things. If a command needs explaining, it becomes a chip that opens its script
+sequence in the existing sidebar (`COMMANDS_DATA` / `openCommand()`); **it does not become a
+second diagram.** Both files name functions by hand and nothing checks them — eight were invented
+before anyone noticed (finding #12).
 
 **Append, never revise** — these are records of what was actually done and thought at the time;
 editing them to match the present is the one way to make them worthless:

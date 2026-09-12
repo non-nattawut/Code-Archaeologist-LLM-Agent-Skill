@@ -4153,3 +4153,88 @@ question, so nothing was done and nothing was decided.
 4. Synced changes to IDE artifact `architecture_guide.html`.
 5. Verified test suites: `check_docs.py` OK, `check_graph.py` 28/28 OK, `check_regressions.py` 35/35 hold.
 6. Committed and pushed to `origin/main`.
+
+## [99] 2026-09-12 — Collapse 15 flowcharts into one two-phase diagram; eight invented function names
+
+**Prompt**
+> (screenshot of the five flow-selector tabs)
+> can you accumulate all flow chart in architeural.html since its split in 5
+>
+> but what actually script do is only 2 flow
+>
+> 1. build
+> 2. queries
+>
+> right?
+
+Earlier in the same session the user had asked three questions I answered without editing
+anything: what each of `build_wiki` / `build_graph` / `build_flow` / `route_tables` does (their
+model was right except for the direction of the last one — `build_flow` calls
+`route_tables.read(roots)`, not the reverse, and `route_tables` is Django/Rails/Laravel/Phoenix
+only, never Express or Spring); whether updating the graph re-runs everything (yes, no incremental
+path, and the reason is that `SharedNames` pre-scans every definition before any node is built, so
+one new file can rename a node in a file you never touched); and whether the cost is only the
+agent invoking the script (yes — ~150 tokens of fixed-size stdout regardless of corpus size, with
+`pending_descriptions.json` the one exception, since it carries each node's full `code`).
+
+**Response**
+
+*The claim.* Right, with two caveats I said rather than silently encoding. The honest axis is
+"parses source and writes artifacts" vs "reads artifacts and never opens a source file" — that
+second half *is* the Zero-RAG contract, so it is the one distinction the doc should be built
+around. But `check` fits neither (it reads source, writes nothing; it exists to say which phase
+you are entitled to be in), and `report` is a defensible third phase since it needs a built graph
+*and* the source. I built it as 2 phases + 1 hinge, with `report` inside BUILD.
+
+*The finding that changed the scope.* The doc was not split in 5 — it was split in **15, across
+three taxonomies of the same six commands**: 5 interactive flowcharts (l.555), 7 "Step-by-Step
+Execution Flows" (l.1701), 3 "Operational Scenarios" (l.1944). They collided: *Flow 1* meant
+"Orientation" in the first and "Structure Map" in the second. Merging only the 5 would have left
+that intact, so I asked, and the user chose to unify all 15 into 2 phases with per-command detail
+kept as a sidebar drill-down.
+
+*What I built.* One `flow-canvas`: source tree → `archaeologist.py` → shared foundation
+(`paths`/`taxonomy`/`console`) → the **hinge** (`check` / `manifest`, dashed amber, with both
+branch arms drawn) → **PHASE 1 · BUILD** (blue: Stage A three producers under `grammars`, Stage B
+the two map columns with `ids.SharedNames` above them, Stage C `report` fanning to seven passes,
+Stage D `build_html`) → the **artifact boundary** (amber, the only thing that crosses) → **PHASE 2
+· QUERY** (purple: `brief` → `search` → `trace_path` → `context`, numbered in the order an agent
+uses them). Command chips (`COMMANDS_DATA` / `openCommand()`) open the exact script sequence in the
+*existing* drawer rather than becoming diagrams of their own; each sequence chip drills through
+into that script's own card. `openCommand` relabels the two chip-list blocks ("Invoked By" /
+"Scripts It Runs, In Order") and `openSidebar` puts the labels back, which is why both labels
+gained ids. Removed `setFlowchart`, `showScenario` and `showFlow` — orphans my own change created.
+
+*Verified.* Spliced by a script with a `check(line, needle)` assertion per anchor so a shifted file
+fails loudly instead of half-applying. Then, in the page's own scope: 28 `fc-box` nodes covering
+exactly the 28 scripts, no duplicates and nothing missing; every box click and every sequence chip
+resolves in `SCRIPTS_DATA` (a dead one would be a silent no-op); `openCommand('flow')` → 5 ordered
+chips, correct labels, drawer open; drill-through to `route_tables.py` restores both labels; old
+panels gone (`flow-chart-panel` 0, `cg-flows` gone, `sc-tab` 0, `cg-tab` 2). Tag balance even on
+all six container tags. Inline script parses as a **classic** script via `new vm.Script()`, not
+`node --check`. 2650 → 2129 lines.
+
+*Eight invented function names, found by a script rather than by reading.* Rather than check the
+doc's claims by eye I cross-referenced every `` `name()` `` in it against every `def`/`class` under
+`scripts/`. None of these exist anywhere in the codebase: `find_route_tables()` and
+`extract_table_routes()` (the real API is and always was `route_tables.read(roots)` — the doc
+invented a two-function API for a one-function module), `grammars.get(lang)` → `parser_for(lang)`,
+`grammars.installed()` → `versions()`, `analyze.orphans()` → `find_orphans()`, `debt.orphans()` →
+`find_dead()`, `py_extract.find_nodes()` → `defs_in()`, `py_extract.iter_children()` → `walk()`.
+Fixed in both `ARCHITECTURE_GUIDE.html` and `.md`; both now audit clean (92 and 61 claims, zero
+undefined). Also fixed the "Express & Spring" claim on `route_tables` and its position *before*
+extraction — it runs after, because a route can only be attached once its handler node exists.
+
+*Two things I did not settle myself.* (1) Making that audit permanent inside `tools/check_docs.py`
+needs a scope decision — run repo-wide it flags 54 files, and nearly all of it is generated
+`data/vault` + `data/flow/notes` (which quote the *target* codebase), `CLAUDE.md` quoting
+`viewer.html`'s JavaScript, and prose like `include()`. Recorded as **finding #12** with a
+recommendation of (b): restrict to the hand-written docs and accept `viewer.html`'s functions so
+`CLAUDE.md` can be covered, since it is the file the next session reads first. (2) The `.md` guide
+still carries the old 5-flow/3-scenario structure; I fixed its false claims but did not restructure
+it, since that was not what was asked — naming it rather than doing it silently.
+
+*Doc discipline.* `docs/ARCHITECTURE_GUIDE.{html,md}` was in **neither** `CLAUDE.md`'s
+mirror-current-truth table nor the README — a doc nothing told anyone to maintain, which is
+exactly how it drifted. Added the row, plus the rule that a new command becomes a chip, never a
+second diagram. `tools/check_docs.py` OK.

@@ -1916,6 +1916,43 @@ at it.
 **Recommendation: (a)**, as one piece of work with the JS/TS and shared-name import resolution --
 they are the same problem read three times. Until then (c) holds and is no longer silent.
 
+### 12. Function names quoted in docs are unchecked, and eight were invented — found 2026-09-12
+
+**What.** `docs/ARCHITECTURE_GUIDE.{html,md}` named functions that exist nowhere in the skill:
+`find_route_tables()` and `extract_table_routes()` (the real API is `route_tables.read(roots)` and
+always was), `grammars.get(lang)` (it is `parser_for(lang)`), `grammars.installed()` (`versions()`),
+`analyze.orphans()` (`find_orphans()`), `debt.orphans()` (`find_dead()`), `py_extract.find_nodes()`
+(`defs_in()`) and `py_extract.iter_children()` (`walk()`). All eight were fixed in the commit that
+found them, by a throwaway script that cross-referenced every `` `name()` `` in the doc against
+every `def`/`class` in `scripts/`.
+
+**Why it is not just a fix.** The fix is done; what needs a decision is whether that script becomes
+part of `tools/check_docs.py`, which today checks that every script is *listed* and every
+`scripts/...` *path* exists but never looks at a function name. Run repo-wide it reports 54 files,
+and almost all of it is noise of three distinct kinds:
+
+- **Generated artifacts.** `data/structure/vault/*.md` and `data/flow/notes/*.md` quote the
+  *target* codebase's names (`place_order()`, `submitOrder()`). They are output, not documentation,
+  and nothing in them should ever be checked against the skill's own source.
+- **Deliberate foreign names.** `CLAUDE.md` quotes `viewer.html`'s JavaScript (`applyMap()`,
+  `fitToolbar()`, `setView()`, `resetLayout()`) and Python builtins (`print()`, `hash()`). These are
+  correct and load-bearing — the colour and layout rules are written in terms of them.
+- **Prose that parses as a call.** `` `include()` `` in a Django route example, `` `validate()` ``
+  in a fixture README.
+
+So the check needs a scope and an exclusion rule, and both are judgement calls: (a) restrict it to
+`docs/ARCHITECTURE_GUIDE.*` plus `SKILL.md`/`USAGE.md`, skipping `data/` entirely and anything in
+the append-only set (`prompt.md`, `PROJECT_HISTORY.md`, this file); (b) same, but also accept names
+defined in `templates/viewer.html` so `CLAUDE.md` can be included; (c) leave it unchecked and rely
+on review, which is what just failed for an unknown number of commits.
+
+**Recommendation: (b).** The noise is entirely `data/` plus one foreign language, and both are
+cheap to name precisely — `viewer.html`'s `function x(` declarations parse with the same regex.
+`CLAUDE.md` is the file most worth covering, because it is the one the next session reads first and
+the one whose drift nobody notices. What (b) cannot catch is a name that exists but is quoted for
+the wrong script; that stays a reading job.
+
+---
 ---
 
 ## Open concerns — review these before implementing

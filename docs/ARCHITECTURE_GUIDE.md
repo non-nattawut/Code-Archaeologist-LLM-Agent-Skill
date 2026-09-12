@@ -89,15 +89,15 @@ flowchart TD
     BF -->|"find_js_files(), extract_js_files()"| JS
     BF -->|"find_lang_files(), extract_lang_files()"| LANGS
     BF -->|"_pick_overload()"| LANGS
-    BF -->|"find_route_tables(), extract_table_routes()"| ROUTES
+    BF -->|"read(roots)"| ROUTES
     BF -->|"SharedNames, bare()"| IDS
     BF -->|"infer_layer(), precision_of()"| TAXONOMY
 
     %% Grammar usages
-    PX -->|"grammars.get('python')"| GRAMMARS
-    JS -->|"grammars.get('javascript'|'typescript'|'tsx')"| GRAMMARS
-    LANGS -->|"grammars.get(lang)"| GRAMMARS
-    ROUTES -->|"grammars.get(lang)"| GRAMMARS
+    PX -->|"grammars.parser_for('python')"| GRAMMARS
+    JS -->|"grammars.parser_for('javascript'|'typescript'|'tsx')"| GRAMMARS
+    LANGS -->|"grammars.parser_for(lang)"| GRAMMARS
+    ROUTES -->|"grammars.parser_for(lang)"| GRAMMARS
 
     %% Review Suite Calls
     REP -->|"scan(src, graph_path)"| SEC
@@ -110,9 +110,9 @@ flowchart TD
 
     %% Review Internal Interconnections
     MET -->|"iter_source_files(src)"| SEC
-    MET -->|"grammars.get(lang)"| GRAMMARS
+    MET -->|"grammars.parser_for(lang)"| GRAMMARS
     MET -->|"px tree walking"| PX
-    DEBT -->|"orphans(nodes, edges)"| ANA
+    DEBT -->|"find_orphans(nodes, edges)"| ANA
     DEBT -->|"iter_source_files(), owner_of()"| SEC
     TESTS -->|"iter_source_files()"| SEC
     TESTS -->|"bare(id)"| IDS
@@ -138,23 +138,23 @@ flowchart TD
 | `scripts/archaeologist.py` | `scripts/core/manifest.py` | `compare(src)` | `src` roots list | Dict of modified/added/deleted files & grammar drift |
 | `scripts/archaeologist.py` | `scripts/core/manifest.py` | `write(src)` | `src` roots list | Computes and saves SHA-256 hashes into `manifest.json` |
 | `scripts/archaeologist.py` | `scripts/query/build_html.py` | `build(sources, out_path)` | Map dict: `{name: (graph, report)}`, output HTML path | Bundles graphs + reports + vendored D3 script into `explorer.html` |
-| `scripts/extract/build_wiki.py` | `scripts/extract/py_extract.py` | `parse()`, `read_source()`, `field()`, `text()`, `iter_children()` | Python file path / source bytes | Python CST tree nodes, docstrings, classes, functions |
+| `scripts/extract/build_wiki.py` | `scripts/extract/py_extract.py` | `parse()`, `read_source()`, `field()`, `text()`, `walk()` | Python file path / source bytes | Python CST tree nodes, docstrings, classes, functions |
 | `scripts/extract/build_wiki.py` | `scripts/extract/js_ts_extract.py` | `find_js_files()`, `extract_js_files()`, `frontend_degraded()` | Source roots | List of class and component definitions with types |
 | `scripts/extract/build_wiki.py` | `scripts/extract/langs_extract.py` | `find_lang_files()`, `extract_lang_files()` | Source roots | List of class/struct/interface and method definitions for 15 langs |
 | `scripts/extract/build_wiki.py` | `scripts/core/ids.py` | `SharedNames((name, source))` | Name/file pairs | Disambiguates duplicate names case-insensitively (`stem/path`) |
 | `scripts/extract/build_wiki.py` | `scripts/core/taxonomy.py` | `infer_layer()`, `is_test_path()`, `SKIP_DIRS` | File path, kind, name | Architectural layer assignment (`controller`, `model`, `test`, etc.) |
 | `scripts/extract/build_wiki.py` | `scripts/paths.py` | `long_path()`, `DATA_DIR`, `TEMPLATES_DIR` | File path strings | Prepends `\\?\` past Windows 260-character limit |
-| `scripts/extract/build_flow.py` | `scripts/extract/py_extract.py` | `parse()`, `read_source()`, `field()`, `text()`, `find_nodes()` | Python file path / source bytes | Method definitions, AST statements, call expressions |
+| `scripts/extract/build_flow.py` | `scripts/extract/py_extract.py` | `parse()`, `read_source()`, `field()`, `text()`, `defs_in()` | Python file path / source bytes | Method definitions, AST statements, call expressions |
 | `scripts/extract/build_flow.py` | `scripts/extract/js_ts_extract.py` | `find_js_files()`, `extract_js_files()` | Source roots | Frontend methods, route endpoints, Axios/fetch API calls |
 | `scripts/extract/build_flow.py` | `scripts/extract/langs_extract.py` | `find_lang_files()`, `extract_lang_files()`, `_pick_overload()` | Source roots, candidate methods, caller arg count | Methods, call sites, and exact overload resolution |
-| `scripts/extract/build_flow.py` | `scripts/extract/route_tables.py` | `find_route_tables()`, `extract_table_routes()` | Source roots, table file paths | Routes from Django `urlpatterns`, Rails `routes.rb`, Laravel, Phoenix |
+| `scripts/extract/build_flow.py` | `scripts/extract/route_tables.py` | `read(roots)` | Source roots, table file paths | Routes from Django `urlpatterns`, Rails `routes.rb`, Laravel, Phoenix |
 | `scripts/extract/build_flow.py` | `scripts/core/ids.py` | `SharedNames`, `bare(id)` | Method name/file pairs, qualified node ID | Disambiguates method IDs; strips path qualifier for matching |
 | `scripts/extract/build_flow.py` | `scripts/core/taxonomy.py` | `infer_layer()`, `precision_of()`, `ROUTE_DECORATOR_RE` | Method properties, resolved call dict | Computes named precision loss (`interface-dispatch`, `unresolved`, etc.) |
 | `scripts/extract/apply_descriptions.py` | `scripts/paths.py` | `DATA_DIR` | Path resolution | Merges agent summaries into `data/cache/descriptions.json` |
-| `scripts/extract/py_extract.py` | `scripts/core/grammars.py` | `get("python")` | Grammar identifier | Tree-sitter `Language` instance for Python |
-| `scripts/extract/js_ts_extract.py` | `scripts/core/grammars.py` | `get("javascript" \| "typescript" \| "tsx")` | Grammar identifier | Tree-sitter `Language` instances for frontend |
-| `scripts/extract/langs_extract.py` | `scripts/core/grammars.py` | `get(lang)` | Language identifier | Tree-sitter `Language` instances for Java, Go, Rust, C#, etc. |
-| `scripts/extract/route_tables.py` | `scripts/core/grammars.py` | `get(lang)` | Language identifier | Tree-sitter `Language` instances for backend table parsing |
+| `scripts/extract/py_extract.py` | `scripts/core/grammars.py` | `parser_for("python")` | Grammar identifier | Tree-sitter `Language` instance for Python |
+| `scripts/extract/js_ts_extract.py` | `scripts/core/grammars.py` | `parser_for("javascript" \| "typescript" \| "tsx")` | Grammar identifier | Tree-sitter `Language` instances for frontend |
+| `scripts/extract/langs_extract.py` | `scripts/core/grammars.py` | `parser_for(lang)` | Language identifier | Tree-sitter `Language` instances for Java, Go, Rust, C#, etc. |
+| `scripts/extract/route_tables.py` | `scripts/core/grammars.py` | `parser_for(lang)` | Language identifier | Tree-sitter `Language` instances for backend table parsing |
 | `scripts/review/report.py` | `scripts/review/scan_security.py` | `scan(src, graph_path)` | Source roots, graph path | Security findings mapped to owning AST nodes (`security.json`) |
 | `scripts/review/report.py` | `scripts/review/git_insights.py` | `build(src, graph_path)` | Source roots, graph path | Git churn, author ownership, hotspot risk scores (`insights.json`) |
 | `scripts/review/report.py` | `scripts/review/analyze.py` | `report(graph_path, sec_summary)` | Graph path, security severity counts | Tarjan's SCC cycles, backwards layer calls, god objects, health grade |
@@ -162,10 +162,10 @@ flowchart TD
 | `scripts/review/report.py` | `scripts/review/debt.py` | `build(src, graph_path, out_file)` | Source roots, graph path, output JSON | Comment markers (TODO/FIXME/HACK) and orphan file inventory |
 | `scripts/review/report.py` | `scripts/review/tests_map.py` | `build(src, graph_path, out_file)` | Source roots, graph path, output JSON | Production nodes referenced by test files (`tests.json`) |
 | `scripts/review/report.py` | `scripts/review/duplicates.py` | `build(src, graph_path, out_file)` | Source roots, graph path, output JSON | Cloned bodies (token normalization) and blocks (Winnowing $K=10, W=21$) |
-| `scripts/review/debt.py` | `scripts/review/analyze.py` | `orphans(nodes, edges)` | Graph nodes dict, edge list | Identifies uncalled nodes and dead files |
+| `scripts/review/debt.py` | `scripts/review/analyze.py` | `find_orphans(nodes, edges)` | Graph nodes dict, edge list | Identifies uncalled nodes and dead files |
 | `scripts/review/debt.py` | `scripts/review/scan_security.py` | `iter_source_files()`, `owner_of()` | Source roots, line interval ranges | Finds source files and attributes comment markers to AST nodes |
 | `scripts/review/metrics.py` | `scripts/review/scan_security.py` | `iter_source_files(src)` | Source roots | Single shared definition of source file iteration |
-| `scripts/review/metrics.py` | `scripts/core/grammars.py` | `get(lang)` | Language string | Loads Tree-sitter grammar to count decision points |
+| `scripts/review/metrics.py` | `scripts/core/grammars.py` | `parser_for(lang)` | Language string | Loads Tree-sitter grammar to count decision points |
 | `scripts/review/tests_map.py` | `scripts/review/scan_security.py` | `iter_source_files(src)` | Source roots | Shared source file discovery |
 | `scripts/review/tests_map.py` | `scripts/core/ids.py` | `bare(id)` | Method identifier | Strips path qualification for test name matching |
 | `scripts/review/duplicates.py` | `scripts/review/scan_security.py` | `iter_source_files(src)` | Source roots | Shared source file discovery |
@@ -222,7 +222,7 @@ flowchart TD
    - `scripts/review/git_insights.py:build()`: Streams `git log --numstat` in a single subprocess to compute commit churn, file ownership, and hotspot risk ($\text{risk} = \text{commits} \times (1 + \text{fan\_in} + \text{fan\_out})$).
    - `scripts/review/analyze.py:report()`: Computes circular dependencies via iterative Tarjan's SCC, backwards layer dependencies, hub degree coupling on `app_edges()`, and capped health score ($0-100 \to \text{A-F}$).
    - `scripts/review/metrics.py:build()`: Computes McCabe cyclomatic complexity and max nesting depth per node using Tree-sitter CST branch-point tables.
-   - `scripts/review/debt.py:build()`: Scans TODO/FIXME markers and combines with `analyze.orphans()` to identify dead nodes and dead files.
+   - `scripts/review/debt.py:build()`: Scans TODO/FIXME markers and combines with `analyze.find_orphans()` to identify dead nodes and dead files.
    - `scripts/review/tests_map.py:build()`: Identifies test files via `taxonomy.is_test_path()` and maps test references to production nodes.
    - `scripts/review/duplicates.py:build()`: Performs token normalization (whole-body clones) and Winnowing ($K=10, W=21$ rolling polynomial hash) to find copied blocks.
 3. **Synthesis & Storage:** Writes `data/report/<map>/architecture_report.md` and `.json`.

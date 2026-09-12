@@ -286,6 +286,96 @@
   .fc-merge-bar {
     width: 85%; height: 2px; background: var(--rule-lit); margin-top: 12px; position: relative;
   }
+
+  /* Unified two-phase flowchart: phases, hinge, boundary */
+  .fc-phase {
+    width: 100%; max-width: 1100px; border: 1px solid var(--rule-lit); border-radius: 10px;
+    padding: 18px 18px 22px; margin: 4px 0; display: flex; flex-direction: column;
+    align-items: center; gap: 4px; position: relative; background: rgba(255,255,255,0.012);
+  }
+  .fc-phase.build { border-color: rgba(110, 168, 254, 0.3); }
+  .fc-phase.query { border-color: rgba(163, 113, 247, 0.3); }
+  .fc-phase-head {
+    width: 100%; display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 16px; flex-wrap: wrap; border-bottom: 1px solid var(--rule);
+    padding-bottom: 12px; margin-bottom: 14px;
+  }
+  .fc-phase-title {
+    font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: .1em;
+  }
+  .fc-phase.build .fc-phase-title { color: var(--blue); }
+  .fc-phase.query .fc-phase-title { color: var(--purple); }
+  .fc-phase-sub { font-size: 12px; color: var(--ink-2); max-width: 68ch; margin-top: 3px; line-height: 1.5; }
+  .fc-phase-foot {
+    width: 100%; margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--rule);
+    font-size: 12px; color: var(--ink-2); text-align: center;
+  }
+  .fc-cmd-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .fc-cmd-chip {
+    font-family: var(--mono); font-size: 11px; background: var(--ground);
+    border: 1px solid var(--rule-lit); border-radius: 14px; padding: 5px 11px;
+    color: var(--ink); cursor: pointer; transition: all .15s ease; white-space: nowrap;
+  }
+  .fc-cmd-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .fc-cmd-chip small { color: var(--ink-3); margin-left: 5px; font-size: 9.5px; }
+  .fc-cmd-chip:hover small { color: var(--accent); }
+
+  .fc-stage-label {
+    font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em;
+    color: var(--ink-3); margin: 18px 0 10px; text-align: center; max-width: 90ch;
+  }
+  .fc-stage-label code { text-transform: none; letter-spacing: 0; color: var(--ink-2); }
+  .fc-col-tag {
+    font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--ink-2); background: var(--ground); border: 1px solid var(--rule);
+    padding: 3px 10px; border-radius: 12px; margin-bottom: 10px;
+  }
+  .fc-review-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 10px; width: 100%;
+  }
+  .fc-box.sm { width: auto; padding: 9px 12px; }
+  .fc-box.sm .fc-box-desc { font-size: 11px; }
+
+  /* The hinge */
+  .fc-hinge {
+    width: 100%; max-width: 780px; border: 1px dashed var(--warn); border-radius: 10px;
+    padding: 14px 18px 16px; display: flex; flex-direction: column; align-items: center;
+    gap: 12px; background: rgba(227, 179, 65, 0.04);
+  }
+  .fc-hinge-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .fc-hinge-tag {
+    font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
+    color: var(--warn); border: 1px solid rgba(227, 179, 65, 0.35); border-radius: 12px; padding: 3px 10px;
+  }
+  .fc-hinge-body { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .fc-hinge-note { font-size: 11.5px; color: var(--ink-2); max-width: 44ch; line-height: 1.55; }
+  .fc-hinge-note strong { color: var(--warn); }
+  .fc-hinge-branch { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .fc-branch-arm {
+    font-family: var(--mono); font-size: 11px; border: 1px solid var(--rule-lit);
+    border-radius: 6px; padding: 6px 12px; color: var(--ink-2); background: var(--ground);
+  }
+  .fc-branch-arm.bad { border-color: rgba(242, 84, 75, 0.35); }
+  .fc-branch-arm.ok { border-color: rgba(63, 185, 80, 0.35); }
+
+  /* The artifact boundary */
+  .fc-boundary {
+    width: 100%; max-width: 1100px; border: 1px solid var(--accent);
+    border-radius: 10px; padding: 14px 18px; background: var(--accent-dim);
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .fc-boundary-title {
+    font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .1em;
+    color: var(--accent); font-weight: 700;
+  }
+  .fc-boundary-grid { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .fc-artifact {
+    font-family: var(--mono); font-size: 10.5px; color: var(--ink);
+    background: var(--ground); border: 1px solid var(--rule-lit);
+    border-radius: 5px; padding: 5px 10px;
+  }
+  .fc-boundary-note { font-size: 11.5px; color: var(--ink-2); max-width: 78ch; text-align: center; line-height: 1.55; }
   
   /* Slide-Out Sidebar Drawer */
   .sidebar-overlay {
@@ -409,11 +499,11 @@
       <div id="sbInvariant" class="sb-val" style="color: var(--accent);">...</div>
     </div>
     <div class="sb-block">
-      <div class="sb-label">Called By (Incoming Callers)</div>
+      <div class="sb-label" id="sbCallersLabel">Called By (Incoming Callers)</div>
       <div id="sbCallers" class="sb-chip-list"></div>
     </div>
     <div class="sb-block">
-      <div class="sb-label">Calls (Outgoing Callees)</div>
+      <div class="sb-label" id="sbCalleesLabel">Calls (Outgoing Callees)</div>
       <div id="sbCallees" class="sb-chip-list"></div>
     </div>
     <div class="sb-block">
@@ -563,246 +653,203 @@
     <div class="cg-tabs">
       <button class="cg-tab active" onclick="showCgTab('cg-flowchart', this)">Interactive Visual Flowchart</button>
       <button class="cg-tab" onclick="showCgTab('cg-matrix', this)">Caller &rarr; Callee Matrix</button>
-      <button class="cg-tab" onclick="showCgTab('cg-flows', this)">Step-by-Step Execution Flows</button>
     </div>
 
-    <!-- Panel 0: Interactive Flowchart -->
+    <!-- Panel 0: The Unified Two-Phase Flowchart -->
     <div id="cg-flowchart" class="cg-panel active">
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;">
         <div>
           <span style="font-family: var(--mono); font-size: 11px; text-transform: uppercase; color: var(--accent); font-weight: 600;">
-            Interactive Architecture Flowcharts
+            The Whole System, One Flowchart
           </span>
           <span style="color: var(--ink-3); font-size: 12px; margin-left: 8px;">
-            (Select a scenario below. Click any node in the flow to open the inspection sidebar with zero page scrolling)
+            (Click any script box for its mechanics, or any command chip for the exact script sequence it runs &mdash; all in the sidebar, zero page scrolling)
           </span>
         </div>
       </div>
 
-      <!-- Flow Selector Tabs -->
-      <div class="flow-selector">
-        <button class="flow-sel-btn active" onclick="setFlowchart('flow-diag-brief', this)">
-          🧭 Flow 1: Orientation ("What is this project?")
-        </button>
-        <button class="flow-sel-btn" onclick="setFlowchart('flow-diag-structure', this)">
-          🏗️ Flow 2: Structure Map ("Map Class Architecture")
-        </button>
-        <button class="flow-sel-btn" onclick="setFlowchart('flow-diag-flow', this)">
-          ⚡ Flow 3: Flow Map ("How Does a Request Flow?")
-        </button>
-        <button class="flow-sel-btn" onclick="setFlowchart('flow-diag-report', this)">
-          🛡️ Flow 4: Review Suite ("Codebase Health & Risks")
-        </button>
-        <button class="flow-sel-btn" onclick="setFlowchart('flow-diag-query', this)">
-          🔍 Flow 5: Zero-RAG Queries ("Find & Investigate")
-        </button>
+      <div class="flow-banner">
+        <div>
+          <div class="flow-banner-title">Two phases, and one hinge between them</div>
+          <div class="flow-banner-desc">
+            Every one of the 28 scripts sits on exactly one side of a single line: <strong>BUILD</strong> parses source and
+            rewrites artifacts; <strong>QUERY</strong> reads those artifacts and <em>never opens a source file</em>. That second
+            half is the Zero-RAG guarantee &mdash; the reason an agent can answer architecture questions in a fixed-size context
+            instead of reading the repository. <code>check</code> is the hinge: the only command that reads source and writes nothing.
+          </div>
+        </div>
+        <div class="flow-banner-cmd">archaeologist.py project | flow | both | report | check | brief</div>
       </div>
 
-      <!-- ============================================================
-           FLOW 1: ORIENTATION BRIEF ("What is this project?")
-           ============================================================ -->
-      <div id="flow-diag-brief" class="flow-chart-panel active">
-        <div class="flow-banner">
-          <div>
-            <div class="flow-banner-title">🧭 Flow 1: Orientation Digest &mdash; "What is this project?"</div>
-            <div class="flow-banner-desc">
-              Triggered when a developer or LLM agent first encounters an unfamiliar codebase and asks <em>"What does this project do?"</em>
-              Reads precomputed graph summaries to return an instant orientation brief (health grade, key entrypoints, risk hotspots, languages) in under 1 second without re-parsing source files.
-            </div>
-          </div>
-          <div class="flow-banner-cmd">python scripts/archaeologist.py brief</div>
+      <div class="flow-canvas">
+
+        <!-- ============ ENTRY ============ -->
+        <div class="fc-terminal start">
+          <span>&#9654;</span> YOUR SOURCE TREE &mdash; <code style="color:inherit">--src ./backend ./frontend</code>
         </div>
 
-        <div class="flow-canvas">
-          <div class="fc-terminal start">
-            <span>&#9654;</span> User / Agent Request: "What is this project?"
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">CLI invokes subcommand 'brief'</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-box" data-script="archaeologist.py" onclick="openSidebar('archaeologist.py')">
-            <div class="fc-box-top">
-              <span class="fc-box-name">archaeologist.py</span>
-              <span class="fc-node-badge cat-core">CORE</span>
-            </div>
-            <div class="fc-box-desc">CLI Entrypoint: routes 'brief' subcommand, verifies source roots, and invokes <code>brief.py:main(argv)</code>.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">bootstraps sys.path &amp; long path support</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-box" data-script="paths.py" onclick="openSidebar('paths.py')">
-            <div class="fc-box-top">
-              <span class="fc-box-name">core/paths.py</span>
-              <span class="fc-node-badge cat-core">CORE</span>
-            </div>
-            <div class="fc-box-desc">Normalizes <code>\\?\</code> paths beyond Windows 260-char MAX_PATH limit; locates cache and manifest directories.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">verifies SHA-256 hashes against working tree</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-box" data-script="manifest.py" onclick="openSidebar('manifest.py')">
-            <div class="fc-box-top">
-              <span class="fc-box-name">core/manifest.py</span>
-              <span class="fc-node-badge cat-core">CORE</span>
-            </div>
-            <div class="fc-box-desc">Cache Verification: compares tree against <code>manifest.json</code> hashes to confirm graph is fresh (<code>stale: false</code>).</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">loads graph.json &amp; flow_graph.json summaries</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-box" data-script="brief.py" onclick="openSidebar('brief.py')">
-            <div class="fc-box-top">
-              <span class="fc-box-name">review/brief.py</span>
-              <span class="fc-node-badge cat-review">REVIEW</span>
-            </div>
-            <div class="fc-box-desc">Zero-computation digest builder: extracts key routes, health score, top risk hotspots, and language mix.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">streams markdown output</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-box" data-script="console.py" onclick="openSidebar('console.py')">
-            <div class="fc-box-top">
-              <span class="fc-box-name">core/console.py</span>
-              <span class="fc-node-badge cat-core">CORE</span>
-            </div>
-            <div class="fc-box-desc">Safe stdout terminal wrapper: prevents Windows cp1252 character crashes during streaming output.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">rendered in &lt; 1 sec</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-terminal end">
-            <span>&#10003;</span> Complete Orientation Digest in Terminal / LLM Context
-          </div>
-        </div>
-      </div>
-
-      <!-- ============================================================
-           FLOW 2: STRUCTURE MAP ("Map Class Architecture")
-           ============================================================ -->
-      <div id="flow-diag-structure" class="flow-chart-panel">
-        <div class="flow-banner">
-          <div>
-            <div class="flow-banner-title">🏗️ Flow 2: Structure Map &mdash; "Map Class Architecture &amp; Dependencies"</div>
-            <div class="flow-banner-desc">
-              Triggered when mapping the macro architecture: extracts classes, interfaces, React components, and module functions.
-              Generates an interconnected Markdown Obsidian vault in <code>data/structure/vault/</code> and compiles it into <code>graph.json</code>.
-            </div>
-          </div>
-          <div class="flow-banner-cmd">python scripts/archaeologist.py project --src sample_src</div>
+        <div class="fc-arrow">
+          <div class="fc-arrow-line"></div>
+          <div class="fc-arrow-badge">you run one command; there is only one entrypoint</div>
+          <div class="fc-arrow-head">&darr;</div>
         </div>
 
-        <div class="flow-canvas">
-          <div class="fc-terminal start">
-            <span>&#9654;</span> CLI Command: archaeologist.py project
+        <div class="fc-box" data-script="archaeologist.py" onclick="openSidebar('archaeologist.py')">
+          <div class="fc-box-top">
+            <span class="fc-box-name">archaeologist.py</span>
+            <span class="fc-node-badge cat-core">CORE</span>
           </div>
+          <div class="fc-box-desc">The only file at <code>scripts/</code> root, because it is the only entrypoint. Dispatches <code>project</code>, <code>flow</code>, <code>both</code>, <code>report</code>, <code>check</code>, <code>brief</code>.</div>
+          <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+        </div>
 
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">dispatches structure map generation</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
+        <div class="fc-arrow">
+          <div class="fc-arrow-line"></div>
+          <div class="fc-arrow-badge">import paths &rarr; puts scripts/, all four category dirs and vendor/ on sys.path</div>
+          <div class="fc-arrow-head">&darr;</div>
+        </div>
 
-          <div class="fc-box" data-script="archaeologist.py" onclick="openSidebar('archaeologist.py')">
-            <div class="fc-box-top">
-              <span class="fc-box-name">archaeologist.py</span>
-              <span class="fc-node-badge cat-core">CORE</span>
+        <!-- ============ SHARED FOUNDATION ============ -->
+        <div class="fc-fork-container">
+          <div class="fc-fork-label">Shared foundation &mdash; loaded by every command, build or query</div>
+          <div class="fc-fork-bar"></div>
+          <div class="fc-fork-grid">
+            <div class="fc-fork-col">
+              <div class="fc-box" data-script="paths.py" onclick="openSidebar('paths.py')">
+                <div class="fc-box-top">
+                  <span class="fc-box-name">paths.py</span>
+                  <span class="fc-node-badge cat-core">CORE</span>
+                </div>
+                <div class="fc-box-desc">Resolves <code>SKILL_ROOT</code> / <code>DATA_DIR</code> so any script runs from any working directory, and wraps every per-node file in <code>long_path()</code> for Windows <code>MAX_PATH</code>.</div>
+                <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+              </div>
             </div>
-            <div class="fc-box-desc">CLI Orchestrator: invokes <code>build_wiki.build()</code> then <code>build_graph.build()</code> with resolved sources.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+            <div class="fc-fork-col">
+              <div class="fc-box" data-script="taxonomy.py" onclick="openSidebar('taxonomy.py')">
+                <div class="fc-box-top">
+                  <span class="fc-box-name">core/taxonomy.py</span>
+                  <span class="fc-node-badge cat-core">CORE</span>
+                </div>
+                <div class="fc-box-desc">The single definition of every <code>kind</code>/<code>layer</code> value, <code>SKIP_DIRS</code>, <code>lang_of()</code> and what counts as a test file. Every pass asks; none re-implements.</div>
+                <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+              </div>
+            </div>
+            <div class="fc-fork-col">
+              <div class="fc-box" data-script="console.py" onclick="openSidebar('console.py')">
+                <div class="fc-box-top">
+                  <span class="fc-box-name">core/console.py</span>
+                  <span class="fc-node-badge cat-core">CORE</span>
+                </div>
+                <div class="fc-box-desc"><code>safe_stdout()</code> &mdash; anything echoing repo text (node ids, paths, git author names) passes through here, so one accented name cannot kill a run on a cp874 console.</div>
+                <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+              </div>
+            </div>
           </div>
+          <div class="fc-merge-bar"></div>
+        </div>
 
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">bootstraps filesystem &amp; Tree-sitter parsers</div>
-            <div class="fc-arrow-head">&darr;</div>
+        <div class="fc-arrow">
+          <div class="fc-arrow-line"></div>
+          <div class="fc-arrow-badge">before anything else: are the artifacts still true?</div>
+          <div class="fc-arrow-head">&darr;</div>
+        </div>
+
+        <!-- ============ THE HINGE ============ -->
+        <div class="fc-hinge">
+          <div class="fc-hinge-head">
+            <span class="fc-hinge-tag">THE HINGE</span>
+            <span class="fc-cmd-chip" onclick="openCommand('check')">archaeologist.py check <small>&rarr; sequence</small></span>
           </div>
-
-          <div style="display: flex; gap: 14px; width: 100%; max-width: 720px; justify-content: center; flex-wrap: wrap;">
-            <div class="fc-box" style="flex: 1; min-width: 280px;" data-script="paths.py" onclick="openSidebar('paths.py')">
+          <div class="fc-hinge-body">
+            <div class="fc-box" data-script="manifest.py" onclick="openSidebar('manifest.py')" style="width: 400px;">
               <div class="fc-box-top">
-                <span class="fc-box-name">core/paths.py</span>
+                <span class="fc-box-name">core/manifest.py</span>
                 <span class="fc-node-badge cat-core">CORE</span>
               </div>
-              <div class="fc-box-desc">Prepares <code>data/structure/vault/</code> and manages Windows MAX_PATH compatibility.</div>
+              <div class="fc-box-desc">SHA-1 of every source file under the recorded roots, plus the installed grammar set, compared against <code>data/cache/manifest.json</code>.</div>
               <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
             </div>
-            <div class="fc-box" style="flex: 1; min-width: 280px;" data-script="grammars.py" onclick="openSidebar('grammars.py')">
-              <div class="fc-box-top">
-                <span class="fc-box-name">core/grammars.py</span>
-                <span class="fc-node-badge cat-core">CORE</span>
-              </div>
-              <div class="fc-box-desc">Loads pinned Tree-sitter ABI wheels on demand for installed languages.</div>
-              <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+            <div class="fc-hinge-note">
+              <strong>The only command that reads source and writes nothing.</strong>
+              It belongs to neither phase &mdash; it exists to tell you which phase you are entitled to be in.
+              A changed grammar set counts as staleness too: a graph that is smaller for want of a wheel is
+              indistinguishable from a graph of a smaller codebase.
             </div>
+          </div>
+          <div class="fc-hinge-branch">
+            <div class="fc-branch-arm bad"><code>stale: true</code> &rarr; rebuild first (Phase 1)</div>
+            <div class="fc-branch-arm ok"><code>stale: false</code> &rarr; skip straight to Phase 2</div>
+          </div>
+        </div>
+
+        <div class="fc-arrow">
+          <div class="fc-arrow-line"></div>
+          <div class="fc-arrow-head">&darr;</div>
+        </div>
+
+        <!-- ============ PHASE 1 : BUILD ============ -->
+        <div class="fc-phase build">
+          <div class="fc-phase-head">
+            <div>
+              <div class="fc-phase-title">PHASE 1 &middot; BUILD</div>
+              <div class="fc-phase-sub">Parses source. Rewrites artifacts wholesale &mdash; there is no incremental path, by design: node ids depend on the whole corpus.</div>
+            </div>
+            <div class="fc-cmd-chips">
+              <span class="fc-cmd-chip" onclick="openCommand('project')">project<small>&rarr;</small></span>
+              <span class="fc-cmd-chip" onclick="openCommand('flow')">flow<small>&rarr;</small></span>
+              <span class="fc-cmd-chip" onclick="openCommand('both')">both<small>&rarr;</small></span>
+              <span class="fc-cmd-chip" onclick="openCommand('report')">report<small>&rarr;</small></span>
+            </div>
+          </div>
+
+          <!-- Stage A -->
+          <div class="fc-stage-label">Stage A &mdash; parse: one engine, three producers, seventeen languages</div>
+          <div class="fc-box" data-script="grammars.py" onclick="openSidebar('grammars.py')">
+            <div class="fc-box-top">
+              <span class="fc-box-name">core/grammars.py</span>
+              <span class="fc-node-badge cat-core">CORE</span>
+            </div>
+            <div class="fc-box-desc">Owns "can this machine parse language X": lazy cached <code>parser_for(lang)</code>, the version <code>PINS</code>, and the exact <code>pip install</code> for anything missing. A missing grammar warns <em>by name</em> and skips those files &mdash; never silently.</div>
+            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
           </div>
 
           <div class="fc-arrow">
             <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">forks parallel multi-language CST extractors</div>
+            <div class="fc-arrow-badge">parser_for(lang) &rarr; a tree-sitter CST per file</div>
             <div class="fc-arrow-head">&darr;</div>
           </div>
 
-          <!-- Fork: Extractors -->
           <div class="fc-fork-container">
-            <div class="fc-fork-label">Parallel Multi-Language Extraction</div>
+            <div class="fc-fork-label">Three producers &mdash; adding a language is a grammar wheel plus a SPEC row, never a new engine</div>
             <div class="fc-fork-bar"></div>
             <div class="fc-fork-grid">
               <div class="fc-fork-col">
-                <div class="fc-box" style="width: 100%;" data-script="py_extract.py" onclick="openSidebar('py_extract.py')">
+                <div class="fc-box" data-script="py_extract.py" onclick="openSidebar('py_extract.py')">
                   <div class="fc-box-top">
                     <span class="fc-box-name">extract/py_extract.py</span>
                     <span class="fc-node-badge cat-extract">EXTRACT</span>
                   </div>
-                  <div class="fc-box-desc">Parses Python CST: extracts classes, methods, docstrings &amp; inheritance trees.</div>
+                  <div class="fc-box-desc">Python. <code>read_source()</code> normalises newlines, so a CRLF checkout cannot hash every node differently and silently miss the description cache.</div>
                   <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
                 </div>
               </div>
               <div class="fc-fork-col">
-                <div class="fc-box" style="width: 100%;" data-script="js_ts_extract.py" onclick="openSidebar('js_ts_extract.py')">
+                <div class="fc-box" data-script="js_ts_extract.py" onclick="openSidebar('js_ts_extract.py')">
                   <div class="fc-box-top">
                     <span class="fc-box-name">extract/js_ts_extract.py</span>
                     <span class="fc-node-badge cat-extract">EXTRACT</span>
                   </div>
-                  <div class="fc-box-desc">Parses JS/TS AST: extracts classes, interfaces, React components &amp; JSX shapes.</div>
+                  <div class="fc-box-desc">JS/JSX/TS/TSX &mdash; four extensions, three grammars (<code>.tsx</code> needs <code>tsx</code>). Express/Nest routes, <code>fetch</code>/axios calls, and the JSX rule that makes a function a <code>kind: component</code>.</div>
                   <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
                 </div>
               </div>
               <div class="fc-fork-col">
-                <div class="fc-box" style="width: 100%;" data-script="langs_extract.py" onclick="openSidebar('langs_extract.py')">
+                <div class="fc-box" data-script="langs_extract.py" onclick="openSidebar('langs_extract.py')">
                   <div class="fc-box-top">
                     <span class="fc-box-name">extract/langs_extract.py</span>
                     <span class="fc-node-badge cat-extract">EXTRACT</span>
                   </div>
-                  <div class="fc-box-desc">Table-driven CST parser for 15 languages (Java, Go, C#, Rust, Ruby, PHP...).</div>
+                  <div class="fc-box-desc">The other fourteen: Java, Go, C#, Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir. One shared consumer works in tree-sitter <em>field</em> names; only <code>SPEC</code>/<code>SHAPES</code> know node-type spellings.</div>
                   <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
                 </div>
               </div>
@@ -812,230 +859,86 @@
 
           <div class="fc-arrow">
             <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">converges raw entity records</div>
+            <div class="fc-arrow-badge">declarations, bodies, param types, receivers &mdash; but never resolution</div>
             <div class="fc-arrow-head">&darr;</div>
           </div>
 
-          <!-- ID & Taxonomy Merge -->
-          <div style="display: flex; gap: 14px; width: 100%; max-width: 720px; justify-content: center; flex-wrap: wrap;">
-            <div class="fc-box" style="flex: 1; min-width: 280px;" data-script="ids.py" onclick="openSidebar('ids.py')">
-              <div class="fc-box-top">
-                <span class="fc-box-name">core/ids.py</span>
-                <span class="fc-node-badge cat-core">CORE</span>
-              </div>
-              <div class="fc-box-desc">SharedNames: deduplicates case-insensitive class collisions across files.</div>
-              <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-            </div>
-            <div class="fc-box" style="flex: 1; min-width: 280px;" data-script="taxonomy.py" onclick="openSidebar('taxonomy.py')">
-              <div class="fc-box-top">
-                <span class="fc-box-name">core/taxonomy.py</span>
-                <span class="fc-node-badge cat-core">CORE</span>
-              </div>
-              <div class="fc-box-desc">Infers architectural layers (controller, model, service, test) &amp; color tags.</div>
-              <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-            </div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">emits Obsidian-compatible markdown vault</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-box" data-script="build_wiki.py" onclick="openSidebar('build_wiki.py')">
+          <div class="fc-box" data-script="ids.py" onclick="openSidebar('ids.py')" style="width: 420px;">
             <div class="fc-box-top">
-              <span class="fc-box-name">extract/build_wiki.py</span>
-              <span class="fc-node-badge cat-extract">EXTRACT</span>
-            </div>
-            <div class="fc-box-desc">Vault Generator: writes entity notes with [[Wikilinks]] into <code>data/structure/vault/*.md</code>.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">parses wikilinks &amp; frontmatter into JSON graph</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-box" data-script="build_graph.py" onclick="openSidebar('build_graph.py')">
-            <div class="fc-box-top">
-              <span class="fc-box-name">extract/build_graph.py</span>
-              <span class="fc-node-badge cat-extract">EXTRACT</span>
-            </div>
-            <div class="fc-box-desc">Graph Compiler: resolves references, writes deterministic <code>data/structure/graph.json</code>.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">emits presentation artifacts &amp; cache manifest</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <!-- Output Fork -->
-          <div class="fc-fork-container">
-            <div class="fc-fork-label">Parallel Artifact Emission</div>
-            <div class="fc-fork-bar"></div>
-            <div class="fc-fork-grid">
-              <div class="fc-fork-col">
-                <div class="fc-box" style="width: 100%;" data-script="build_html.py" onclick="openSidebar('build_html.py')">
-                  <div class="fc-box-top">
-                    <span class="fc-box-name">query/build_html.py &amp; viewer.html</span>
-                    <span class="fc-node-badge cat-query">QUERY</span>
-                  </div>
-                  <div class="fc-box-desc">Inlines graph + D3 force-graph script into standalone <code>data/explorer.html</code>.</div>
-                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-                </div>
-              </div>
-              <div class="fc-fork-col">
-                <div class="fc-box" style="width: 100%;" data-script="manifest.py" onclick="openSidebar('manifest.py')">
-                  <div class="fc-box-top">
-                    <span class="fc-box-name">core/manifest.py</span>
-                    <span class="fc-node-badge cat-core">CORE</span>
-                  </div>
-                  <div class="fc-box-desc">Hashes source files &amp; records node/edge counts into <code>manifest.json</code>.</div>
-                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-                </div>
-              </div>
-              <div class="fc-fork-col">
-                <div class="fc-box" style="width: 100%;" data-script="console.py" onclick="openSidebar('console.py')">
-                  <div class="fc-box-top">
-                    <span class="fc-box-name">core/console.py</span>
-                    <span class="fc-node-badge cat-core">CORE</span>
-                  </div>
-                  <div class="fc-box-desc">Streams node/edge totals and structure build summary to terminal.</div>
-                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-                </div>
-              </div>
-            </div>
-            <div class="fc-merge-bar"></div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">build complete</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-terminal end">
-            <span>&#10003;</span> Interactive Class Structure Graph in data/explorer.html
-          </div>
-        </div>
-      </div>
-
-      <!-- ============================================================
-           FLOW 3: FLOW MAP ("How Does a Request Flow?")
-           ============================================================ -->
-      <div id="flow-diag-flow" class="flow-chart-panel">
-        <div class="flow-banner">
-          <div>
-            <div class="flow-banner-title">⚡ Flow 3: Flow Map &mdash; "How Does a Request Flow Through Methods?"</div>
-            <div class="flow-banner-desc">
-              Triggered when analyzing runtime execution: traces calls from HTTP routing entrypoints through backend controllers, services, database calls, and client API fetches.
-              Performs two-pass receiver resolution and preserves dropped call names in <code>unresolved</code>.
-            </div>
-          </div>
-          <div class="flow-banner-cmd">python scripts/archaeologist.py flow --src sample_src</div>
-        </div>
-
-        <div class="flow-canvas">
-          <div class="fc-terminal start">
-            <span>&#9654;</span> CLI Command: archaeologist.py flow
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">dispatches method-level flow pipeline</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-box" data-script="archaeologist.py" onclick="openSidebar('archaeologist.py')">
-            <div class="fc-box-top">
-              <span class="fc-box-name">archaeologist.py</span>
+              <span class="fc-box-name">core/ids.py &mdash; <code>SharedNames</code></span>
               <span class="fc-node-badge cat-core">CORE</span>
             </div>
-            <div class="fc-box-desc">CLI Orchestrator: invokes <code>build_flow.build()</code>, manages output notes and explorer rendering.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">bootstraps notes dir &amp; loads grammars</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div style="display: flex; gap: 14px; width: 100%; max-width: 720px; justify-content: center; flex-wrap: wrap;">
-            <div class="fc-box" style="flex: 1; min-width: 280px;" data-script="paths.py" onclick="openSidebar('paths.py')">
-              <div class="fc-box-top">
-                <span class="fc-box-name">core/paths.py</span>
-                <span class="fc-node-badge cat-core">CORE</span>
-              </div>
-              <div class="fc-box-desc">Initializes <code>data/flow/notes/</code> and handles Windows long paths.</div>
+            <div class="fc-box-desc">Pre-scans <em>every</em> definition from all three producers <strong>before any node is built</strong>, then qualifies only the names two or more files share &mdash; compared case-insensitively, because each note is <code>&lt;id&gt;.md</code>. This whole-corpus dependency is exactly why the build cannot be incremental.</div>
               <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-            </div>
-            <div class="fc-box" style="flex: 1; min-width: 280px;" data-script="grammars.py" onclick="openSidebar('grammars.py')">
-              <div class="fc-box-top">
-                <span class="fc-box-name">core/grammars.py</span>
-                <span class="fc-node-badge cat-core">CORE</span>
-              </div>
-              <div class="fc-box-desc">Provides CST grammars for method bodies, function calls &amp; route decorators.</div>
-              <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-            </div>
           </div>
 
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">discovers HTTP route entrypoints</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-box" data-script="route_tables.py" onclick="openSidebar('route_tables.py')">
-            <div class="fc-box-top">
-              <span class="fc-box-name">extract/route_tables.py</span>
-              <span class="fc-node-badge cat-extract">EXTRACT</span>
-            </div>
-            <div class="fc-box-desc">Route Scanner: discovers URL entrypoints from Django <code>urlpatterns</code>, Rails <code>routes.rb</code>, Laravel, Express &amp; Spring.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">forks parallel method-level parsers</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <!-- Fork: Method Parsers -->
+          <!-- Stage B -->
+          <div class="fc-stage-label">Stage B &mdash; build the two maps (same producers, different node grain)</div>
           <div class="fc-fork-container">
-            <div class="fc-fork-label">Parallel Method &amp; Call Extraction</div>
             <div class="fc-fork-bar"></div>
             <div class="fc-fork-grid">
+
+              <!-- Structure column -->
               <div class="fc-fork-col">
-                <div class="fc-box" style="width: 100%;" data-script="py_extract.py" onclick="openSidebar('py_extract.py')">
+                <div class="fc-col-tag">STRUCTURE MAP &mdash; classes, components, module groups</div>
+                <div class="fc-box" data-script="build_wiki.py" onclick="openSidebar('build_wiki.py')">
                   <div class="fc-box-top">
-                    <span class="fc-box-name">extract/py_extract.py</span>
+                    <span class="fc-box-name">extract/build_wiki.py</span>
                     <span class="fc-node-badge cat-extract">EXTRACT</span>
                   </div>
-                  <div class="fc-box-desc">Extracts Python defs, call expressions, type hints &amp; <code>decorated_definition</code> handlers.</div>
+                  <div class="fc-box-desc">Writes one Markdown page per entity into <code>data/structure/vault/</code>, with front-matter (<code>layer</code>, <code>source</code>, <code>end</code>) and <code>[[wikilinks]]</code> for references. Wipes stale pages first.</div>
+                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+                </div>
+                <div class="fc-arrow">
+                  <div class="fc-arrow-line"></div>
+                  <div class="fc-arrow-badge">vault/*.md &mdash; not the source again</div>
+                  <div class="fc-arrow-head">&darr;</div>
+                </div>
+                <div class="fc-box" data-script="build_graph.py" onclick="openSidebar('build_graph.py')">
+                  <div class="fc-box-top">
+                    <span class="fc-box-name">extract/build_graph.py</span>
+                    <span class="fc-node-badge cat-extract">EXTRACT</span>
+                  </div>
+                  <div class="fc-box-desc">Parses the vault pages it was just handed: <code>[[wikilinks]]</code> become edges, front-matter becomes node metadata. Emits <code>graph.json</code> + <code>registry.json</code>.</div>
                   <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
                 </div>
               </div>
+
+              <!-- Flow column -->
               <div class="fc-fork-col">
-                <div class="fc-box" style="width: 100%;" data-script="js_ts_extract.py" onclick="openSidebar('js_ts_extract.py')">
+                <div class="fc-col-tag">FLOW MAP &mdash; methods and functions</div>
+                <div class="fc-box" data-script="build_flow.py" onclick="openSidebar('build_flow.py')">
                   <div class="fc-box-top">
-                    <span class="fc-box-name">extract/js_ts_extract.py</span>
+                    <span class="fc-box-name">extract/build_flow.py</span>
                     <span class="fc-node-badge cat-extract">EXTRACT</span>
                   </div>
-                  <div class="fc-box-desc">Extracts TypeScript methods, Express/Nest handlers, and Axios client HTTP calls.</div>
+                  <div class="fc-box-desc">Node per method, overloads included. Resolves a call only when the receiver's type is readable from source; picks an overload by argument count then stated types. What stays ambiguous is <strong>dropped and named</strong>, never guessed.</div>
                   <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
                 </div>
-              </div>
-              <div class="fc-fork-col">
-                <div class="fc-box" style="width: 100%;" data-script="langs_extract.py" onclick="openSidebar('langs_extract.py')">
+                <div class="fc-arrow">
+                  <div class="fc-arrow-line"></div>
+                  <div class="fc-arrow-badge">nodes now exist &mdash; only now can a table route find its handler</div>
+                  <div class="fc-arrow-head">&darr;</div>
+                </div>
+                <div class="fc-box" data-script="route_tables.py" onclick="openSidebar('route_tables.py')">
                   <div class="fc-box-top">
-                    <span class="fc-box-name">extract/langs_extract.py</span>
+                    <span class="fc-box-name">extract/route_tables.py</span>
                     <span class="fc-node-badge cat-extract">EXTRACT</span>
                   </div>
-                  <div class="fc-box-desc">Extracts Java, Go, C# methods, calls, receivers &amp; overload signatures.</div>
+                  <div class="fc-box-desc">Routes declared <em>away</em> from their handler: Django <code>urlpatterns</code>, Rails <code>routes.rb</code>, Laravel <code>routes/*.php</code>, Phoenix routers. It only <em>reads</em> &mdash; <code>build_flow</code> calls <code>read(roots)</code> and attaches each route to the one node it names, dropping any reference matching zero or two nodes.</div>
+                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+                </div>
+                <div class="fc-arrow">
+                  <div class="fc-arrow-line"></div>
+                  <div class="fc-arrow-badge">routes are read here &rarr; frontend fetch linked to backend handler</div>
+                  <div class="fc-arrow-head">&darr;</div>
+                </div>
+                <div class="fc-box" data-script="apply_descriptions.py" onclick="openSidebar('apply_descriptions.py')">
+                  <div class="fc-box-top">
+                    <span class="fc-box-name">extract/apply_descriptions.py</span>
+                    <span class="fc-node-badge cat-extract">EXTRACT</span>
+                  </div>
+                  <div class="fc-box-desc">The one door AI text enters by, and it is optional: docstring &rarr; cached summary whose source hash still matches &rarr; deterministic fallback. The build never blocks on it.</div>
                   <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
                 </div>
               </div>
@@ -1043,247 +946,152 @@
             <div class="fc-merge-bar"></div>
           </div>
 
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">assigns unique path:line IDs &amp; layer tags</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <!-- ID & Taxonomy Merge -->
-          <div style="display: flex; gap: 14px; width: 100%; max-width: 720px; justify-content: center; flex-wrap: wrap;">
-            <div class="fc-box" style="flex: 1; min-width: 280px;" data-script="ids.py" onclick="openSidebar('ids.py')">
-              <div class="fc-box-top">
-                <span class="fc-box-name">core/ids.py</span>
-                <span class="fc-node-badge cat-core">CORE</span>
-              </div>
-              <div class="fc-box-desc">Assigns canonical <code>file:line</code> node IDs; strips qualifiers for matching via <code>bare(id)</code>.</div>
-              <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-            </div>
-            <div class="fc-box" style="flex: 1; min-width: 280px;" data-script="taxonomy.py" onclick="openSidebar('taxonomy.py')">
-              <div class="fc-box-top">
-                <span class="fc-box-name">core/taxonomy.py</span>
-                <span class="fc-node-badge cat-core">CORE</span>
-              </div>
-              <div class="fc-box-desc">Tags route entrypoints, database models, and calculates <code>precision_of()</code> loss.</div>
-              <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-            </div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">two-pass call resolution &amp; dropped-call tracking</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-box" data-script="build_flow.py" onclick="openSidebar('build_flow.py')">
-            <div class="fc-box-top">
-              <span class="fc-box-name">extract/build_flow.py</span>
-              <span class="fc-node-badge cat-extract">EXTRACT</span>
-            </div>
-            <div class="fc-box-desc">Flow Builder: Pass 1 indexes all methods; Pass 2 resolves calls against types &amp; records dropped calls into <code>unresolved</code>. Emits <code>data/flow_graph.json</code>.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">emits presentation artifacts &amp; cache manifest</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <!-- Output Fork -->
-          <div class="fc-fork-container">
-            <div class="fc-fork-label">Parallel Artifact Emission</div>
-            <div class="fc-fork-bar"></div>
-            <div class="fc-fork-grid">
-              <div class="fc-fork-col">
-                <div class="fc-box" style="width: 100%;" data-script="build_html.py" onclick="openSidebar('build_html.py')">
-                  <div class="fc-box-top">
-                    <span class="fc-box-name">query/build_html.py &amp; viewer.html</span>
-                    <span class="fc-node-badge cat-query">QUERY</span>
-                  </div>
-                  <div class="fc-box-desc">Inlines <code>data/flow_graph.json</code> into standalone <code>data/explorer.html</code>.</div>
-                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-                </div>
-              </div>
-              <div class="fc-fork-col">
-                <div class="fc-box" style="width: 100%;" data-script="manifest.py" onclick="openSidebar('manifest.py')">
-                  <div class="fc-box-top">
-                    <span class="fc-box-name">core/manifest.py</span>
-                    <span class="fc-node-badge cat-core">CORE</span>
-                  </div>
-                  <div class="fc-box-desc">Records flow graph file hashes and call resolution counts into <code>manifest.json</code>.</div>
-                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-                </div>
-              </div>
-              <div class="fc-fork-col">
-                <div class="fc-box" style="width: 100%;" data-script="console.py" onclick="openSidebar('console.py')">
-                  <div class="fc-box-top">
-                    <span class="fc-box-name">core/console.py</span>
-                    <span class="fc-node-badge cat-core">CORE</span>
-                  </div>
-                  <div class="fc-box-desc">Streams call resolution summary and unresolved call diagnostics to terminal.</div>
-                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-                </div>
-              </div>
-            </div>
-            <div class="fc-merge-bar"></div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">build complete</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-terminal end">
-            <span>&#10003;</span> Interactive Request Flow Graph in data/explorer.html
-          </div>
-        </div>
-      </div>
-
-      <!-- ============================================================
-           FLOW 4: REVIEW SUITE ("Codebase Health & Risks")
-           ============================================================ -->
-      <div id="flow-diag-report" class="flow-chart-panel">
-        <div class="flow-banner">
-          <div>
-            <div class="flow-banner-title">🛡️ Flow 4: Architecture Review &mdash; "Codebase Health &amp; Security Risks"</div>
-            <div class="flow-banner-desc">
-              Triggered when auditing software quality: executes 7 deterministic review passes (security vulnerabilities, git churn hotspots, cycles, complexity, debt, test gaps, clone clusters).
-              Computes overall health grade (A&ndash;F) and writes <code>architecture_report.md</code>.
-            </div>
-          </div>
-          <div class="flow-banner-cmd">python scripts/archaeologist.py report --src sample_src</div>
-        </div>
-
-        <div class="flow-canvas">
-          <div class="fc-terminal start">
-            <span>&#9654;</span> CLI Command: archaeologist.py report
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">dispatches review suite</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-box" data-script="archaeologist.py" onclick="openSidebar('archaeologist.py')">
-            <div class="fc-box-top">
-              <span class="fc-box-name">archaeologist.py</span>
-              <span class="fc-node-badge cat-core">CORE</span>
-            </div>
-            <div class="fc-box-desc">CLI Orchestrator: invokes <code>report.py:build()</code> and bundles review findings into explorer.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">initializes report output directories</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-box" data-script="paths.py" onclick="openSidebar('paths.py')">
-            <div class="fc-box-top">
-              <span class="fc-box-name">core/paths.py</span>
-              <span class="fc-node-badge cat-core">CORE</span>
-            </div>
-            <div class="fc-box-desc">Resolves paths for report outputs and audit JSON artifact files.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">launches review coordinator</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-box" data-script="report.py" onclick="openSidebar('report.py')">
+          <!-- Stage C -->
+          <div class="fc-stage-label">Stage C &mdash; review passes (<code>report</code> only; everything here needs a built graph <em>and</em> the source)</div>
+          <div class="fc-box" data-script="report.py" onclick="openSidebar('report.py')" style="width: 420px;">
             <div class="fc-box-top">
               <span class="fc-box-name">review/report.py</span>
               <span class="fc-node-badge cat-review">REVIEW</span>
             </div>
-            <div class="fc-box-desc">Review Suite Coordinator: orchestrates the 7 analysis passes, feeds summaries into analyzer, and computes final letter grade.</div>
+            <div class="fc-box-desc">Joins seven passes into <code>data/report/&lt;map&gt;/</code>. <strong>One report per map</strong> &mdash; node ids differ between maps, so a report from the other map must never be embedded.</div>
             <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
           </div>
 
           <div class="fc-arrow">
             <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">forks 7 independent specialized review passes</div>
+            <div class="fc-arrow-badge">fans out to seven independent passes</div>
             <div class="fc-arrow-head">&darr;</div>
           </div>
 
-          <!-- Fork: 7 Review Passes -->
           <div class="fc-fork-container">
-            <div class="fc-fork-label">7 Specialized Review Passes in Parallel</div>
+            <div class="fc-fork-bar"></div>
+            <div class="fc-review-grid">
+              <div class="fc-box sm" data-script="analyze.py" onclick="openSidebar('analyze.py')">
+                <div class="fc-box-top"><span class="fc-box-name">analyze.py</span><span class="fc-node-badge cat-review">REVIEW</span></div>
+                <div class="fc-box-desc">Graph-only: cycles, orphans, layer violations, hubs, god objects, and the 0&ndash;100 / A&ndash;F health score. Degree checks run on <code>app_edges()</code>, which drops test edges.</div>
+              </div>
+              <div class="fc-box sm" data-script="scan_security.py" onclick="openSidebar('scan_security.py')">
+                <div class="fc-box-top"><span class="fc-box-name">scan_security.py</span><span class="fc-node-badge cat-review">REVIEW</span></div>
+                <div class="fc-box-desc">Line regex over source; every finding is attributed to the innermost node whose range <em>contains</em> that line &mdash; not to the nearest node above it.</div>
+              </div>
+              <div class="fc-box sm" data-script="metrics.py" onclick="openSidebar('metrics.py')">
+                <div class="fc-box-top"><span class="fc-box-name">metrics.py</span><span class="fc-node-badge cat-review">REVIEW</span></div>
+                <div class="fc-box-desc">LOC, complexity, nesting, params &mdash; measured on the graph's own nodes via each node's <code>source</code>+<code>end</code>, so metrics are keyed by graph id by construction.</div>
+              </div>
+              <div class="fc-box sm" data-script="git_insights.py" onclick="openSidebar('git_insights.py')">
+                <div class="fc-box-top"><span class="fc-box-name">git_insights.py</span><span class="fc-node-badge cat-review">REVIEW</span></div>
+                <div class="fc-box-desc">One <code>git log --numstat</code> pass &rarr; churn, owners, hotspot risk.</div>
+              </div>
+              <div class="fc-box sm" data-script="debt.py" onclick="openSidebar('debt.py')">
+                <div class="fc-box-top"><span class="fc-box-name">debt.py</span><span class="fc-node-badge cat-review">REVIEW</span></div>
+                <div class="fc-box-desc">Comment markers plus orphan nodes and files. A heuristic on purpose &mdash; it reports, it does not feed the grade.</div>
+              </div>
+              <div class="fc-box sm" data-script="tests_map.py" onclick="openSidebar('tests_map.py')">
+                <div class="fc-box-top"><span class="fc-box-name">tests_map.py</span><span class="fc-node-badge cat-review">REVIEW</span></div>
+                <div class="fc-box-desc">Which nodes a test file names. Also a heuristic, and also kept out of the grade.</div>
+              </div>
+              <div class="fc-box sm" data-script="duplicates.py" onclick="openSidebar('duplicates.py')">
+                <div class="fc-box-top"><span class="fc-box-name">duplicates.py</span><span class="fc-node-badge cat-review">REVIEW</span></div>
+                <div class="fc-box-desc">Token-shape hashing (identifiers &rarr; <code>ID</code>) so a renamed copy still matches, plus winnowed k-grams for 30-token blocks. Reads ranges from the graph &mdash; never re-parses.</div>
+              </div>
+            </div>
+            <div class="fc-merge-bar"></div>
+          </div>
+
+          <!-- Stage D -->
+          <div class="fc-stage-label">Stage D &mdash; render the human view</div>
+          <div class="fc-box" data-script="build_html.py" onclick="openSidebar('build_html.py')" style="width: 420px;">
+            <div class="fc-box-top">
+              <span class="fc-box-name">query/build_html.py</span>
+              <span class="fc-node-badge cat-query">QUERY</span>
+            </div>
+            <div class="fc-box-desc">Deliberately thin: loads <code>templates/viewer.html</code>, substitutes <code>__TITLE__</code>, <code>__MAPS_DATA__</code> and the vendored <code>force-graph</code>, and writes <strong>one</strong> self-contained <code>explorer.html</code> holding both maps. No <code>&lt;script src&gt;</code>, no network, opens from <code>file://</code>.</div>
+            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+          </div>
+        </div>
+
+        <div class="fc-arrow">
+          <div class="fc-arrow-line"></div>
+          <div class="fc-arrow-head">&darr;</div>
+        </div>
+
+        <!-- ============ THE ARTIFACT BOUNDARY ============ -->
+        <div class="fc-boundary">
+          <div class="fc-boundary-title">THE ARTIFACT BOUNDARY &mdash; the only thing that crosses</div>
+          <div class="fc-boundary-grid">
+            <span class="fc-artifact">data/structure/graph.json &middot; registry.json &middot; vault/*.md</span>
+            <span class="fc-artifact">data/flow/flow_graph.json &middot; notes/*.md</span>
+            <span class="fc-artifact">data/report/&lt;map&gt;/architecture_report.{md,json} &middot; security.json &middot; insights.json</span>
+            <span class="fc-artifact">data/cache/manifest.json &middot; descriptions.json</span>
+            <span class="fc-artifact">data/explorer.html</span>
+          </div>
+          <div class="fc-boundary-note">
+            Deterministic by constraint: same source in, same bytes out. No artifact carries a wall-clock time,
+            which is what lets a rebuild be idempotent and a diff be meaningful.
+          </div>
+        </div>
+
+        <div class="fc-arrow">
+          <div class="fc-arrow-line"></div>
+          <div class="fc-arrow-badge">from here on, no script opens a source file</div>
+          <div class="fc-arrow-head">&darr;</div>
+        </div>
+
+        <!-- ============ PHASE 2 : QUERY ============ -->
+        <div class="fc-phase query">
+          <div class="fc-phase-head">
+            <div>
+              <div class="fc-phase-title">PHASE 2 &middot; QUERY</div>
+              <div class="fc-phase-sub">Reads artifacts. Computes nothing, parses nothing, writes nothing. This is where an agent actually spends its context.</div>
+            </div>
+            <div class="fc-cmd-chips">
+              <span class="fc-cmd-chip" onclick="openCommand('brief')">brief<small>&rarr;</small></span>
+              <span class="fc-cmd-chip" onclick="openCommand('query')">search / trace / context<small>&rarr;</small></span>
+            </div>
+          </div>
+
+          <div class="fc-stage-label">Open a session with the digest, then narrow &mdash; each step is bounded in size</div>
+
+          <div class="fc-fork-container">
             <div class="fc-fork-bar"></div>
             <div class="fc-fork-grid">
               <div class="fc-fork-col">
-                <div class="fc-box" style="width: 100%;" data-script="scan_security.py" onclick="openSidebar('scan_security.py')">
+                <div class="fc-box" data-script="brief.py" onclick="openSidebar('brief.py')">
                   <div class="fc-box-top">
-                    <span class="fc-box-name">review/scan_security.py</span>
+                    <span class="fc-box-name">review/brief.py</span>
                     <span class="fc-node-badge cat-review">REVIEW</span>
                   </div>
-                  <div class="fc-box-desc">Sweeps for secrets, SQLi, command injection; maps to AST nodes via <code>owner_of()</code>.</div>
+                  <div class="fc-box-desc"><strong>1. Orient.</strong> The fixed-size digest to open a session with &mdash; ~4.3&nbsp;KB against 13.6&nbsp;MB of source on a real repository. Anything expensive belongs upstream of it, never inside it.</div>
                   <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
                 </div>
               </div>
               <div class="fc-fork-col">
-                <div class="fc-box" style="width: 100%;" data-script="git_insights.py" onclick="openSidebar('git_insights.py')">
+                <div class="fc-box" data-script="search.py" onclick="openSidebar('search.py')">
                   <div class="fc-box-top">
-                    <span class="fc-box-name">review/git_insights.py</span>
-                    <span class="fc-node-badge cat-review">REVIEW</span>
+                    <span class="fc-box-name">query/search.py</span>
+                    <span class="fc-node-badge cat-query">QUERY</span>
                   </div>
-                  <div class="fc-box-desc">Streams git log: calculates churn, author co-change coupling &amp; hotspot risk scores.</div>
+                  <div class="fc-box-desc"><strong>2. Locate.</strong> Filter one graph by name/doc/layer/kind/lang/file, or by <code>--calls</code> / <code>--called-by</code> / <code>--orphans</code>. It exists so nobody greps source to find a starting node.</div>
                   <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
                 </div>
               </div>
               <div class="fc-fork-col">
-                <div class="fc-box" style="width: 100%;" data-script="analyze.py" onclick="openSidebar('analyze.py')">
+                <div class="fc-box" data-script="trace_path.py" onclick="openSidebar('trace_path.py')">
                   <div class="fc-box-top">
-                    <span class="fc-box-name">review/analyze.py</span>
-                    <span class="fc-node-badge cat-review">REVIEW</span>
+                    <span class="fc-box-name">query/trace_path.py</span>
+                    <span class="fc-node-badge cat-query">QUERY</span>
                   </div>
-                  <div class="fc-box-desc">Tarjan's SCC cycles, backwards layer calls, god objects &amp; health grade formula.</div>
+                  <div class="fc-box-desc"><strong>3. Trace.</strong> <code>--from/--to</code> BFS path, <code>--impact-of</code> blast radius, <code>--impact-of-diff</code> to map a git diff onto nodes. Works on either graph.</div>
                   <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
                 </div>
               </div>
               <div class="fc-fork-col">
-                <div class="fc-box" style="width: 100%;" data-script="metrics.py" onclick="openSidebar('metrics.py')">
+                <div class="fc-box" data-script="context.py" onclick="openSidebar('context.py')">
                   <div class="fc-box-top">
-                    <span class="fc-box-name">review/metrics.py</span>
-                    <span class="fc-node-badge cat-review">REVIEW</span>
+                    <span class="fc-box-name">query/context.py</span>
+                    <span class="fc-node-badge cat-query">QUERY</span>
                   </div>
-                  <div class="fc-box-desc">McCabe cyclomatic complexity and nesting depth per CST node across 17 languages.</div>
-                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-                </div>
-              </div>
-              <div class="fc-fork-col">
-                <div class="fc-box" style="width: 100%;" data-script="debt.py" onclick="openSidebar('debt.py')">
-                  <div class="fc-box-top">
-                    <span class="fc-box-name">review/debt.py</span>
-                    <span class="fc-node-badge cat-review">REVIEW</span>
-                  </div>
-                  <div class="fc-box-desc">Detects TODO/FIXME markers, typing gaps, architectural smells &amp; dead orphan code.</div>
-                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-                </div>
-              </div>
-              <div class="fc-fork-col">
-                <div class="fc-box" style="width: 100%;" data-script="tests_map.py" onclick="openSidebar('tests_map.py')">
-                  <div class="fc-box-top">
-                    <span class="fc-box-name">review/tests_map.py</span>
-                    <span class="fc-node-badge cat-review">REVIEW</span>
-                  </div>
-                  <div class="fc-box-desc">Correlates test files with production implementation nodes to pinpoint untested code.</div>
-                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-                </div>
-              </div>
-              <div class="fc-fork-col">
-                <div class="fc-box" style="width: 100%;" data-script="duplicates.py" onclick="openSidebar('duplicates.py')">
-                  <div class="fc-box-top">
-                    <span class="fc-box-name">review/duplicates.py</span>
-                    <span class="fc-node-badge cat-review">REVIEW</span>
-                  </div>
-                  <div class="fc-box-desc">Token normalization + Winnowing (K=10, W=21) detects copy-pasted block clones.</div>
+                  <div class="fc-box-desc"><strong>4. Read.</strong> The per-node pack &mdash; graph facts plus metrics, risk and insights for one node and its neighbours, rendered under a hard <code>--max-chars</code> budget.</div>
                   <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
                 </div>
               </div>
@@ -1291,192 +1099,20 @@
             <div class="fc-merge-bar"></div>
           </div>
 
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">converges 7 JSON audit reports into report.py</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-box" data-script="report.py" onclick="openSidebar('report.py')">
-            <div class="fc-box-top">
-              <span class="fc-box-name">review/report.py</span>
-              <span class="fc-node-badge cat-review">REVIEW</span>
-            </div>
-            <div class="fc-box-desc">Report Synthesizer: calculates letter grade A&ndash;F, writes <code>architecture_report.md</code> &amp; <code>.json</code>.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">binds review metrics into explorer UI</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-box" data-script="build_html.py" onclick="openSidebar('build_html.py')">
-            <div class="fc-box-top">
-              <span class="fc-box-name">query/build_html.py &amp; viewer.html</span>
-              <span class="fc-node-badge cat-query">QUERY</span>
-            </div>
-            <div class="fc-box-desc">Embeds security vulnerabilities, churn hotspots, and health grades into <code>data/explorer.html</code>.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">streams colored terminal summary</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-box" data-script="console.py" onclick="openSidebar('console.py')">
-            <div class="fc-box-top">
-              <span class="fc-box-name">core/console.py</span>
-              <span class="fc-node-badge cat-core">CORE</span>
-            </div>
-            <div class="fc-box-desc">Safe terminal output wrapper: formats and prints colored grade summary to stdout.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">audit complete</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-terminal end">
-            <span>&#10003;</span> Complete Architecture Health Report &amp; Audit Dashboard
+          <div class="fc-phase-foot">
+            A human takes the other exit: open <code>data/explorer.html</code> from <code>file://</code> &mdash; both maps, seven views, no server and no network.
           </div>
         </div>
-      </div>
 
-      <!-- ============================================================
-           FLOW 5: ZERO-RAG QUERIES ("Find & Investigate")
-           ============================================================ -->
-      <div id="flow-diag-query" class="flow-chart-panel">
-        <div class="flow-banner">
-          <div>
-            <div class="flow-banner-title">🔍 Flow 5: Zero-RAG Queries &mdash; "Find, Trace &amp; Investigate Without RAG"</div>
-            <div class="flow-banner-desc">
-              Triggered during autonomous coding and debugging: searches graph nodes by regex/layer, traces execution paths from routes to targets, and constructs budget-constrained context packs without RAG hallucination.
-            </div>
-          </div>
-          <div class="flow-banner-cmd">python scripts/query/search.py --name &lt;query&gt; &amp;&amp; python scripts/query/context.py --node &lt;id&gt;</div>
+        <div class="fc-arrow">
+          <div class="fc-arrow-line"></div>
+          <div class="fc-arrow-head">&darr;</div>
         </div>
 
-        <div class="flow-canvas">
-          <div class="fc-terminal start">
-            <span>&#9654;</span> Agent Query: "How does checkout work &amp; what calls it?"
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">queries graph for matching node ID</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-box" data-script="search.py" onclick="openSidebar('search.py')">
-            <div class="fc-box-top">
-              <span class="fc-box-name">query/search.py</span>
-              <span class="fc-node-badge cat-query">QUERY</span>
-            </div>
-            <div class="fc-box-desc">Multi-Filter Lookup: filters graph by name regex, layer, kind, or callers without grepping raw source.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">calculates execution path &amp; blast radius</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-box" data-script="trace_path.py" onclick="openSidebar('trace_path.py')">
-            <div class="fc-box-top">
-              <span class="fc-box-name">query/trace_path.py</span>
-              <span class="fc-node-badge cat-query">QUERY</span>
-            </div>
-            <div class="fc-box-desc">Path Tracer: forward BFS (route entrypoint to target node) &amp; reverse BFS (blast radius of callers).</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">gathers context within strict token budget</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-box" data-script="context.py" onclick="openSidebar('context.py')">
-            <div class="fc-box-top">
-              <span class="fc-box-name">query/context.py</span>
-              <span class="fc-node-badge cat-query">QUERY</span>
-            </div>
-            <div class="fc-box-desc">Context Packer: gathers node definition, callers, callees, churn, and risks into &le; 4000-char LLM pack.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">optional AI docstring enrichment writeback</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-box" data-script="apply_descriptions.py" onclick="openSidebar('apply_descriptions.py')">
-            <div class="fc-box-top">
-              <span class="fc-box-name">extract/apply_descriptions.py</span>
-              <span class="fc-node-badge cat-extract">EXTRACT</span>
-            </div>
-            <div class="fc-box-desc">Enrichment Loop: merges agent-generated summaries back into <code>data/cache/descriptions.json</code>.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">visual interactive inspection in browser</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div style="display: flex; gap: 14px; width: 100%; max-width: 720px; justify-content: center; flex-wrap: wrap;">
-            <div class="fc-box" style="flex: 1; min-width: 280px;" data-script="build_html.py" onclick="openSidebar('build_html.py')">
-              <div class="fc-box-top">
-                <span class="fc-box-name">query/build_html.py</span>
-                <span class="fc-node-badge cat-query">QUERY</span>
-              </div>
-              <div class="fc-box-desc">Rebuilds <code>data/explorer.html</code> with updated graph and enriched descriptions.</div>
-              <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-            </div>
-            <div class="fc-box" style="flex: 1; min-width: 280px;" data-script="viewer.html" onclick="openSidebar('viewer.html')">
-              <div class="fc-box-top">
-                <span class="fc-box-name">templates/viewer.html</span>
-                <span class="fc-node-badge cat-query">TEMPLATE</span>
-              </div>
-              <div class="fc-box-desc">Interactive canvas viewer: 7 visualization modes (Graph, Treemap, Matrix, Flow, etc.).</div>
-              <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-            </div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">streams context to prompt</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-box" data-script="console.py" onclick="openSidebar('console.py')">
-            <div class="fc-box-top">
-              <span class="fc-box-name">core/console.py</span>
-              <span class="fc-node-badge cat-core">CORE</span>
-            </div>
-            <div class="fc-box-desc">Streams structured context directly into LLM prompt without terminal encoding crashes.</div>
-            <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
-          </div>
-
-          <div class="fc-arrow">
-            <div class="fc-arrow-line"></div>
-            <div class="fc-arrow-badge">zero RAG hallucination</div>
-            <div class="fc-arrow-head">&darr;</div>
-          </div>
-
-          <div class="fc-terminal end">
-            <span>&#10003;</span> Exact Callgraph Context Injected for Agent Architectural Reasoning
-          </div>
+        <div class="fc-terminal end">
+          <span>&#10003;</span> ANSWER &mdash; from the graph and the notes on the returned path, never from scanning source
         </div>
+
       </div>
     </div>
 
@@ -1588,7 +1224,7 @@
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('py_extract.py')">scripts/extract/py_extract.py</span></td>
-              <td><span class="matrix-fn">parse(), read_source(), field(), find_nodes()</span></td>
+              <td><span class="matrix-fn">parse(), read_source(), field(), defs_in()</span></td>
               <td>Python file path / source bytes</td>
               <td>Method definitions, AST statements, call expressions</td>
             </tr>
@@ -1609,7 +1245,7 @@
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('route_tables.py')">scripts/extract/route_tables.py</span></td>
-              <td><span class="matrix-fn">find_route_tables(), extract_table_routes()</span></td>
+              <td><span class="matrix-fn">read(roots)</span></td>
               <td>Source roots, table file paths</td>
               <td>Routes from Django <code>urlpatterns</code>, Rails <code>routes.rb</code>, Laravel, Phoenix</td>
             </tr>
@@ -1679,7 +1315,7 @@
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('debt.py')">scripts/review/debt.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('analyze.py')">scripts/review/analyze.py</span></td>
-              <td><span class="matrix-fn">orphans(nodes, edges)</span></td>
+              <td><span class="matrix-fn">find_orphans(nodes, edges)</span></td>
               <td>Graph nodes dict, edge list</td>
               <td>Identifies uncalled nodes and dead files</td>
             </tr>
@@ -1694,320 +1330,8 @@
         </table>
       </div>
     </div>
-
-    <!-- Panel 2: Execution Flows -->
-    <div id="cg-flows" class="cg-panel">
-      <div class="flow-subtabs">
-        <button class="flow-btn active" onclick="showFlow('fl-project', this)">Flow 1: Structure Map</button>
-        <button class="flow-btn" onclick="showFlow('fl-flow', this)">Flow 2: Flow Map</button>
-        <button class="flow-btn" onclick="showFlow('fl-both', this)">Flow 3: Dual Map</button>
-        <button class="flow-btn" onclick="showFlow('fl-report', this)">Flow 4: Architecture Review</button>
-        <button class="flow-btn" onclick="showFlow('fl-check', this)">Flow 5: Staleness Check</button>
-        <button class="flow-btn" onclick="showFlow('fl-brief', this)">Flow 6: Orientation Brief</button>
-        <button class="flow-btn" onclick="showFlow('fl-query', this)">Flow 7: Query &amp; Retrieval</button>
-      </div>
-
-      <!-- Flow 1 -->
-      <div id="fl-project" class="flow-detail active">
-        <h4 style="margin: 0 0 8px; color: var(--accent);">Flow 1: Structure Map (<code>archaeologist.py project --src &lt;roots&gt;</code>)</h4>
-        <p style="color: var(--ink-2); font-size: 13px;">Extracts classes, interfaces, React components, and module functions into a reference graph.</p>
-        <div class="flow-step-list">
-          <div class="flow-step-item">
-            <div class="step-badge">1</div>
-            <div class="step-body">
-              <div class="step-title">Dispatch: archaeologist.py &rarr; build_wiki.py</div>
-              <div class="step-desc"><code>run_project()</code> invokes <code>build_wiki.build(src, vault_dir)</code> with verified source directories.</div>
-            </div>
-          </div>
-          <div class="flow-step-item">
-            <div class="step-badge">2</div>
-            <div class="step-body">
-              <div class="step-title">Multi-Language Extraction</div>
-              <div class="step-desc"><code>build_wiki.py</code> runs <code>px.iter_py_files()</code>, <code>js_ts_extract.find_js_files()</code>, and <code>langs_extract.find_lang_files()</code>. Tree-sitter parsers produce CST trees.</div>
-            </div>
-          </div>
-          <div class="flow-step-item">
-            <div class="step-badge">3</div>
-            <div class="step-body">
-              <div class="step-title">ID Disambiguation &amp; Layer Inference</div>
-              <div class="step-desc"><code>core/ids.py:SharedNames</code> groups names by lowercase to qualify collisions across files. <code>core/taxonomy.py:infer_layer()</code> assigns layers. Notes written to <code>data/structure/vault/*.md</code>.</div>
-            </div>
-          </div>
-          <div class="flow-step-item">
-            <div class="step-badge">4</div>
-            <div class="step-body">
-              <div class="step-title">Graph Assembly: build_graph.py</div>
-              <div class="step-desc"><code>build_graph.build()</code> parses wikilinks <code>[[Target]]</code> and frontmatter metadata from the vault, emitting deterministic <code>graph.json</code> and <code>registry.json</code>.</div>
-            </div>
-          </div>
-          <div class="flow-step-item">
-            <div class="step-badge">5</div>
-            <div class="step-body">
-              <div class="step-title">Explorer Bundling &amp; Manifest Write</div>
-              <div class="step-desc"><code>build_html.build()</code> inlines the graph into <code>data/explorer.html</code>. <code>manifest.write(src)</code> records SHA-256 hashes into <code>manifest.json</code>.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Flow 2 -->
-      <div id="fl-flow" class="flow-detail">
-        <h4 style="margin: 0 0 8px; color: var(--accent);">Flow 2: Flow Map (<code>archaeologist.py flow --src &lt;roots&gt;</code>)</h4>
-        <p style="color: var(--ink-2); font-size: 13px;">Extracts method/function nodes, resolves calls against declared types, tracks dropped calls, and builds execution paths.</p>
-        <div class="flow-step-list">
-          <div class="flow-step-item">
-            <div class="step-badge">1</div>
-            <div class="step-body">
-              <div class="step-title">Pass 1: Registration</div>
-              <div class="step-desc"><code>build_flow.py</code> extracts all function/method definitions across Python, JS/TS, and 15 languages, registering them into <code>core/ids.py:SharedNames</code>.</div>
-            </div>
-          </div>
-          <div class="flow-step-item">
-            <div class="step-badge">2</div>
-            <div class="step-body">
-              <div class="step-title">External Route Table Ingestion</div>
-              <div class="step-desc"><code>route_tables.find_route_tables()</code> extracts route endpoints from Django <code>urlpatterns</code>, Rails <code>routes.rb</code>, Laravel, and Phoenix, attaching them to controller handler nodes.</div>
-            </div>
-          </div>
-          <div class="flow-step-item">
-            <div class="step-badge">3</div>
-            <div class="step-body">
-              <div class="step-title">Pass 2: Two-Pass Call Resolution</div>
-              <div class="step-desc">Resolves calls via local typed assignments, parameter annotations, and <code>langs_extract._pick_overload()</code>. Connects frontend fetch/axios calls to backend routes.</div>
-            </div>
-          </div>
-          <div class="flow-step-item">
-            <div class="step-badge">4</div>
-            <div class="step-body">
-              <div class="step-title">Dropped Call Tracking (unresolved)</div>
-              <div class="step-desc"><code>_record_dropped()</code> and <code>_split_dropped()</code> classify dropped calls: calls naming known in-graph nodes are logged in <code>unresolved</code> as investigation clues, avoiding guessing false edges.</div>
-            </div>
-          </div>
-          <div class="flow-step-item">
-            <div class="step-badge">5</div>
-            <div class="step-body">
-              <div class="step-title">Graph Output &amp; HTML Bundling</div>
-              <div class="step-desc">Writes <code>data/flow/notes/*.md</code> and <code>data/flow/flow_graph.json</code>. Re-renders <code>data/explorer.html</code> and updates <code>manifest.json</code>.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Flow 3 -->
-      <div id="fl-both" class="flow-detail">
-        <h4 style="margin: 0 0 8px; color: var(--accent);">Flow 3: Dual Map Build (<code>archaeologist.py both --src &lt;roots&gt;</code>)</h4>
-        <p style="color: var(--ink-2); font-size: 13px;">Runs Flow 1 (Structure) followed immediately by Flow 2 (Flow), then writes the unified manifest.</p>
-        <div class="flow-step-list">
-          <div class="flow-step-item">
-            <div class="step-badge">1</div>
-            <div class="step-body">
-              <div class="step-title">Run Flow 1: Structure Map</div>
-              <div class="step-desc">Generates <code>data/structure/graph.json</code> and <code>vault/*.md</code>.</div>
-            </div>
-          </div>
-          <div class="flow-step-item">
-            <div class="step-badge">2</div>
-            <div class="step-body">
-              <div class="step-title">Run Flow 2: Flow Map</div>
-              <div class="step-desc">Generates <code>data/flow/flow_graph.json</code> and <code>notes/*.md</code>.</div>
-            </div>
-          </div>
-          <div class="flow-step-item">
-            <div class="step-badge">3</div>
-            <div class="step-body">
-              <div class="step-title">Unified Offline Explorer &amp; Manifest</div>
-              <div class="step-desc"><code>build_html.py</code> bundles both maps into <code>data/explorer.html</code> with a switch header. <code>manifest.write()</code> seals source hashes.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Flow 4 -->
-      <div id="fl-report" class="flow-detail">
-        <h4 style="margin: 0 0 8px; color: var(--accent);">Flow 4: Architecture Review &amp; Health Audit (<code>archaeologist.py report --src &lt;roots&gt;</code>)</h4>
-        <p style="color: var(--ink-2); font-size: 13px;">Executes 7 deterministic review passes and generates an executive architecture report.</p>
-        <div class="flow-step-list">
-          <div class="flow-step-item">
-            <div class="step-badge">1</div>
-            <div class="step-body">
-              <div class="step-title">Dispatcher Loop: report.build() per map</div>
-              <div class="step-desc"><code>archaeologist.py:run_report()</code> runs <code>report.build()</code> for each built map (<code>structure</code>, <code>flow</code>).</div>
-            </div>
-          </div>
-          <div class="flow-step-item">
-            <div class="step-badge">2</div>
-            <div class="step-body">
-              <div class="step-title">Security &amp; Git Churn Scans</div>
-              <div class="step-desc"><code>scan_security.scan()</code> maps regex findings to AST node ranges via <code>owner_of()</code>. <code>git_insights.build()</code> streams <code>git log --numstat</code> to rank hotspots.</div>
-            </div>
-          </div>
-          <div class="flow-step-item">
-            <div class="step-badge">3</div>
-            <div class="step-body">
-              <div class="step-title">Tarjan's SCC &amp; Health Scoring</div>
-              <div class="step-desc"><code>analyze.report()</code> detects circular dependencies via iterative Tarjan's SCC, checks layer violations, and computes an A–F health grade.</div>
-            </div>
-          </div>
-          <div class="flow-step-item">
-            <div class="step-badge">4</div>
-            <div class="step-body">
-              <div class="step-title">Metrics, Debt, Tests &amp; Duplicates</div>
-              <div class="step-desc"><code>metrics.build()</code> measures cyclomatic complexity; <code>debt.build()</code> catalogs TODO markers; <code>tests_map.build()</code> maps test coverage; <code>duplicates.build()</code> winnows copied blocks ($K=10, W=21$).</div>
-            </div>
-          </div>
-          <div class="flow-step-item">
-            <div class="step-badge">5</div>
-            <div class="step-body">
-              <div class="step-title">Report Assembly &amp; Embedding</div>
-              <div class="step-desc">Emits <code>architecture_report.md</code> and <code>.json</code>. Calls <code>build_html.build()</code> to inline reports into <code>data/explorer.html</code>.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Flow 5 -->
-      <div id="fl-check" class="flow-detail">
-        <h4 style="margin: 0 0 8px; color: var(--accent);">Flow 5: Staleness Check (<code>archaeologist.py check [--src &lt;roots&gt;]</code>)</h4>
-        <p style="color: var(--ink-2); font-size: 13px;">Deterministic source-freshness check; verifies if working tree files or grammar wheels have changed since the last build.</p>
-        <div class="flow-step-list">
-          <div class="flow-step-item">
-            <div class="step-badge">1</div>
-            <div class="step-body">
-              <div class="step-title">Call: manifest.compare(src)</div>
-              <div class="step-desc">Reads recorded source roots and grammar versions from <code>data/cache/manifest.json</code>.</div>
-            </div>
-          </div>
-          <div class="flow-step-item">
-            <div class="step-badge">2</div>
-            <div class="step-body">
-              <div class="step-title">SHA-256 Hash Comparison &amp; Grammar Drift</div>
-              <div class="step-desc">Re-scans roots, hashes current files, and checks <code>core/grammars.py:drift()</code>. Emits a JSON summary of modified/added/deleted files. Zero graph re-parsing needed.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Flow 6 -->
-      <div id="fl-brief" class="flow-detail">
-        <h4 style="margin: 0 0 8px; color: var(--accent);">Flow 6: Orientation Brief (<code>archaeologist.py brief</code>)</h4>
-        <p style="color: var(--ink-2); font-size: 13px;">Instant orientation digest for agents or developers; constant-time execution reading pre-computed JSON files.</p>
-        <div class="flow-step-list">
-          <div class="flow-step-item">
-            <div class="step-badge">1</div>
-            <div class="step-body">
-              <div class="step-title">Dispatch: brief.main()</div>
-              <div class="step-desc">Directly loads <code>manifest.json</code>, <code>graph.json</code>, and <code>architecture_report.json</code>.</div>
-            </div>
-          </div>
-          <div class="flow-step-item">
-            <div class="step-badge">2</div>
-            <div class="step-body">
-              <div class="step-title">Token Digest Output</div>
-              <div class="step-desc">Formats node/edge counts, health grade, top hotspots, entry points, and high-severity risks into a fixed-token text summary.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Flow 7 -->
-      <div id="fl-query" class="flow-detail">
-        <h4 style="margin: 0 0 8px; color: var(--accent);">Flow 7: Agent Zero-RAG Retrieval &amp; Query Flows</h4>
-        <p style="color: var(--ink-2); font-size: 13px;">High-speed BFS path tracing, blast radius impact calculation, and token-budgeted context packing.</p>
-        <div class="flow-step-list">
-          <div class="flow-step-item">
-            <div class="step-badge">1</div>
-            <div class="step-body">
-              <div class="step-title">Path Tracing &amp; Blast Radius: trace_path.py</div>
-              <div class="step-desc">Forward BFS finds shortest call paths between nodes. Reverse BFS on incoming edges calculates upstream blast radius for modified nodes or <code>git diff</code> changes.</div>
-            </div>
-          </div>
-          <div class="flow-step-item">
-            <div class="step-badge">2</div>
-            <div class="step-body">
-              <div class="step-title">Context Budget Packing: context.py</div>
-              <div class="step-desc">Gathers node facts, neighbors, security findings, and precision notes; dynamically contracts neighbors using <code>NEIGHBOR_CAPS = (12, 6, 3, 1)</code> to fit within <code>--max-chars</code>.</div>
-            </div>
-          </div>
-          <div class="flow-step-item">
-            <div class="step-badge">3</div>
-            <div class="step-body">
-              <div class="step-title">Multi-Filter Search: search.py</div>
-              <div class="step-desc">Filters graph nodes by name, docstring, layer, route, fan-in/fan-out, or complexity without grepping raw source files.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   </section>
 
-  <!-- Scenarios Section -->
-  <section class="scenarios-section">
-    <div class="section-eyebrow">Operational Scenarios</div>
-    <h2>How the System is Used in Practice</h2>
-    <div class="scenario-tabs">
-      <button class="sc-tab active" onclick="showScenario('sc-build', this)">Scenario 1: Build & Ingest</button>
-      <button class="sc-tab" onclick="showScenario('sc-query', this)">Scenario 2: Zero-RAG Query</button>
-      <button class="sc-tab" onclick="showScenario('sc-audit', this)">Scenario 3: Deep Review & Health Audit</button>
-    </div>
-
-    <!-- Scenario 1 Card -->
-    <div id="sc-build" class="sc-card active">
-      <h3>Scenario 1: Codebase Ingestion & Graph Building</h3>
-      <p style="color: var(--ink-2)">
-        The engine scans target source directories, parses every file via Tree-sitter, disambiguates names,
-        resolves calls down to declared types, and writes deterministic JSON graphs and Markdown notes.
-      </p>
-      <div class="cmd-box"><span class="c"># 1. Build both maps from source</span>
-python .agents/skills/code-archaeologist/scripts/archaeologist.py both --src ./sample_src</div>
-      <p style="color: var(--ink-2); font-size: 13px;">
-        <strong>Artifacts Produced:</strong><br>
-        &bull; <code>data/structure/graph.json</code> &amp; <code>vault/*.md</code> (25 nodes, 22 edges)<br>
-        &bull; <code>data/flow/flow_graph.json</code> &amp; <code>notes/*.md</code> (53 nodes, 33 edges, 16 endpoints)<br>
-        &bull; <code>data/explorer.html</code> (Self-contained viewer embedding both graphs and vendored force-graph)
-      </p>
-    </div>
-
-    <!-- Scenario 2 Card -->
-    <div id="sc-query" class="sc-card">
-      <h3>Scenario 2: Zero-RAG Architecture Query & Impact Analysis</h3>
-      <p style="color: var(--ink-2)">
-        An AI agent or engineer asks questions about call paths, blast radius, or component neighbors.
-        Instead of loading 100,000 tokens of raw source code, the agent queries the graph using BFS and reads
-        only the returned notes (~1,500 tokens).
-      </p>
-      <div class="cmd-box"><span class="c"># Trace execution path from frontend handler to repository</span>
-python .agents/skills/code-archaeologist/scripts/query/trace_path.py \
-  --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json \
-  --from submitOrder --to OrderRepository.save
-
-<span class="c"># Blast radius: what breaks if OrderRepository.save changes?</span>
-python .agents/skills/code-archaeologist/scripts/query/trace_path.py \
-  --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json \
-  --impact-of OrderRepository.save</div>
-      <p style="color: var(--ink-2); font-size: 13px;">
-        <strong>Output:</strong> Returns <code>submitOrder > createOrder > OrderController.create_order > OrderService.place_order > OrderRepository.save</code>
-        followed by reading only those 5 note files.
-      </p>
-    </div>
-
-    <!-- Scenario 3 Card -->
-    <div id="sc-audit" class="sc-card">
-      <h3>Scenario 3: Code Health, Smells & Duplicate Audit</h3>
-      <p style="color: var(--ink-2)">
-        Runs 7 analysis passes: Tarjan's SCC cycle detection, Winnowed code clones, regex vulnerability mapping,
-        git churn hotspots, and McCabe complexity metrics, outputting an executive brief and unified report.
-      </p>
-      <div class="cmd-box"><span class="c"># Generate unified architecture report</span>
-python .agents/skills/code-archaeologist/scripts/archaeologist.py report --src ./sample_src
-
-<span class="c"># Read instant orientation brief (fixed-size digest)</span>
-python .agents/skills/code-archaeologist/scripts/archaeologist.py brief</div>
-      <p style="color: var(--ink-2); font-size: 13px;">
-        <strong>Results:</strong> Computes an A-F health grade, spots copy-pasted blocks ($K=10, W=21$), locates cycles,
-        and attributes security findings to exact AST node ranges.
-      </p>
-    </div>
-  </section>
 
   <!-- Script Cards Section -->
   <section style="padding: 48px 0;">
@@ -2107,7 +1431,7 @@ const SCRIPTS_DATA = [
     outputs: "Cached tree_sitter.Parser instance or explicit skip warning",
     invariant: "Grammars are installed on demand into vendor/. Missing grammar skips files with explicit named pip warning.",
     cli: "python scripts/core/grammars.py",
-    callers: [{ name: "py_extract.py", fn: "get('python')" }, { name: "js_ts_extract.py", fn: "get('javascript')" }, { name: "langs_extract.py", fn: "get(lang)" }, { name: "metrics.py", fn: "get(lang)" }],
+    callers: [{ name: "py_extract.py", fn: "parser_for('python')" }, { name: "js_ts_extract.py", fn: "parser_for('javascript')" }, { name: "langs_extract.py", fn: "parser_for(lang)" }, { name: "metrics.py", fn: "parser_for(lang)" }],
     callees: []
   },
   {
@@ -2190,7 +1514,7 @@ const SCRIPTS_DATA = [
       { name: "py_extract.py", fn: "parse()" },
       { name: "js_ts_extract.py", fn: "extract_js_files()" },
       { name: "langs_extract.py", fn: "extract_lang_files() & _pick_overload()" },
-      { name: "route_tables.py", fn: "find_route_tables()" },
+      { name: "route_tables.py", fn: "read(roots)" },
       { name: "ids.py", fn: "SharedNames" },
       { name: "taxonomy.py", fn: "infer_layer()" }
     ]
@@ -2207,7 +1531,7 @@ const SCRIPTS_DATA = [
     invariant: "Verified against stdlib ast via check_py_oracle.py (0 disagreements required).",
     cli: "Helper module for Python AST/CST operations",
     callers: [{ name: "build_wiki.py", fn: "parse()" }, { name: "build_flow.py", fn: "parse()" }, { name: "metrics.py", fn: "read_source()" }],
-    callees: [{ name: "grammars.py", fn: "get('python')" }]
+    callees: [{ name: "grammars.py", fn: "parser_for('python')" }]
   },
   {
     name: "js_ts_extract.py",
@@ -2221,7 +1545,7 @@ const SCRIPTS_DATA = [
     invariant: "Carries precision: name-matched because JS/TS has untyped dynamic receivers.",
     cli: "python scripts/extract/js_ts_extract.py --src ./src",
     callers: [{ name: "build_wiki.py", fn: "find_js_files()" }, { name: "build_flow.py", fn: "extract_js_files()" }],
-    callees: [{ name: "grammars.py", fn: "get('javascript')" }]
+    callees: [{ name: "grammars.py", fn: "parser_for('javascript')" }]
   },
   {
     name: "langs_extract.py",
@@ -2235,7 +1559,7 @@ const SCRIPTS_DATA = [
     invariant: "Node range starts at first annotation/decorator line (source..end). Named langs_extract to avoid confusion with TypeScript.",
     cli: "python scripts/extract/langs_extract.py --src ./src",
     callers: [{ name: "build_wiki.py", fn: "find_lang_files()" }, { name: "build_flow.py", fn: "extract_lang_files() & _pick_overload()" }],
-    callees: [{ name: "grammars.py", fn: "get(lang)" }]
+    callees: [{ name: "grammars.py", fn: "parser_for(lang)" }]
   },
   {
     name: "route_tables.py",
@@ -2248,8 +1572,8 @@ const SCRIPTS_DATA = [
     outputs: "List of route mappings (method, path, target handler)",
     invariant: "Unambiguous matching only: if target handler matches 0 or >1 node, route is dropped and counted.",
     cli: "Imported by build_flow for external route tables",
-    callers: [{ name: "build_flow.py", fn: "find_route_tables()" }],
-    callees: [{ name: "grammars.py", fn: "get(lang)" }]
+    callers: [{ name: "build_flow.py", fn: "read(roots)" }],
+    callees: [{ name: "grammars.py", fn: "parser_for(lang)" }]
   },
   {
     name: "apply_descriptions.py",
@@ -2278,7 +1602,7 @@ const SCRIPTS_DATA = [
     outputs: "Analysis dictionary: cycles, orphans, hubs, god objects, health score",
     invariant: "Degree calculations run on app_edges(), ignoring test nodes so test coverage doesn't inflate coupling.",
     cli: "python scripts/review/analyze.py --graph data/flow/flow_graph.json",
-    callers: [{ name: "report.py", fn: "report()" }, { name: "debt.py", fn: "orphans()" }],
+    callers: [{ name: "report.py", fn: "report()" }, { name: "debt.py", fn: "find_dead()" }],
     callees: [{ name: "console.py", fn: "safe_stdout()" }]
   },
   {
@@ -2335,7 +1659,7 @@ const SCRIPTS_DATA = [
     invariant: "Keyed by graph node ID by construction; measures every graphed language.",
     cli: "python scripts/review/metrics.py --src ./src --graph data/flow/flow_graph.json",
     callers: [{ name: "report.py", fn: "build()" }],
-    callees: [{ name: "grammars.py", fn: "get(lang)" }, { name: "scan_security.py", fn: "iter_source_files()" }, { name: "py_extract.py", fn: "read_source()" }]
+    callees: [{ name: "grammars.py", fn: "parser_for(lang)" }, { name: "scan_security.py", fn: "iter_source_files()" }, { name: "py_extract.py", fn: "read_source()" }]
   },
   {
     name: "debt.py",
@@ -2349,7 +1673,7 @@ const SCRIPTS_DATA = [
     invariant: "Heuristic review pass: reports debt but deliberately does not penalize health score.",
     cli: "python scripts/review/debt.py --src ./src",
     callers: [{ name: "report.py", fn: "build()" }],
-    callees: [{ name: "analyze.py", fn: "orphans()" }, { name: "scan_security.py", fn: "owner_of()" }]
+    callees: [{ name: "analyze.py", fn: "find_orphans()" }, { name: "scan_security.py", fn: "owner_of()" }]
   },
   {
     name: "tests_map.py",
@@ -2399,7 +1723,7 @@ const SCRIPTS_DATA = [
     invariant: "Computes NOTHING: expensive work belongs upstream. Costs same tokens on 200 files as 5 files.",
     cli: "python scripts/review/brief.py",
     callers: [{ name: "archaeologist.py", fn: "main()" }],
-    callees: [{ name: "manifest.py", fn: "compare()" }, { name: "grammars.py", fn: "installed()" }]
+    callees: [{ name: "manifest.py", fn: "compare()" }, { name: "grammars.py", fn: "versions()" }]
   },
 
   // --- Query & Visualization ---
@@ -2531,6 +1855,178 @@ function applyFilter() {
 }
 
 // Sidebar Drawer Management
+// --- Commands: the exact script sequence behind each CLI subcommand ---------
+// Kept beside SCRIPTS_DATA so the flowchart can stay one diagram: a command chip
+// opens its sequence in the same drawer, rather than needing a diagram of its own.
+const COMMANDS_DATA = {
+  project: {
+    phase: "BUILD", cat: "extract",
+    title: "archaeologist.py project",
+    path: "Phase 1 - Build  |  structure map only",
+    role: "Builds the structure map: one node per class, React component and module function-group. Re-renders the explorer and records the source hashes so `check` can detect drift.",
+    tech: "run_project(src)",
+    algorithm: "Runs strictly in order, bailing on the first non-zero return code. build_graph is handed the vault build_wiki just wrote - it never re-reads source.",
+    invariant: "manifest.write() runs only if every stage returned 0, so a failed build can never be recorded as fresh.",
+    inputs: "--src roots (source tree)",
+    outputs: "data/structure/{vault/*.md, graph.json, registry.json}, data/explorer.html, data/cache/manifest.json",
+    cli: "python scripts/archaeologist.py project --src ./backend ./frontend",
+    sequence: [
+      { name: "build_wiki.py", fn: "build(src, vault) -> vault/*.md" },
+      { name: "build_graph.py", fn: "build(vault, out) -> graph.json + registry.json" },
+      { name: "build_html.py", fn: "build(sources, explorer.html)" },
+      { name: "manifest.py", fn: "write(src)" }
+    ]
+  },
+  flow: {
+    phase: "BUILD", cat: "extract",
+    title: "archaeologist.py flow",
+    path: "Phase 1 - Build  |  flow map only",
+    role: "Builds the flow map: one node per method or function, call edges where the receiver's type is readable, routes attached, frontend calls linked to backend handlers.",
+    tech: "run_flow(src)",
+    algorithm: "build_flow does the whole pass itself: three producers -> SharedNames ids -> route_tables.read() attached -> test layer -> cross-stack http edges -> precision. Only then does the explorer re-render.",
+    invariant: "Route tables are attached AFTER the nodes exist and BEFORE the cross-stack pass, because that pass is what reads routes.",
+    inputs: "--src roots (source tree)",
+    outputs: "data/flow/{flow_graph.json, notes/*.md}, data/explorer.html, data/cache/manifest.json",
+    cli: "python scripts/archaeologist.py flow --src ./backend ./frontend",
+    sequence: [
+      { name: "build_flow.py", fn: "build(src, notes, flow_graph.json)" },
+      { name: "route_tables.py", fn: "read(roots) - called from within build_flow" },
+      { name: "apply_descriptions.py", fn: "cached summaries, keyed by source hash" },
+      { name: "build_html.py", fn: "build(sources, explorer.html)" },
+      { name: "manifest.py", fn: "write(src)" }
+    ]
+  },
+  both: {
+    phase: "BUILD", cat: "extract",
+    title: "archaeologist.py both",
+    path: "Phase 1 - Build  |  the usual command",
+    role: "Runs project then flow, in that order, and records the manifest once at the end. This is what you normally run.",
+    tech: "run_project(src) or run_flow(src)",
+    algorithm: "Python's `or` short-circuits on a non-zero return code, so a failing structure build stops before the flow build starts.",
+    invariant: "The two maps have different node ids by design. They are never merged - the explorer holds both and switches between them.",
+    inputs: "--src roots (source tree)",
+    outputs: "Everything project and flow produce, plus one explorer.html holding both maps",
+    cli: "python scripts/archaeologist.py both --src ./backend ./frontend",
+    sequence: [
+      { name: "build_wiki.py", fn: "build() - structure" },
+      { name: "build_graph.py", fn: "build() - structure" },
+      { name: "build_flow.py", fn: "build() - flow" },
+      { name: "build_html.py", fn: "build() - once per map build" },
+      { name: "manifest.py", fn: "write(src)" }
+    ]
+  },
+  report: {
+    phase: "BUILD", cat: "review",
+    title: "archaeologist.py report",
+    path: "Phase 1 - Build  |  review passes over a built map",
+    role: "Runs the seven review passes over every map that has already been built, writing one report per map, then re-renders the explorer with both reports embedded.",
+    tech: "run_report(src) -> report.build(src, graph, out) per map",
+    algorithm: "Errors out if no map exists yet - it needs a graph AND the source, since scan_security, metrics, git_insights and duplicates all read files.",
+    invariant: "One report per map. Node ids differ between maps, so a report from the other map must never be embedded (build_html.report_for enforces it).",
+    inputs: "--src roots + data/*/graph.json from a previous build",
+    outputs: "data/report/<map>/architecture_report.{md,json}, security.json, insights.json",
+    cli: "python scripts/archaeologist.py report --src ./backend ./frontend",
+    sequence: [
+      { name: "report.py", fn: "build(src, graph, out)" },
+      { name: "analyze.py", fn: "health(), find_orphans(), cycles, hubs" },
+      { name: "scan_security.py", fn: "line regex + owner_of() attribution" },
+      { name: "metrics.py", fn: "LOC / complexity / depth / params per node" },
+      { name: "git_insights.py", fn: "git log --numstat -> churn + owners" },
+      { name: "debt.py", fn: "find_markers(), find_dead()" },
+      { name: "tests_map.py", fn: "which nodes a test file names" },
+      { name: "duplicates.py", fn: "token-shape clusters + k-gram blocks" },
+      { name: "build_html.py", fn: "build(sources, explorer.html)" }
+    ]
+  },
+  check: {
+    phase: "HINGE", cat: "core",
+    title: "archaeologist.py check",
+    path: "The hinge  |  neither build nor query",
+    role: "Answers one question: are the artifacts still true? Prints a JSON staleness report and exits. Reads source, writes nothing.",
+    tech: "manifest.compare(src)",
+    algorithm: "SHA-1 of every source file under the recorded roots, plus the set of installed tree-sitter grammars, compared against data/cache/manifest.json. Roots are recorded, so --src is optional.",
+    invariant: "A changed grammar set counts as staleness: a graph that is smaller for want of a wheel is indistinguishable from a graph of a smaller codebase.",
+    inputs: "data/cache/manifest.json + the source tree",
+    outputs: "A JSON report on stdout. No artifact is written.",
+    cli: "python scripts/archaeologist.py check --src ./backend ./frontend",
+    sequence: [
+      { name: "manifest.py", fn: "compare(src) -> {stale, added, changed, removed}" },
+      { name: "grammars.py", fn: "versions() - the installed grammar set" }
+    ]
+  },
+  brief: {
+    phase: "QUERY", cat: "review",
+    title: "archaeologist.py brief",
+    path: "Phase 2 - Query  |  open every session with this",
+    role: "The fixed-size digest an agent should read first: grades, counts, endpoints, hotspots, skipped grammars, unpinned versions. It computes nothing - everything in it was written by an earlier build.",
+    tech: "brief.main(argv)",
+    algorithm: "Reads the artifacts and formats them. Anything expensive belongs upstream of it, never inside it - that is what keeps its size fixed regardless of repository size.",
+    invariant: "~4.3 KB on a 13.6 MB repository. The size is a property of the format, not of the codebase.",
+    inputs: "data/*/graph.json, data/report/*, data/cache/manifest.json",
+    outputs: "Formatted digest on stdout. Nothing written.",
+    cli: "python scripts/archaeologist.py brief",
+    sequence: [
+      { name: "brief.py", fn: "main(argv)" },
+      { name: "manifest.py", fn: "compare() - is what I am about to print still true?" },
+      { name: "grammars.py", fn: "drift() -> UNPINNED, install_hint() -> SKIPPED" }
+    ]
+  },
+  query: {
+    phase: "QUERY", cat: "query",
+    title: "search.py / trace_path.py / context.py",
+    path: "Phase 2 - Query  |  run these directly, not through archaeologist.py",
+    role: "The three retrieval tools, used in order: locate the starting node, trace the path or blast radius, then read a bounded pack for the nodes on that path. None of them opens a source file.",
+    tech: "Graph traversal over the built JSON",
+    algorithm: "search filters one graph; trace_path runs BFS for --from/--to and a reverse reachability for --impact-of; context joins graph facts with metrics, risk and insights under a hard --max-chars budget.",
+    invariant: "The Zero-RAG contract: answer from the graph and the notes on the returned path, never by scanning source.",
+    inputs: "data/structure/graph.json or data/flow/flow_graph.json, plus data/report/*",
+    outputs: "Text on stdout, bounded in size. Nothing written.",
+    cli: "python scripts/query/trace_path.py --from submitOrder --to OrderArchive.save",
+    sequence: [
+      { name: "search.py", fn: "1. locate: --name / --layer / --calls / --orphans" },
+      { name: "trace_path.py", fn: "2. trace: --from/--to, --impact-of, --impact-of-diff" },
+      { name: "context.py", fn: "3. read: per-node pack under --max-chars" },
+      { name: "build_html.py", fn: "(humans) data/explorer.html from file://" }
+    ]
+  }
+};
+
+function openCommand(id) {
+  const item = COMMANDS_DATA[id];
+  if (!item) return;
+
+  document.getElementById("sbBadge").textContent = item.phase;
+  document.getElementById("sbBadge").className = "fc-node-badge cat-" + item.cat;
+  document.getElementById("sbTitle").textContent = item.title;
+  document.getElementById("sbPath").textContent = item.path;
+  document.getElementById("sbRole").textContent = item.role;
+  document.getElementById("sbTech").textContent = item.tech;
+  document.getElementById("sbAlgo").textContent = item.algorithm;
+  document.getElementById("sbInvariant").textContent = item.invariant;
+  document.getElementById("sbInputs").textContent = item.inputs;
+  document.getElementById("sbOutputs").textContent = item.outputs;
+  document.getElementById("sbCmd").textContent = item.cli;
+
+  // A command has no callers - you type it - and its "callees" are an ordered
+  // sequence, so both chip lists are relabelled rather than reused as-is.
+  document.getElementById("sbCallersLabel").textContent = "Invoked By";
+  document.getElementById("sbCallers").innerHTML =
+    "<span class='sb-none'>You, from the command line</span>";
+  document.getElementById("sbCalleesLabel").textContent = "Scripts It Runs, In Order";
+  const seq = document.getElementById("sbCallees");
+  seq.innerHTML = "";
+  item.sequence.forEach((c, i) => {
+    const chip = document.createElement("span");
+    chip.className = "sb-chip";
+    chip.innerHTML = (i + 1) + ". " + c.name + (c.fn ? `<small>${c.fn}</small>` : "");
+    chip.onclick = (e) => { e.stopPropagation(); openSidebar(c.name); };
+    seq.appendChild(chip);
+  });
+
+  document.getElementById("scriptSidebar").classList.add("open");
+  document.getElementById("sidebarOverlay").classList.add("open");
+}
+
 function openSidebar(name) {
   const clean = name.replace(/^scripts\/(?:[a-z_0-9]+\/)?/, "");
   const item = SCRIPTS_DATA.find(s => s.name === clean || s.name === clean + ".py" || s.name.startsWith(clean));
@@ -2547,6 +2043,9 @@ function openSidebar(name) {
   document.getElementById("sbInputs").textContent = item.inputs;
   document.getElementById("sbOutputs").textContent = item.outputs;
   document.getElementById("sbCmd").textContent = item.cli || ("python " + item.path);
+  // openCommand() relabels these two blocks; a script view puts them back.
+  document.getElementById("sbCallersLabel").textContent = "Called By (Incoming Callers)";
+  document.getElementById("sbCalleesLabel").textContent = "Calls (Outgoing Callees)";
 
   // Render Callers
   const callersEl = document.getElementById("sbCallers");
@@ -2600,25 +2099,11 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closeSidebar();
 });
 
-// Flowchart Panel Switching
-function setFlowchart(flowId, btn) {
-  document.querySelectorAll(".flow-sel-btn").forEach(b => b.classList.remove("active"));
-  document.querySelectorAll(".flow-chart-panel").forEach(p => p.classList.remove("active"));
-  btn.classList.add("active");
-  const target = document.getElementById(flowId);
-  if (target) target.classList.add("active");
-}
 
 function focusCard(name) {
   openSidebar(name);
 }
 
-function showScenario(id, btn) {
-  document.querySelectorAll(".sc-tab").forEach(t => t.classList.remove("active"));
-  document.querySelectorAll(".sc-card").forEach(c => c.classList.remove("active"));
-  btn.classList.add("active");
-  document.getElementById(id).classList.add("active");
-}
 
 function showCgTab(id, btn) {
   document.querySelectorAll(".cg-tab").forEach(t => t.classList.remove("active"));
@@ -2627,12 +2112,6 @@ function showCgTab(id, btn) {
   document.getElementById(id).classList.add("active");
 }
 
-function showFlow(id, btn) {
-  document.querySelectorAll(".flow-btn").forEach(b => b.classList.remove("active"));
-  document.querySelectorAll(".flow-detail").forEach(d => d.classList.remove("active"));
-  btn.classList.add("active");
-  document.getElementById(id).classList.add("active");
-}
 
 function filterMatrix() {
   const q = document.getElementById("matrixFilterInput").value.toLowerCase();
