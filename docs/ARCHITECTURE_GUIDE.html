@@ -478,12 +478,12 @@ const SCRIPTS_DATA = [
     name: "build_flow.py",
     cat: "extract",
     path: "scripts/extract/build_flow.py",
-    role: "Builds the Flow Map (methods, functions, endpoints, and call edges).",
-    tech: "Receiver Resolution & Overload Disambiguation",
-    algorithm: "Two-pass analysis: Pass 1 collects all definitions and registers SharedNames. Pass 2 resolves calls via declared types (_self_attr_types) and selects overloads via _pick_overload.",
-    inputs: "Parsed AST/CSTs from py_extract, js_ts_extract, ts_extract",
+    role: "Builds the Flow Map (methods, functions, endpoints, call edges, and unresolved calls).",
+    tech: "Receiver Resolution, Overload Picking & Dropped-Call Tracking",
+    algorithm: "Two-pass analysis: Pass 1 registers SharedNames. Pass 2 resolves calls via declared types (_self_attr_types) and selects overloads. Tracks dropped calls via _record_dropped, and classifies calls matching in-graph nodes as unresolved via _split_dropped.",
+    inputs: "Parsed AST/CSTs from py_extract, js_ts_extract, langs_extract",
     outputs: "data/flow/flow_graph.json, notes/*.md",
-    invariant: "Edges are a LOWER BOUND: calls followed only through declared types. Interface calls stop at declaration: true node."
+    invariant: "Lower bound: calls followed only through declared types. Dropped calls that match in-graph names are reported in unresolved without inventing false edges (check_graph c19, r35)."
   },
   {
     name: "py_extract.py",
@@ -502,21 +502,21 @@ const SCRIPTS_DATA = [
     path: "scripts/extract/js_ts_extract.py",
     role: "JS/JSX/TS/TSX extractor for classes, functions, routes, and fetch calls.",
     tech: "Multi-Grammar CST & Cross-Stack Route Detection",
-    algorithm: "Uses javascript, typescript, and tsx grammars. Detects Express/Nest routes, fetch/axios HTTP calls, and JSX component returns.",
+    algorithm: "Uses javascript, typescript, and tsx grammars. Detects Express/Nest routes, fetch/axios HTTP calls, and JSX component returns. Emits {type, name} calls for typed receivers.",
     inputs: ".js, .jsx, .ts, .tsx files",
     outputs: "JSON entity dictionary (classes, functions, routes, calls)",
     invariant: "Carries precision: name-matched because JS/TS has untyped dynamic receivers."
   },
   {
-    name: "ts_extract.py",
+    name: "langs_extract.py",
     cat: "extract",
-    path: "scripts/extract/ts_extract.py",
-    role: "Extractor for 15 compiled & dynamic languages using Tree-sitter.",
+    path: "scripts/extract/langs_extract.py",
+    role: "Extractor for 15 compiled & dynamic languages using Tree-sitter (formerly ts_extract.py).",
     tech: "Table-Driven CST Shape Extraction (SPEC & SHAPES)",
     algorithm: "Unified CST walker guided by SPEC (Java, Go, C#) and SHAPES tables (Rust, Kotlin, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir). Handles OVERLOADING languages.",
     inputs: "Source files in 15 languages",
     outputs: "Declarations, bodies, parameter types, calls, decorator ranges",
-    invariant: "Node range starts at first annotation/decorator line (source..end)."
+    invariant: "Node range starts at first annotation/decorator line (source..end). Named langs_extract to avoid confusion with TypeScript."
   },
   {
     name: "route_tables.py",

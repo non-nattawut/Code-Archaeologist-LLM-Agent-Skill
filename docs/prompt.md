@@ -4012,3 +4012,18 @@ check_graph 28+28, --self-test 33/33, regressions 35/35, sample 25/22 D69 + 53/3
 One process note worth keeping: writing r35 through a bash heredoc silently turned `\n` inside a
 Python string literal into real newlines and produced a syntax error -- exactly the failure
 CLAUDE.md's constraint 5 warns about. Reverted and rewrote it with the Edit tool.
+
+## [95] 2026-09-12 — Update Architecture Guides with recent commits and unresolved call mechanics
+
+**Prompt**
+> check new commit and update architectural duide then commit and push
+
+**Response**
+Checked recent commits (`b5bf966`, `10dbedb`, `eb271f7`, `3627d0d`):
+1. Integrated the rationale for keeping 3 separate extractor files (`py_extract.py`, `js_ts_extract.py`, `langs_extract.py`) as the degradation boundaries required by Constraint 1.
+2. Updated both `docs/ARCHITECTURE_GUIDE.md` and `docs/ARCHITECTURE_GUIDE.html` (and IDE artifact) with:
+   - The rename of `ts_extract.py` to `langs_extract.py`.
+   - `build_flow.py`'s new dropped-call tracking (`_record_dropped`) and in-graph classification (`_split_dropped` -> `unresolved`).
+   - Added Invariant 5: Dropped calls keep their names in `unresolved` as investigation clues without guessing or inventing false edges.
+3. Verified test suite: `check_docs.py` OK, `check_graph.py` 28/28 OK, `check_regressions.py` 35/35 hold.
+4. Committed and pushed to `origin/main`.

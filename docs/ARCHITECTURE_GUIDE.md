@@ -81,15 +81,20 @@ python .agents/skills/code-archaeologist/scripts/archaeologist.py brief
 | `scripts/core/manifest.py` | Staleness Check | Computes SHA-256 source and grammar version hashes into `manifest.json`. | Deterministic: no wall-clock timestamps. |
 | `scripts/core/console.py` | Output Encoding | Safe stdout/stderr wrapper protecting non-UTF-8 terminals (e.g. Windows cp874). | Must be called before echoing external repo strings. |
 
-### Extraction Engine
+### Extraction Engine (Why 3 Extractor Files?)
+
+The extractors are kept in **three separate files** rather than one monolithic module because the file boundary is the **graceful degradation boundary** required by Constraint 1:
+- `py_extract.py` (Python CST + newline normalization) — degrades via `python skipped`.
+- `js_ts_extract.py` (JS/TS/JSX/TSX) — degrades via `frontend skipped` (needs both `javascript` and `typescript` grammars).
+- `langs_extract.py` (15 languages: Java, Go, C#, Rust, Kotlin, etc.) — degrades on a per-language basis.
 
 | Script | Role | Technique / Algorithm | Key Invariant |
 | :--- | :--- | :--- | :--- |
 | `scripts/extract/build_wiki.py` | Structure Wiki | Extracts classes, JSX components, and module-level functions into Markdown notes. | JSX functions become `kind: component` / `layer: ui`. |
 | `scripts/extract/build_graph.py` | Structure Graph | Assembles `graph.json` from vault notes and type references. | Edges are references; carry no precision. |
-| `scripts/extract/build_flow.py` | Flow Graph | Two-pass caller resolution, overload picking (`_pick_overload`), and cross-stack linking. | Lower bound: calls resolved only through declared types. Interface calls stop at `declaration: true`. |
+| `scripts/extract/build_flow.py` | Flow Graph | Two-pass caller resolution, overload picking (`_pick_overload`), cross-stack linking, and **`unresolved` dropped-call tracking** (`_record_dropped`, `_split_dropped`). | Lower bound: calls resolved only through declared types. Interface calls stop at `declaration: true`. Dropped calls matching known graph nodes are tracked in `unresolved` (never guessed as edges). |
 | `scripts/extract/py_extract.py` | Python CST | Tree-sitter CST queries + newline normalization (`read_source()`). | Validated against stdlib `ast` via `check_py_oracle.py`. |
-| `scripts/extract/js_ts_extract.py` | JS/TS CST | Multi-grammar parsing (`javascript`, `typescript`, `tsx`), routes, axios/fetch calls. | Emits `{type, name}` calls for typed receivers. |
+| `scripts/extract/js_ts_extract.py` | JS/TS CST | Multi-grammar parsing (`javascript`, `typescript`, `tsx`), routes, axios/fetch calls. | Emits `{type, name}` calls for typed receivers (`new X()`, `this.<field>`, typed params). |
 | `scripts/extract/langs_extract.py` | 15 Lang Extractor | Table-driven CST extraction via `SPEC` and `SHAPES` tables; handles `OVERLOADING`. | Range starts at first annotation/decorator (`source..end`). |
 | `scripts/extract/route_tables.py` | Route Tables | Parses external routing tables (Django `urlpatterns`, Rails `routes.rb`, Laravel, Phoenix). | Dropped if route matches 0 or >1 target handler. |
 | `scripts/extract/apply_descriptions.py` | Descriptions | Waterfall: 1. Docstring, 2. Hash-cached AI summary (`descriptions.json`), 3. Fallback. | Sole entrypoint for AI text; deterministic at runtime. |
@@ -126,3 +131,4 @@ python .agents/skills/code-archaeologist/scripts/archaeologist.py brief
 2. **Lower-Bound Call Precision:** Call edges are drawn only when the receiver's type is declared in the source. Ambiguous or dynamic dispatch is dropped rather than guessed, and named in `precision`.
 3. **Standalone Offline Explorer:** The HTML viewer inlines all data and JavaScript libraries, ensuring full functionality with network access completely disabled.
 4. **Windows & CP874 Console Safety:** Standard output is guarded by encoding-safe wrappers, preventing crashes from unprintable characters or non-UTF-8 Windows consoles.
+5. **Dropped Calls Keep Their Names (`unresolved`):** Dropped calls are split into true external calls (`ext`) vs calls naming entities that exist in the graph (`unresolved`). The system records them as investigation clues without guessing or inventing false edges (guarded by `check_graph.py` rule `c19` and regression test `r35`).
