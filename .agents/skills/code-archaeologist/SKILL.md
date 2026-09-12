@@ -96,23 +96,19 @@ above puts it back on the pin.
 7. For review questions ("is this healthy?", "where is the risk?", "what to refactor first?"), run
    the report (Command 14), read the **brief** (Command 1), and open
    `data/report/<map>/architecture_report.md` only for the detail the brief points at.
-8. **Say that edges are a lower bound, and name the loss when the node names it.** This is true
-   in *every* language: a call is drawn only when the receiver's type can be read from the source,
-   and anything else is dropped rather than guessed. Where a specific loss is known the node
-   carries `precision` — `interface-dispatch` (the call stops at an interface), `overloads`
-   (the arguments did not say which overload was meant; every overload is its own node, and that
-   call was dropped), `name-matched` (JS/TS, Ruby, PHP, Elixir, Groovy: a call
-   through an object with no declared type dropped). What
-   is trustworthy everywhere is the declarations; what is partial is
-   **resolution**. A call is followed only through a *declared* type, and anything else (an overload
-   the arguments cannot pick, lambda handlers) is dropped rather than guessed. A call through an interface resolves to the
-   interface's own node, which carries `declaration: true`: the trace stops at the declaration and
-   does **not** continue into the implementations, so "what actually runs" is still unanswered
-   there. So their edges are a **lower bound** — "nothing calls X" is only "nothing the extractor
-   could resolve calls X". Tell the user that when you answer from one, and say it plainly if a
-   whole answer (dead code, blast radius, "who calls this") rests on edges that were resolved
-   rather than declared. `context.py` and the report both carry the caveat for you, and name the
-   specific loss where a node has one; do not quietly drop it.
+8. **Edges are a lower bound — say so, and name the loss.** In every language a call is drawn only
+   when the receiver's type can be read from the source; anything else is dropped, never guessed.
+   - What is trustworthy is the **declarations**; what is partial is **resolution**. So "nothing
+     calls X" only ever means "nothing the extractor could resolve calls X".
+   - A node names its own loss in `precision`: `interface-dispatch` (the call stops at an
+     interface), `overloads` (the arguments did not say which overload was meant, so that call was
+     dropped; every overload is its own node), `name-matched` (JS/TS, Ruby, PHP, Elixir, Groovy — a
+     call through an object with no declared type, dropped).
+   - A call through an interface lands on the interface's own node (`declaration: true`) and stops
+     there: the trace does **not** continue into the implementations, so "what actually runs" is
+     still unanswered.
+   - `context.py` and the report print the caveat for you and name the node's loss — pass it on,
+     and say it plainly when a whole answer (dead code, blast radius, "who calls this") rests on it.
 
 ## Pick the command: what the user asked → what to run
 

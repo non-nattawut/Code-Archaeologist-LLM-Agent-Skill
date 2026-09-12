@@ -3749,3 +3749,57 @@ change, fixes all three, leaves one-line comments alone).
 That made the roadmap's own status header stale — it claimed every found item was resolved — so
 the header now names #9 as the one open item. The doc that records open questions must not be the
 doc that hides one.
+
+## [87] 2026-09-12 — Principle 8, shortened to five numbered rules
+
+**Prompt**
+> operating principle number 8 is too long extract to easy understand  fews number
+
+**Response**
+Rewrote `CLAUDE.md` principle 8 (`### 8. Log every exchange to docs/prompt.md`) only: the five-bullet
+prose block became a numbered list of five rules, 33 lines -> 30, and the running text in each rule
+cut to one clause of justification instead of two or three.
+
+Nothing was dropped. The mapping from old bullets to new numbers:
+
+1. append never rewrite — unchanged in force, shorter
+2. write contemporaneously + "a turn without a commit still gets an entry" merged here, because
+   both say the same thing: the trigger is the end of the turn
+3. commit it with the work — the old bullet spent five lines on *why* a late log goes unwritten;
+   one sentence carries it
+4. number sequentially
+5. record reasoning and misses
+
+The sixth bullet ("a plain log, not a doc for a reader") was not a rule about how to write an
+entry, so it now sits as a trailing sentence rather than as a peer of the five.
+
+Verified: `python tools/check_docs.py` -> `check_docs: OK`, and `git diff --stat` shows CLAUDE.md
+alone, 15 insertions / 18 deletions — no other file and no other section touched.
+
+## [88] 2026-09-12 — Wrong file: principle 8 meant SKILL.md's, not CLAUDE.md's
+
+**Prompt**
+> nah I mean SKILL.md not CLAUDE.md
+
+**Response**
+Entry 87 shortened the wrong principle 8. Both files have one, and I picked the one I was reading.
+`git checkout -- CLAUDE.md` reverted that edit in full; entry 87 stays as written, since it is the
+record of what was actually done. This is the correction, not a rewrite of it.
+
+The real target was `SKILL.md`'s Operating Principle 8 (the edges-are-a-lower-bound caveat), 17
+lines of prose that had accreted a duplicate: "a call is drawn only when the receiver's type can be
+read from the source, and anything else is dropped rather than guessed" and "A call is followed only
+through a *declared* type, and anything else ... is dropped rather than guessed" were the same
+sentence twice, six lines apart. It is now a one-line headline plus four sub-bullets, 13 lines:
+
+1. declarations trustworthy / resolution partial -> "nothing calls X" is only "nothing the
+   extractor could resolve calls X"
+2. the three `precision` values and what each one means
+3. an interface call stops at the `declaration: true` node, so "what actually runs" is unanswered
+4. `context.py` and the report carry the caveat -- pass it on
+
+Nothing was dropped: the duplicated sentence was merged, and every named fact (the three precision
+values, the language list for `name-matched`, `declaration: true`, the dead-code / blast-radius
+warning) survives. Verified `python tools/check_docs.py` -> `check_docs: OK`; `git diff --stat` is
+SKILL.md (15/-17) and this log only, with CLAUDE.md back to clean.
+
