@@ -1880,6 +1880,44 @@ JS/TS and of the other four alike.
 
 ---
 
+### 11. Python drops `module.function()` calls even when the target is in the graph — found 2026-09-12
+
+**What.** `build_flow._resolve_calls` resolves a Python call three ways: `self.attr.m()` through the
+attribute's type, `self.m()` through the enclosing class, and a **bare** `f()` through the module
+function table. A call written `console.safe_stdout()` or `px.text(node)` matches none of them --
+the receiver is a *module*, not a typed object -- so it is dropped, even though `safe_stdout` and
+`text` are nodes of the very same graph.
+
+Found the moment `unresolved` started recording dropped names (the fix in this same session).
+Measured on the skill's own 390-node graph: 2,782 dropped call sites, 207 of which name something
+the graph defines. The top entries are not noise --
+
+| Dropped name | Times | What it really is |
+| --- | --- | --- |
+| `safe_stdout` | 11 | `console.safe_stdout()`, a real node in `core/console.py` |
+| `field`, `text`, `walk`, `def_name`, `defs_in`, `parse` | ~50 | `px.<fn>()`, real nodes in `extract/py_extract.py` |
+| `load`, `write`, `read` | 49 | `json.load`, `fh.write` -- genuinely external, correctly dropped |
+
+So a large part of this project's own call graph is missing, and the same shape (`utils.helper()`,
+`os.path.join()`) is everywhere in real Python.
+
+**Why it is not just a fix.** Resolving it by name alone would invent edges: `json.load` and a node
+named `load` are indistinguishable without knowing what `json` is. Doing it correctly means reading
+the file's `import` statements and binding the module alias to the file it resolves to -- which is
+the cross-file import resolution already sketched as step 3 of the missing-edge work, and it lands
+new edges in every Python graph, changing `sample_src`'s committed numbers and every user's map.
+
+**Options.** (a) Import-bound: `import x.y as px` / `from . import console` -> the file, then resolve
+`px.text` only if that file defines `text`. Exact, no guessing, and the same machinery JS/TS needs.
+(b) Name-only: resolve `anything.name()` when exactly one node has that bare name -- cheap, and
+exactly the "guess rather than drop" this project refuses. (c) Leave it, and let `unresolved` point
+at it.
+
+**Recommendation: (a)**, as one piece of work with the JS/TS and shared-name import resolution --
+they are the same problem read three times. Until then (c) holds and is no longer silent.
+
+---
+
 ## Open concerns — review these before implementing
 
 Collected while planning, none of them blocking, all of them things that will bite if nobody
