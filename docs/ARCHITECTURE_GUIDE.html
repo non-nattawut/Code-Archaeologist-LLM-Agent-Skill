@@ -166,7 +166,120 @@
   .cg-tab.active, .cg-tab:hover { background: var(--raised); border-color: var(--accent); color: var(--ink); }
   .cg-panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 24px; display: none; }
   .cg-panel.active { display: block; }
+
+  /* Interactive Visual Flowchart */
+  .flow-selector { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+  .flow-sel-btn {
+    background: var(--ground); border: 1px solid var(--rule); border-radius: 5px;
+    padding: 7px 14px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-2);
+    cursor: pointer; transition: all .12s ease;
+  }
+  .flow-sel-btn.active, .flow-sel-btn:hover {
+    background: var(--raised); border-color: var(--accent); color: var(--accent);
+  }
   
+  .fc-board {
+    display: flex; gap: 20px; overflow-x: auto; padding: 20px 8px 30px;
+    min-width: 100%; align-items: stretch;
+  }
+  .fc-stage {
+    flex: 1; min-width: 240px; background: var(--ground); border: 1px solid var(--rule);
+    border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 12px;
+    position: relative;
+  }
+  .fc-stage-header {
+    font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--accent); border-bottom: 1px solid var(--rule); padding-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .fc-stage-header span.num {
+    background: var(--accent-dim); color: var(--accent); width: 20px; height: 20px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px;
+  }
+  .fc-node {
+    background: var(--panel); border: 1px solid var(--rule-lit); border-radius: 6px;
+    padding: 12px 14px; cursor: pointer; transition: all .15s ease; position: relative;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .fc-node:hover {
+    border-color: var(--accent); transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+  .fc-node.active-node {
+    border-color: var(--accent); background: var(--raised);
+    box-shadow: 0 0 12px var(--accent-dim);
+  }
+  .fc-node-title {
+    font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--ink);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .fc-node-badge {
+    font-family: var(--mono); font-size: 9px; text-transform: uppercase; padding: 2px 5px;
+    border-radius: 3px; background: var(--raised); border: 1px solid var(--rule);
+  }
+  .fc-node-badge.cat-core { color: var(--accent); border-color: rgba(217, 159, 74, 0.3); }
+  .fc-node-badge.cat-extract { color: var(--blue); border-color: rgba(110, 168, 254, 0.3); }
+  .fc-node-badge.cat-review { color: var(--bad); border-color: rgba(242, 84, 75, 0.3); }
+  .fc-node-badge.cat-query { color: var(--purple); border-color: rgba(163, 113, 247, 0.3); }
+  .fc-node-desc { font-size: 11px; color: var(--ink-3); line-height: 1.4; margin-top: 2px; }
+  .fc-node-hint { font-family: var(--mono); font-size: 10px; color: var(--accent); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+  
+  .fc-arrow-col {
+    display: flex; align-items: center; justify-content: center; color: var(--ink-3);
+    font-size: 20px; font-family: var(--mono); flex: none;
+  }
+  
+  /* Slide-Out Sidebar Drawer */
+  .sidebar-overlay {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(3px); z-index: 998; opacity: 0; pointer-events: none;
+    transition: opacity .25s ease;
+  }
+  .sidebar-overlay.open { opacity: 1; pointer-events: auto; }
+  
+  .script-sidebar {
+    position: fixed; top: 0; right: 0; width: 500px; max-width: 92vw; height: 100vh;
+    background: var(--panel); border-left: 1px solid var(--rule-lit); z-index: 999;
+    display: flex; flex-direction: column; transform: translateX(100%);
+    transition: transform .25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: -12px 0 40px rgba(0, 0, 0, 0.6);
+  }
+  .script-sidebar.open { transform: translateX(0); }
+  
+  .sidebar-header {
+    padding: 20px 24px; border-bottom: 1px solid var(--rule); display: flex;
+    justify-content: space-between; align-items: flex-start; background: var(--raised);
+  }
+  .sidebar-title { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--ink); margin: 4px 0 2px; }
+  .sidebar-path { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); word-break: break-all; }
+  .sidebar-close {
+    background: var(--ground); border: 1px solid var(--rule); color: var(--ink-2);
+    width: 32px; height: 32px; border-radius: 6px; cursor: pointer; display: flex;
+    align-items: center; justify-content: center; font-size: 16px; transition: all .15s;
+  }
+  .sidebar-close:hover { border-color: var(--accent); color: var(--accent); }
+  
+  .sidebar-body {
+    padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;
+    flex: 1; font-size: 13px; line-height: 1.6;
+  }
+  .sb-block { background: var(--ground); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; }
+  .sb-label {
+    font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--ink-3); margin-bottom: 6px; display: flex; align-items: center; gap: 6px;
+  }
+  .sb-val { color: var(--ink); }
+  .sb-code { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+  .sb-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .sb-chip {
+    font-family: var(--mono); font-size: 11px; padding: 4px 8px; border-radius: 4px;
+    background: var(--panel); border: 1px solid var(--rule-lit); color: var(--accent);
+    cursor: pointer; transition: all .12s;
+  }
+  .sb-chip:hover { border-color: var(--accent); background: var(--raised); }
+  .sb-chip small { color: var(--ink-3); margin-left: 4px; }
+  .sb-none { color: var(--ink-3); font-style: italic; font-size: 12px; }
+
   /* Matrix Table */
   .matrix-wrap { overflow-x: auto; margin-top: 16px; }
   .matrix-table { width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: left; }
@@ -211,6 +324,52 @@
 </style>
 </head>
 <body>
+
+<!-- Slide-Out Sidebar Drawer & Overlay -->
+<div id="sidebarOverlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+<aside id="scriptSidebar" class="script-sidebar" aria-label="Script Inspection Drawer">
+  <div class="sidebar-header">
+    <div>
+      <span id="sbBadge" class="fc-node-badge cat-core">CORE</span>
+      <div id="sbTitle" class="sidebar-title">archaeologist.py</div>
+      <div id="sbPath" class="sidebar-path">scripts/archaeologist.py</div>
+    </div>
+    <button class="sidebar-close" onclick="closeSidebar()" title="Close (Esc)">&times;</button>
+  </div>
+  <div class="sidebar-body">
+    <div class="sb-block">
+      <div class="sb-label">Role &amp; Responsibilities</div>
+      <div id="sbRole" class="sb-val">...</div>
+    </div>
+    <div class="sb-block">
+      <div class="sb-label">Core Technique &amp; Algorithm</div>
+      <div id="sbTech" class="sb-code" style="margin-bottom: 4px;">...</div>
+      <div id="sbAlgo" class="sb-val">...</div>
+    </div>
+    <div class="sb-block">
+      <div class="sb-label">Key Architectural Invariant</div>
+      <div id="sbInvariant" class="sb-val" style="color: var(--accent);">...</div>
+    </div>
+    <div class="sb-block">
+      <div class="sb-label">Called By (Incoming Callers)</div>
+      <div id="sbCallers" class="sb-chip-list"></div>
+    </div>
+    <div class="sb-block">
+      <div class="sb-label">Calls (Outgoing Callees)</div>
+      <div id="sbCallees" class="sb-chip-list"></div>
+    </div>
+    <div class="sb-block">
+      <div class="sb-label">Data &amp; Artifacts</div>
+      <div style="margin-bottom: 6px;"><span class="sb-code">Inputs:</span> <span id="sbInputs">...</span></div>
+      <div><span class="sb-code">Outputs:</span> <span id="sbOutputs">...</span></div>
+    </div>
+    <div class="sb-block">
+      <div class="sb-label">Execution Example</div>
+      <div id="sbCmd" class="cmd-box" style="margin: 4px 0 0; padding: 8px 10px; font-size: 11.5px;">...</div>
+    </div>
+  </div>
+</aside>
+
 
 <header>
   <div class="wrap">
@@ -344,12 +503,276 @@
     </p>
 
     <div class="cg-tabs">
-      <button class="cg-tab active" onclick="showCgTab('cg-matrix', this)">Caller &rarr; Callee Matrix</button>
+      <button class="cg-tab active" onclick="showCgTab('cg-flowchart', this)">Interactive Visual Flowchart</button>
+      <button class="cg-tab" onclick="showCgTab('cg-matrix', this)">Caller &rarr; Callee Matrix</button>
       <button class="cg-tab" onclick="showCgTab('cg-flows', this)">Step-by-Step Execution Flows</button>
     </div>
 
+    <!-- Panel 0: Interactive Flowchart -->
+    <div id="cg-flowchart" class="cg-panel active">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;">
+        <div>
+          <span style="font-family: var(--mono); font-size: 11px; text-transform: uppercase; color: var(--accent); font-weight: 600;">
+            Interactive Architecture Flowchart
+          </span>
+          <span style="color: var(--ink-3); font-size: 12px; margin-left: 8px;">
+            (Click any node to open the side inspection drawer with full algorithms, call links &amp; invariants)
+          </span>
+        </div>
+        <div class="flow-selector" style="margin-bottom: 0;">
+          <button class="flow-sel-btn active" onclick="setFlowchartMode('all', this)">All 5 Stages</button>
+          <button class="flow-sel-btn" onclick="setFlowchartMode('structure', this)">Flow 1: Structure Map</button>
+          <button class="flow-sel-btn" onclick="setFlowchartMode('flow', this)">Flow 2: Flow Map</button>
+          <button class="flow-sel-btn" onclick="setFlowchartMode('report', this)">Flow 3: Review Suite</button>
+          <button class="flow-sel-btn" onclick="setFlowchartMode('query', this)">Flow 4: Zero-RAG Queries</button>
+        </div>
+      </div>
+
+      <div class="fc-board" id="flowchartBoard">
+        <!-- Stage 1: Entrypoint & Paths -->
+        <div class="fc-stage" data-stages="all,structure,flow,report">
+          <div class="fc-stage-header">
+            <span>0. Entrypoint</span>
+            <span class="num">1</span>
+          </div>
+          <div class="fc-node" id="fcn-archaeologist" onclick="openSidebar('archaeologist.py')">
+            <div class="fc-node-title">
+              <span>archaeologist.py</span>
+              <span class="fc-node-badge cat-core">CORE</span>
+            </div>
+            <div class="fc-node-desc">CLI dispatcher routing project, flow, report, brief, check.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+          <div class="fc-node" id="fcn-paths" onclick="openSidebar('paths.py')">
+            <div class="fc-node-title">
+              <span>paths.py</span>
+              <span class="fc-node-badge cat-core">CORE</span>
+            </div>
+            <div class="fc-node-desc">MAX_PATH normalization and sys.path category bootstrap.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+        </div>
+
+        <div class="fc-arrow-col">&rarr;</div>
+
+        <!-- Stage 2: Parsers & Tree-sitter -->
+        <div class="fc-stage" data-stages="all,structure,flow">
+          <div class="fc-stage-header">
+            <span>1. Tree-sitter Extractors</span>
+            <span class="num">2</span>
+          </div>
+          <div class="fc-node" id="fcn-grammars" onclick="openSidebar('grammars.py')">
+            <div class="fc-node-title">
+              <span>core/grammars.py</span>
+              <span class="fc-node-badge cat-core">CORE</span>
+            </div>
+            <div class="fc-node-desc">Pinned Tree-sitter wheels &amp; dynamic parser loading.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+          <div class="fc-node" id="fcn-py_extract" onclick="openSidebar('py_extract.py')">
+            <div class="fc-node-title">
+              <span>extract/py_extract.py</span>
+              <span class="fc-node-badge cat-extract">EXTRACT</span>
+            </div>
+            <div class="fc-node-desc">Python CST parser, newline normalizer, ast-verified queries.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+          <div class="fc-node" id="fcn-js_ts_extract" onclick="openSidebar('js_ts_extract.py')">
+            <div class="fc-node-title">
+              <span>extract/js_ts_extract.py</span>
+              <span class="fc-node-badge cat-extract">EXTRACT</span>
+            </div>
+            <div class="fc-node-desc">JS/TS AST, Express/Nest routes, JSX &amp; Axios fetch calls.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+          <div class="fc-node" id="fcn-langs_extract" onclick="openSidebar('langs_extract.py')">
+            <div class="fc-node-title">
+              <span>extract/langs_extract.py</span>
+              <span class="fc-node-badge cat-extract">EXTRACT</span>
+            </div>
+            <div class="fc-node-desc">Table-driven CST parser for 15 compiled/dynamic languages.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+          <div class="fc-node" id="fcn-route_tables" onclick="openSidebar('route_tables.py')">
+            <div class="fc-node-title">
+              <span>extract/route_tables.py</span>
+              <span class="fc-node-badge cat-extract">EXTRACT</span>
+            </div>
+            <div class="fc-node-desc">Django/Rails/Laravel/Phoenix route table extractors.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+        </div>
+
+        <div class="fc-arrow-col">&rarr;</div>
+
+        <!-- Stage 3: IDs & Graph Assembly -->
+        <div class="fc-stage" data-stages="all,structure,flow">
+          <div class="fc-stage-header">
+            <span>2. IDs &amp; Graph Builders</span>
+            <span class="num">3</span>
+          </div>
+          <div class="fc-node" id="fcn-ids" onclick="openSidebar('ids.py')">
+            <div class="fc-node-title">
+              <span>core/ids.py</span>
+              <span class="fc-node-badge cat-core">CORE</span>
+            </div>
+            <div class="fc-node-desc">SharedNames: case-insensitive disambiguator (stem/path).</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+          <div class="fc-node" id="fcn-taxonomy" onclick="openSidebar('taxonomy.py')">
+            <div class="fc-node-title">
+              <span>core/taxonomy.py</span>
+              <span class="fc-node-badge cat-core">CORE</span>
+            </div>
+            <div class="fc-node-desc">Layers, kinds, test detection, and precision_of() losses.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+          <div class="fc-node" id="fcn-build_wiki" onclick="openSidebar('build_wiki.py')">
+            <div class="fc-node-title">
+              <span>extract/build_wiki.py</span>
+              <span class="fc-node-badge cat-extract">EXTRACT</span>
+            </div>
+            <div class="fc-node-desc">Emits class/component Markdown notes to data/structure/vault/.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+          <div class="fc-node" id="fcn-build_graph" onclick="openSidebar('build_graph.py')">
+            <div class="fc-node-title">
+              <span>extract/build_graph.py</span>
+              <span class="fc-node-badge cat-extract">EXTRACT</span>
+            </div>
+            <div class="fc-node-desc">Reads vault wikilinks &rarr; writes data/structure/graph.json.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+          <div class="fc-node" id="fcn-build_flow" onclick="openSidebar('build_flow.py')">
+            <div class="fc-node-title">
+              <span>extract/build_flow.py</span>
+              <span class="fc-node-badge cat-extract">EXTRACT</span>
+            </div>
+            <div class="fc-node-desc">Two-pass call resolution + unresolved dropped-call tracking.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+        </div>
+
+        <div class="fc-arrow-col">&rarr;</div>
+
+        <!-- Stage 4: Review Suite -->
+        <div class="fc-stage" data-stages="all,report">
+          <div class="fc-stage-header">
+            <span>3. Review &amp; Health Suite</span>
+            <span class="num">4</span>
+          </div>
+          <div class="fc-node" id="fcn-report" onclick="openSidebar('report.py')">
+            <div class="fc-node-title">
+              <span>review/report.py</span>
+              <span class="fc-node-badge cat-review">REVIEW</span>
+            </div>
+            <div class="fc-node-desc">Orchestrates 7 review passes into architecture_report.md/json.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+          <div class="fc-node" id="fcn-analyze" onclick="openSidebar('analyze.py')">
+            <div class="fc-node-title">
+              <span>review/analyze.py</span>
+              <span class="fc-node-badge cat-review">REVIEW</span>
+            </div>
+            <div class="fc-node-desc">Tarjan's SCC cycles, backward layers, god objects &amp; health.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+          <div class="fc-node" id="fcn-scan_security" onclick="openSidebar('scan_security.py')">
+            <div class="fc-node-title">
+              <span>review/scan_security.py</span>
+              <span class="fc-node-badge cat-review">REVIEW</span>
+            </div>
+            <div class="fc-node-desc">Regex sweeper for secrets/sinks mapped via owner_of() CST ranges.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+          <div class="fc-node" id="fcn-git_insights" onclick="openSidebar('git_insights.py')">
+            <div class="fc-node-title">
+              <span>review/git_insights.py</span>
+              <span class="fc-node-badge cat-review">REVIEW</span>
+            </div>
+            <div class="fc-node-desc">Streaming git log: churn, authors, and hotspot risk ranking.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+          <div class="fc-node" id="fcn-metrics" onclick="openSidebar('metrics.py')">
+            <div class="fc-node-title">
+              <span>review/metrics.py</span>
+              <span class="fc-node-badge cat-review">REVIEW</span>
+            </div>
+            <div class="fc-node-desc">McCabe cyclomatic complexity &amp; nesting depth per node.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+          <div class="fc-node" id="fcn-duplicates" onclick="openSidebar('duplicates.py')">
+            <div class="fc-node-title">
+              <span>review/duplicates.py</span>
+              <span class="fc-node-badge cat-review">REVIEW</span>
+            </div>
+            <div class="fc-node-desc">Token normalization + Winnowing (K=10, W=21) copied blocks.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+        </div>
+
+        <div class="fc-arrow-col">&rarr;</div>
+
+        <!-- Stage 5: Explorer & Query -->
+        <div class="fc-stage" data-stages="all,structure,flow,report,query">
+          <div class="fc-stage-header">
+            <span>4. Presentation &amp; Queries</span>
+            <span class="num">5</span>
+          </div>
+          <div class="fc-node" id="fcn-build_html" onclick="openSidebar('build_html.py')">
+            <div class="fc-node-title">
+              <span>query/build_html.py</span>
+              <span class="fc-node-badge cat-query">QUERY</span>
+            </div>
+            <div class="fc-node-desc">Inlines graphs + reports + vendored D3 into data/explorer.html.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+          <div class="fc-node" id="fcn-manifest" onclick="openSidebar('manifest.py')">
+            <div class="fc-node-title">
+              <span>core/manifest.py</span>
+              <span class="fc-node-badge cat-core">CORE</span>
+            </div>
+            <div class="fc-node-desc">SHA-256 source hash manifest to detect codebase staleness.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+          <div class="fc-node" id="fcn-brief" onclick="openSidebar('brief.py')">
+            <div class="fc-node-title">
+              <span>review/brief.py</span>
+              <span class="fc-node-badge cat-review">REVIEW</span>
+            </div>
+            <div class="fc-node-desc">Zero-computation orientation digest for LLM agents.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+          <div class="fc-node" id="fcn-trace_path" onclick="openSidebar('trace_path.py')">
+            <div class="fc-node-title">
+              <span>query/trace_path.py</span>
+              <span class="fc-node-badge cat-query">QUERY</span>
+            </div>
+            <div class="fc-node-desc">Forward BFS shortest path &amp; reverse BFS blast radius.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+          <div class="fc-node" id="fcn-context" onclick="openSidebar('context.py')">
+            <div class="fc-node-title">
+              <span>query/context.py</span>
+              <span class="fc-node-badge cat-query">QUERY</span>
+            </div>
+            <div class="fc-node-desc">Token-budget packer contracting neighbors (12, 6, 3, 1).</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+          <div class="fc-node" id="fcn-search" onclick="openSidebar('search.py')">
+            <div class="fc-node-title">
+              <span>query/search.py</span>
+              <span class="fc-node-badge cat-query">QUERY</span>
+            </div>
+            <div class="fc-node-desc">Multi-filter node query over JSON graph without source grepping.</div>
+            <div class="fc-node-hint">&rarr; Inspect in sidebar</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Panel 1: Matrix -->
-    <div id="cg-matrix" class="cg-panel active">
+    <div id="cg-matrix" class="cg-panel">
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 12px;">
         <span style="font-family: var(--mono); font-size: 11px; text-transform: uppercase; color: var(--ink-3);">
           Filter Matrix Interactions:
@@ -909,7 +1332,18 @@ const SCRIPTS_DATA = [
     algorithm: "Subcommand routing via argparse; executes pipeline modules in strict dependency order without circular coupling.",
     inputs: "CLI arguments (--src roots, subcommands)",
     outputs: "Invokes extractors, review passes, or digests",
-    invariant: "The only file at scripts/ root. No other script should be an entrypoint."
+    invariant: "The only file at scripts/ root. No other script should be an entrypoint.",
+    cli: "python scripts/archaeologist.py both --src ./src",
+    callers: [],
+    callees: [
+      { name: "build_wiki.py", fn: "build()" },
+      { name: "build_graph.py", fn: "build()" },
+      { name: "build_flow.py", fn: "build()" },
+      { name: "report.py", fn: "build()" },
+      { name: "brief.py", fn: "main()" },
+      { name: "manifest.py", fn: "compare() / write()" },
+      { name: "build_html.py", fn: "build()" }
+    ]
   },
   {
     name: "paths.py",
@@ -920,7 +1354,10 @@ const SCRIPTS_DATA = [
     algorithm: "Prepends Windows \\\\?\\ long path prefix to avoid MAX_PATH (260 char) truncation; skill_rel() computes cross-drive relative paths.",
     inputs: "Filesystem paths",
     outputs: "Exported SKILL_ROOT, DATA_DIR, TEMPLATES_DIR, VENDOR_DIR",
-    invariant: "Sits below categories; imports nothing from skill. Bootstraps sys.path so sibling imports stay bare."
+    invariant: "Sits below categories; imports nothing from skill. Bootstraps sys.path so sibling imports stay bare.",
+    cli: "Imported automatically by all scripts",
+    callers: [{ name: "archaeologist.py" }, { name: "build_wiki.py" }, { name: "build_flow.py" }, { name: "build_html.py" }],
+    callees: []
   },
   {
     name: "ids.py",
@@ -931,7 +1368,10 @@ const SCRIPTS_DATA = [
     algorithm: "Pre-scans every definition (name, file). Groups by name.lower() to prevent Windows/macOS case collisions (e.g. Login vs login). Qualifies duplicates by stem, then relative path.",
     inputs: "Iterable of (name, rel_file) definitions",
     outputs: "Qualified ID strings: bare if unique, qualified if shared",
-    invariant: "Node IDs are bare unless defined in 2+ files. Call to shared name resolves only to caller's own file or dropped."
+    invariant: "Node IDs are bare unless defined in 2+ files. Call to shared name resolves only to caller's own file or dropped.",
+    cli: "Imported by builders and tests_map",
+    callers: [{ name: "build_wiki.py", fn: "SharedNames" }, { name: "build_flow.py", fn: "SharedNames" }, { name: "tests_map.py", fn: "bare()" }],
+    callees: []
   },
   {
     name: "taxonomy.py",
@@ -942,7 +1382,10 @@ const SCRIPTS_DATA = [
     algorithm: "Defines KINDS, LAYERS, SKIP_DIRS, and is_test_file (framework markers @Test, [Fact], etc.). Computes precision_of() based on edge losses.",
     inputs: "Filenames, AST annotations, edge targets",
     outputs: "Tags (controller, service, repository, etc.), precision flags",
-    invariant: "Every script must ask taxonomy; no inline directory or layer definitions permitted."
+    invariant: "Every script must ask taxonomy; no inline directory or layer definitions permitted.",
+    cli: "Imported by extractors and review suite",
+    callers: [{ name: "build_wiki.py", fn: "infer_layer()" }, { name: "build_flow.py", fn: "precision_of()" }, { name: "scan_security.py", fn: "is_test_path()" }, { name: "report.py", fn: "PRECISION_NOTES" }],
+    callees: []
   },
   {
     name: "grammars.py",
@@ -953,7 +1396,10 @@ const SCRIPTS_DATA = [
     algorithm: "Maintains PINS table. Dynamically loads grammar wheels from <skill>/vendor or site-packages. Computes drift() and detects ABI mismatch.",
     inputs: "Language name",
     outputs: "Cached tree_sitter.Parser instance or explicit skip warning",
-    invariant: "Grammars are installed on demand into vendor/. Missing grammar skips files with explicit named pip warning."
+    invariant: "Grammars are installed on demand into vendor/. Missing grammar skips files with explicit named pip warning.",
+    cli: "python scripts/core/grammars.py",
+    callers: [{ name: "py_extract.py", fn: "get('python')" }, { name: "js_ts_extract.py", fn: "get('javascript')" }, { name: "langs_extract.py", fn: "get(lang)" }, { name: "metrics.py", fn: "get(lang)" }],
+    callees: []
   },
   {
     name: "manifest.py",
@@ -964,7 +1410,10 @@ const SCRIPTS_DATA = [
     algorithm: "Iterates all source files under roots, hashes content + grammar version set into manifest.json. check compares current hashes against manifest.",
     inputs: "Source roots, current grammar versions",
     outputs: "manifest.json, stale boolean",
-    invariant: "Deterministic: ignores wall-clock time. Hash includes grammar versions so unpinning causes staleness."
+    invariant: "Deterministic: ignores wall-clock time. Hash includes grammar versions so unpinning causes staleness.",
+    cli: "python scripts/core/manifest.py --src ./src",
+    callers: [{ name: "archaeologist.py", fn: "compare()/write()" }, { name: "brief.py", fn: "compare()" }],
+    callees: [{ name: "grammars.py", fn: "drift()" }, { name: "taxonomy.py", fn: "SKIP_DIRS" }]
   },
   {
     name: "console.py",
@@ -975,7 +1424,10 @@ const SCRIPTS_DATA = [
     algorithm: "Wraps sys.stdout/sys.stderr with fallback error handler; strips unprintable characters if terminal encoding rejects them.",
     inputs: "Console print strings",
     outputs: "Terminal-safe ASCII/CP874 output",
-    invariant: "Must be called before echoing external repo text (git author names, comments)."
+    invariant: "Must be called before echoing external repo text (git author names, comments).",
+    cli: "Imported to wrap stdout on non-UTF-8 terminals",
+    callers: [{ name: "archaeologist.py", fn: "safe_stdout()" }, { name: "report.py", fn: "safe_stdout()" }, { name: "context.py", fn: "safe_stdout()" }],
+    callees: []
   },
 
   // --- Extraction ---
@@ -988,7 +1440,16 @@ const SCRIPTS_DATA = [
     algorithm: "Extracts class definitions, React JSX components, and module-level functions into individual Markdown vault notes with metadata frontmatter.",
     inputs: "Source files across 17 languages",
     outputs: "data/structure/vault/*.md and registry.json",
-    invariant: "JSX functions get kind: component and layer: ui. Every entity note is <id>.md."
+    invariant: "JSX functions get kind: component and layer: ui. Every entity note is <id>.md.",
+    cli: "python scripts/extract/build_wiki.py --src ./src",
+    callers: [{ name: "archaeologist.py", fn: "run_project()" }],
+    callees: [
+      { name: "py_extract.py", fn: "parse()" },
+      { name: "js_ts_extract.py", fn: "extract_js_files()" },
+      { name: "langs_extract.py", fn: "extract_lang_files()" },
+      { name: "ids.py", fn: "SharedNames" },
+      { name: "taxonomy.py", fn: "infer_layer()" }
+    ]
   },
   {
     name: "build_graph.py",
@@ -999,7 +1460,10 @@ const SCRIPTS_DATA = [
     algorithm: "Reads vault Markdown notes, resolves field/import type references between classes/components, and builds an adjacency edge list.",
     inputs: "data/structure/vault/*.md",
     outputs: "data/structure/graph.json (nodes & edges)",
-    invariant: "Structure edges carry NO precision (they are references, not calls). Test nodes get layer: test."
+    invariant: "Structure edges carry NO precision (they are references, not calls). Test nodes get layer: test.",
+    cli: "python scripts/extract/build_graph.py",
+    callers: [{ name: "archaeologist.py", fn: "run_project()" }],
+    callees: [{ name: "paths.py", fn: "long_path()" }]
   },
   {
     name: "build_flow.py",
@@ -1010,7 +1474,17 @@ const SCRIPTS_DATA = [
     algorithm: "Two-pass analysis: Pass 1 registers SharedNames. Pass 2 resolves calls via declared types (_self_attr_types) and selects overloads. Tracks dropped calls via _record_dropped, and classifies calls matching in-graph nodes as unresolved via _split_dropped.",
     inputs: "Parsed AST/CSTs from py_extract, js_ts_extract, langs_extract",
     outputs: "data/flow/flow_graph.json, notes/*.md",
-    invariant: "Lower bound: calls followed only through declared types. Dropped calls that match in-graph names are reported in unresolved without inventing false edges (check_graph c19, r35)."
+    invariant: "Lower bound: calls followed only through declared types. Dropped calls that match in-graph names are reported in unresolved without inventing false edges (check_graph c19, r35).",
+    cli: "python scripts/extract/build_flow.py --src ./src",
+    callers: [{ name: "archaeologist.py", fn: "run_flow()" }],
+    callees: [
+      { name: "py_extract.py", fn: "parse()" },
+      { name: "js_ts_extract.py", fn: "extract_js_files()" },
+      { name: "langs_extract.py", fn: "extract_lang_files() & _pick_overload()" },
+      { name: "route_tables.py", fn: "find_route_tables()" },
+      { name: "ids.py", fn: "SharedNames" },
+      { name: "taxonomy.py", fn: "infer_layer()" }
+    ]
   },
   {
     name: "py_extract.py",
@@ -1021,7 +1495,10 @@ const SCRIPTS_DATA = [
     algorithm: "read_source() normalizes CRLF newlines so hashes match across OS. Uses CST pattern matching to extract classes, functions, decorators, and calls.",
     inputs: "Python (.py) source bytes",
     outputs: "Extracted entities, AST ranges (source..end), call expressions",
-    invariant: "Verified against stdlib ast via check_py_oracle.py (0 disagreements required)."
+    invariant: "Verified against stdlib ast via check_py_oracle.py (0 disagreements required).",
+    cli: "Helper module for Python AST/CST operations",
+    callers: [{ name: "build_wiki.py", fn: "parse()" }, { name: "build_flow.py", fn: "parse()" }, { name: "metrics.py", fn: "read_source()" }],
+    callees: [{ name: "grammars.py", fn: "get('python')" }]
   },
   {
     name: "js_ts_extract.py",
@@ -1032,7 +1509,10 @@ const SCRIPTS_DATA = [
     algorithm: "Uses javascript, typescript, and tsx grammars. Detects Express/Nest routes, fetch/axios HTTP calls, and JSX component returns. Emits {type, name} calls for typed receivers.",
     inputs: ".js, .jsx, .ts, .tsx files",
     outputs: "JSON entity dictionary (classes, functions, routes, calls)",
-    invariant: "Carries precision: name-matched because JS/TS has untyped dynamic receivers."
+    invariant: "Carries precision: name-matched because JS/TS has untyped dynamic receivers.",
+    cli: "python scripts/extract/js_ts_extract.py --src ./src",
+    callers: [{ name: "build_wiki.py", fn: "find_js_files()" }, { name: "build_flow.py", fn: "extract_js_files()" }],
+    callees: [{ name: "grammars.py", fn: "get('javascript')" }]
   },
   {
     name: "langs_extract.py",
@@ -1043,7 +1523,10 @@ const SCRIPTS_DATA = [
     algorithm: "Unified CST walker guided by SPEC (Java, Go, C#) and SHAPES tables (Rust, Kotlin, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir). Handles OVERLOADING languages.",
     inputs: "Source files in 15 languages",
     outputs: "Declarations, bodies, parameter types, calls, decorator ranges",
-    invariant: "Node range starts at first annotation/decorator line (source..end). Named langs_extract to avoid confusion with TypeScript."
+    invariant: "Node range starts at first annotation/decorator line (source..end). Named langs_extract to avoid confusion with TypeScript.",
+    cli: "python scripts/extract/langs_extract.py --src ./src",
+    callers: [{ name: "build_wiki.py", fn: "find_lang_files()" }, { name: "build_flow.py", fn: "extract_lang_files() & _pick_overload()" }],
+    callees: [{ name: "grammars.py", fn: "get(lang)" }]
   },
   {
     name: "route_tables.py",
@@ -1054,7 +1537,10 @@ const SCRIPTS_DATA = [
     algorithm: "Parses Django urlpatterns, Rails routes.rb, Laravel routes/*.php, and Phoenix routers. Attaches route paths/methods to handler method nodes.",
     inputs: "Framework router configuration files",
     outputs: "List of route mappings (method, path, target handler)",
-    invariant: "Unambiguous matching only: if target handler matches 0 or >1 node, route is dropped and counted."
+    invariant: "Unambiguous matching only: if target handler matches 0 or >1 node, route is dropped and counted.",
+    cli: "Imported by build_flow for external route tables",
+    callers: [{ name: "build_flow.py", fn: "find_route_tables()" }],
+    callees: [{ name: "grammars.py", fn: "get(lang)" }]
   },
   {
     name: "apply_descriptions.py",
@@ -1065,7 +1551,10 @@ const SCRIPTS_DATA = [
     algorithm: "Waterfall order: 1. In-source docstring (wins first), 2. AI summary cached by source hash in descriptions.json, 3. Deterministic template fallback.",
     inputs: "Node body, descriptions.json cache",
     outputs: "Updated node doc / description string",
-    invariant: "AI text enters ONLY through this script; never nondeterministic at runtime."
+    invariant: "AI text enters ONLY through this script; never nondeterministic at runtime.",
+    cli: "python scripts/extract/apply_descriptions.py --input summaries.json",
+    callers: [{ name: "archaeologist.py", fn: "agent enrichment" }],
+    callees: [{ name: "paths.py", fn: "DATA_DIR" }]
   },
 
   // --- Review & Audit ---
@@ -1078,7 +1567,10 @@ const SCRIPTS_DATA = [
     algorithm: "Iterative Tarjan's Strongly Connected Components for cycles; in/out-degree for hubs (fan_in+out >= 10); god objects; health formula with category deduction caps.",
     inputs: "graph.json or flow_graph.json",
     outputs: "Analysis dictionary: cycles, orphans, hubs, god objects, health score",
-    invariant: "Degree calculations run on app_edges(), ignoring test nodes so test coverage doesn't inflate coupling."
+    invariant: "Degree calculations run on app_edges(), ignoring test nodes so test coverage doesn't inflate coupling.",
+    cli: "python scripts/review/analyze.py --graph data/flow/flow_graph.json",
+    callers: [{ name: "report.py", fn: "report()" }, { name: "debt.py", fn: "orphans()" }],
+    callees: [{ name: "console.py", fn: "safe_stdout()" }]
   },
   {
     name: "duplicates.py",
@@ -1089,7 +1581,10 @@ const SCRIPTS_DATA = [
     algorithm: "Normalizes code: identifiers -> ID, literals -> LIT. Whole-body: SHA-1 of normalized tokens. Blocks: Winnowing algorithm with stable rolling polynomial hash ((1<<61)-1 mod).",
     inputs: "Flow graph nodes + source files",
     outputs: "duplicates.json (clone clusters & copied block shapes)",
-    invariant: "Deterministic rolling hash (avoids Python's salted hash()). Skips declaration: true nodes."
+    invariant: "Deterministic rolling hash (avoids Python's salted hash()). Skips declaration: true nodes.",
+    cli: "python scripts/review/duplicates.py --src ./src",
+    callers: [{ name: "report.py", fn: "build()" }],
+    callees: [{ name: "scan_security.py", fn: "iter_source_files()" }]
   },
   {
     name: "scan_security.py",
@@ -1100,7 +1595,10 @@ const SCRIPTS_DATA = [
     algorithm: "Scans non-test files for secret/sink patterns. Maps finding line to innermost graph node where source <= line <= end using owner_of().",
     inputs: "Source code lines + graph node index",
     outputs: "security.json with attributed node findings",
-    invariant: "Lines outside any node range are marked file-level (never attributed to preceding function)."
+    invariant: "Lines outside any node range are marked file-level (never attributed to preceding function).",
+    cli: "python scripts/review/scan_security.py --src ./src",
+    callers: [{ name: "report.py", fn: "scan()" }, { name: "debt.py", fn: "owner_of()" }],
+    callees: [{ name: "manifest.py", fn: "SOURCE_EXTS" }, { name: "taxonomy.py", fn: "is_test_path()" }]
   },
   {
     name: "git_insights.py",
@@ -1111,7 +1609,10 @@ const SCRIPTS_DATA = [
     algorithm: "Parses git log with \\x01 record delimiters. Aggregates commit count per file and author. Computes risk formula: risk = commits * (1 + fan_in + fan_out).",
     inputs: "Git commit history",
     outputs: "insights.json (churn, top authors, ranked hotspots)",
-    invariant: "Single git subprocess call; degrades cleanly to empty data if not a git repository."
+    invariant: "Single git subprocess call; degrades cleanly to empty data if not a git repository.",
+    cli: "python scripts/review/git_insights.py --src ./src",
+    callers: [{ name: "report.py", fn: "build()" }],
+    callees: [{ name: "manifest.py", fn: "SOURCE_EXTS" }]
   },
   {
     name: "metrics.py",
@@ -1122,7 +1623,10 @@ const SCRIPTS_DATA = [
     algorithm: "Walks Tree-sitter parse of each node (source..end). Uses TABLES per language to count branching decisions (McCabe cyclomatic complexity) and block depth.",
     inputs: "Source files + graph nodes",
     outputs: "metrics.json (per-file census and per-node complexity)",
-    invariant: "Keyed by graph node ID by construction; measures every graphed language."
+    invariant: "Keyed by graph node ID by construction; measures every graphed language.",
+    cli: "python scripts/review/metrics.py --src ./src --graph data/flow/flow_graph.json",
+    callers: [{ name: "report.py", fn: "build()" }],
+    callees: [{ name: "grammars.py", fn: "get(lang)" }, { name: "scan_security.py", fn: "iter_source_files()" }, { name: "py_extract.py", fn: "read_source()" }]
   },
   {
     name: "debt.py",
@@ -1133,7 +1637,10 @@ const SCRIPTS_DATA = [
     algorithm: "Regex scans comments for TODO/FIXME markers; attributes them to AST nodes via owner_of(). Cross-references files with graph to find dead files.",
     inputs: "Source files + graph nodes",
     outputs: "debt.json (markers list, dead nodes, dead files)",
-    invariant: "Heuristic review pass: reports debt but deliberately does not penalize health score."
+    invariant: "Heuristic review pass: reports debt but deliberately does not penalize health score.",
+    cli: "python scripts/review/debt.py --src ./src",
+    callers: [{ name: "report.py", fn: "build()" }],
+    callees: [{ name: "analyze.py", fn: "orphans()" }, { name: "scan_security.py", fn: "owner_of()" }]
   },
   {
     name: "tests_map.py",
@@ -1144,7 +1651,10 @@ const SCRIPTS_DATA = [
     algorithm: "Scans test files for references to application class/method names; counts percentage of graph nodes covered by at least one test.",
     inputs: "Test files + flow graph nodes",
     outputs: "tests.json (tested node IDs, coverage percentage)",
-    invariant: "Heuristic indicator; nodes in test files are tagged layer: test."
+    invariant: "Heuristic indicator; nodes in test files are tagged layer: test.",
+    cli: "python scripts/review/tests_map.py --src ./src",
+    callers: [{ name: "report.py", fn: "build()" }],
+    callees: [{ name: "ids.py", fn: "bare()" }, { name: "scan_security.py", fn: "iter_source_files()" }]
   },
   {
     name: "report.py",
@@ -1155,7 +1665,18 @@ const SCRIPTS_DATA = [
     algorithm: "Invokes scan_security, git_insights, analyze, metrics, debt, tests_map, duplicates; compiles unified markdown and JSON architecture reports.",
     inputs: "Data artifacts from all review passes",
     outputs: "data/report/<map>/architecture_report.{md,json}",
-    invariant: "One report per map: node IDs differ between maps, so reports are never mixed."
+    invariant: "One report per map: node IDs differ between maps, so reports are never mixed.",
+    cli: "python scripts/review/report.py --src ./src",
+    callers: [{ name: "archaeologist.py", fn: "run_report()" }],
+    callees: [
+      { name: "scan_security.py", fn: "scan()" },
+      { name: "git_insights.py", fn: "build()" },
+      { name: "analyze.py", fn: "report()" },
+      { name: "metrics.py", fn: "build()" },
+      { name: "debt.py", fn: "build()" },
+      { name: "tests_map.py", fn: "build()" },
+      { name: "duplicates.py", fn: "build()" }
+    ]
   },
   {
     name: "brief.py",
@@ -1166,7 +1687,10 @@ const SCRIPTS_DATA = [
     algorithm: "Reads already-computed JSON artifacts (report, manifest, graph). Formats fixed-budget summary containing grades, smells, and top risks.",
     inputs: "Existing data/*.json artifacts",
     outputs: "Fixed-size stdout brief or JSON",
-    invariant: "Computes NOTHING: expensive work belongs upstream. Costs same tokens on 200 files as 5 files."
+    invariant: "Computes NOTHING: expensive work belongs upstream. Costs same tokens on 200 files as 5 files.",
+    cli: "python scripts/review/brief.py",
+    callers: [{ name: "archaeologist.py", fn: "main()" }],
+    callees: [{ name: "manifest.py", fn: "compare()" }, { name: "grammars.py", fn: "installed()" }]
   },
 
   // --- Query & Visualization ---
@@ -1179,7 +1703,10 @@ const SCRIPTS_DATA = [
     algorithm: "--from/--to runs standard BFS queue for shortest path. --impact-of runs reverse BFS on incoming edges to find all transitive callers. --impact-of-diff maps git diff.",
     inputs: "graph.json / flow_graph.json, node IDs",
     outputs: "Formatted path string A > B > C or JSON node lists",
-    invariant: "Pure Python stdlib (no NetworkX dependency). Deterministic traversal order."
+    invariant: "Pure Python stdlib (no NetworkX dependency). Deterministic traversal order.",
+    cli: "python scripts/query/trace_path.py --graph <graph.json> --from A --to B",
+    callers: [{ name: "context.py", fn: "_changed_files()" }],
+    callees: [{ name: "console.py", fn: "safe_stdout()" }]
   },
   {
     name: "search.py",
@@ -1190,7 +1717,10 @@ const SCRIPTS_DATA = [
     algorithm: "Applies conjunct filters (name, doc regex, layer, kind, lang, --calls, --called-by, --orphans) across in-memory graph JSON.",
     inputs: "Query flags and graph.json",
     outputs: "Matching node IDs and metadata table",
-    invariant: "The primary tool for finding starting node IDs; replaces grepping raw source."
+    invariant: "The primary tool for finding starting node IDs; replaces grepping raw source.",
+    cli: "python scripts/query/search.py --name Controller --layer controller",
+    callers: [],
+    callees: [{ name: "console.py", fn: "safe_stdout()" }]
   },
   {
     name: "context.py",
@@ -1201,7 +1731,10 @@ const SCRIPTS_DATA = [
     algorithm: "Collects node facts, direct neighbors, security findings, and churn; trims text to fit strict --max-chars budget for LLM context injection.",
     inputs: "Node ID, graph.json, review JSONs",
     outputs: "Compact markdown context pack",
-    invariant: "Never exceeds character budget; prints precision caveats explicitly."
+    invariant: "Never exceeds character budget; prints precision caveats explicitly.",
+    cli: "python scripts/query/context.py --node <node_id> --max-chars 4000",
+    callers: [],
+    callees: [{ name: "trace_path.py", fn: "_nodes_for_files()" }, { name: "taxonomy.py", fn: "PRECISION_NOTES" }]
   },
   {
     name: "build_html.py",
@@ -1212,7 +1745,10 @@ const SCRIPTS_DATA = [
     algorithm: "Reads templates/viewer.html, embeds graph JSONs (__MAPS_DATA__) and vendored force-graph.js (__VENDOR_JS__) inline; writes data/explorer.html.",
     inputs: "templates/viewer.html, graph.json, flow_graph.json",
     outputs: "data/explorer.html",
-    invariant: "Zero network dependencies: opens via file:// with internet completely disabled."
+    invariant: "Zero network dependencies: opens via file:// with internet completely disabled.",
+    cli: "python scripts/query/build_html.py",
+    callers: [{ name: "archaeologist.py", fn: "render_explorer()" }],
+    callees: [{ name: "paths.py", fn: "DATA_DIR" }]
   },
   {
     name: "viewer.html",
@@ -1223,7 +1759,10 @@ const SCRIPTS_DATA = [
     algorithm: "7 visualization modes (Graph, Treemap, Matrix, Tree, Flow, Cluster, Bundle); D3/force-graph physics; drag-to-pin layout; dynamic toolbar auto-compaction.",
     inputs: "Inlined JSON maps data",
     outputs: "Interactive DOM UI",
-    invariant: "Test nodes colored green (#57ab5a) everywhere; quiet chrome (#08090b); zero emoji (SVG icons only)."
+    invariant: "Test nodes colored green (#57ab5a) everywhere; quiet chrome (#08090b); zero emoji (SVG icons only).",
+    cli: "Rendered template embedded into data/explorer.html",
+    callers: [{ name: "build_html.py", fn: "load_template()" }],
+    callees: []
   }
 ];
 
@@ -1282,16 +1821,113 @@ function applyFilter() {
   renderCards(filtered);
 }
 
-function focusCard(name) {
-  setCategory("all", document.querySelector(".filter-btn"));
-  document.getElementById("filterInput").value = name;
-  applyFilter();
-  const el = document.getElementById("card-" + name);
-  if (el) {
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
-    el.style.borderColor = "var(--accent)";
-    setTimeout(() => { el.style.borderColor = ""; }, 2000);
+// Sidebar Drawer Management
+function openSidebar(name) {
+  const clean = name.replace(/^scripts\/(?:[a-z_0-9]+\/)?/, "");
+  const item = SCRIPTS_DATA.find(s => s.name === clean || s.name === clean + ".py" || s.name.startsWith(clean));
+  if (!item) return;
+
+  document.getElementById("sbBadge").textContent = item.cat.toUpperCase();
+  document.getElementById("sbBadge").className = "fc-node-badge cat-" + item.cat;
+  document.getElementById("sbTitle").textContent = item.name;
+  document.getElementById("sbPath").textContent = item.path;
+  document.getElementById("sbRole").textContent = item.role;
+  document.getElementById("sbTech").textContent = item.tech;
+  document.getElementById("sbAlgo").textContent = item.algorithm;
+  document.getElementById("sbInvariant").textContent = item.invariant;
+  document.getElementById("sbInputs").textContent = item.inputs;
+  document.getElementById("sbOutputs").textContent = item.outputs;
+  document.getElementById("sbCmd").textContent = item.cli || ("python " + item.path);
+
+  // Render Callers
+  const callersEl = document.getElementById("sbCallers");
+  callersEl.innerHTML = "";
+  if (item.callers && item.callers.length > 0) {
+    item.callers.forEach(c => {
+      const chip = document.createElement("span");
+      chip.className = "sb-chip";
+      chip.innerHTML = c.name + (c.fn ? `<small>(${c.fn})</small>` : "");
+      chip.onclick = (e) => { e.stopPropagation(); openSidebar(c.name); };
+      callersEl.appendChild(chip);
+    });
+  } else {
+    callersEl.innerHTML = "<span class='sb-none'>None (Top-level entrypoint or CLI)</span>";
   }
+
+  // Render Callees
+  const calleesEl = document.getElementById("sbCallees");
+  calleesEl.innerHTML = "";
+  if (item.callees && item.callees.length > 0) {
+    item.callees.forEach(c => {
+      const chip = document.createElement("span");
+      chip.className = "sb-chip";
+      chip.innerHTML = c.name + (c.fn ? `<small>(${c.fn})</small>` : "");
+      chip.onclick = (e) => { e.stopPropagation(); openSidebar(c.name); };
+      calleesEl.appendChild(chip);
+    });
+  } else {
+    calleesEl.innerHTML = "<span class='sb-none'>None (Leaf module)</span>";
+  }
+
+  // Highlight active node in flowchart
+  document.querySelectorAll(".fc-node").forEach(n => n.classList.remove("active-node"));
+  const stem = item.name.replace(".py", "").replace(".html", "");
+  const fcNode = document.getElementById("fcn-" + stem);
+  if (fcNode) fcNode.classList.add("active-node");
+
+  // Open drawer
+  document.getElementById("sidebarOverlay").classList.add("open");
+  document.getElementById("scriptSidebar").classList.add("open");
+}
+
+function closeSidebar() {
+  document.getElementById("sidebarOverlay").classList.remove("open");
+  document.getElementById("scriptSidebar").classList.remove("open");
+  document.querySelectorAll(".fc-node").forEach(n => n.classList.remove("active-node"));
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeSidebar();
+});
+
+// Flowchart Filter Modes
+const FLOW_MAPS = {
+  all: null,
+  structure: ["archaeologist.py", "paths.py", "grammars.py", "py_extract.py", "js_ts_extract.py", "langs_extract.py", "ids.py", "taxonomy.py", "build_wiki.py", "build_graph.py", "build_html.py", "manifest.py"],
+  flow: ["archaeologist.py", "paths.py", "grammars.py", "py_extract.py", "js_ts_extract.py", "langs_extract.py", "route_tables.py", "ids.py", "taxonomy.py", "build_flow.py", "build_html.py", "manifest.py"],
+  report: ["archaeologist.py", "paths.py", "report.py", "scan_security.py", "git_insights.py", "analyze.py", "metrics.py", "debt.py", "tests_map.py", "duplicates.py", "build_html.py"],
+  query: ["trace_path.py", "context.py", "search.py", "brief.py", "manifest.py", "build_html.py"]
+};
+
+function setFlowchartMode(mode, btn) {
+  document.querySelectorAll(".flow-sel-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  
+  const allowed = FLOW_MAPS[mode];
+  document.querySelectorAll(".fc-stage").forEach(st => {
+    const stages = (st.getAttribute("data-stages") || "").split(",");
+    if (mode === "all" || stages.includes(mode)) {
+      st.style.display = "flex";
+    } else {
+      st.style.display = "none";
+    }
+  });
+
+  document.querySelectorAll(".fc-node").forEach(node => {
+    const id = node.id.replace("fcn-", "");
+    const script = id + ".py";
+    if (!allowed || allowed.includes(script) || allowed.includes(id)) {
+      node.style.opacity = "1";
+      node.style.pointerEvents = "auto";
+    } else {
+      node.style.opacity = "0.2";
+      node.style.pointerEvents = "none";
+    }
+  });
+}
+
+function focusCard(name) {
+  openSidebar(name);
 }
 
 function showScenario(id, btn) {

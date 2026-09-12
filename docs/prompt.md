@@ -4099,3 +4099,28 @@ question, so nothing was done and nothing was decided.
 5. Verified test suite: `check_docs.py` OK, `check_graph.py` 28/28 OK, `check_regressions.py` 35/35 hold.
 6. Committed and pushed to `origin/main`.
 
+## [97] 2026-09-12 — Interactive visual flowchart and slide-out inspection drawer
+
+**Prompt**
+> I dont mean like this but I want a flow chart, also after click that box in the flow chart side bar will show with explanation not scorll down to card
+
+**Response**
+1. Built an interactive visual flowchart board (`#cg-flowchart`) in `docs/ARCHITECTURE_GUIDE.html`:
+   - Grouped all 28 scripts across 5 logical stages:
+     - `Stage 0: Orchestrator / Entrypoint` (`archaeologist.py`, `paths.py`, `grammars.py`)
+     - `Stage 1: Tree-sitter & Extraction Layer` (`py_extract.py`, `js_ts_extract.py`, `langs_extract.py`, `route_tables.py`)
+     - `Stage 2: IDs & Graph Builders` (`ids.py`, `taxonomy.py`, `build_graph.py`, `build_flow.py`, `build_wiki.py`, `manifest.py`)
+     - `Stage 3: Review & Health Suite` (`report.py`, `scan_security.py`, `git_insights.py`, `analyze.py`, `metrics.py`, `debt.py`, `tests_map.py`, `duplicates.py`)
+     - `Stage 4: Query & Presentation Layer` (`build_html.py`, `viewer.html`, `brief.py`, `trace_path.py`, `context.py`, `search.py`, `apply_descriptions.py`)
+   - Added flow presets (`All 5 Stages`, `Flow 1: Structure Map`, `Flow 2: Flow Map`, `Flow 3: Review Suite`, `Flow 4: Zero-RAG Queries`) that dim out inactive nodes and emphasize the active pipeline execution path.
+2. Built a slide-out inspection sidebar drawer (`#scriptSidebar`) with blurred backdrop overlay (`#sidebarOverlay`):
+   - Clicking any box in the flowchart opens the drawer immediately in-place on the right side without scrolling down or moving viewport position.
+   - Drawer displays complete script details: category badge, filename, exact repo path, core role, underlying technique/algorithm, architectural invariants, input/output contracts, and CLI command.
+   - Interactive inter-script caller/callee chips: lists "Who calls this?" and "What does this call?". Clicking any chip pivots the sidebar to inspect that script directly and updates the flowchart active node highlight.
+   - Supports closing via the close button (✕), clicking the backdrop overlay, or pressing `Escape`.
+3. Enriched `SCRIPTS_DATA` with structured `callers`, `callees`, and `cli` invocation strings across all 28 scripts.
+4. Synced changes to IDE artifact `architecture_guide.html`.
+5. Verified test suite: `check_docs.py` OK, `check_graph.py` (28+28 OK), `check_regressions.py` (35/35 hold).
+6. Committed and pushed to `origin/main`.
+
+
