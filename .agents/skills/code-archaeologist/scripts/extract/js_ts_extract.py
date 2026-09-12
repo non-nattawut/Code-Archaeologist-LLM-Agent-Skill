@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import os
 import posixpath
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -266,6 +267,130 @@ def _args(call) -> list:
     return list(node.named_children) if node is not None else []
 
 
+# --- receiver types -----------------------------------------------------------
+# An edge needs a node id, and a node id is `Class.method`. `store.save()` gives the
+# method; the class has to come from what the source states about `store`. These are
+# the shapes that state it. Everything else is "?" -- dropped, never guessed, which
+# is the same rule `ts_extract` follows for Java/Go/C#.
+
+def _type_name(text: str) -> str:
+    """A type annotation reduced to the one class it names, or "".
+
+    `: WidgetStore` -> `WidgetStore`, `Promise<Widget>` -> `Promise`. A union, an
+    array, an object literal or a function type names no single class, so it
+    reduces to "" and the receiver stays unresolved.
+    """
+    head = text.strip().lstrip(":").strip().split("<")[0].split(".")[-1].strip()
+    return head if re.fullmatch(r"[A-Za-z_]\w*", head) else ""
+
+
+def _annotation(node) -> str:
+    """The class named by a node's `type:` annotation, or ""."""
+    ann = _field(node, "type")
+    return _type_name(_text(ann)) if ann is not None else ""
+
+
+def _new_type(node) -> str:
+    """`new WidgetStore()` -> `WidgetStore`, anything else -> ""."""
+    if node is None or node.type != "new_expression":
+        return ""
+    ctor = _field(node, "constructor")
+    return _text(ctor) if ctor is not None and ctor.type == "identifier" else ""
+
+
+def _scope_types(node) -> dict:
+    """Names inside one function whose class the source states: typed parameters,
+    typed locals, and locals assigned a `new X()`.
+
+    Nested functions are walked too -- a closure sees its enclosing consts, and
+    tracking scopes to catch a shadowing parameter would cost more than it buys.
+    """
+    types: dict[str, str] = {}
+    if node is None:
+        return types
+
+    def walk(n) -> None:
+        if n.type in ("required_parameter", "optional_parameter"):
+            pattern = _field(n, "pattern")
+            if pattern is not None and pattern.type == "identifier":
+                declared = _annotation(n)
+                if declared:
+                    types[_text(pattern)] = declared
+        elif n.type == "variable_declarator":
+            name, value = _field(n, "name"), _field(n, "value")
+            if name is not None and name.type == "identifier":
+                declared = _annotation(n) or _new_type(value)
+                if declared:
+                    types[_text(name)] = declared
+        for child in n.named_children:
+            walk(child)
+
+    walk(node)
+    return types
+
+
+def _field_types(body) -> dict:
+    """`this.<name>` -> class, from what a class body states.
+
+    Three shapes: a typed property (`private store: WidgetStore`), a constructor
+    parameter property (`constructor(private store: WidgetStore)`) and an assignment
+    of a fresh instance (`this.store = new WidgetStore()`, the JS shape with no
+    annotation anywhere).
+    """
+    types: dict[str, str] = {}
+    if body is None:
+        return types
+
+    def walk(n) -> None:
+        if n.type in ("public_field_definition", "field_definition"):
+            name = _field(n, "name")
+            if name is not None:
+                declared = _annotation(n) or _new_type(_field(n, "value"))
+                if declared:
+                    types[_text(name)] = declared
+        elif n.type in ("required_parameter", "optional_parameter"):
+            pattern = _field(n, "pattern")
+            if pattern is not None and pattern.type == "identifier" and \
+                    any(c.type == "accessibility_modifier" for c in n.children):
+                declared = _annotation(n)
+                if declared:
+                    types[_text(pattern)] = declared
+        elif n.type == "assignment_expression":
+            left, declared = _field(n, "left"), _new_type(_field(n, "right"))
+            if declared and left is not None and left.type == "member_expression":
+                obj, prop = _field(left, "object"), _field(left, "property")
+                if obj is not None and obj.type == "this" and prop is not None:
+                    types[_text(prop)] = declared
+        for child in n.named_children:
+            walk(child)
+
+    walk(body)
+    return types
+
+
+def _receiver_type(call, types: dict, self_type: str) -> str:
+    """The class a call's receiver has: "" for a bare call, "?" where unreadable."""
+    fn = _field(call, "function")
+    if fn is not None and fn.type == "await_expression" and fn.named_children:
+        fn = fn.named_children[0]
+    if fn is None or fn.type != "member_expression":
+        return ""
+    obj = _field(fn, "object")
+    if obj is None:
+        return "?"
+    if obj.type == "this":
+        return self_type or "?"
+    if obj.type == "new_expression":                      # new WidgetStore().save()
+        return _new_type(obj) or "?"
+    if obj.type == "identifier":
+        return types.get(_text(obj), "") or "?"
+    if obj.type == "member_expression":                   # this.store.save()
+        inner, prop = _field(obj, "object"), _field(obj, "property")
+        if inner is not None and inner.type == "this" and prop is not None:
+            return types.get(_text(prop), "") or "?"
+    return "?"
+
+
 # --- collectors ---------------------------------------------------------------
 
 def _axios_instances(program) -> set:
@@ -354,34 +479,42 @@ def _returns_instance(body) -> bool:
                for r in returned)
 
 
-def _collect_calls(root, axios_names: set) -> dict:
+def _collect_calls(root, axios_names: set, types: dict | None = None,
+                   self_type: str = "") -> dict:
     """Called names and HTTP calls in a subtree, in source order.
+
+    Each call carries the class of its receiver (`type`): "" for a bare call, the
+    class where the source states it, "?" where it does not. That is the shape
+    `ts_extract` already emits, so `build_flow` resolves JS/TS exactly as it
+    resolves Java/Go/C#. Before this the receiver was discarded and only the name
+    survived, which is why no call could ever land on a JS/TS class method.
 
     Order matters: `calls` feeds the graph's edges, and Babel's object-key walk
     visited a call's callee before its arguments. tree-sitter's children are in
     that same order, so `getOrder(x).then(y)` still yields `then` before
     `getOrder` -- the outer call first, then what it was called on.
     """
-    calls: list[str] = []
+    types = types or {}
+    calls: list[dict] = []
     seen: set = set()
     http: list[dict] = []
 
-    def add(name: str) -> None:
-        if name and name not in seen:
-            seen.add(name)
-            calls.append(name)
+    def add(recv: str, name: str) -> None:
+        if name and (recv, name) not in seen:
+            seen.add((recv, name))
+            calls.append({"type": recv, "name": name})
 
     def walk(node) -> None:
         if node.type == "call_expression":
             ident, prop, obj = _callee_parts(node)
             args = _args(node)
             if ident:
-                add(ident)
+                add("", ident)
                 if ident == "fetch":
                     http.append({"method": _method_from_options(args[1] if len(args) > 1 else None),
                                  "url": _url_of(args[0] if args else None)})
             elif prop:
-                add(prop)
+                add(_receiver_type(node, types, self_type), prop)
                 if obj in axios_names and prop in HTTP_VERBS:
                     http.append({"method": prop.upper(),
                                  "url": _url_of(args[0] if args else None)})
@@ -493,7 +626,8 @@ def _express_routes(program, axios_names: set) -> list[dict]:
         if handler.type == "identifier":
             entry["handler"] = _text(handler)         # attaches to that function's node
         elif handler.type in ("arrow_function", "function_expression", "function"):
-            entry.update(_collect_calls(_field(handler, "body"), axios_names))
+            entry.update(_collect_calls(_field(handler, "body"), axios_names,
+                                        _scope_types(handler)))
         else:
             continue
         routes.append(entry)
@@ -522,6 +656,8 @@ def _class_entry(node, raw, axios_names: set) -> dict:
             elif child.type in ("identifier", "type_identifier"):
                 bases.append(_text(child))
     body = _field(node, "body")
+    cls_name = _text(name) if name is not None else ""
+    fields = _field_types(body)          # `this.<x>` -> class, for every method below
     methods = []
     for member in _named(body, "method_definition") if body is not None else []:
         key = _field(member, "name")
@@ -532,7 +668,8 @@ def _class_entry(node, raw, axios_names: set) -> dict:
             "name": _text(key), "doc": _doc_for(member, member_decs),
             "line": _start_line(member, member_decs), "endLine": member.end_point[0] + 1,
             "routes": _nest_routes(decorators, member_decs),
-            **_collect_calls(_field(member, "body"), axios_names),
+            **_collect_calls(_field(member, "body"), axios_names,
+                             {**fields, **_scope_types(member)}, cls_name),
         })
     return {
         "name": _text(name) if name is not None else "",
@@ -589,7 +726,7 @@ def _extract_tree(root, axios_names: set) -> dict:
             out["functions"].append({
                 "name": _text(name), "doc": _doc_above(raw),
                 "line": _line(node), "endLine": node.end_point[0] + 1,
-                **_collect_calls(body, axios_names), **_collect_jsx(body),
+                **_collect_calls(body, axios_names, _scope_types(node)), **_collect_jsx(body),
             })
 
         elif node.type in ("lexical_declaration", "variable_declaration"):
@@ -603,7 +740,7 @@ def _extract_tree(root, axios_names: set) -> dict:
                 out["functions"].append({
                     "name": _text(name), "doc": _doc_above(raw),
                     "line": _line(dec), "endLine": dec.end_point[0] + 1,
-                    **_collect_calls(body, axios_names), **_collect_jsx(body),
+                    **_collect_calls(body, axios_names, _scope_types(value)), **_collect_jsx(body),
                 })
     return out
 

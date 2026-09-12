@@ -326,9 +326,10 @@ archaeologist.py   project | flow | both | check | report | brief   &lt;- ทา
 
     <p class="note">ความแม่นยำของกราฟเดินตาม <strong>ระบบชนิดข้อมูลของภาษา</strong> ไม่ใช่ตามไวยากรณ์:
        Kotlin, Rust, Swift, Scala, Dart, C และ C++ ประกาศชนิดข้อมูลไว้ การเรียกผ่าน field หรือ parameter
-       จึง resolve ได้เหมือน Java ส่วน Ruby, PHP, Elixir และ Groovy มักไม่ประกาศ node ของภาษาเหล่านี้
-       จึงติดป้าย <code>name-matched</code> และการเรียกผ่านอ็อบเจ็กต์ที่ไม่มีชนิดข้อมูลจะถูก<em>ทิ้ง</em>
-       ไม่ใช่เดา</p>
+       จึง resolve ได้เหมือน Java · JS/TS resolve ได้ทุกที่ที่ source เขียนคลาสไว้ (<code>new X()</code>,
+       <code>this</code>, field/parameter/local ที่ประกาศชนิดข้อมูล) ส่วน Ruby, PHP, Elixir และ Groovy
+       มักไม่ประกาศ node ของภาษาเหล่านี้จึงติดป้าย <code>name-matched</code>
+       และการเรียกผ่านอ็อบเจ็กต์ที่ไม่มีชนิดข้อมูลจะถูก<em>ทิ้ง</em> ไม่ใช่เดา</p>
 
     <h3 style="margin-top:38px; font-family:var(--mono); font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3)">พิสูจน์มาถึงไหนแล้ว</h3>
     <div class="tscroll"><table>
@@ -393,8 +394,8 @@ archaeologist.py   project | flow | both | check | report | brief   &lt;- ทา
           <td>การเรียกชี้ไปที่ชุด overload แต่ argument ที่เขียนไว้ใน source ไม่พอจะบอกว่าเป็นตัวไหน</td>
           <td>การเรียกนั้นถูกทิ้ง และ node ผู้เรียกบันทึกชุดที่กำกวมไว้ในฟิลด์ <code>ambiguous</code></td></tr>
       <tr><td class="k mono">name-matched</td>
-          <td>node อยู่ในภาษาที่จับคู่การเรียกด้วย<em>ชื่อ</em> (JS, TS, JSX, TSX, Ruby, PHP, Elixir, Groovy)</td>
-          <td>การเรียกผ่านอ็อบเจ็กต์ที่ไม่มีชนิดข้อมูลประกาศไว้ถูกทิ้ง — วัดได้จริง: fixture ของ TypeScript resolve ได้ 0 จาก 3 edge ขณะที่ภาษาที่มีชนิดข้อมูลได้ 3 จาก 3</td></tr>
+          <td>node อยู่ในภาษาที่ source มักไม่เขียนชนิดข้อมูลของ receiver ไว้ (JS, TS, JSX, TSX, Ruby, PHP, Elixir, Groovy)</td>
+          <td>การเรียกผ่านอ็อบเจ็กต์ที่ไม่ได้บอกคลาสไว้ถูกทิ้ง — วัดได้จริง: fixture ของ Ruby ทิ้ง <code>@store.save</code> แต่เก็บการเรียกในคลาสเดียวกันไว้ ส่วน fixture ของ TypeScript ที่เขียนคลาสไว้ครบ resolve ได้ 3 จาก 3</td></tr>
     </table></div>
     <pre class="code" style="margin-top:22px"><span class="c"># sample_src/services/orders_java/OrderWorkflow.java</span>
 private final PricingRule pricing;        // PricingRule เป็น interface

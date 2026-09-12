@@ -166,15 +166,16 @@ def is_test_file(path: str, full_path: str | None = None) -> bool:
 #                       fits the arguments the source states, so it was dropped
 #                       (`ambiguous`); or an edge lands on a node that still folds
 #                       several signatures because their types could not be read
-#   name-matched        this node's language resolves calls by name only, so calls
-#                       through an object were dropped (measured: the TypeScript
-#                       fixture resolves 0 of 3 edges where the typed languages
-#                       resolve 3 of 3)
+#   name-matched        this node's language rarely writes a receiver's type down,
+#                       so a call through an object was dropped unless the source
+#                       stated the class outright
 PRECISION_REASONS = ("interface-dispatch", "overloads", "name-matched")
 
-# Languages whose extractor matches call *names* rather than resolving a receiver.
-# Ruby, PHP, Elixir and Groovy joined in phase 7: their source usually names no
-# receiver type, so a call through an object is dropped unless one is written down.
+# Languages whose source usually names no receiver type, so a bare call resolves and
+# a call through an object is dropped unless the class is written down. Ruby, PHP,
+# Elixir and Groovy joined in phase 7. JS/TS stays here after its receivers started
+# resolving (`new X()`, `this`, a typed field/param/local): what a TS file annotates
+# now links, and everything it leaves untyped -- most of a JS file -- still drops.
 NAME_MATCHED_LANGS = {"js", "ts", "jsx", "tsx", "ruby", "php", "elixir", "groovy"}
 
 PRECISION_CAVEAT = (
@@ -188,8 +189,8 @@ PRECISION_NOTES = {
                            "which implementation runs is not knowable from the source"),
     "overloads": ("a call to an overloaded method could not be matched to one overload "
                   "from the arguments the source states, so it was dropped"),
-    "name-matched": ("JS/TS, Ruby, PHP, Elixir and Groovy calls are matched by name, so a "
-                     "call through an object with no declared type was dropped"),
+    "name-matched": ("in JS/TS, Ruby, PHP, Elixir and Groovy a call through an object whose "
+                     "class the source does not state was dropped"),
 }
 
 

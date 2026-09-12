@@ -732,6 +732,37 @@ def r33_overloads_are_separate_nodes():
         return f"the three render overloads do not have three ranges: {sorted(lines)}"
 
 
+def r34_js_method_calls_resolve():
+    """A JS/TS call through a receiver whose class the source states was dropped: the
+    receiver was discarded at extraction and class methods were never candidates, so no
+    edge could land on one -- the TypeScript fixture resolved 0 of 3. An untyped
+    receiver must still drop, which is the half of the behaviour worth keeping."""
+    d = _tree({
+        "store.ts": "export class Store {\n  save(item: object) {\n    return item;\n  }\n}\n",
+        "service.ts": "import { Store } from \"./store\";\n\n"
+                      "export class Service {\n"
+                      "  private store: Store = new Store();\n\n"
+                      "  place(item: object) {\n    return this.store.save(item);\n  }\n\n"
+                      "  twice(item: object) {\n    this.place(item);\n"
+                      "    return new Store().save(item);\n  }\n\n"
+                      "  blind(other: any) {\n    return other.save(item);\n  }\n}\n",
+        "page.js": "const { Service } = require(\"./service\");\n\n"
+                   "function run(item) {\n  const svc = new Service();\n"
+                   "  return svc.place(item);\n}\n"})
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        methods, edges = _flow(d)
+    want = {("Service.place", "Store.save"),        # this.<typed field>.m()
+            ("Service.twice", "Service.place"),     # this.m()
+            ("Service.twice", "Store.save"),        # new Store().m()
+            ("run", "Service.place")}               # local assigned a `new Service()`
+    if want - edges:
+        return f"missing edges {sorted(want - edges)}; got {sorted(edges)}"
+    if any(s == "Service.blind" for s, _ in edges):
+        return "a call through an untyped receiver (`other.save()`) was guessed at"
+    if methods.get("Service.blind", {}).get("ext") != 1:
+        return f"the dropped call is not counted: ext={methods.get('Service.blind', {}).get('ext')}"
+
+
 CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_append,
          r05_duplicates_declarations, r06_orphan_guard, r07_flask_routes,
          r08_missing_parser_is_visible, r09_no_absolute_paths, r10_brief_agrees_with_check,
@@ -743,7 +774,8 @@ CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_app
          r26_graph_path_on_another_drive, r27_generated_dirs_are_not_source,
          r28_mock_patch_is_not_a_route, r29_names_differing_only_by_case,
          r30_imported_axios_instance, r31_unknown_url_links_nowhere,
-         r32_const_base_and_client_prefix, r33_overloads_are_separate_nodes]
+         r32_const_base_and_client_prefix, r33_overloads_are_separate_nodes,
+         r34_js_method_calls_resolve]
 
 
 def main() -> int:

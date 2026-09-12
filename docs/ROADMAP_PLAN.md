@@ -1847,6 +1847,39 @@ than the function are a `sample_src` wording problem, not an extractor one.
 
 ---
 
+### 10. JS/TS still carries `name-matched` now that its receivers resolve — found 2026-09-12
+
+**What.** JS/TS call resolution changed: `js_ts_extract._collect_calls` keeps the receiver and
+`build_flow._analyze_js` resolves it through `new X()`, `this`, `this.<typed field>`, a typed
+parameter or a typed local, and class methods are now candidate targets (before, no call could land
+on a JS/TS class method at all — the TypeScript fixture resolved 0 of its 3 edges). That puts JS/TS
+in the same position as Java: a stated type resolves, an unstated one drops.
+
+But `taxonomy.NAME_MATCHED_LANGS` still lists `js`, `ts`, `jsx`, `tsx`, so every JS/TS node still
+carries `precision: name-matched` — a marker whose text now describes only half of what the
+extractor does. Java, which behaves the same way, carries nothing.
+
+**Why it is not just a fix.** Removing JS/TS from that set drops a user-visible field from every
+JS/TS node: 15 of the 16 nodes that carry `precision` in `sample_src` today. It moves bytes in
+`flow_graph.json`, the vault, both reports and the explorer, changes the pinned numbers in
+`CLAUDE.md`, and takes away a warning that is *still true more often than not* — most JS, and
+plenty of TS, never states a receiver's class, and those calls are still dropped silently.
+
+**Options.** (a) Leave it: over-warns on a fully-typed TS file, never under-warns. (b) Drop JS/TS
+from `NAME_MATCHED_LANGS`, matching Java — honest about the mechanism, but silent about how much
+ordinary JS still drops. (c) Make the marker earned rather than declared: attach `name-matched`
+only to a node that actually dropped a call to a `"?"` receiver, which would also make it
+meaningful for Ruby/PHP/Elixir/Groovy instead of automatic. That is the same shape as
+`interface-dispatch` and `overloads`, both of which are computed from what a node does.
+
+**Recommendation: (c)**, together with recording *which* names were dropped (the `ext` count keeps
+none of them today, so no one can measure the loss). Until then (a) is the conservative default and
+is what shipped: the wording in `taxonomy.py`, `README.md`, `TAXONOMY.md` and the presentation now
+says "a call through an object whose class the source does not state was dropped", which is true of
+JS/TS and of the other four alike.
+
+---
+
 ## Open concerns — review these before implementing
 
 Collected while planning, none of them blocking, all of them things that will bite if nobody

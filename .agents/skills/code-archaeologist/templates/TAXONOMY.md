@@ -60,7 +60,7 @@ derived from what is already in the graph, never from the language alone:
 | --- | --- | --- |
 | `interface-dispatch` | an outgoing edge lands on a node with `declaration: true` | The call stops at an interface; which implementation runs is not knowable from the source. Emitting an edge to every implementor would trade precision for recall. |
 | `overloads` | the node has `ambiguous`, or an outgoing edge lands on a node whose `signatures` has more than one entry | Every overload is its own node, and a call picks one by argument count and the argument types the source states. When that does not settle it, the call is dropped rather than guessed. |
-| `name-matched` | the node's `lang` is `js`, `ts`, `jsx`, `tsx`, `ruby`, `php`, `elixir` or `groovy` | These languages' source usually names no receiver type, so a call through an object is dropped unless its type is written down (a PHP typed property, a Groovy typed field, an Elixir module name). Measured: the TypeScript fixture resolves **0 of 3** edges where the typed languages resolve 3 of 3, and the Ruby fixture drops `@store.save` while keeping the same-class `validate` call. |
+| `name-matched` | the node's `lang` is `js`, `ts`, `jsx`, `tsx`, `ruby`, `php`, `elixir` or `groovy` | These languages' source usually names no receiver type, so a call through an object is dropped unless its class is written down (a `new X()`, a `this`, a PHP typed property, a Groovy typed field, an Elixir module name). Measured: the Ruby fixture drops `@store.save` while keeping the same-class `validate` call; the TypeScript fixture, which states every class, resolves **3 of 3**. |
 
 Order follows `taxonomy.PRECISION_REASONS`, so the field is deterministic (constraint 2).
 

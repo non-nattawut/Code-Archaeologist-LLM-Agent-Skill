@@ -3803,3 +3803,130 @@ values, the language list for `name-matched`, `declaration: true`, the dead-code
 warning) survives. Verified `python tools/check_docs.py` -> `check_docs: OK`; `git diff --stat` is
 SKILL.md (15/-17) and this log only, with CLAUDE.md back to clean.
 
+## [89] 2026-09-12 — Adopt CLAUDE.md as AGENTS.md
+
+**Prompt**
+> read CLAUDE.md as your AGENTS.md
+
+**Response**
+Read `CLAUDE.md` in full and adopted it as the repository instructions (`AGENTS.md` equivalent) for this session:
+- **Role:** Skill creator and maintainer of the Code Archaeologist skill in `.agents/skills/code-archaeologist/` (building and maintaining the skill, not running it on this repo).
+- **Constraints:** Python 3.10+, tree-sitter engine across all 17 languages, deterministic byte-for-byte outputs, paths anchored from skill root, standalone offline explorer with no external assets, Windows cp874 safe stdout handling.
+- **Principles:** Bound by all 8 working principles, including surgical changes, keeping docs updated in the same commit, and appending every turn to `docs/prompt.md`.
+
+## [89] 2026-09-12 — Why edges go missing: the diagnosis, measured
+
+**Prompt**
+> our project still ahve 1 problem that some edge node might disappear right?
+>
+> suggest me how to fix this
+
+(then, over two follow-ups: "so what yopu suggest is to solve all supported language missing edge ?"
+and "what problem why edge node is missing?")
+
+**Response**
+Appended late -- this covers three discussion turns and was written at the end of the fourth, the
+one that implemented the fix. Contemporaneous for the measurements, reconstructed for the prose.
+
+Measured before answering, rather than reasoning from the code alone:
+
+- committed sample flow graph: **33 edges, 47 unresolved call sites** (`ext`), split js 17, py 16,
+  go 8, java 5, csharp 1.
+- wrote a throwaway probe (scratchpad) that scans each node's own range for call-shaped mentions of
+  any other node's bare name with no edge between them. It reported 33 "candidates" -- and they
+  were almost entirely noise (`FlatRate.price` matching its own signature line, `OrdersController.create`
+  vs `OrderApiController.create`). That failure is the useful result: **the recall loss cannot be
+  measured from outside the resolver**, because a name is not a call site. It can only be recorded
+  where the resolver decides.
+
+Five distinct causes, found by reading the resolution paths rather than guessing:
+
+1. `build_flow.py:673` resolves a JS/TS name only `if name in func_nodes`, and `func_nodes` is
+   filled from top-level functions only -- a class method is never a candidate target. Structural.
+2. `js_ts_extract._collect_calls` recorded `prop` and discarded `obj`, so the receiver was gone
+   before resolution began.
+3. `ids.target()` returns `None` for a cross-file call to a name two files define; the import
+   statement says which, and nothing reads imports.
+4. Ruby ivars / PHP properties / untyped JS: the type is never written down.
+5. Interface dispatch and unpickable overloads: known by design, recorded in `precision`.
+
+Also noted, and the reason step 1 of the proposal is "record the drop": `ext` conflates "called
+`print()`" (correctly dropped, nothing in the graph to point at) with "called something that IS in
+the graph and I could not tell which" (a lost edge). The names are thrown away, so the two are
+indistinguishable in every artifact.
+
+Told the user plainly that "fix all missing edges in all 17 languages" is not achievable -- callbacks,
+reflection, DI containers, `method_missing`, and which implementation a virtual call reaches are not
+answerable statically -- and that the proposal was narrower: make the loss visible everywhere, and
+stop dropping the edges the source already states. Per-language: step 1 touches all 17; the JS/TS
+receiver fix, 2 of 17 (but the only *structural* break); imports, all 17; ivar inference, the 4
+remaining name-matched languages.
+
+## [90] 2026-09-12 — JS/TS calls resolve through the receiver's class
+
+**Prompt**
+> since typescript/javascript can create varible with no rtype declaration so that why tree-sitter
+> dont know the edge right?
+>
+> ok if you tell fixable so fix this too
+>
+> after fiinsh commit and push
+>
+> SO what actually problem is our script rght?
+
+**Response**
+Answered the premise first: only partly. TypeScript annotates constantly (`private store: Store`,
+`const s: Store`, constructor parameter properties) and tree-sitter exposes every one of those
+annotations -- we were throwing them away. So yes: for the typed cases the problem was our script.
+
+**What changed.**
+
+`js_ts_extract.py` -- four new helpers (`_type_name`, `_annotation`, `_new_type`, `_scope_types`,
+`_field_types`, `_receiver_type`) and `_collect_calls` now emits `{"type", "name"}` per call
+instead of a bare name: "" for a bare call, the class where the source states it, `"?"` where it
+does not. That is the shape `ts_extract` already emits for Java/Go/C#, chosen deliberately so
+`build_flow` resolves both the same way rather than growing a second resolver. Types are read from
+`new X()`, `this`, `this.<field>`, typed parameters, typed locals, `const x = new X()`, constructor
+parameter properties and `this.x = new X()`.
+
+`build_flow._analyze_js` -- registers class methods in a `class_methods` map (they were never
+candidates) and resolves `Type.name` through it. Bare calls deliberately do **not** fall back to
+the enclosing class the way `_analyze_lang` does for Java: in JS a bare `save()` inside a class
+body does not reach `this.save`.
+
+`build_wiki._names_used` -- reads `c["name"]` now that calls are dicts.
+
+**A churn bug I caused and fixed.** My first version put the receiver type into the node's content
+hash (mirroring `_lang_node`). The sample rebuild reported `4 pending` descriptions where CLAUDE.md
+pins `0` -- the hash is the description cache's key, so every JS node that calls a method would have
+lost its cached summary, for every user, for no gain. Reverted to names only, deduped in source
+order (`dict.fromkeys`), which reproduces the old key exactly.
+
+**Verification.**
+
+- `tools/check_langs.py`: typescript **0 -> 3 edges** (`WidgetController.create -> WidgetService.place`,
+  `WidgetService.place -> WidgetStore.save`, `testPlacesThroughTheStore -> WidgetService.place`);
+  every other language's row byte-identical. `--update` diff was exactly those three edges -- no
+  line, doc or metric moved.
+- committed sample graphs **byte-identical** (the repo's strongest check). The sample's only TS
+  class calls nothing, so that is correct rather than a miss; verified by reading
+  `sample_src/api_nest/orders.controller.ts` instead of assuming.
+- `check_graph` 27+27 OK, `--self-test` 31/31, `check_py_oracle` 0 disagreements, `check_docs` OK,
+  installer `--self-test` OK, `brief`/`check` unchanged (25/22 D69, 53/33 D68, 16 precision).
+- new regression case **r34** asserts both halves: the four shapes that must resolve, and
+  `other.save()` on an untyped parameter that must still drop and still be counted in `ext`.
+
+**Docs moved in the same commit** (principle 6): CLAUDE.md (extractor description, fixture table
+row, the paragraph that explained the TypeScript zero), README, `templates/TAXONOMY.md`,
+`taxonomy.py`'s comments and `PRECISION_NOTES`, and the Thai presentation. The `name-matched`
+wording everywhere is now "a call through an object whose class the source does not state was
+dropped" -- true of JS/TS and of Ruby/PHP/Elixir/Groovy alike.
+
+**Deliberately not decided** (principle 7, recorded as roadmap finding #10): JS/TS still carries
+`precision: name-matched` even though it now behaves like Java. Removing it would drop a field from
+15 of the sample's 16 precision-carrying nodes; the recommendation written down is to make the
+marker *earned* -- attached only to a node that actually dropped a `"?"` receiver -- alongside
+recording which names were dropped, which `ext` still does not.
+
+The report artifacts also moved: my `PRECISION_NOTES` wording, plus git-churn drift in
+`insights.json` from commits made since they were last generated.

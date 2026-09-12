@@ -163,7 +163,12 @@ delete. Nothing else in `core/` may import a skill module.
   one file that creates it, directly or through a factory function -- `extract_js_files` parses
   every file before reading any, and an import that resolves to exactly one such file binds the
   name -- and URLs built on a same-file `const BASE = "/x"`), and the JSX rule that makes a function a
-  `kind: component`. It replaced the Node extractor behind that extractor's exact output contract
+  `kind: component`. A call carries the **class of its receiver** where the source states it --
+  `new X()`, `this`, `this.<typed field>`, or a typed parameter or local -- and `"?"` where it does
+  not, the same shape `ts_extract` emits, so `build_flow` resolves JS/TS the way it resolves Java.
+  Until then the receiver was discarded and class methods were never registered as candidates, so
+  **no call could land on a JS/TS class method at all** (the TypeScript fixture: 0 edges of 3).
+  It replaced the Node extractor behind that extractor's exact output contract
   (`find_js_files` / `extract_js_files` / `frontend_degraded`), which is why the port could be
   proved by diffing JSON rather than by reading code: the diff reported **identical output** on
   all six sample files and the graphs came out byte-identical. That reference (`js_bridge.py`,
@@ -521,7 +526,7 @@ A fixture costs one directory and one row. Current expectations, all asserted:
 | csharp | 6 | 3 | 1 | yes |
 | go | 7 | 3 | 1 | yes |
 | javascript | 6 | 3 | 1 | yes |
-| typescript | 6 | **0** | 1 | yes |
+| typescript | 6 | 3 | 1 | yes |
 | kotlin | 6 | 3 | 1 | yes |
 | rust | 6 | 3 | 1 | yes |
 | swift | 5 | 2 | 0 | yes |
@@ -551,10 +556,12 @@ decoded text cannot shift a name silently. And each asserts every node's **metri
 complexity 6, depth 2, 2 params, in all six — so that row is checked against a person rather than
 only against the recorder (phase 6a).
 
-That TypeScript zero is not a broken fixture, it is the honest number: JS/TS call edges are matched
-by **name**, so bare function calls link (JavaScript's 3) and method calls on an object do not
-(TypeScript's fixture calls `store.save()` through a class). Recorded so it cannot quietly become
-something else.
+TypeScript's 3 edges used to be **0**: JS/TS matched calls by name only, so JavaScript's bare
+function calls linked and TypeScript's `new WidgetStore().save()` did not. The receiver is kept
+now, so a call resolves wherever the source states the class. What still drops is a receiver with
+no stated type -- `other.save()` on an untyped parameter -- which is why JS/TS keeps
+`name-matched`, and why `tools/check_regressions.py` r34 asserts both halves: the four shapes that
+resolve, and the untyped one that must not.
 
 For `templates/viewer.html`, extract the inline `<script>` and parse it as a **classic script**
 (`new vm.Script(code)`) — `node --check` wraps input in a CommonJS function, so it accepts top-level

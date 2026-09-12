@@ -190,8 +190,9 @@ re-runs it from scratch — along with the current selection and filter.
 Seventeen languages, one engine: each is a pinned grammar wheel plus a row of node types
 (`ts_extract.SHAPES`), never a new parser. The graph's precision follows the *type system*, not
 the grammar: Kotlin, Rust, Swift, Scala, Dart, C and C++ declare their types, so a call through a
-field or parameter resolves as it does in Java; Ruby, PHP, Elixir and Groovy usually do not, so
-their nodes say `name-matched`, and a call through an untyped object is dropped. Routes are read
+field or parameter resolves as it does in Java; JS/TS resolves one wherever the source states the
+class (`new X()`, `this`, a typed field, parameter or local); Ruby, PHP, Elixir and Groovy usually
+state nothing, so their nodes say `name-matched`, and a call through an untyped object is dropped. Routes are read
 only for the frameworks named above; any other framework's handlers are ordinary nodes.
 
 How far each row is proven differs. Python, JS/TS (a Next.js + NestJS app) and Java have been
@@ -214,9 +215,9 @@ is a lower bound, and the report says so in its opening line rather than pinning
 languages.
 
 Where a loss can be *named*, the node says which: `interface-dispatch`, `overloads`, or
-`name-matched` (JS/TS, Ruby, PHP, Elixir and Groovy resolve calls by name, so a call through an
-object with no declared type is dropped — measured at 0 of 3 edges in the TypeScript fixture,
-against 3 of 3 for the typed languages). `context.py`
+`name-matched` (in JS/TS, Ruby, PHP, Elixir and Groovy a call through an object whose class the
+source does not state is dropped — the Ruby fixture keeps its same-class call and drops
+`@store.save`, which carries no type). `context.py`
 repeats the reason on the node an agent is reading, and the explorer shows it as a chip.
 
 **A name defined in several files is qualified by its file.** Flow ids are bare -- `place_order`,

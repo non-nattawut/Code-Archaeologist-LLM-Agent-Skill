@@ -550,8 +550,13 @@ def _js_node(nid: str, name: str, cls, layer: str, kind: str, data: dict, rel: s
     doc = (data.get("doc") or "").strip()
     http = data.get("http", [])
     calls = data.get("calls", [])
-    content = json.dumps({"n": name, "c": sorted(calls), "h": http, "d": doc}, sort_keys=True)
-    code = (f"// {rel}\n{name}(...) calls {', '.join(calls) or 'nothing'}"
+    # Names only, deduped in source order -- the key the description cache has always
+    # used. Adding the newly-kept receiver type here would re-key every JS node that
+    # calls a method and throw away every user's cached summaries for no gain: what a
+    # node delegates to is read from the resolved edges, not from this.
+    named = list(dict.fromkeys(c["name"] for c in calls))
+    content = json.dumps({"n": name, "c": sorted(named), "h": http, "d": doc}, sort_keys=True)
+    code = (f"// {rel}\n{name}(...) calls {', '.join(named) or 'nothing'}"
             + (f"; http {http}" if http else ""))
     return {
         "id": nid, "name": name, "cls": cls, "layer": layer, "kind": kind,
@@ -631,10 +636,19 @@ def _attach_table_routes(table_routes: list[dict], methods: dict) -> None:
 
 
 def _analyze_js(js_files: list, ids: "FlowIds"):
-    """JS/TS functions/methods as flow nodes, and their calls resolved by name."""
+    """JS/TS functions/methods as flow nodes, and their calls resolved.
+
+    A bare call resolves to a module function by name; a method call resolves
+    through the receiver's class where the source states it -- a `new X()`, a typed
+    parameter, field or local, or `this`. Until the receiver was kept
+    (`js_ts_extract._collect_calls`) and class methods were made candidates, no call
+    could land on a JS/TS class method at all: the TypeScript fixture resolved 0 of
+    its 3 edges where the typed languages resolved 3 of 3.
+    """
     methods: dict[str, dict] = {}
     func_nodes: set[str] = set()
-    raw_calls: list[tuple[str, list[str], str]] = []
+    class_methods: dict[str, set[str]] = {}
+    raw_calls: list[tuple[str, list[dict], str]] = []
 
     for rel, res in js_files:
         if True:
@@ -654,8 +668,10 @@ def _analyze_js(js_files: list, ids: "FlowIds"):
                 # is better evidence of a layer than the class name and file stem that
                 # were all a JS class used to offer.
                 layer = infer_layer(f'{cls["name"]} {stem}', cls.get("decorators", []))
+                class_methods.setdefault(cls["name"], set())
                 for m in cls.get("methods", []):
                     nid = ids.id(f'{cls["name"]}.{m["name"]}', rel)
+                    class_methods[cls["name"]].add(m["name"])
                     routed = bool(m.get("routes"))
                     _claim(methods, nid, _js_node(nid, m["name"], cls["name"],
                                                   "controller" if routed else layer,
@@ -670,9 +686,19 @@ def _analyze_js(js_files: list, ids: "FlowIds"):
     edges: set[tuple[str, str]] = set()
     for owner, calls, rel in raw_calls:
         external = 0
-        for name in calls:
-            target = ids.target(name, rel) if name in func_nodes else None
-            if target is None:
+        for call in calls:
+            name, declared = call["name"], call["type"]
+            if declared == "?":                  # receiver present, type unreadable
+                target = None
+            elif declared:
+                target = (ids.target(f"{declared}.{name}", rel)
+                          if name in class_methods.get(declared, ()) else None)
+            else:
+                # A bare call is a module function -- never the enclosing class, which
+                # is what `this.` is for, and unlike Java a bare name inside a JS class
+                # body does not reach its own methods.
+                target = ids.target(name, rel) if name in func_nodes else None
+            if target is None or target not in methods:
                 external += 1               # library, or a name several files define
             elif target != owner:
                 edges.add((owner, target))

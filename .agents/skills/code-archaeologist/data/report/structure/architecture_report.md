@@ -120,16 +120,16 @@ _None._
 
 | Node | Commits | Fan-in | Fan-out | Risk | Owner |
 | --- | --- | --- | --- | --- | --- |
-| `ApiClientModule` | 4 | 2 | 0 | 12 | Nattawut Rodthong |
+| `ApiClientModule` | 5 | 2 | 0 | 15 | non-nattawut |
 | `OrderRepository` | 3 | 3 | 0 | 12 | non-nattawut |
 | `PaymentClient` | 3 | 3 | 0 | 12 | non-nattawut |
 | `PricingRule` | 2 | 3 | 0 | 8 | Nattawut Rodthong |
 | `OrderService` | 1 | 4 | 2 | 7 | Nattawut Rodthong |
+| `InvoiceService` | 2 | 1 | 1 | 6 | non-nattawut |
 | `OrderPageModule` | 3 | 0 | 1 | 6 | non-nattawut |
 | `FlatRate` | 2 | 0 | 1 | 4 | Nattawut Rodthong |
 | `OrderController` | 2 | 0 | 1 | 4 | Nattawut Rodthong |
 | `OrderRepositoryTest` | 1 | 0 | 3 | 4 | non-nattawut |
-| `OrderWorkflow` | 1 | 1 | 2 | 4 | non-nattawut |
 
 ## Debt — 2 marker(s) (FIXME 1, TODO 1), 3 dead node(s)
 

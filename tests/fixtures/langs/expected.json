@@ -1442,7 +1442,20 @@
       "WidgetStore.save": "Store one widget \u2014 gr\u00f6\u00dfe \u5bf8\u6cd5 \ud83d\udce6.",
       "testPlacesThroughTheStore": ""
     },
-    "edges": [],
+    "edges": [
+      [
+        "WidgetController.create",
+        "WidgetService.place"
+      ],
+      [
+        "WidgetService.place",
+        "WidgetStore.save"
+      ],
+      [
+        "testPlacesThroughTheStore",
+        "WidgetService.place"
+      ]
+    ],
     "lines": {
       "WidgetController.create": 49,
       "WidgetService.grade": 30,

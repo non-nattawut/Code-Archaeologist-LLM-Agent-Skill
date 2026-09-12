@@ -225,7 +225,7 @@ def _names_used(funcs: list[dict]) -> set[str]:
     """Every name a set of functions calls or renders."""
     used: set[str] = set()
     for fn in funcs:
-        used.update(fn.get("calls", []))
+        used.update(c["name"] for c in fn.get("calls", []))
         used.update(fn.get("components", []))
     return used
 

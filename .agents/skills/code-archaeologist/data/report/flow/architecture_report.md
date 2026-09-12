@@ -13,7 +13,7 @@ Dead-code ratio 13.2% · cycles 0 · layer violations 0 · security findings 4
 
 > **This grade rests on a lower bound.** Call edges are a lower bound in every language: a call is only drawn when the receiver's type can be read from the source, and anything else is dropped rather than guessed. The real coupling is at least this much, never less.
 
-> **16 of 53 nodes lose precision in a way that can be named** — see each node's `precision` field: `interface-dispatch` (calls through an interface stop at its declaration -- which implementation runs is not knowable from the source); `overloads` (a call to an overloaded method could not be matched to one overload from the arguments the source states, so it was dropped); `name-matched` (JS/TS, Ruby, PHP, Elixir and Groovy calls are matched by name, so a call through an object with no declared type was dropped).
+> **16 of 53 nodes lose precision in a way that can be named** — see each node's `precision` field: `interface-dispatch` (calls through an interface stop at its declaration -- which implementation runs is not knowable from the source); `overloads` (a call to an overloaded method could not be matched to one overload from the arguments the source states, so it was dropped); `name-matched` (in JS/TS, Ruby, PHP, Elixir and Groovy a call through an object whose class the source does not state was dropped).
 
 ## Census
 
@@ -143,16 +143,16 @@ _None._
 
 | Node | Commits | Fan-in | Fan-out | Risk | Owner |
 | --- | --- | --- | --- | --- | --- |
-| `getOrder` | 4 | 2 | 1 | 16 | Nattawut Rodthong |
-| `createOrder` | 4 | 1 | 1 | 12 | Nattawut Rodthong |
-| `getOrderEvents` | 4 | 1 | 1 | 12 | Nattawut Rodthong |
+| `getOrder` | 5 | 2 | 1 | 20 | non-nattawut |
+| `createOrder` | 5 | 1 | 1 | 15 | non-nattawut |
+| `getOrderEvents` | 5 | 1 | 1 | 15 | non-nattawut |
+| `getOrderStatus` | 5 | 0 | 1 | 10 | non-nattawut |
 | `OrderRepository.get` | 3 | 2 | 0 | 9 | non-nattawut |
-| `getOrderStatus` | 4 | 0 | 1 | 8 | Nattawut Rodthong |
+| `InvoiceService.Issue` | 2 | 1 | 2 | 8 | non-nattawut |
+| `InvoiceService.Find` | 2 | 1 | 1 | 6 | non-nattawut |
+| `InvoiceService.Total(InvoiceRequest)` | 2 | 1 | 1 | 6 | non-nattawut |
 | `OrderController.create_order` | 2 | 1 | 1 | 6 | Nattawut Rodthong |
 | `OrderController.get_order` | 2 | 1 | 1 | 6 | Nattawut Rodthong |
-| `OrderRepository.save` | 3 | 1 | 0 | 6 | non-nattawut |
-| `OrderService.place_order` | 1 | 3 | 2 | 6 | Nattawut Rodthong |
-| `PaymentClient.charge` | 3 | 1 | 0 | 6 | non-nattawut |
 
 ## Debt — 2 marker(s) (FIXME 1, TODO 1), 7 dead node(s)
 
