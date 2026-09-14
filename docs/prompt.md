@@ -4313,3 +4313,53 @@ the thing that will actually bite: **it is a translation, so it goes stale silen
 English changes. Recorded the two house rules (English identifiers, system fonts only) and the
 invariant that the two files are structurally identical, so the element counts above are a check
 anyone can re-run.
+
+## [101] 2026-09-14 — README language support: nine paragraphs down to one diagram and five bullets
+
+**Prompt**
+> (pasted the README's whole "Language support" section)
+>
+> I think this is too long make it more concise or remove it
+>
+> and I think it  is the working flow right? then use flow from architecural to describe instead
+>
+> git pull before doing
+>
+> and the flow I mean is the flow that which file call which file in the second part of page not the flow in the first part
+
+**Response**
+`git pull` first: fast-forward b53d6ac..6c547e9, which brought in `docs/ARCHITECTURE_GUIDE.{md,html,th.html}` and the
+`ts_extract.py -> langs_extract.py` rename. "The second part of the page" is the guide's section 2, *Exact Inter-Script
+Call Graph* (the mermaid of which script calls which), not section 1's pipeline block — so that is the diagram used.
+
+*Kept, removed.* The capability table stays as it was (it is the part a reader scans). The nine prose paragraphs after it
+became: one sentence ("seventeen languages, one engine"), the extraction slice of the guide's call graph as a mermaid
+`flowchart LR` (archaeologist -> build_wiki/build_flow -> py_extract / js_ts_extract / langs_extract / route_tables ->
+grammars, plus ids and taxonomy), a link to the full diagram, and five bullets: receiver type must be in the source (lower
+bound, `name-matched`), unresolvable is dropped (interface stops at the interface, overloads, shared names, the chip), a
+missing grammar is named, tests tagged `layer: test`, and which languages are proven on real repositories. Cut outright:
+the phase history (Babel / textual scan / `ast` -> tree-sitter), the `ast` oracle, the "72 false edges" figure, the
+constructor-injection aside and the lambda-handler sentence — history and internals, which CLAUDE.md and the guide keep.
+README 56 lines -> 32.
+
+*Did not copy the guide's diagram blindly.* Every edge in the README slice was checked against the actual imports
+(`grep` of each extractor's `import` lines and `archaeologist.py`). That found two things:
+- The first draft drew `taxonomy` only from `build_flow`; `build_wiki.py:32` imports `infer_layer, is_test_path` from it
+  too. Fixed to `BW & BF --> TAX`.
+- **The guide itself was wrong**: it drew `build_flow -> langs_extract` labelled `_pick_overload()`, listed
+  `_pick_overload()` among `langs_extract`'s functions in the cross-reference matrix, and said overloads are picked by
+  `scripts/extract/langs_extract.py:_pick_overload()`. It is defined at `build_flow.py:380` and never imported. One right
+  answer, so fixed (principle 7) in all three files: the mermaid edge deleted, the matrix cell and the two sidebar
+  `fn:` strings in `.html` / `.th.html` trimmed, the `.md` sentence re-pointed at `build_flow.py`. A third invented-name
+  error in this guide, after the eight in [99] and SHA-256 in [100].
+
+*A second wrong number, also fixed.* The guide said `langs_extract` covers "15 languages"; CLAUDE.md's pipeline block
+and the import comments in `build_wiki.py:37` / `build_flow.py:69` said 13. I first thought it depended on how Groovy is
+counted and was going to record it in ROADMAP_PLAN, then asked the module: `SPEC` has csharp, go, groovy, java and
+`SHAPES` has c, cpp, dart, elixir, kotlin, php, ruby, rust, scala, swift -- **14**, and 14 + Python + JavaScript +
+TypeScript is the README's seventeen. One right answer, so fixed everywhere instead: CLAUDE.md, both import comments
+(comment-only), the guide `.md` (three places), `.html` (badge, sidebar inputs, plus any English "15 languages"), and
+`.th.html` (badge and three `15 ภาษา`). The README diagram still names languages rather than a count.
+
+Verified: `python tools/check_docs.py` -> OK; `compileall` clean. Only comments changed in code, so no graph can move and
+no rebuild was needed.

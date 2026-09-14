@@ -12,7 +12,7 @@ archaeologist.py  project | flow | both | check | report | brief   (Entrypoint)
   flow     -> build_flow ---------------------------------+--> render_explorer()
       both extract through: py_extract.py     (Python,        tree-sitter)
                             js_ts_extract.py  (JS/TS/JSX/TSX, tree-sitter)
-                            langs_extract.py  (15 languages,  tree-sitter)
+                            langs_extract.py  (14 languages,  tree-sitter)
             flow also reads: route_tables.py   (Django/Rails/Laravel/Phoenix tables -> handlers)
   report   -> report.py (scan_security + git_insights + analyze + metrics + debt + tests_map
                          + duplicates)
@@ -88,7 +88,6 @@ flowchart TD
     BF -->|"px.parse(), px.read_source()"| PX
     BF -->|"find_js_files(), extract_js_files()"| JS
     BF -->|"find_lang_files(), extract_lang_files()"| LANGS
-    BF -->|"_pick_overload()"| LANGS
     BF -->|"read(roots)"| ROUTES
     BF -->|"SharedNames, bare()"| IDS
     BF -->|"infer_layer(), precision_of()"| TAXONOMY
@@ -140,13 +139,13 @@ flowchart TD
 | `scripts/archaeologist.py` | `scripts/query/build_html.py` | `build(sources, out_path)` | Map dict: `{name: (graph, report)}`, output HTML path | Bundles graphs + reports + vendored D3 script into `explorer.html` |
 | `scripts/extract/build_wiki.py` | `scripts/extract/py_extract.py` | `parse()`, `read_source()`, `field()`, `text()`, `walk()` | Python file path / source bytes | Python CST tree nodes, docstrings, classes, functions |
 | `scripts/extract/build_wiki.py` | `scripts/extract/js_ts_extract.py` | `find_js_files()`, `extract_js_files()`, `frontend_degraded()` | Source roots | List of class and component definitions with types |
-| `scripts/extract/build_wiki.py` | `scripts/extract/langs_extract.py` | `find_lang_files()`, `extract_lang_files()` | Source roots | List of class/struct/interface and method definitions for 15 langs |
+| `scripts/extract/build_wiki.py` | `scripts/extract/langs_extract.py` | `find_lang_files()`, `extract_lang_files()` | Source roots | List of class/struct/interface and method definitions for 14 langs |
 | `scripts/extract/build_wiki.py` | `scripts/core/ids.py` | `SharedNames((name, source))` | Name/file pairs | Disambiguates duplicate names case-insensitively (`stem/path`) |
 | `scripts/extract/build_wiki.py` | `scripts/core/taxonomy.py` | `infer_layer()`, `is_test_path()`, `SKIP_DIRS` | File path, kind, name | Architectural layer assignment (`controller`, `model`, `test`, etc.) |
 | `scripts/extract/build_wiki.py` | `scripts/paths.py` | `long_path()`, `DATA_DIR`, `TEMPLATES_DIR` | File path strings | Prepends `\\?\` past Windows 260-character limit |
 | `scripts/extract/build_flow.py` | `scripts/extract/py_extract.py` | `parse()`, `read_source()`, `field()`, `text()`, `defs_in()` | Python file path / source bytes | Method definitions, AST statements, call expressions |
 | `scripts/extract/build_flow.py` | `scripts/extract/js_ts_extract.py` | `find_js_files()`, `extract_js_files()` | Source roots | Frontend methods, route endpoints, Axios/fetch API calls |
-| `scripts/extract/build_flow.py` | `scripts/extract/langs_extract.py` | `find_lang_files()`, `extract_lang_files()`, `_pick_overload()` | Source roots, candidate methods, caller arg count | Methods, call sites, and exact overload resolution |
+| `scripts/extract/build_flow.py` | `scripts/extract/langs_extract.py` | `find_lang_files()`, `extract_lang_files()` | Source roots, candidate methods, caller arg count | Methods, call sites, and exact overload resolution |
 | `scripts/extract/build_flow.py` | `scripts/extract/route_tables.py` | `read(roots)` | Source roots, table file paths | Routes from Django `urlpatterns`, Rails `routes.rb`, Laravel, Phoenix |
 | `scripts/extract/build_flow.py` | `scripts/core/ids.py` | `SharedNames`, `bare(id)` | Method name/file pairs, qualified node ID | Disambiguates method IDs; strips path qualifier for matching |
 | `scripts/extract/build_flow.py` | `scripts/core/taxonomy.py` | `infer_layer()`, `precision_of()`, `ROUTE_DECORATOR_RE` | Method properties, resolved call dict | Computes named precision loss (`interface-dispatch`, `unresolved`, etc.) |
@@ -203,7 +202,7 @@ flowchart TD
    - **Pass 2 (Call Resolution):**
      - Python: Resolves `self.attr.m()`, `param.m()`, and `local.m()` using local AST assignment scopes.
      - JS/TS: Resolves typed receivers (`new X()`, `this.<field>`, typed parameters).
-     - 15 Languages: Resolves declared receiver types and picks overloaded methods using `scripts/extract/langs_extract.py:_pick_overload()`.
+     - 14 Languages: Resolves declared receiver types and picks overloaded methods using `scripts/extract/build_flow.py:_pick_overload()`.
      - Cross-Stack Linking: Binds frontend HTTP calls (`fetch`, `axios.get/post`) to backend route definitions.
      - Precision & Dropped Tracking: Computes named precision losses via `scripts/core/taxonomy.py:precision_of()`. Unresolved calls matching entities that exist in the graph are preserved in `unresolved` (never guessed as edges).
      - Docstring & AI Waterfall: Loads docstrings or hash-cached summaries from `data/cache/descriptions.json` (unsummarized nodes written to `data/cache/pending_descriptions.json`).
@@ -315,7 +314,7 @@ python .agents/skills/code-archaeologist/scripts/archaeologist.py brief
 The extractors are kept in **three separate files** rather than one monolithic module because the file boundary is the **graceful degradation boundary** required by Constraint 1:
 - `py_extract.py` (Python CST + newline normalization) — degrades via `python skipped`.
 - `js_ts_extract.py` (JS/TS/JSX/TSX) — degrades via `frontend skipped` (needs both `javascript` and `typescript` grammars).
-- `langs_extract.py` (15 languages: Java, Go, C#, Rust, Kotlin, etc.) — degrades on a per-language basis.
+- `langs_extract.py` (14 languages: Java, Go, C#, Rust, Kotlin, etc.) — degrades on a per-language basis.
 
 | Script | Role | Technique / Algorithm | Key Invariant |
 | :--- | :--- | :--- | :--- |
@@ -324,7 +323,7 @@ The extractors are kept in **three separate files** rather than one monolithic m
 | `scripts/extract/build_flow.py` | Flow Graph | Two-pass caller resolution, overload picking (`_pick_overload`), cross-stack linking, and **`unresolved` dropped-call tracking** (`_record_dropped`, `_split_dropped`). | Lower bound: calls resolved only through declared types. Interface calls stop at `declaration: true`. Dropped calls matching known graph nodes are tracked in `unresolved` (never guessed as edges). |
 | `scripts/extract/py_extract.py` | Python CST | Tree-sitter CST queries + newline normalization (`read_source()`). | Validated against stdlib `ast` via `check_py_oracle.py`. |
 | `scripts/extract/js_ts_extract.py` | JS/TS CST | Multi-grammar parsing (`javascript`, `typescript`, `tsx`), routes, axios/fetch calls. | Emits `{type, name}` calls for typed receivers (`new X()`, `this.<field>`, typed params). |
-| `scripts/extract/langs_extract.py` | 15 Lang Extractor | Table-driven CST extraction via `SPEC` and `SHAPES` tables; handles `OVERLOADING`. | Range starts at first annotation/decorator (`source..end`). |
+| `scripts/extract/langs_extract.py` | 14 Lang Extractor | Table-driven CST extraction via `SPEC` and `SHAPES` tables; handles `OVERLOADING`. | Range starts at first annotation/decorator (`source..end`). |
 | `scripts/extract/route_tables.py` | Route Tables | Parses external routing tables (Django `urlpatterns`, Rails `routes.rb`, Laravel, Phoenix). | Dropped if route matches 0 or >1 target handler. |
 | `scripts/extract/apply_descriptions.py` | Descriptions | Waterfall: 1. Docstring, 2. Hash-cached AI summary (`descriptions.json`), 3. Fallback. | Sole entrypoint for AI text; deterministic at runtime. |
 

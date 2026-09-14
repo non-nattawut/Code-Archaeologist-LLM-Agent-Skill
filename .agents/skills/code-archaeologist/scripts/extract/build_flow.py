@@ -66,7 +66,7 @@ from taxonomy import infer_layer, is_test_path, precision_of, ROUTE_DECORATOR_RE
 import py_extract as px  # noqa: E402  (Python, via tree-sitter)
 from ids import SharedNames as FlowIds, bare  # noqa: E402  (one id rule for both maps)
 from js_ts_extract import find_js_files, extract_js_files, frontend_degraded   # noqa: E402
-from langs_extract import find_lang_files, extract_lang_files  # noqa: E402  (13 languages, via tree-sitter)
+from langs_extract import find_lang_files, extract_lang_files  # noqa: E402  (14 languages, via tree-sitter)
 import route_tables  # noqa: E402  (Django / Rails / Laravel / Phoenix route tables)
 
 from taxonomy import SKIP_DIRS  # noqa: E402  (one definition of "not source")

@@ -568,7 +568,7 @@
           </div>
           <div class="pipe-node-pill" onclick="focusCard('langs_extract.py')">
             extract/langs_extract.py
-            <small>15 Languages (Java, Go, C#...)</small>
+            <small>14 Languages (Java, Go, C#...)</small>
           </div>
         </div>
 
@@ -1205,7 +1205,7 @@
               <td><span class="matrix-pill" onclick="focusCard('langs_extract.py')">scripts/extract/langs_extract.py</span></td>
               <td><span class="matrix-fn">find_lang_files(), extract_lang_files()</span></td>
               <td>Source roots</td>
-              <td>List of class/struct/interface and method definitions for 15 langs</td>
+              <td>List of class/struct/interface and method definitions for 14 langs</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('build_wiki.py')">scripts/extract/build_wiki.py</span></td>
@@ -1238,7 +1238,7 @@
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('langs_extract.py')">scripts/extract/langs_extract.py</span></td>
-              <td><span class="matrix-fn">find_lang_files(), extract_lang_files(), _pick_overload()</span></td>
+              <td><span class="matrix-fn">find_lang_files(), extract_lang_files()</span></td>
               <td>Source roots, candidate methods, caller arg count</td>
               <td>Methods, call sites, and exact overload resolution</td>
             </tr>
@@ -1513,7 +1513,7 @@ const SCRIPTS_DATA = [
     callees: [
       { name: "py_extract.py", fn: "parse()" },
       { name: "js_ts_extract.py", fn: "extract_js_files()" },
-      { name: "langs_extract.py", fn: "extract_lang_files() & _pick_overload()" },
+      { name: "langs_extract.py", fn: "extract_lang_files()" },
       { name: "route_tables.py", fn: "read(roots)" },
       { name: "ids.py", fn: "SharedNames" },
       { name: "taxonomy.py", fn: "infer_layer()" }
@@ -1551,14 +1551,14 @@ const SCRIPTS_DATA = [
     name: "langs_extract.py",
     cat: "extract",
     path: "scripts/extract/langs_extract.py",
-    role: "Extractor for 15 compiled & dynamic languages using Tree-sitter (formerly ts_extract.py).",
+    role: "Extractor for 14 compiled & dynamic languages using Tree-sitter (formerly ts_extract.py).",
     tech: "Table-Driven CST Shape Extraction (SPEC & SHAPES)",
     algorithm: "Unified CST walker guided by SPEC (Java, Go, C#) and SHAPES tables (Rust, Kotlin, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir). Handles OVERLOADING languages.",
-    inputs: "Source files in 15 languages",
+    inputs: "Source files in 14 languages",
     outputs: "Declarations, bodies, parameter types, calls, decorator ranges",
     invariant: "Node range starts at first annotation/decorator line (source..end). Named langs_extract to avoid confusion with TypeScript.",
     cli: "python scripts/extract/langs_extract.py --src ./src",
-    callers: [{ name: "build_wiki.py", fn: "find_lang_files()" }, { name: "build_flow.py", fn: "extract_lang_files() & _pick_overload()" }],
+    callers: [{ name: "build_wiki.py", fn: "find_lang_files()" }, { name: "build_flow.py", fn: "extract_lang_files()" }],
     callees: [{ name: "grammars.py", fn: "parser_for(lang)" }]
   },
   {

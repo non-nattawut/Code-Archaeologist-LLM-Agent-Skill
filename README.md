@@ -187,62 +187,38 @@ re-runs it from scratch — along with the current selection and filter.
 | **Lines, risk scan, debt markers, test detection** | all of the above |
 | **Routes read** | *on the handler:* FastAPI, Flask, Express, NestJS, Spring (Java and Kotlin), ASP.NET, Go `net/http`, actix-web / Rocket — *from a route table:* Django `urlpatterns` (with `include()` and class-based views), Rails `routes.rb`, Laravel `routes/*.php`, Phoenix routers |
 
-Seventeen languages, one engine: each is a pinned grammar wheel plus a row of node types
-(`langs_extract.SHAPES`), never a new parser. The graph's precision follows the *type system*, not
-the grammar: Kotlin, Rust, Swift, Scala, Dart, C and C++ declare their types, so a call through a
-field or parameter resolves as it does in Java; JS/TS resolves one wherever the source states the
-class (`new X()`, `this`, a typed field, parameter or local); Ruby, PHP, Elixir and Groovy usually
-state nothing, so their nodes say `name-matched`, and a call through an untyped object is dropped. Routes are read
-only for the frameworks named above; any other framework's handlers are ordinary nodes.
+Seventeen languages, one engine. A language is a pinned grammar wheel plus a row of node types,
+never a new parser. This is which file calls which on the way from source to graph (the full
+diagram is in the [architecture guide](docs/ARCHITECTURE_GUIDE.md#2-exact-inter-script-call-graph--invocation-hierarchy)):
 
-How far each row is proven differs. Python, JS/TS (a Next.js + NestJS app) and Java have been
-built on real repositories, and `tools/check_graph.py` passes on those graphs; each such run found
-bugs no fixture had, and every one is now a case in `tools/check_regressions.py`. The other
-languages and the four route tables pass hand-written fixtures only.
+```mermaid
+flowchart LR
+    CLI["archaeologist.py"] --> BW["build_wiki.py<br>structure map"]
+    CLI --> BF["build_flow.py<br>flow map"]
+    BW --> BG["build_graph.py"]
+    BW & BF --> PX["py_extract.py<br>Python"]
+    BW & BF --> JS["js_ts_extract.py<br>JS / TS / JSX / TSX"]
+    BW & BF --> LX["langs_extract.py<br>Java, Go, C#, Kotlin, Rust ..."]
+    BF --> RT["route_tables.py<br>Django / Rails / Laravel / Phoenix"]
+    PX & JS & LX & RT --> GR["grammars.py<br>tree-sitter wheels"]
+    BW & BF --> IDS["ids.py<br>names shared across files"]
+    BW & BF --> TAX["taxonomy.py<br>layers, test files, precision"]
+```
 
-Every language with a graph is **parsed by the same engine**: Java, Go and C# moved off a
-hand-written textual scan, JS/TS off `@babel/parser`, and Python off the standard library's `ast`,
-so declarations, bodies, parameter types and doc comments all come from one kind of syntax tree.
-Node is not needed at all. `ast` is kept as a test oracle — every Python file is parsed both ways
-in CI and any disagreement fails.
+What that means for the edges:
 
-Parsing is not resolution, though, and the difference is visible in the output rather than buried
-in a caveat. **In every language, a call is drawn only when the receiver's type can be read from
-the source** — a field, a parameter, a `new Foo()`, a Python annotation. Constructor injection
-(Spring, ASP.NET DI, a Go struct literal) resolves reliably, because those languages must declare
-their parameter types; anything needing real type inference does not. So **every** call graph here
-is a lower bound, and the report says so in its opening line rather than pinning it on three
-languages.
-
-Where a loss can be *named*, the node says which: `interface-dispatch`, `overloads`, or
-`name-matched` (in JS/TS, Ruby, PHP, Elixir and Groovy a call through an object whose class the
-source does not state is dropped — the Ruby fixture keeps its same-class call and drops
-`@store.save`, which carries no type). `context.py`
-repeats the reason on the node an agent is reading, and the explorer shows it as a chip.
-
-**A name defined in several files is qualified by its file.** Flow ids are bare -- `place_order`,
-`OrderService.place_order` -- until two files define the same one; then each definition gets its
-file (`tests_map.build`, `report.build`), and every id that is unique keeps its spelling. A call
-to such a name resolves to the caller's own file's definition, and from any other file it is
-dropped rather than guessed. On the skill's own code that qualifies 25 names and removes 72 call
-edges that used to be false.
-
-A call through an interface **resolves to the interface**, not to its implementations. Declaring
-`PricingRule pricing` and calling `pricing.price()` gives you the edge
-`OrderWorkflow.place → PricingRule.price`, because a body-less member is extracted as a node in its
-own right. Which implementation runs at runtime is a question a type checker cannot answer either,
-so the trace stops there rather than fanning out to every class that implements it — one guess or
-two wrong edges are both worse than an honest stop.
-
-What still cannot be resolved is **dropped, not invented**. Every overload is its own node
-(`InvoiceService.Total(InvoiceRequest)`, `InvoiceService.Total(int,int)`), and a call picks one by
-argument count and by any argument type the source states — a literal, or a variable with a
-declared type; when that still leaves two, the call is dropped and the caller says `overloads`.
-Lambda handlers have no declared type to resolve through. The coupling shown is a lower bound.
-
-Test files are recognized across all of them (pytest, Jest/Vitest, JUnit/Spring, `*_test.go`,
-`#[test]`, `[Fact]`, RSpec, PHPUnit) and tagged `layer: test` — so **test code is never reported as
-dead code** and its calls never count as coupling.
+- **A call is drawn only when the receiver's type is in the source** — a field, a parameter,
+  `new Foo()`, an annotation — so every call graph is a lower bound. Typed languages resolve like
+  Java; Ruby, PHP, Elixir, Groovy and untyped JS/TS calls are `name-matched`.
+- **What cannot be resolved is dropped, never guessed.** An interface call stops at the interface
+  (`OrderWorkflow.place → PricingRule.price`); each overload is its own node, and a call that still
+  fits two is dropped (`overloads`); a name defined in several files is qualified by its file. The
+  node names its loss, and the explorer shows it as a chip.
+- **A missing grammar is named, not silent**: its files are skipped with the exact `pip install`.
+- **Test files are recognized in every language** and tagged `layer: test`, so test code is never
+  dead code and its calls never count as coupling.
+- **Proven on real repositories:** Python, JS/TS and Java. The other languages and the four route
+  tables pass hand-written fixtures only.
 
 ---
 

@@ -569,7 +569,7 @@
           </div>
           <div class="pipe-node-pill" onclick="focusCard('langs_extract.py')">
             extract/langs_extract.py
-            <small>15 Languages (Java, Go, C#...)</small>
+            <small>14 Languages (Java, Go, C#...)</small>
           </div>
         </div>
 
@@ -1199,7 +1199,7 @@
               <td><span class="matrix-pill" onclick="focusCard('langs_extract.py')">scripts/extract/langs_extract.py</span></td>
               <td><span class="matrix-fn">find_lang_files(), extract_lang_files()</span></td>
               <td>Source roots</td>
-              <td>list ของ class/struct/interface และ method definition สำหรับ 15 ภาษา</td>
+              <td>list ของ class/struct/interface และ method definition สำหรับ 14 ภาษา</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('build_wiki.py')">scripts/extract/build_wiki.py</span></td>
@@ -1232,7 +1232,7 @@
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('langs_extract.py')">scripts/extract/langs_extract.py</span></td>
-              <td><span class="matrix-fn">find_lang_files(), extract_lang_files(), _pick_overload()</span></td>
+              <td><span class="matrix-fn">find_lang_files(), extract_lang_files()</span></td>
               <td>source roots, method ที่เป็นตัวเลือก, จำนวน argument ของ caller</td>
               <td>method, call site และการ resolve overload ที่แม่นยำ</td>
             </tr>
@@ -1507,7 +1507,7 @@ const SCRIPTS_DATA = [
     callees: [
       { name: "py_extract.py", fn: "parse()" },
       { name: "js_ts_extract.py", fn: "extract_js_files()" },
-      { name: "langs_extract.py", fn: "extract_lang_files() & _pick_overload()" },
+      { name: "langs_extract.py", fn: "extract_lang_files()" },
       { name: "route_tables.py", fn: "read(roots)" },
       { name: "ids.py", fn: "SharedNames" },
       { name: "taxonomy.py", fn: "infer_layer()" }
@@ -1545,14 +1545,14 @@ const SCRIPTS_DATA = [
     name: "langs_extract.py",
     cat: "extract",
     path: "scripts/extract/langs_extract.py",
-    role: "extractor สำหรับ 15 ภาษาทั้ง compiled และ dynamic ด้วย Tree-sitter (เดิมชื่อ ts_extract.py)",
+    role: "extractor สำหรับ 14 ภาษาทั้ง compiled และ dynamic ด้วย Tree-sitter (เดิมชื่อ ts_extract.py)",
     tech: "Table-Driven CST Shape Extraction (SPEC และ SHAPES)",
     algorithm: "CST walker ตัวเดียวที่ถูกนำทางด้วยตาราง SPEC (Java, Go, C#) และ SHAPES (Rust, Kotlin, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir) รองรับภาษาที่มี OVERLOADING",
-    inputs: "source file ใน 15 ภาษา",
+    inputs: "source file ใน 14 ภาษา",
     outputs: "declaration, body, parameter type, call และ decorator range",
     invariant: "range ของ node เริ่มที่บรรทัด annotation/decorator แรก (source..end) ตั้งชื่อ langs_extract เพื่อไม่ให้สับสนกับ TypeScript",
     cli: "python scripts/extract/langs_extract.py --src ./src",
-    callers: [{ name: "build_wiki.py", fn: "find_lang_files()" }, { name: "build_flow.py", fn: "extract_lang_files() & _pick_overload()" }],
+    callers: [{ name: "build_wiki.py", fn: "find_lang_files()" }, { name: "build_flow.py", fn: "extract_lang_files()" }],
     callees: [{ name: "grammars.py", fn: "parser_for(lang)" }]
   },
   {
