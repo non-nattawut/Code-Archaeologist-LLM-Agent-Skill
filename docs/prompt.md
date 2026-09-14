@@ -4363,3 +4363,13 @@ TypeScript is the README's seventeen. One right answer, so fixed everywhere inst
 
 Verified: `python tools/check_docs.py` -> OK; `compileall` clean. Only comments changed in code, so no graph can move and
 no rebuild was needed.
+
+## [102] 2026-09-14 — Commit and push
+
+**Prompt**
+> commit and push
+
+**Response**
+The README / architecture-guide change was already committed as `b171fdb` in turn [101]. `git fetch` showed `main`
+1 ahead of `origin/main` and 0 behind, with a clean tree, so nothing needed merging. Appended this entry, committed it,
+and pushed both commits to `origin/main`.
