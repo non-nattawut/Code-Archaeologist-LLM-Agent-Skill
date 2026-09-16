@@ -2812,3 +2812,52 @@ again. The canvas now badges **every** call link in view, and at an arrowhead tw
 callers share it draws one: the hovered caller's, else the selected node's, else none. Pointing at
 any box brings its whole order up without re-narrowing the Flowchart. What stays open: at a shared
 arrowhead with nothing hovered or selected among its callers, no badge is drawn at all.
+
+### 41. Re-installing leaves deleted scripts behind -- 2026-09-16, needs a decision
+
+**Asked:** does `npx github:...` keep an install up to date with the latest commit? Measured
+rather than reasoned about, and the answer is in two halves.
+
+**The fetch is current; the install is a snapshot.** Every `npx` run re-resolves the git spec to
+the default branch's HEAD. Proved twice: the `_npx` cache keeps a `package-lock.json` pinning an
+exact SHA, so I doctored that pin back one commit and re-ran -- npm replaced it with the real HEAD
+rather than reusing it. And by luck a genuine commit (`e6e41f3`) landed on `origin/main` between
+the two runs, and the second run picked it up. So there is no stale-cache problem.
+
+What does *not* update is the copy in the project. `bin/cli.js` copies the skill into
+`.claude/skills/code-archaeologist`; after that it is an ordinary directory that nothing refreshes.
+Re-running the installer is the update mechanism, and it does overwrite (`fs.cpSync` defaults to
+`force: true` -- verified: an edited `SKILL.md` was replaced, while `data/` was preserved, which is
+the intended split).
+
+**The hazard: `cpSync` overwrites, it does not delete.** A script that was renamed or removed
+upstream survives in an old install forever. Verified by planting
+`scripts/extract/ts_extract.py` in an install and re-installing over it -- still there. That file
+is not hypothetical: it was renamed to `langs_extract.py` on 2026-09-12, and `lang_extract.py`,
+`js_bridge.py`, `js_extract.js` and the skill's `package.json` were all deleted in phase 2. Anyone
+who installed before those changes and re-installed after has all of them sitting in their skill
+folder.
+
+Today that is mostly clutter, because nothing imports them. It is not *only* clutter: `paths.py`
+puts every category directory on `sys.path`, so a stale module keeps its bare name importable. A
+future rename that reuses an old name -- or a stale module shadowing a new one of the same name in
+a different category -- would load the old file in preference to the new, and the symptom would be
+the usual one for this project: a build that succeeds and a graph that is quietly wrong.
+
+**Why this needs a decision rather than a fix.** The obvious repair is to delete the destination
+skill directory before copying, but the installer cannot tell its own stale output from something
+the user put there deliberately, and `data/` lives inside that directory and must survive. Options,
+cheapest first:
+
+1. **Delete `scripts/` and `templates/` only, then copy.** Both are wholly owned by the installer;
+   `data/`, `.gitignore` and `vendor/` are not. Small, and it fixes the real case.
+2. **Manifest-based prune:** ship the file list the package contains and remove anything under
+   `scripts/` not in it. More precise, more moving parts.
+3. **Warn only:** list extraneous files and let the user delete them. Safest, and the one most
+   likely to be ignored.
+4. **Leave it and document it** in the README's install section: "re-installing does not remove
+   files deleted upstream; delete the skill folder first for a clean update."
+
+Recommendation: **1**, with `vendor/` explicitly preserved (it is expensive to rebuild and already
+excluded from the copy), plus the README line from 4. Not done here -- it changes what the
+installer destroys, which is exactly the class of change that should be chosen rather than assumed.

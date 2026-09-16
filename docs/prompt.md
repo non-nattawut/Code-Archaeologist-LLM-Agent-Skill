@@ -6877,3 +6877,41 @@ and 50/50 self-tests, check_langs all rows, check_py_oracle 0 disagreements. Com
 uncommitted [167] work (badges on every link) and tagged `0.3.1` annotated, following 0.1-0.3: the
 release notes are the tag message; no CHANGELOG file exists. `package.json` still says 0.2.0 as it
 did at 0.3 -- left alone, mentioned to the user.
+
+## [169] 2026-09-16 — Does npx stay on the latest commit? Measured, both halves
+
+**Prompt**
+> is out npx install skill keep up to date to latest commit of repo right?
+
+**Response**
+Measured it instead of answering from how npm generally behaves, because the answer splits in two
+and only one half is the reassuring one.
+
+**Fetch: yes.** Found the npx cache (`%LOCALAPPDATA%/npm-cache/_npx/<hash>`), and it keeps a
+`package-lock.json` pinning an exact commit SHA while the `_npx` entry itself records only the
+unpinned `github:owner/repo` spec. That made the real question testable: I doctored the lock back
+one commit (`13ea45d`) and re-ran `npx`. It replaced the pin with the true HEAD rather than reusing
+the stale one. Then a genuine accident made it a live test -- the user pushed `e6e41f3` between my
+two runs, and the second run resolved straight to it. So repeat runs are current; there is no
+stale-cache trap.
+
+**Install: no.** The installed skill is a plain directory copy and nothing refreshes it. Re-running
+the installer is the update, and it does overwrite -- verified by editing `SKILL.md` in an install
+and re-installing (replaced), while `data/` survived (preserved, as intended).
+
+**The part worth flagging:** `fs.cpSync` overwrites but never deletes. Planted
+`scripts/extract/ts_extract.py` in an install, re-installed, and it was still there. Not
+hypothetical -- that file was renamed to `langs_extract.py` on 2026-09-12, and `lang_extract.py`,
+`js_bridge.py`, `js_extract.js` and the skill's `package.json` were deleted in phase 2. Anyone who
+installed before and re-installed after is carrying all of them. Mostly clutter today since nothing
+imports them, but `paths.py` puts every category dir on `sys.path`, so a stale module stays
+importable under its bare name -- and a future rename reusing an old name would load the old file,
+producing this project's signature failure: a build that succeeds and a graph that is quietly wrong.
+
+Recorded as ROADMAP finding **#41** rather than fixed, per principle 7: the obvious repair is to
+delete the destination before copying, but the installer cannot distinguish its own stale output
+from something the user put there, and `data/` lives inside that directory. Four options written
+down with a recommendation (delete `scripts/` and `templates/` only, preserve `vendor/`, plus a
+README line), because it changes what the installer destroys.
+
+Nothing about the skill's behaviour changed this turn.
