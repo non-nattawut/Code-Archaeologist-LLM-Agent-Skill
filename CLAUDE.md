@@ -582,7 +582,11 @@ scrolls.
 
 - **One scroll region per pane, never two nested.** The left rail scrolls in the file tree only;
   the right panel scrolls in its body only. If something does not fit, fold it or shrink it —
-  never add a second scrollbar.
+  never add a second scrollbar. The one exception is the **colour legend** (`#legend`), capped at
+  `max-height: 132px` and scrolling: in folder mode it is one entry per folder, so a real
+  repository's ~120 folders pushed Census, Explorer and the tree out of the pane with no way to
+  reach them. It is a bounded list inside a section, not a pane, and the other three colour modes
+  are a handful of rows that never reach the cap.
 - **The node search lists, it never scrolls.** `#results` is `position: fixed` under `#search`,
   because the rail's `overflow: hidden` would clip it, and shows up to 12 matches (fewer when the box sits low in a short window) plus a count -- a
   scrolling dropdown would be a second scroll region in the rail.

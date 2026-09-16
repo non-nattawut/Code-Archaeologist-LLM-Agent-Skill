@@ -107,6 +107,11 @@
   /* A class kind is a shape, never a colour: colour already means layer. */
   .langs i.kind-interface { background: transparent; box-shadow: inset 0 0 0 2px #8b98ad; border-radius: 50%; }
   .langs i.kind-abstract { background: transparent; border: 1px dashed #8b98ad; border-radius: 50%; }
+  /* One entry per folder: on a large repository the folder legend is hundreds long and pushes
+     Census, Explorer and the tree out of the pane, unreachable. Cap it and let it scroll -- the
+     one exception to "one scroll region per pane", because this is a bounded list inside a
+     section, not a second pane. The other three modes are a handful of rows and never reach it. */
+  #legend { max-height: 132px; overflow-y: auto; margin-right: -6px; padding-right: 6px; }
 
   #filterChip { display: none; align-items: center; gap: 8px; width: 100%; margin-bottom: 8px;
     padding: 6px 9px; border: 1px solid var(--border); color: var(--muted); font-size: 11px; }

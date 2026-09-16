@@ -6334,3 +6334,47 @@ Verified: `check_docs` OK, `check_graph` 32+32 OK, `check_langs` 21/21, `check_r
 **Not done, offered instead:** both ad-hoc checks above are worth a repo tool -- they close the
 "nothing checks them" half of finding #12 and one of them caught a real regression on its first
 run. Not written as a script this turn, because it was not asked for and principle 3 binds.
+
+## [157] 2026-09-16 — The folder legend is capped and scrolls
+
+**Prompt**
+> cap folder showing since it too long and I cannot scroll
+>
+> cap it and make it scrollable instead
+>
+> (with a screenshot of the left rail on a real repository: COLOR BY → Folder, ~120 folder
+> swatches running off the bottom of the pane, Census / Explorer / the file tree pushed out of
+> view entirely)
+
+**Response**
+One CSS rule in `templates/viewer.html`:
+
+```css
+#legend { max-height: 132px; overflow-y: auto; margin-right: -6px; padding-right: 6px; }
+```
+
+Why it was broken: `#left` is `overflow: hidden` and only `.sect.grow .tree` scrolls, so the
+folder legend — one `<span>` per folder, from `renderLegend()`'s `folders.map(...)` — grows
+without bound and shoves every section below it past the bottom edge, where nothing can reach
+them. The other three colour modes (Layer, Churn, Risk) are a handful of rows and never come
+near 132px, so the cap needs no mode check.
+
+The negative margin + padding is the same trick `.sect.grow .tree` already uses, so the 9px
+scrollbar sits over the rail's own padding rather than pushing the swatches left.
+
+Verified in the browser on the built explorer: with the sample's folders the box is 75.75px
+tall and `scrollHeight` 76 — the cap does nothing. Stuffing 200 extra entries in by hand, the
+box stays at exactly 132px with `scrollHeight` 2050, and the rail's `overflow` is still
+`hidden` with the tree section intact. Computed `max-height: 132px` / `overflow-y: auto`.
+
+This contradicts CLAUDE.md's layout rule "One scroll region per pane, never two nested — if
+something does not fit, fold it or shrink it, never add a second scrollbar", so the rule now
+names the exception and says why: the legend is a bounded list inside a section, not a pane,
+and folding the whole **Color by** section is not a substitute when the legend is the thing you
+are reading. Principle 6 — same commit.
+
+Rebuilt the committed example data (`both` + `report` against `sample_src`): 25/23 structure,
+53/36 flow, 16 endpoints, grades C(73) / C(70), 1 duplicate cluster — every number matches the
+expected block, and the only diff outside the template is the same five lines inside
+`data/explorer.html`. `tools/check_docs.py` OK; `node bin/cli.js --harness claude --self-test`
+OK, including "Explorer is fully offline".
