@@ -47,6 +47,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from paths import DATA_DIR  # noqa: E402,F401  (puts sibling script dirs on sys.path)
 
+import call_ctx  # noqa: E402  (where a call is written: line, loop, branch)
 import doc_text  # noqa: E402  (the one doc-comment rule, shared with every producer)
 import grammars  # noqa: E402
 
@@ -530,7 +531,7 @@ def _calls(body, src: bytes, lang: str, types: dict[str, str], recv_name: str = 
         if got is None:
             continue
         typ, name, via = got
-        entry = {"type": typ, "name": name}
+        entry = {"type": typ, "name": name, **call_ctx.site(call, body)}
         if via:
             entry["via"] = via
         if qualifiers:
@@ -566,12 +567,16 @@ def _expression_calls(node, src: bytes, types: dict[str, str], recv_name: str = 
         m = JAVA_EXPRESSION_RE.fullmatch(_text(value, src)[1:-1].replace('\\"', '"').replace("\\\\", "\\"))
         if m:
             code = f"class M {{ Object m() {{ return {m.group(1)}; }} }}".encode()
-            out += _calls(parser.parse(code).root_node, code, "java", types, recv_name)
+            # The snippet's rows are not the file's: the call is written on the annotation's line,
+            # and a branch's position inside the snippet names no place in the file.
+            out += [{**{k: v for k, v in c.items() if k != "arms"}, "line": _line(value)}
+                    for c in _calls(parser.parse(code).root_node, code, "java", types, recv_name)]
     return out
 
 
 def _dedupe_calls(calls: list[dict]) -> list[dict]:
-    """One entry per (receiver type, name); every distinct argument list is kept.
+    """One entry per (receiver type, name); every distinct argument list is kept, and the
+    sites are folded by `call_ctx.merge` (first line, loop if any, branch only if all).
 
     The key is unchanged, so a language without overloads gets exactly the list it
     always did. `args` only matters when the name is an overload set: `f(a)` and
@@ -585,8 +590,12 @@ def _dedupe_calls(calls: list[dict]) -> list[dict]:
         key = (c["type"], c["name"],
                (via["type"], tuple(via.get("fields", ())), tuple(via["names"])) if via else (),
                c.get("qualifier", ""))
-        entry = merged.setdefault(key, {"type": c["type"], "name": c["name"], **({"via": via} if via else {}),
-                                        **({"qualifier": c["qualifier"]} if c.get("qualifier") else {})})
+        if key in merged:
+            entry = call_ctx.merge(merged[key], c)
+        else:
+            entry = merged[key] = {"type": c["type"], "name": c["name"], **({"via": via} if via else {}),
+                                   **({"qualifier": c["qualifier"]} if c.get("qualifier") else {}),
+                                   **call_ctx.facts(c)}
         for args in c.get("args", []):
             if args not in entry.setdefault("args", []):
                 entry["args"].append(args)
@@ -1427,14 +1436,14 @@ def _grecv(call, src: bytes, lang: str) -> tuple[str, str]:
     return "", ""
 
 
-def _gcalls(body, src: bytes, lang: str) -> list[tuple[str, str]]:
-    """(receiver, name) for every call site in a body."""
+def _gcalls(body, src: bytes, lang: str) -> list[tuple]:
+    """(receiver, name, the node the call is written at) for every call site in a body."""
     if body is None:
         return []
     if lang == "ruby":
-        return [_grecv(call, src, lang) for call in _walk(body, _G_CALLS[lang])] + _rb_bare_calls(body, src)
+        return [(*_grecv(call, src, lang), call) for call in _walk(body, _G_CALLS[lang])] + _rb_bare_calls(body, src)
     if lang != "dart":
-        return [_grecv(call, src, lang) for call in _walk(body, _G_CALLS[lang])]
+        return [(*_grecv(call, src, lang), call) for call in _walk(body, _G_CALLS[lang])]
     # Dart has no call node: `store.save(x)` is `identifier, selector(.save),
     # selector(arguments)` side by side, so a call is read off the sibling sequence.
     out = []
@@ -1451,14 +1460,14 @@ def _gcalls(body, src: bytes, lang: str) -> list[tuple[str, str]]:
                 ident = _child(sel, {"identifier"})
                 if ident is not None:
                     recv = "".join(_text(k, src) for k in kids[:i - 1])
-                    out.append((recv, _text(ident, src)))
+                    out.append((recv, _text(ident, src), kid))
             elif prev.type == "identifier" and (i == 1 or kids[i - 2].type != "selector"):
-                out.append(("", _text(prev, src)))     # a bare call: nothing chained before it
+                out.append(("", _text(prev, src), kid))     # a bare call: nothing chained before it
         stack.extend(kids)
     return out
 
 
-def _rb_bare_calls(body, src: bytes) -> list[tuple[str, str]]:
+def _rb_bare_calls(body, src: bytes) -> list[tuple]:
     """Ruby's argument-less calls: `index`, with no parentheses, parses as an identifier.
 
     In Ruby a bare name that is not a parameter or a local *is* a method call (or a
@@ -1488,7 +1497,7 @@ def _rb_bare_calls(body, src: bytes) -> list[tuple[str, str]]:
         if parent is not None and parent.type in ("for", "block_parameters", "lambda_parameters"):
             continue
         if _text(ident, src) not in local:
-            out.append(("", _text(ident, src)))
+            out.append(("", _text(ident, src), ident))
     return out
 
 
@@ -1659,13 +1668,14 @@ def _gstart(node) -> int:
 
 def _gcall_entries(node, src: bytes, lang: str, types: dict[str, str],
                    qualifiers: dict[str, str] | None = None) -> list[dict]:
-    """Every call under `node`, resolved: `_gresolve`'s entries."""
+    """Every call under `node`, resolved: `_gresolve`'s entries, each with where it is written."""
     if lang in OVERLOADING and node is not None:
-        pairs = [(*_grecv(c, src, lang), _arg_kinds(c, src, lang, types), _gchain(c, src, lang, types))
+        found = [((*_grecv(c, src, lang), _arg_kinds(c, src, lang, types), _gchain(c, src, lang, types)), c)
                  for c in _walk(node, _G_CALLS[lang])]
     else:
-        pairs = _gcalls(node, src, lang)
-    return _gresolve(pairs, types, qualifiers)
+        found = [((recv, name), at) for recv, name, at in _gcalls(node, src, lang)]
+    return [{**entry, **call_ctx.site(at, node)}
+            for pair, at in found for entry in _gresolve([pair], types, qualifiers)]
 
 
 def _kt_bean_function(annos: list[dict], body, name: str, src: bytes) -> dict | None:

@@ -6468,3 +6468,270 @@ same 25/23, 53/36, C(73)/C(70).
 Docs in the same commit: CLAUDE.md gains the overlay in *Where the front-end lives*, the
 `LINK_KEY` / `LAYER_KEY` rule in *Colour rules*, and the "one overlay other than the toolbar
 menu" line in *Layout rules*; README's explorer section gains a **Header** bullet.
+
+## [159] 2026-09-16 — Flowchart labels and call order: planned and designed
+
+*Reconstructed at the end of [160]: these three turns ran in plan mode, where only the plan file
+could be written, so the log could not be appended while they happened. A summary, not a transcript.*
+
+**Prompt**
+> 1. fix visual of text display of flow chart, if it exceed so make it 2 lines
+> 2. also box can call many other internal method right? suggest me how do make user know which one call first/after or it is by condition/loop
+
+(with a screenshot of a Flowchart box reading `VersionControlService.upl…`)
+
+**Response**
+Explored the Flowchart code (`layoutFlowchart`, `drawFlowBox`, `drawFlowLink`, `fitText`) and the
+flow pipeline. The finding that shaped the plan: the graph recorded **nothing** about a call site
+-- `build_flow.analyze` kept edges as a set of `(source, target, type)`, `write_graph` wrote those
+three keys, and all three producers built call dicts as `{name, type}` -- so call order was a
+pipeline change, not a viewer change. Asked the user two questions: scope (they chose order *and*
+loop/branch, design first) and how to label the number (they chose a number plus an "as written,
+not as run" caveat). Plan: two-line boxes; `line` / `loop` / `cond` per call link, merged first
+line / any / all; a new `core/call_ctx.py`; a badge on the elbow; rows deliberately not reordered.
+
+**Prompt**
+> /design design me the comeout of these change what flow chart it will be if I add this feature
+
+**Response**
+Published a design canvas at 1:1 with the explorer's real geometry and palette: before, after
+(the caller selected, which is the state a fan-out is read in), the badge vocabulary, and the
+panel's Calls list. Flagged badge crowding at a 44px row pitch, and a missing ellipsis in the
+panel; changed the panel from a second `L` badge to the canvas's own numbered glyph, because two
+`L` badges in one row read as a bug.
+
+**Prompt**
+> ok add that to the plan, also add this to the plan: this order must have option to show/hide
+
+**Response**
+Added the panel revision, the crowding fallback (a doubled outline instead of the ring, decided
+against a real graph), and an **Order** toggle: static markup with `checked`, read at draw time
+like `#showTests`; shown only in the Flowchart, where Folders is hidden, so it costs the toolbar
+no width; canvas badges only.
+
+## [160] 2026-09-16 — Call sites through the pipeline, two-line boxes, Order toggle, distinct link colours
+
+**Prompt**
+(the approved plan, then, mid-turn, with a screenshot of the legend's link rows)
+> make link color better distinct, this is hard to know which one is what
+
+**Response**
+**The plan was wrong in one place, and a probe caught it.** Before writing the node-type table I
+parsed a snippet per grammar -- every loop, branch, ternary, switch and catch shape, a call in each
+position -- and printed each call's ancestor chain with field names. A call in a `for` header's
+iterable runs once, and one in an `if` condition always runs, so "inside the loop node" is not
+enough: only a call arriving through the *body* counts. The sample edge the plan pinned as a loop,
+`handleOrderEvents -> EventService.Events`, is `range service.Events(...)` -- a header, so it is
+not a loop. The rule became field-aware: a loop node counts `body` / `condition` / `increment` /
+`update`, a branch node `consequence` / `alternative` / `body` / ..., an arm node counts outright.
+Kotlin and Swift leave bodies unnamed, so an unnamed block child counts -- first globally, which
+made Swift's `do { try }` a loop (it shares `do_statement` with do-while), so now only for their
+loop and `if` types. `check_ctx` against every probe call: 0 wrong, and the remaining misses are
+documented gaps (Python ternary, `&&`/`??`, Go `for cond {}`, Elixir macros, Dart's catch).
+
+**Pipeline.** `core/call_ctx.py` (`site`, `facts`, `merge`). Producers: `py_extract._calls`,
+`js_ts_extract` `add()` (its `seen` set became a dict so a repeat merges instead of vanishing),
+`langs_extract._calls` / `_dedupe_calls` / `_gcall_entries` -- the generic walker's `_gcalls`
+dropped the node, so it hands it through now; a MapStruct `java(...)` call takes the annotation's
+line. `build_flow`: each analyzer's edges became `(caller, callee) -> site`; `analyze()` keeps its
+edge-tuple return unchanged (ten tool call sites read it) and stores `call_sites` on the caller;
+`write_graph` writes `line` / `loop` / `cond` on `calls` links only. A JS `new X()` link carries no
+site and cancels `cond` on a link it shares.
+
+**A miss of my own, caught by the suite.** Two "byte-identical" checks early on ran
+`git diff -- data/` at the repo root, where no `data/` exists -- they proved nothing. Redone on
+`.agents/skills/code-archaeologist/data/`: the flow graph's diff is exactly 29 `line` keys, one
+`cond`, and a trailing comma on 29 `"type"` lines; nothing else moved; a second build is
+byte-identical; reports unchanged. And `check_regressions` failed r42/r47/r49/r67: the `passes`
+loop in `_analyze_js` did `edges | renders`, which a dict breaks -- the sample has no `passes`
+link, so only those fixtures reach it. Fixed.
+
+**Verified per link.** A script read each of the 29 sample call links' `line` from the source:
+inside its caller and naming the callee, in Python, JS, TS, TSX, Java, C# and Go. `orders ->
+OrderService.place_order` is `cond`; nothing is `loop`.
+
+**Checks.** `check_regressions` r81: Python, TypeScript, Java, Go and Kotlin -- an iterable is not
+a loop, a `while` condition is, a call in a loop and an `else` is not `cond`, first line wins --
+and it fails when each rule is broken in memory (iterable counted, `cond` as any, unnamed
+expression as body). `check_graph` c24: a site's line lies in its caller and names the callee
+within five lines; flags only `true`; no site on a non-call link; four self-test breakers. The
+first breaker I wrote (line 16 of `OrderWorkflow.place`) would not have fired -- `save` is on
+line 21, inside the window -- so it moves `price` to the closing brace instead. Results: 81/81
+regressions, 47/47 self-test, 33 checks OK on both maps, 21 language fixtures, oracle 0
+disagreements, check_docs OK, installer self-test offline, `check` not stale, 25/23 and 53/36,
+C(73) / C(70).
+
+**Viewer.** `FC` 180x34 on a 44px row; `fitLines` breaks after the last `.` that fits, else `_`/`-`,
+else before a capital. `CALL_SITES` / `CALL_FANOUT` ranked once per map in `loadMap`;
+`drawCallBadge` on the elbow's turn; `callGlyph` for the panel and legend. Two things the plan
+missed: the Calls list is `outAdj`, which also holds renders / passes / http / inheritance, so
+calls come first in rank order and every other link follows as before; and every list calls
+`nodeItem` through `.map()`, which passes the index second, so a new parameter would have landed
+in the wrong place -- `nodeRow` takes the glyph and tags instead. The ellipsis went on a new `.name`
+class, not `.item .link`: a cycle path shares that class and would have been cut. The badge key
+went into the Legend dialog, not the left rail's swatches, which describe the Color-by mode.
+Order measures 74.6px against Folders' 87.3px, and the two are never shown together.
+Checked in the browser pane: ① `PricingRule.price` (L20) and ② `OrderArchive.save` (L21) on the
+real canvas, in the opposite row order; the two-line label, the ring, the diamond and every
+no-draw case by recording the real draw calls, since the pane's screenshots lagged a step behind
+and the Legend was open under the user's hand.
+
+**Link colours (the mid-turn request).** `implements` was light grey beside grey calls, `extends`
+and `overrides` a faint sand, and `implements` / `extends` shared a dash. Now one table,
+`LINK_STYLE`, read by the canvas, the matrix and the legend: calls grey solid; http pink dashed;
+renders violet dotted; passes sky dash-dot; implements yellow long dash; extends orange long dash;
+overrides orange short dash. Every hue avoids the highlight green and the risk red; the legend
+draws swatches at alpha .9. Checked in the pane: the implements link into `PricingRule.price` is
+yellow on the Flowchart.
+
+**Docs.** CLAUDE.md (call sites, `call_ctx` bullet and layout, the Flowchart paragraph, colour and
+toggle rules, c24, the expected call-site numbers, 30 scripts), README, SKILL.md, TAXONOMY.md (link
+fields), all three architecture guides (a `call_ctx.py` card, 30 scripts; the Thai Q&A said
+`core/` held 5 and listed 6 -- it is 7), ROADMAP_PLAN #40 (badge crowding on a wide fan-out: the
+plan's real-repository check could not run here). `docs/USAGE.md` is unchanged: no command or flag
+changed. Not committed -- the user did not ask.
+
+## [161] 2026-09-16 — Call badges behind the arrowhead, on the selection only
+
+**Prompt**
+> when many calling it have problem with visual that it stack each other, better to place it behind arrow head?
+
+(with a screenshot of `MaintenanceMasterDataService.uploadProjectData` calling ten methods in one
+column, its badges piled on the shared vertical line)
+
+**Response**
+Agreed, and measured before and after. Every link a caller sends into one column bends on the same
+vertical trunk, so badges placed midway along the bend sit exactly one ring-width (22px) apart on
+adjacent rows. The last run into the callee is the one piece of a link its siblings don't share,
+and rows are 44px apart. `drawCallBadge` now draws at `x2 - 19` on the callee's row -- the ring
+clears the 6px arrowhead and stays inside the 35px run.
+
+To see it on a real fan-out I refreshed the scratch install, copied the repo's `vendor/` into it
+(a plain install fetches no wheels, and the first run skipped Python by name), and built the flow
+map of the skill's own `scripts/` -- into the scratch copy's `data/`, not the repo's.
+`build_flow.analyze` calls 21 functions. The pane refused to open that page (outside the project,
+then a copy inside it -- not retried; the copy deleted), so I loaded `analyze` plus its callees
+(22 nodes, 26 links) into the open sample explorer's `MAPS.flow` in memory and selected `analyze`.
+The first comparison said 0 overlaps for *both* placements: my threshold was the ring's 22px, and
+the old badges were exactly 22px apart, touching without counting. At 26px: old placement 19
+pairs, new placement 0 (closest 44px). The screenshot matches -- one badge per row, rings on
+`is_test_path` and `precision_of`, both called inside a `for` in `analyze`.
+
+That subgraph also showed what the move breaks: `_claim` is called by `analyze`, `_analyze_py`,
+`_analyze_js` and `_analyze_lang`, and every link into a callee ends on the same arrowhead, so
+four badges -- four ranks from four different callers -- would stack there. The canvas now badges
+only the **selected** node's own calls; the selection's links are always highlighted, so the grey
+unselected stroke became dead and went. Without a selection the Flowchart shows no badges; the
+panel's Calls list is unchanged. I told the user this, since it is more than the move they asked
+for.
+
+Also found on the real code: `[... for root in roots for res in extract_py_files(find_py_files(root))]`
+-- the second `for`'s iterable runs once per `root`, but `call_ctx` reads it as a one-off iterable,
+so no loop marker. A miss, never a false marker: added to the documented gaps in `call_ctx.py` and
+CLAUDE.md rather than special-cased.
+
+Docs: CLAUDE.md (placement, the selection rule, the measurement, the badge colour rule, the gap),
+README, SKILL.md, the legend's own text in `viewer.html`, ROADMAP_PLAN *Update on #40* (decided:
+neither the doubled outline nor wider rows was needed). Explorer regenerated; the script parses as
+a classic script. Not committed.
+
+## [162] 2026-09-16 — Research: one step number for if / else alternatives
+
+**Prompt**
+> what if 3,4 is if - else condition can we make it better ordering like only 1 number, not implement yet reserach first
+
+(with a screenshot of four badges -- 1, 2 circles and 3, 4 diamonds -- still drawn on the shared
+bend, i.e. an explorer built before [161])
+
+**Response**
+Research only, no code changed. Findings:
+
+- Today the graph cannot say whether 3 and 4 are an if/else pair or two calls in the same `if`:
+  `cond` is one boolean per link. Grouping needs, per call site, *which* branch statement and
+  *which* arm. `call_ctx.site` already walks through exactly those nodes; the probe paths from
+  [160] show the arm is readable in every grammar -- a field (`consequence` / `alternative`),
+  an arm node (`elif_clause`, `else_clause`, `switch_case`, `when_entry`, `match_arm`), or, for
+  Kotlin/Swift's unnamed bodies, the block's position.
+- Not every "conditional" is an alternative. `try`/`catch`: the try body runs, the catch maybe
+  also runs -- sequence, not either/or. A C/Java/JS/PHP `switch` statement falls through without
+  `break`, so its cases are not exclusive; Java `->` rules, C# sections (no fall-through allowed),
+  Go `switch`, Kotlin `when`, Rust/Scala/PHP/Python `match` are. An `else if` chain is one
+  statement with N arms, though JS/Java/Go/C# nest it as an `if` inside the `else`.
+- Edge cases at link level: a callee called in both arms is one link (it runs either way) -- no arm;
+  sites merged across arms drop the arm; nested branches group only by the outermost exclusive one.
+- Numbering becomes steps, not calls: `1, 2, 3a, 3b, 4`. Recommended over a bare shared `3`
+  (the user's literal suggestion) because a letter costs nothing and says which arm; a digit only
+  when an arm holds several calls (`3a1`, `3a2`), which needs a slightly wider diamond.
+- Sketch: `site()` adds the outermost exclusive branch as `branch: "line:col"` + `arm: n`;
+  `merge()` keeps them only if every site agrees; `loadMap` groups consecutive calls sharing a
+  `branch` into one step; panel groups arms under the step; c24 / r81 extended. Roughly the size of
+  the cond/loop work, smaller.
+
+Told the user their screenshot shows the pre-[161] placement and needs a rebuild to see badges at
+the arrowhead, on the selected node only. Asked which label form they want before implementing.
+
+## [163] 2026-09-16 — Alternatives numbered 3a / 3b; the Flowchart opens first
+
+**Prompt**
+> ok implment it
+>
+> 1. do it as 3a, 3b ...
+> 2. also change default tab from graph to flowchart and move flowchart to first tab
+
+**Response**
+**Pipeline.** `call_ctx.site` records `arms` -- outermost first, each either/or branch a call is on
+one side of, as `"<line>:<col>/<arm>"`. `_if_arm` reads a side of an if-family node (field,
+Python/PHP's several `alternative` children, Kotlin/Swift block position) and `_is_else_if` follows
+the chain up to its first `if`, so `if` / `else if` / `else` are sides 0/1/2 of one branch and an
+`else if` test belongs to its side; a ternary chain works the same way. `_switch_arm` counts an arm
+of a switch-family node only where cases cannot fall through (`EXCLUSIVE_ARMS`: Java `->`, C#
+sections, Go and Swift unless `fallthrough`, Dart, Kotlin `when`, `match`, Ruby `case`, Go
+`select`); JS/C/PHP/Java `case X:` and `try`/`catch` set `cond` and no arm. Recording an arm also
+sets `cond`, which fills one old gap: a Kotlin `else if` test was not `cond`. `merge` keeps the arms
+every site shares; MapStruct snippets and JS `new X()` links drop them. The sample gains exactly one
+field: `orders -> OrderService.place_order` `arms: ["19:5/0"]`; a second build is byte-identical.
+
+**Probed first**, on thirteen grammars with either/or constructs (`check_arms.py` in the
+scratchpad): chains, nested branches, fall-through, `fallthrough`, try/catch all came out right
+except one -- Kotlin's `when` arms numbered from 1, because the anonymous `when` keyword token has
+the same type name as Ruby's `when` arm and was counted as a sibling. Siblings are named children
+now. The old loop/branch probe still has 0 wrong.
+
+**Checks.** r82: Python if/elif/else with a nested if and a call on two sides; Java `->` switch,
+`case X:` switch, try/catch; Go else-if chain and a `fallthrough` switch; a TS ternary chain;
+Kotlin `when` -- 19 expectations, passing first run, and failing when each rule is broken in memory
+(`case X:` counted, chain not flattened, arms kept from the first site, `fallthrough` ignored).
+r81 allowed only its old keys and failed on `arms`, as expected; updated. c24 checks `arms`: the
+format, only with `cond`, each branch starting in the caller and no later than the call, outermost
+first; three new breakers. 82/82 regressions, 50/50 self-test, 33 checks OK on both maps, 21 language
+fixtures, oracle 0 disagreements, check_docs OK, installer offline, `check` not stale.
+
+**Explorer.** Steps instead of ranks, in `loadMap`: calls sorted by line (then side), consecutive
+calls on one branch form a step, letters at the outermost level with calls on two sides, a digit
+when a side holds several (`3a1`, `3a2`). The badge stretches for a longer label -- a pill, a
+flat-topped diamond, an elliptical loop ring (`badgePath`, `loopRing`) -- leftwards from its right
+end, so it stays off the arrowhead; `callGlyph` does the same in SVG. The panel tooltip says when a
+call is one of N alternatives; the legend has a `3a / 3b` row. Verified in the pane on a Java
+`uploadProjectData`-shaped fixture built through `build_flow` into a temp file and loaded into the
+open explorer: 1, 2, 3a1, 3a2, 3b, 4a, 4b, 5 exactly as expected, on screen and in the panel; a
+looped `3a1` draws an ellipse 15.25 wide. `let view = "flow"` and `VIEWS` reordered: the page opened
+on the Flowchart, first and active, with Order shown.
+
+**Docs.** CLAUDE.md (arms, `_if_arm` / `_is_else_if` / `_switch_arm`, view order, step labels, the
+sample's `arms`, c24, r82), README, both SKILL.md files (view order; the explorer skill listed them
+too), TAXONOMY.md (`arms` row), all three architecture guides (call_ctx card, view order). Not
+committed.
+
+## [164] 2026-09-16 — Commit and push the call-site work
+
+**Prompt**
+> ok commit and push all
+
+**Response**
+Committed everything from [159]-[163] as one commit on `main`, the branch this repository commits to
+directly: call sites through the pipeline (`core/call_ctx.py`, the three producers, `build_flow`),
+the explorer (two-line boxes, step badges with `3a` / `3b` alternatives behind the arrowhead on the
+selected node, the Order toggle, one colour and dash per link type, the Flowchart first and open by
+default), c24 and r81 / r82, the regenerated sample explorer and flow graph, and every doc. This
+entry was appended before the commit so it is part of it. `origin/main` was 0 commits ahead and
+local `main` 2 ahead (`aa8bffa`, `4e8cc45`, not yet pushed), so the push carried those two as well.

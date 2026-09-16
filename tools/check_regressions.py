@@ -2137,6 +2137,137 @@ def r80_one_doc_rule():
         return f"module summary not joined: {mod and mod.get('doc')!r}"
 
 
+def r81_call_sites():
+    """A node calling five others could not say which call is written first, or that one runs
+    only inside an `if`: a call link carried no call site. It carries `line`, and `loop` /
+    `cond` where earned. Only a body counts -- the design first pinned
+    `handleOrderEvents -> EventService.Events` as a loop, but a `range` expression runs once --
+    and a call is `cond` only when *every* site is in a branch."""
+    d = _tree({
+        "svc.py": "def helper():\n    return 1\n\n\ndef other():\n    return 2\n\n\n"
+                  "def load():\n    return []\n\n\ndef both():\n    return 3\n\n\n"
+                  "def run(xs, a):\n    for x in load():\n        helper()\n"
+                  "    if a:\n        other()\n        both()\n    both()\n",
+        "a.ts": "export function items(): number[] {\n  return [];\n}\n"
+                "export function save(x: number) {\n  return x;\n}\n"
+                "export function sync() {\n  for (const x of items()) {\n    save(x);\n  }\n}\n",
+        "Store.java": "public class Store {\n    public boolean more() { return false; }\n"
+                      "    public void take() {}\n    public void flush() {}\n}\n",
+        "Worker.java": "public class Worker {\n    private Store store;\n"
+                       "    public void drain(boolean ok) {\n        while (store.more()) {\n"
+                       "            store.take();\n        }\n        if (ok) {\n"
+                       "            store.flush();\n        } else {\n            store.take();\n"
+                       "        }\n    }\n}\n",
+        "worker.go": "package w\n\ntype Svc struct{}\n\n"
+                     "func (s *Svc) Events() []string { return nil }\n"
+                     "func (s *Svc) Record() {}\n\n"
+                     "func Drive(svc *Svc, n int) {\n\tfor _, e := range svc.Events() {\n\t\t_ = e\n\t}\n"
+                     "\tfor i := 0; i < n; i++ {\n\t\tsvc.Record()\n\t}\n}\n",
+        "Job.kt": "class Store {\n    fun load(): List<Int> = listOf()\n    fun save(x: Int) {}\n}\n\n"
+                  "class Job(private val store: Store) {\n    fun run() {\n"
+                  "        for (x in store.load()) {\n            store.save(x)\n        }\n    }\n}\n"})
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        methods, edges = build_flow.analyze([d])
+    path = os.path.join(tempfile.mkdtemp(), "flow_graph.json")
+    build_flow.write_graph(methods, edges, path)
+    with open(path, encoding="utf-8") as fh:
+        links = {(e["source"], e["target"]): e for e in json.load(fh)["edges"] if e["type"] == "calls"}
+    # (source, target) -> (line, loop, cond), as the written file must hold them
+    want = {
+        ("run", "load"): (18, False, False),          # a `for` iterable runs once
+        ("run", "helper"): (19, True, False),
+        ("run", "other"): (21, False, True),
+        ("run", "both"): (22, False, False),          # one site in the `if`, one not: first line, no cond
+        ("sync", "items"): (8, False, False),
+        ("sync", "save"): (9, True, False),
+        ("Worker.drain", "Store.more"): (4, True, False),   # a `while` condition repeats
+        ("Worker.drain", "Store.take"): (5, True, False),   # in the loop, and in the `else`: not all cond
+        ("Worker.drain", "Store.flush"): (8, False, True),
+        ("Drive", "Svc.Events"): (9, False, False),     # `range svc.Events()`: once
+        ("Drive", "Svc.Record"): (13, True, False),
+        ("Job.run", "Store.load"): (8, False, False),  # Kotlin leaves both unnamed: only the block is a body
+        ("Job.run", "Store.save"): (9, True, False),
+    }
+    missing = sorted(k for k in want if k not in links)
+    if missing:
+        return f"call link(s) missing: {missing}; got {sorted(links)}"
+    got = {k: (links[k].get("line"), bool(links[k].get("loop")), bool(links[k].get("cond"))) for k in want}
+    wrong = {k: (got[k], want[k]) for k in want if got[k] != want[k]}
+    if wrong:
+        return f"call site(s) wrong (got, want): {wrong}"
+    if any(set(e) - {"source", "target", "type", "line", "loop", "cond", "arms"} for e in links.values()):
+        return "a call link carries a key other than its call site"
+    if any(e.get("loop") is False or e.get("cond") is False for e in links.values()):
+        return "a false `loop` / `cond` was written instead of left out"
+
+
+def r82_either_or_arms():
+    """Badges 3 and 4 could be an `if` and its `else` -- exactly one runs -- or two calls in one
+    `if`, and `cond` could not say which. A call site records `arms`: each either/or branch it is
+    on one side of, outermost first, as `"<line>:<col>/<arm>"`. Only where the sides exclude each
+    other: an else-if chain is one branch, a ternary chain too, a `match`/`when` and a `case X ->`
+    switch are, a `case X:` switch (fall-through), a Go `fallthrough` switch and a `catch` are
+    not. A call made on two sides keeps only the sides every site shares."""
+    d = _tree({
+        "svc.py": "def a():\n    return 1\n\n\ndef b():\n    return 2\n\n\ndef c():\n    return 3\n\n\n"
+                  "def d():\n    return 4\n\n\ndef e():\n    return 5\n\n\n"
+                  "def run(x, y):\n    a()\n    if x:\n        b()\n        if y:\n            c()\n"
+                  "    elif x == 2:\n        d()\n    else:\n        e()\n        b()\n",
+        "Box.java": "public class Box {\n    public void open() {}\n    public void shut() {}\n"
+                    "    public void peek() {}\n    public void poke() {}\n    public void lift() {}\n"
+                    "    public void drop() {}\n}\n",
+        "Crate.java": "public class Crate {\n    private Box box;\n    public void act(int k) {\n"
+                      "        switch (k) {\n            case 1 -> box.open();\n            default -> box.shut();\n"
+                      "        }\n        switch (k) {\n            case 1: box.peek();\n            case 2: box.poke();\n"
+                      "        }\n        try {\n            box.lift();\n        } catch (Exception ex) {\n"
+                      "            box.drop();\n        }\n    }\n}\n",
+        "choose.go": "package w\n\ntype Svc struct{}\n\nfunc (s *Svc) One() {}\nfunc (s *Svc) Two() {}\n"
+                     "func (s *Svc) Three() {}\n\nfunc Choose(svc *Svc, n int) {\n\tif n > 0 {\n\t\tsvc.One()\n"
+                     "\t} else if n < 0 {\n\t\tsvc.Two()\n\t}\n\tswitch n {\n\tcase 1:\n\t\tsvc.Three()\n"
+                     "\t\tfallthrough\n\tcase 2:\n\t}\n}\n",
+        "pick.ts": "export function hi(): number {\n  return 1;\n}\nexport function lo(): number {\n  return 0;\n}\n"
+                   "export function mid(): number {\n  return 2;\n}\nexport function pick(n: number) {\n"
+                   "  return n > 0 ? hi() : n < 0 ? lo() : mid();\n}\n",
+        "Lamp.kt": "class Lamp {\n    fun on() {}\n    fun off() {}\n}\n\nclass Panel(private val lamp: Lamp) {\n"
+                   "    fun flip(k: Int) {\n        when (k) {\n            1 -> lamp.on()\n            else -> lamp.off()\n"
+                   "        }\n    }\n}\n"})
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        methods, edges = build_flow.analyze([d])
+    path = os.path.join(tempfile.mkdtemp(), "flow_graph.json")
+    build_flow.write_graph(methods, edges, path)
+    with open(path, encoding="utf-8") as fh:
+        links = {(e["source"], e["target"]): e for e in json.load(fh)["edges"] if e["type"] == "calls"}
+    # (source, target) -> (arms, cond)
+    want = {
+        ("run", "a"): (None, False),
+        ("run", "b"): (None, True),                          # the `if` side and the `else` side: neither
+        ("run", "c"): (["23:5/0", "25:9/0"], True),          # outer branch first, then the inner one
+        ("run", "d"): (["23:5/1"], True),                    # `elif` is the chain's second side
+        ("run", "e"): (["23:5/2"], True),
+        ("Crate.act", "Box.open"): (["4:9/0"], True),        # `case 1 ->` cannot fall through
+        ("Crate.act", "Box.shut"): (["4:9/1"], True),
+        ("Crate.act", "Box.peek"): (None, True),             # `case 1:` can
+        ("Crate.act", "Box.poke"): (None, True),
+        ("Crate.act", "Box.lift"): (None, False),
+        ("Crate.act", "Box.drop"): (None, True),             # a catch runs after its try: not either/or
+        ("Choose", "Svc.One"): (["10:2/0"], True),           # `else if` nested in `alternative`: one chain
+        ("Choose", "Svc.Two"): (["10:2/1"], True),
+        ("Choose", "Svc.Three"): (None, True),               # this switch says `fallthrough`
+        ("pick", "hi"): (["11:10/0"], True),                 # a ternary chain is one branch too
+        ("pick", "lo"): (["11:10/1"], True),
+        ("pick", "mid"): (["11:10/2"], True),
+        ("Panel.flip", "Lamp.on"): (["8:9/0"], True),        # the `when` keyword is not an arm
+        ("Panel.flip", "Lamp.off"): (["8:9/1"], True),
+    }
+    missing = sorted(k for k in want if k not in links)
+    if missing:
+        return f"call link(s) missing: {missing}; got {sorted(links)}"
+    got = {k: (links[k].get("arms"), bool(links[k].get("cond"))) for k in want}
+    wrong = {k: (got[k], want[k]) for k in want if got[k] != want[k]}
+    if wrong:
+        return f"arms wrong (got, want): {wrong}"
+
+
 CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_append,
          r05_duplicates_declarations, r06_orphan_guard, r07_flask_routes,
          r08_missing_parser_is_visible, r09_no_absolute_paths, r10_brief_agrees_with_check,
@@ -2166,7 +2297,7 @@ CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_app
          r71_pattern_variables, r72_typed_hook_fields, r73_type_refs_are_references,
          r74_extended_classes_are_used, r75_structure_entry_points, r76_type_position_imports,
          r77_same_file_references, r78_layer_words_end_where_the_word_ends,
-         r79_layer_from_the_folder, r80_one_doc_rule]
+         r79_layer_from_the_folder, r80_one_doc_rule, r81_call_sites, r82_either_or_arms]
 
 
 def main() -> int:

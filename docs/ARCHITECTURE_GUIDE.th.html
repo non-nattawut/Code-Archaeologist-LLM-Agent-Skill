@@ -647,7 +647,7 @@
     <div class="section-eyebrow">สถาปัตยกรรมการทำงาน</div>
     <h2>Call Graph ระหว่าง Script &amp; ลำดับชั้นการทำงาน</h2>
     <p style="color: var(--ink-2); max-width: 90ch; margin-bottom: 24px;">
-      สำรวจ graph การเรียกระหว่าง script อย่างละเอียด Code Archaeologist ประกอบด้วย 29 script ที่แต่ละตัวทำงานเฉพาะทาง และคุยกันผ่าน contract ที่ deterministic, taxonomy ที่ใช้ร่วมกัน และ artifact บน filesystem
+      สำรวจ graph การเรียกระหว่าง script อย่างละเอียด Code Archaeologist ประกอบด้วย 30 script ที่แต่ละตัวทำงานเฉพาะทาง และคุยกันผ่าน contract ที่ deterministic, taxonomy ที่ใช้ร่วมกัน และ artifact บน filesystem
     </p>
 
     <div class="cg-tabs">
@@ -1556,9 +1556,9 @@
     ["arch", "ทำไมต้องมี entrypoint เดียว",
      "เพื่อบังคับลำดับ build → manifest → render ไว้ที่เดียว และให้ agent จำคำสั่งน้อยที่สุด",
      "explorer ถูก render ครั้งเดียวหลังทุกแผนที่และ manifest ถ้าไฟล์ <code>force-graph.min.js</code> หาย จะเป็น error ที่มีชื่อพร้อม exit code ไม่ใช่ศูนย์ — ไม่ใช่แผนที่หายไปแบบเงียบ ๆ (เคยเกิดจริงบนการติดตั้งผ่าน npx)"],
-    ["arch", "29 สคริปต์ถูกจัดกลุ่มอย่างไร",
-     "ราก 2 (<code>archaeologist.py</code>, <code>paths.py</code>), <code>core/</code> 5, <code>extract/</code> 8, <code>review/</code> 9, <code>query/</code> 4",
-     "<code>core/</code> = taxonomy, manifest, console, grammars, ids, doc_text · <code>extract/</code> = build_wiki, build_graph, build_flow, py_extract, js_ts_extract, langs_extract, route_tables, apply_descriptions · <code>review/</code> = analyze, scan_security, git_insights, metrics, debt, tests_map, duplicates, report, brief · <code>query/</code> = trace_path, context, search, build_html"],
+    ["arch", "30 สคริปต์ถูกจัดกลุ่มอย่างไร",
+     "ราก 2 (<code>archaeologist.py</code>, <code>paths.py</code>), <code>core/</code> 7, <code>extract/</code> 8, <code>review/</code> 9, <code>query/</code> 4",
+     "<code>core/</code> = taxonomy, manifest, console, grammars, ids, doc_text, call_ctx · <code>extract/</code> = build_wiki, build_graph, build_flow, py_extract, js_ts_extract, langs_extract, route_tables, apply_descriptions · <code>review/</code> = analyze, scan_security, git_insights, metrics, debt, tests_map, duplicates, report, brief · <code>query/</code> = trace_path, context, search, build_html"],
     ["arch", "กฎทิศทางของ dependency คืออะไร",
      "<code>core/</code> ไม่ import อะไรของ skill; ทุกกลุ่ม import <code>core/</code> ได้; และไม่มีสองกลุ่มไหน import วนกัน",
      "สคริปต์ใหม่อยู่ในกลุ่มที่มัน <em>พึ่งพา</em> ไม่ใช่กลุ่มที่มันดูคล้าย ข้อยกเว้นเดียวคือ <code>grammars.py</code> import <code>paths</code> เพื่อเอา <code>VENDOR_DIR</code> — ซึ่งตั้งใจ เพราะ <code>paths</code> อยู่ใต้ทุกกลุ่มและไม่ import อะไรเลย"],
@@ -2114,7 +2114,7 @@
      "หน้า HTML ไฟล์เดียวที่มีทั้งสองแผนที่ (สลับจาก header) เปิดจาก <code>file://</code> ได้โดยปิดเน็ต",
      "ข้อมูลและไลบรารีกราฟฝังอยู่ในไฟล์ทั้งหมด จึงส่งให้คนที่ไม่มีสิทธิ์เข้า repo ดูได้ — ซึ่งหมายความว่าควรปฏิบัติกับไฟล์นี้เหมือนข้อมูลภายในของโค้ดด้วย"],
     ["ui", "explorer มีมุมมองอะไรบ้าง",
-     "เจ็ดมุมมอง: Graph, Treemap, Matrix, Tree, Flowchart, Cluster, Bundle",
+     "เจ็ดมุมมอง: Flowchart (มุมมองเริ่มต้น), Graph, Treemap, Matrix, Tree, Cluster, Bundle",
      "ในโครงสามส่วน: ซ้าย = health ring, ตัวเลือกการลงสี (layer / folder / churn / risk), stat tile, สัดส่วนภาษา, file tree · กลาง = มุมมองและ folder hull · ขวา = แท็บ FILE / PATTERNS / SECURITY ที่คลิกทะลุถึงกันได้"],
     ["ui", "ทำไมต้องฝังไลบรารีลงในไฟล์ ไม่โหลดจาก CDN",
      "hard constraint ข้อ 4: explorer ต้องไม่มี network เลย — <code>force-graph</code> ถูก vendor ไว้ที่ <code>templates/vendor/</code> และ inline ผ่าน placeholder <code>__VENDOR_JS__</code>",
@@ -2592,6 +2592,20 @@ const SCRIPTS_DATA = [
     callees: []
   },
   {
+    name: "call_ctx.py",
+    cat: "core",
+    path: "scripts/core/call_ctx.py",
+    role: "กฎเดียวที่บอกว่า call ถูกเขียนไว้ตรงไหน: บรรทัดของมัน และมีลูปหรือ branch ครอบอยู่หรือไม่",
+    tech: "Field-Aware Ancestor Walk",
+    algorithm: "site(call, stop) เดินจาก call node ขึ้นไปจนถึง definition ของมัน node ที่เป็นลูป (for, while, do, comprehension ฯลฯ) จะตั้ง loop ก็ต่อเมื่อ call มาทาง field ที่ทำซ้ำ คือ body, condition, increment, update เท่านั้น ดังนั้น iterable ในหัว for ซึ่งรันครั้งเดียวจึงไม่นับเป็นลูป ส่วน node ที่เป็น branch (if, ternary, switch, match, guard) จะตั้ง cond เฉพาะเมื่อมาทาง field ผลลัพธ์ คือ consequence, alternative, body ดังนั้นเงื่อนไขของ if ซึ่งรันเสมอจึงไม่นับ และ arm node (else_clause, catch_clause, when_entry ฯลฯ) ตั้ง cond ทันที ส่วน merge() รวมหลาย site ของ call เดียวกัน: เอาบรรทัดแรก, เป็นลูปถ้ามี site ใดอยู่ในลูป, เป็น branch ก็ต่อเมื่อทุก site อยู่ใน branch และสำหรับ branch แบบเลือกทางใดทางหนึ่ง -- else-if chain (ตามขึ้นไปจนถึง if ตัวแรก), ternary chain, match หรือ when, switch ที่ case ไหลต่อกันไม่ได้ -- จะบันทึก arms เป็น \"line:col/arm\" เรียงจากชั้นนอกเข้าใน ทำให้รู้ว่าสอง call ที่อยู่คนละฝั่งเป็นทางเลือกกัน merge() เก็บเฉพาะ arms ที่ทุก site มีร่วมกัน",
+    inputs: "call node ของ tree-sitter และ definition node ที่มันสังกัด",
+    outputs: "{line, loop?, cond?, arms?} -- flag ที่เป็น false และ arms ที่ว่างจะไม่ถูกเขียน",
+    invariant: "ชื่อ node type ระบุตรง ๆ ต่อ grammar ซึ่ง probe มาจากทั้งสิบเจ็ดภาษา ตัวที่ไม่ได้ระบุจะไม่รายงานอะไร (เป็น lower bound) และไม่ขึ้นกับลำดับ ผล build จึงยังเหมือนเดิมทุก byte",
+    cli: "Imported by py_extract, js_ts_extract, langs_extract, build_flow",
+    callers: [{ name: "py_extract.py", fn: "site()" }, { name: "js_ts_extract.py", fn: "site()" }, { name: "langs_extract.py", fn: "site()" }, { name: "build_flow.py", fn: "merge()" }],
+    callees: []
+  },
+  {
     name: "doc_text.py",
     cat: "core",
     path: "scripts/core/doc_text.py",
@@ -2988,7 +3002,7 @@ const SCRIPTS_DATA = [
     path: "templates/viewer.html",
     role: "desktop application สำหรับ visualize แบบ interactive สามแผง responsive",
     tech: "Force-Graph Simulation และ Multi-View Explorer",
-    algorithm: "7 โหมด visualization (Graph, Treemap, Matrix, Tree, Flowchart, Cluster, Bundle), physics ของ D3/force-graph, drag เพื่อ pin layout และ toolbar ที่ย่อตัวเองอัตโนมัติ",
+    algorithm: "7 โหมด visualization (Flowchart ซึ่งเป็นค่าเริ่มต้น, Graph, Treemap, Matrix, Tree, Cluster, Bundle), physics ของ D3/force-graph, drag เพื่อ pin layout และ toolbar ที่ย่อตัวเองอัตโนมัติ",
     inputs: "ข้อมูล map แบบ JSON ที่ inline มาแล้ว",
     outputs: "DOM UI แบบ interactive",
     invariant: "test node เป็นสีเขียว (#57ab5a) ทุกที่, chrome สีเงียบ (#08090b) และไม่มี emoji เลย (ใช้ SVG icon เท่านั้น)",

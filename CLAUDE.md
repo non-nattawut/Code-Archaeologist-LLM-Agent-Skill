@@ -53,6 +53,29 @@ defines as `unresolved` (`context.py` prints them on the node). It is name-match
 over-count -- on the skill's own code 207 of 2,782 dropped sites, and 11 of them the *same* real
 gap. Nothing turns it into an edge.
 
+**A call link says where it is written.** Every `calls` link carries `line` -- the first line its
+call is written on -- and `loop` / `cond` where earned: a site inside a loop's body, or *every*
+site inside a branch (an `if`/`else`, a `switch`/`match` arm, a ternary's result, a `catch`).
+`core/call_ctx.py` reads it off the parse for all three producers, from node-type tables probed out
+of all seventeen grammars; `build_flow` folds a call's sites (first line, a loop if any is, a branch
+only if all are) and keeps them beside the edge set as each caller's `call_sites`, so the edge
+tuples `analyze()` returns are exactly what they were. **Only a body counts**: a `for` header's
+iterable runs once and an `if` condition always runs -- the design first pinned the sample's
+`range service.Events(...)` as a loop, and the probe said otherwise. A node type the tables do not
+name reports nothing, a lower bound like the links themselves: a Python ternary (unnamed fields),
+`&&` / `??`, a Go `for cond {}` condition, the second `for` of a nested comprehension (its
+iterable runs once per outer item), Elixir's `if`/`case`/`for` macros, a callback handed to
+`.map()`. The line is the order calls are *written* in, never the order they run, and the explorer
+says so wherever it shows a rank. A call on one side of an **either/or** also carries `arms`:
+outermost first, each such branch as `"<line>:<col>/<arm>"`, so two calls on different sides of one
+`if` / `else` are known to be alternatives -- exactly one runs -- and the explorer numbers them `3a`
+/ `3b`. Only where the sides exclude each other: an `else if` chain (however the grammar nests it)
+and a ternary chain are one branch, `match` / `when` / `select` and a switch whose cases cannot fall
+through (Java `case X ->`, C#, Go and Swift without `fallthrough`, Dart, Ruby `case`) count; a
+`case X:` switch in C, C++, JS/TS, PHP, Java or Groovy, and `try` / `catch`, set `cond` but no arm.
+A call made on two sides keeps only the sides every site shares. `check_graph` c24 and
+`check_regressions` r81 / r82 pin it.
+
 **Node ids are bare unless a name is defined in more than one file** -- in *both* maps.
 `core/ids.py`'s `SharedNames`, used by `build_flow` and `build_wiki` alike,
 pre-scans every definition from all three producers, then qualifies only the ids two or more files
@@ -171,7 +194,7 @@ scripts/
   paths.py           SKILL_ROOT / DATA_DIR / TEMPLATES_DIR, the sys.path bootstrap, and
                      long_path() -- every per-node file goes through it (MAX_PATH, phase 6d),
                      and skill_rel() -- every report's `graph` field (cross-drive, phase 9)
-  core/     taxonomy.py  manifest.py  console.py  grammars.py  ids.py  doc_text.py
+  core/     taxonomy.py  manifest.py  console.py  grammars.py  ids.py  doc_text.py  call_ctx.py
   extract/  build_wiki.py  build_graph.py  build_flow.py  py_extract.py
             js_ts_extract.py  langs_extract.py  route_tables.py  apply_descriptions.py
   review/   analyze.py  scan_security.py  git_insights.py  metrics.py  debt.py
@@ -290,6 +313,29 @@ delete. Nothing else in `core/` may import a skill module.
   comment above a `def` is not documentation in that language, so only a docstring counts, and it
   goes through `join()`. Pure string work -- it imports nothing -- so it sits in `core/` below every
   producer.
+- `call_ctx.py` is the one rule for where a call is written, and every producer asks it at each
+  call node it reads: `site(call, stop)` returns `line`, plus `loop` / `cond` where earned, walking
+  from the call up to its definition and never past it. A loop node counts a call that arrived
+  through a repeating field (`body`, `condition`, `increment`, `update`); a branch node, one that
+  arrived through a result field (`consequence`, `alternative`, `body`, ...); an arm node
+  (`else_clause`, `catch_clause`, `when_entry`, ...) makes everything under it conditional. Kotlin
+  and Swift leave bodies unnamed, so for their loop and `if` types -- and only those -- an unnamed
+  *block* child counts too: Swift's `do { try }` shares the name `do_statement` with a do-while
+  elsewhere, and a global fallback made it a loop. `merge()` folds a second site of one call (first
+  line, loop if any, branch only if all), order-independent so a build stays byte-identical. The
+  tables name node types explicitly, never by substring (`formal_parameters` contains "for").
+  Pure -- it imports nothing and duck-types the tree-sitter node -- so it sits in `core/` beside
+  `doc_text.py`. The generic walker's `_gcalls` used to return `(receiver, name)` and drop the
+  node; it hands the node through now, and a MapStruct `java(...)` call takes the annotation's
+  line, since the snippet it was parsed from has rows of its own (and drops `arms`, whose positions
+  name the snippet). `arms` comes from the same walk: `_if_arm` finds a side of an if-family node
+  (a `consequence` / `alternative` field, Python's and PHP's several `alternative` children, Kotlin
+  and Swift's unnamed blocks by position) and follows `_is_else_if` up to the chain's first `if`,
+  so `if` is side 0, its `else if` 1, its `else` 2, and an `else if` test belongs to its own side;
+  `_switch_arm` finds an arm node in `EXCLUSIVE_ARMS` under a switch-family node, counted among
+  **named** children only -- Kotlin's `when` keyword token shares a type name with Ruby's `when`
+  arm and shifted every arm by one -- and refuses a Go or Swift switch that says `fallthrough`.
+  Probed on all thirteen grammars with either/or constructs before it was wired in.
 - `py_extract.py` is the Python producer, and since phase 10 it really is one: `find_py_files`
   / `extract_py_files`, the contract the other two already kept. It was a *helper library* until
   then -- ~25 tree helpers, with the Python extraction itself spread over 120 `px.*` call sites in
@@ -516,7 +562,8 @@ hidden (`#showTests` has no `checked`), so the **Tests**
 checkbox re-renders through `applyMap`; anything reading edges must use `EDGES`, not `GRAPH.edges`.
 
 `templates/viewer.html` is a normal HTML/CSS/JS file (three-pane explorer: health ring + tiles +
-LOC/language mix + file tree | seven views: Graph/Treemap/Matrix/Tree/Flowchart/Cluster/Bundle |
+LOC/language mix + file tree | seven views, the Flowchart first and open by default:
+Flowchart/Graph/Treemap/Matrix/Tree/Cluster/Bundle |
 FILE/PATTERNS/SECURITY tabs). Edit it directly; don't move markup back into Python. Its per-map
 state is rebuilt by `loadMap()` / `applyMap()` — anything derived from a graph belongs in there,
 not in a top-level `const`.
@@ -556,7 +603,28 @@ view (a `dagMode("lr")` force layout) and keeps its id `flow`: `layoutFlowchart(
 node the column of its longest call path, orders rows by folder and then by neighbours'
 rows, puts unlinked nodes in a grid underneath, and pins the result like Cluster and Bundle;
 `drawFlowBox` / `drawFlowLink` draw boxes and elbow links from the same colour and dash
-accessors as every other view.
+accessors as every other view. A box is `FC` 180x34 on a 44px row and holds **two lines** of
+name: `fitLines` breaks after the last `.` that fits (`VersionControlService.` /
+`uploadFileToRepository`), else after `_` / `-`, else before a capital, and only the second line
+can end in `…` -- a one-line box used to throw the method name away. The **selected** node's
+call links each carry a **badge** just behind the arrowhead (`drawCallBadge`, 19px before the
+callee's box): its step in the order the caller's calls are written -- `1, 2, 3a, 3b, 4`: calls on different
+sides of one either/or branch share a step and take a letter per side, with a digit when a side
+holds several (`3a1`, `3a2`), letters going to the outermost branch with calls on two sides, and a
+label longer than two characters stretching the badge leftwards (`badgePath`, `loopRing`) -- a diamond when every site is
+inside a branch, a ring when a site is inside a loop. That spot is the one piece of a link no
+sibling shares -- a caller's links leave from one pixel and bend on one vertical trunk per column,
+and the first placement, midway along that bend, put adjacent rows' badges 22px apart, exactly a
+ring's width: on a real 21-call fan-out 19 pairs touched or overlapped, and 0 do at the arrowhead
+(closest 44px, a full row). Only the selection's calls, because every link *into* a callee ends on
+that same arrowhead: two callers' badges would stack there, and mean two different orders at once
+(`build_flow.analyze` -> `_claim` has four callers). Ranks are `CALL_SITES` / `CALL_FANOUT`,
+computed once per map in `loadMap`, so a selection that hides callees never renumbers the rest;
+the number is drawn only when a node has two or more calls. Rows are **not** reordered by rank --
+the barycentre sweep is what untangles the links. The panel's Calls list shows the same glyph
+(`callRows`, `callGlyph`), calls first in rank order, every other outgoing link after them, with
+`branch` / `loop` word badges and the call's line as the glyph's tooltip. `nodeItem` keeps its one
+argument on purpose: every list calls it through `.map()`, which passes the index second.
 
 ### Colour rules
 
@@ -588,13 +656,20 @@ One meaning, one colour, everywhere — a reader learns the scheme once, from an
   `#f0883e`, test green `#57ab5a`, unknown grey `#8b98ad`. Pick something distinguishable from all
   of them on the dark background — and if two must be close (the two greens are), keep them in
   different channels: node dots vs folder areas.
-- Edges are a channel of their own: `calls` grey, `http` pink dashed, `renders` lavender
-  `rgba(167,139,250,.45)` dotted (matrix cell `#a78bfa`), `passes` sky `rgba(125,211,252,.45)`
-  dash-dot (matrix cell `#7dd3fc`), `implements` light grey
-  `rgba(201,209,217,.4)` long-dashed (matrix cell `#c9d1d9`), `extends` sand
-  `rgba(214,190,140,.45)` long-dashed and `overrides` the same sand short-dashed (matrix cell
-  `#d6be8c`) -- one relation at two levels, one hue. Config purple and model amber live on node
-  dots, so none of them shares a channel.
+- Edges are a channel of their own, and **every link type has its own hue and its own dash**,
+  all in one table (`LINK_STYLE`, read by the canvas, the matrix and the legend): `calls` grey
+  `rgba(139,152,173,.22)` solid, `http` pink `#f472b6` dashed, `renders` violet `#a78bfa` dotted,
+  `passes` sky `#38bdf8` dash-dot, `implements` yellow `#facc15` long-dashed, `extends` orange
+  `#fb923c` long-dashed and `overrides` the same orange short-dashed -- one relation at two levels,
+  one hue. Until the user found the key unreadable, `implements` was light grey beside grey calls
+  and `extends` a faint sand; every hue now sits away from the highlight green and the risk red,
+  and the legend draws each swatch at full strength (`legible()`, alpha floor .9). Calls stay faint
+  on the canvas because they are most of the lines. Pink, yellow and orange also live on node dots
+  (controller, model, ui), a different channel.
+- **A call badge is shape, never colour**, like a class kind: circle (written Nth), diamond (only
+  inside a branch), ring (inside a loop). On the canvas it strokes in the highlight colour -- it is
+  drawn only on the selected node's calls, which are always highlighted; in the panel and the
+  legend (`callGlyph`) it is `#39414f`, legible on the dark ground.
 
 ### Layout rules
 
@@ -643,7 +718,12 @@ scrolls.
   the toolbar drives it. Clicking a toggle inside the menu leaves the menu open.
 - **A toggle is shown only where it does something.** Folders draws areas in Graph and Cluster
   only (`drawHulls`), so `setView` hides `#hullsToggle` in the other five views and re-runs
-  `fitToolbar()` -- showing it again widens the row, which no resize reports.
+  `fitToolbar()` -- showing it again widens the row, which no resize reports. **Order**
+  (`#orderToggle`, checked by default) is the same rule the other way round: shown only in the
+  Flowchart and only on a map with calls, which is exactly where Folders is hidden. The two are
+  never in the row together, and Order measures 74.6px against Folders' 87.3px, so the Flowchart's
+  row is narrower than Graph's and the thresholds below still hold. It hides the canvas badges
+  only; the panel keeps its glyphs.
 - **The toolbar row holds only what is used constantly.** Zoom in/out, fit and PNG export live in
   the `⋯` overflow menu (`#more` / `#moreMenu`), which took the full row from ~897px to ~770px.
   A new control goes in that menu unless it is used on
@@ -738,6 +818,12 @@ components, four API frameworks, and Java/Go/C# with two deliberate hard cases, 
   -- so `tools/check_regressions.py` r33 is where that marker is asserted; likewise no node
   carries `entry: init` and no Spring injection is settled (neither rate is a bean), so r53 and
   r54 assert those
+- call sites: all **29** `calls` links carry `line`; exactly **1** carries `cond` --
+  `orders -> OrderService.place_order`, inside `if request.method == "POST":`, so it also carries `arms: ["19:5/0"]` -- and **none**
+  carries `loop`: `handleOrderEvents`' `range service.Events(...)` is a loop *header*, which runs
+  once. `r81` asserts a loop, and the rest of both rules, on its own fixture. Three nodes rank two
+  calls: `OrderService.place_order` (`charge` L15, `save` L16), `InvoiceService.Issue` (`Total` L16,
+  `Put` L17), `OrderWorkflow.place` (`price` L20, `save` L21)
 - routes, one per framework shape: FastAPI `OrderController.create_order`; Flask `orders` with
   **two** entries (`GET` + `POST /legacy/orders`) and `order_detail` (`<int:order_id>`); Express
   `createOrderHandler` (named handler) and the endpoint node `GET /orders/:id/status` (inline
@@ -840,7 +926,10 @@ callee inside a MapStruct `java(` (c08), and every `renders` edge's `<Name` is w
 joins one method name on two classes whose files name each other, directly or within three hops,
 or in the structure map is a base its class names, and whose type matches its ends --
 `implements` into a declaration or an interface, `overrides` into a body, `extends` otherwise
-(c21), and every `overridden` node has an `overrides` link into it and a body (c22). Its
+(c21), and every `overridden` node has an `overrides` link into it and a body (c22), and every
+call link's `line` lies in its caller and names the callee there, with `loop` / `cond` written only
+as `true` and never on a link that is not a call, and every `arms` entry is a branch that starts
+inside the caller, only on a `cond` link, outermost first (c24). Its
 `D` checks test the analysis *metamorphically* — inject a cycle, an orphan, a hub, a god object or
 a layer violation into a copy of the real graph and require it to be reported — because a detector
 that returns nothing looks exactly like a clean codebase. `--self-test` breaks the input (or swaps
@@ -1012,7 +1101,7 @@ that nobody rewrites them.
 | `README.md` | a human evaluating/installing it | features, language table, requirements or the structure tree change |
 | `docs/USAGE.md` | a human running it by hand | any command's form or flags change |
 | `templates/TAXONOMY.md` | anyone adding a field value | a `kind`/`layer`/severity/grade value changes |
-| `docs/ARCHITECTURE_GUIDE.{html,md}` | someone learning how the 29 scripts fit together | a script is added/renamed/moved, an inter-script call changes, or a function it names by hand is renamed |
+| `docs/ARCHITECTURE_GUIDE.{html,md}` | someone learning how the 30 scripts fit together | a script is added/renamed/moved, an inter-script call changes, or a function it names by hand is renamed |
 | `docs/ARCHITECTURE_GUIDE.th.html` | the same reader, **in Thai** | the English guide changes — it is a translation, so it goes stale silently |
 
 `ARCHITECTURE_GUIDE.html` is **one flowchart**, deliberately: BUILD (parses source, rewrites

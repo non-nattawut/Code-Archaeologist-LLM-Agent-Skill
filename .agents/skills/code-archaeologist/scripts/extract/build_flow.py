@@ -59,6 +59,7 @@ def _save_json(path: str, obj) -> None:
         json.dump(obj, fh, indent=2)
         fh.write("\n")
 
+import call_ctx  # noqa: E402  (where a call is written: line, loop, branch)
 from taxonomy import INHERITANCE_LINKS, infer_layer, is_test_path, precision_of, ROUTE_DECORATOR_RE  # noqa: E402
 from py_extract import find_py_files, extract_py_files  # noqa: E402  (Python, via tree-sitter)
 from ids import SharedNames as FlowIds, bare  # noqa: E402  (one id rule for both maps)
@@ -294,16 +295,21 @@ def analyze(roots: list[str]):
     for nid, node in py_methods.items():
         _claim(methods, nid, node)
     edges: set[tuple[str, str, str]] = set()
-    for s, t in py_edges:
+    # Where each call link is written (`call_ctx`): kept beside `edges`, never in it, so the
+    # edge tuples every tool reads stay exactly what they were.
+    sites: dict[tuple[str, str], dict] = {}
+    for (s, t), site in py_edges.items():
         edges.add((s, t, "calls"))
+        call_ctx.merge(sites.setdefault((s, t), {}), site)
 
     # --- Frontend (JS/TS): merge nodes + call edges into the same graph ---
     js_methods, js_edges, js_renders, js_passes = _analyze_js(js_files, ids)
     for nid, node in js_methods.items():
         _claim(methods, nid, node)
-    for s, t in js_edges:
+    for (s, t), site in js_edges.items():
         if s in methods and t in methods and s != t:
             edges.add((s, t, "calls"))
+            call_ctx.merge(sites.setdefault((s, t), {}), site)
     for s, t in js_renders:                    # `<Dashboard />`: the component tree, not a call
         if s in methods and t in methods and s != t:
             edges.add((s, t, "renders"))
@@ -315,9 +321,10 @@ def analyze(roots: list[str]):
     lang_methods, lang_edges = _analyze_lang(lang_files, ids)
     for nid, node in lang_methods.items():
         _claim(methods, nid, node)
-    for s, t in lang_edges:
+    for (s, t), site in lang_edges.items():
         if s in methods and t in methods and s != t:
             edges.add((s, t, "calls"))
+            call_ctx.merge(sites.setdefault((s, t), {}), site)
 
     # --- Implementations: a method joined to the one its class's base defines ---
     for producer, files in (("py", py_files), ("js", js_files), ("lang", lang_files)):
@@ -356,6 +363,8 @@ def analyze(roots: list[str]):
             continue        # none is a call: never "Delegates to", never precision
         methods[src_id]["calls"].append(dst_id)
         methods[dst_id]["callers"].append(src_id)
+        if _type == "calls" and sites.get((src_id, dst_id)):
+            methods[src_id].setdefault("call_sites", {})[dst_id] = sites[(src_id, dst_id)]
     for info in methods.values():
         info["calls"] = sorted(set(info["calls"]))
         info["callers"] = sorted(set(info["callers"]))
@@ -624,13 +633,13 @@ def _analyze_py(py_files, ids: "FlowIds"):
             pending.append((node_id, None, rel, fn["calls"]))
 
     # --- Pass 2: what the graph knows ---
-    edges: set[tuple[str, str]] = set()
+    edges: dict[tuple[str, str], dict] = {}       # (caller, callee) -> where it is written
     for caller_id, cls_ctx, rel, calls in pending:
         targets, dropped, untyped = _py_targets(calls, cls_ctx, rel, class_methods, func_nodes, ids)
         _record_dropped(methods[caller_id], dropped, untyped)
-        for target in targets:
+        for target, site in targets.items():
             if target != caller_id:
-                edges.add((caller_id, target))
+                call_ctx.merge(edges.setdefault((caller_id, target), {}), site)
 
     # A module's top-level code runs when it is imported -- `app = create_app()`, the
     # `if __name__ == "__main__": raise SystemExit(main())` guard -- and has no node to
@@ -646,9 +655,10 @@ def _analyze_py(py_files, ids: "FlowIds"):
 
 def _py_targets(calls: list[dict], cls_ctx: str | None, rel: str,
                 class_methods: dict[str, set[str]], func_nodes: dict[str, str],
-                ids: "FlowIds") -> tuple[set[str], list[str], list[str]]:
-    """(in-graph call targets, the names that did not resolve, and of those the ones
-    made through a receiver whose type the source never stated).
+                ids: "FlowIds") -> tuple[dict[str, dict], list[str], list[str]]:
+    """(in-graph call targets, each with where it is written, the names that did not
+    resolve, and of those the ones made through a receiver whose type the source never
+    stated).
 
     `type` is what `py_extract._calls` read from the source; the question here is only
     whether the graph has such a member. A call whose receiver *is* typed and whose
@@ -656,7 +666,7 @@ def _py_targets(calls: list[dict], cls_ctx: str | None, rel: str,
     boundary of the codebase, not of the resolver, and only the second earns
     `precision: name-matched`.
     """
-    found: set[str] = set()
+    found: dict[str, dict] = {}
     dropped: list[str] = []
     untyped: list[str] = []
 
@@ -688,7 +698,7 @@ def _py_targets(calls: list[dict], cls_ctx: str | None, rel: str,
         if target:
             target = ids.target(target, rel)             # a shared name: the caller's own file only
         if target:
-            found.add(target)
+            call_ctx.merge(found.setdefault(target, {}), call)
         else:
             dropped.append(name)     # library / stdlib / unresolvable: named, not a link
             if not typed:
@@ -961,7 +971,7 @@ def _analyze_js(js_files: list, ids: "FlowIds"):
             if target in methods and not methods[target].get("entry"):
                 methods[target]["entry"] = "module"
 
-    edges: set[tuple[str, str]] = set()
+    edges: dict[tuple[str, str], dict] = {}       # (caller, callee) -> where it is written
     for owner, calls, rel in raw_calls:
         dropped: list[str] = []
         untyped: list[str] = []
@@ -973,16 +983,20 @@ def _analyze_js(js_files: list, ids: "FlowIds"):
                 if call["type"] == "?":
                     untyped.append(name)    # through a receiver whose type is not stated
             elif target != owner:
-                edges.add((owner, target))
+                call_ctx.merge(edges.setdefault((owner, target), {}), call)
         _record_dropped(methods[owner], dropped, untyped)
 
     # `new ApiError(...)` runs `ApiError`'s constructor: a call the source states as plainly
     # as `ApiError.create(...)`, so a class used only by `throw new ApiError()` is not dead.
+    # It carries no site, and a link it shares with a call cannot then say every site is
+    # inside a branch, or on one side of one.
     for owner, built, rel in raw_constructs:
         for cls_name in built:
             target = resolve({"name": "constructor", "type": cls_name}, rel)
             if target in methods and target != owner:
-                edges.add((owner, target))
+                site = edges.setdefault((owner, target), {})
+                site.pop("cond", None)
+                site.pop("arms", None)
 
     # `<Dashboard />` names a component exactly as `Dashboard()` would name a function,
     # so it resolves the same way -- imports first, then a name one file defines.
@@ -999,7 +1013,7 @@ def _analyze_js(js_files: list, ids: "FlowIds"):
     for owner, names, rel in raw_passes:
         for name in names:
             target = passed_node(rel, name)
-            if target in methods and target != owner and (owner, target) not in edges | renders:
+            if target in methods and target != owner and (owner, target) not in edges and (owner, target) not in renders:
                 passes.add((owner, target))
     return methods, edges, renders, passes
 
@@ -1261,7 +1275,7 @@ def _analyze_lang(lang_files: list, ids: "FlowIds"):
         nid = node_id(target, trel, rel) if target else None
         return ([settle(nid)] if nid else []), None, False
 
-    edges: set[tuple[str, str]] = set()
+    edges: dict[tuple[str, str], dict] = {}       # (caller, callee) -> where it is written
     for owner, calls, rel in raw_calls:
         dropped: list[str] = []
         untyped: list[str] = []
@@ -1271,7 +1285,9 @@ def _analyze_lang(lang_files: list, ids: "FlowIds"):
             hits, unpicked, untyped_call = targets_of(call, cls_ctx, rel)
             if unpicked:
                 ambiguous.add(unpicked)
-            edges.update((owner, t) for t in hits if t != owner)
+            for t in hits:
+                if t != owner:
+                    call_ctx.merge(edges.setdefault((owner, t), {}), call)
             if not hits and not unpicked:
                 dropped.append(call["name"])
                 if untyped_call:
@@ -1429,8 +1445,12 @@ def write_graph(methods: dict, edges, graph_path: str) -> None:
         if i.get("ambiguous"):
             node["ambiguous"] = i["ambiguous"]     # overload sets a call here could not pick from
         nodes.append(node)
+    # A call link says where it is written: `line`, and `loop` / `cond` where earned
+    # (`call_ctx`). Only `calls` -- renders, passes, http and inheritance are not calls.
     graph = {"nodes": nodes,
-             "edges": [{"source": s, "target": t, "type": ty} for s, t, ty in edges]}
+             "edges": [{"source": s, "target": t, "type": ty,
+                        **(call_ctx.facts(methods[s].get("call_sites", {}).get(t, {})) if ty == "calls" else {})}
+                       for s, t, ty in edges]}
     os.makedirs(os.path.dirname(graph_path), exist_ok=True)
     with open(graph_path, "w", encoding="utf-8") as fh:
         json.dump(graph, fh, indent=2)

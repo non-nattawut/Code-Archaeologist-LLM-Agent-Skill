@@ -672,7 +672,7 @@
         <div>
           <div class="flow-banner-title">Two phases, and one hinge between them</div>
           <div class="flow-banner-desc">
-            Every one of the 29 scripts sits on exactly one side of a single line: <strong>BUILD</strong> parses source and
+            Every one of the 30 scripts sits on exactly one side of a single line: <strong>BUILD</strong> parses source and
             rewrites artifacts; <strong>QUERY</strong> reads those artifacts and <em>never opens a source file</em>. That second
             half is the Zero-RAG guarantee &mdash; the reason an agent can answer architecture questions in a fixed-size context
             instead of reading the repository. <code>check</code> is the hinge: the only command that reads source and writes nothing.
@@ -1407,6 +1407,20 @@ const SCRIPTS_DATA = [
     callees: []
   },
   {
+    name: "call_ctx.py",
+    cat: "core",
+    path: "scripts/core/call_ctx.py",
+    role: "The one rule for where a call is written: its line, and whether a loop or a branch holds it.",
+    tech: "Field-Aware Ancestor Walk",
+    algorithm: "site(call, stop) walks from a call node up to its definition. A loop node (for, while, do, comprehension, ...) marks loop only when the call arrived through a repeating field -- body, condition, increment, update -- so a for header's iterable, which runs once, is not a loop. A branch node (if, ternary, switch, match, guard) marks cond only through a result field -- consequence, alternative, body -- so an if condition, which always runs, is not conditional. An arm node (else_clause, catch_clause, when_entry, ...) marks cond outright. For an either/or branch -- an else-if chain (followed up to its first if), a ternary chain, a match or when, a switch whose cases cannot fall through -- it also records arms, \"line:col/arm\" outermost first, so two calls on different sides are known to be alternatives. merge() folds a call's sites: first line, a loop if any is, a branch only if all are, the arms every site shares.",
+    inputs: "A tree-sitter call node and the definition node it belongs to",
+    outputs: "{line, loop?, cond?, arms?} -- a false flag and an empty arms list are left out",
+    invariant: "Node types are named explicitly per grammar, probed from all seventeen; one not named reports nothing (a lower bound). Order-independent, so a build stays byte-identical.",
+    cli: "Imported by py_extract, js_ts_extract, langs_extract, build_flow",
+    callers: [{ name: "py_extract.py", fn: "site()" }, { name: "js_ts_extract.py", fn: "site()" }, { name: "langs_extract.py", fn: "site()" }, { name: "build_flow.py", fn: "merge()" }],
+    callees: []
+  },
+  {
     name: "doc_text.py",
     cat: "core",
     path: "scripts/core/doc_text.py",
@@ -1803,7 +1817,7 @@ const SCRIPTS_DATA = [
     path: "templates/viewer.html",
     role: "Three-pane responsive interactive visualization desktop application.",
     tech: "Force-Graph Simulation & Multi-View Explorer",
-    algorithm: "7 visualization modes (Graph, Treemap, Matrix, Tree, Flowchart, Cluster, Bundle); D3/force-graph physics; drag-to-pin layout; dynamic toolbar auto-compaction.",
+    algorithm: "7 visualization modes (Flowchart, the default, then Graph, Treemap, Matrix, Tree, Cluster, Bundle); D3/force-graph physics; drag-to-pin layout; dynamic toolbar auto-compaction.",
     inputs: "Inlined JSON maps data",
     outputs: "Interactive DOM UI",
     invariant: "Test nodes colored green (#57ab5a) everywhere; quiet chrome (#08090b); zero emoji (SVG icons only).",

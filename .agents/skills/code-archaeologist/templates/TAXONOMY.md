@@ -47,6 +47,16 @@ Graph-only node fields (in `flow_graph.json`, not written into the pages):
 | `routes` | list of `{method, path}` | Routes handled by this node (endpoints only). A **list**: one handler often serves several verbs (Flask `methods=["GET", "POST"]`) or carries stacked route decorators. `method` is an HTTP verb, or `ANY` when the framework registers every verb at once (Go's `mux.HandleFunc` without a method in the pattern) — `ANY` matches a frontend call of any verb. |
 | `http` | list of `{method, url}` | Frontend HTTP calls, used for cross-stack `http` edges. |
 
+Graph-only link fields (in `flow_graph.json`, on a `calls` link only -- never on `renders`, `passes`,
+`http` or an inheritance link):
+
+| Field | Allowed values | Meaning |
+| --- | --- | --- |
+| `line` | integer | The first line the call is written on, inside its caller's `source`..`end`. The explorer ranks a node's calls by it: the order they are **written** in, never the order they run. Absent only on a link no call site wrote (a JS/TS `new X()`). |
+| `loop` | `true` (present only when true) | At least one site of the call is written inside a loop's body, so it may run many times. A loop's iterable or initializer runs once and does not count. |
+| `arms` | list of `"<line>:<col>/<arm>"`, outermost first (present only when non-empty, and only with `cond`) | Each **either/or** branch the call is on one side of: the branch's first line and column, and the side, counted in source order (`if` 0, its `else if` 1, its `else` 2; a `match` / `when` / switch arm by position). Two calls on different sides of one branch are alternatives -- exactly one runs -- and the explorer numbers them `3a` / `3b`. Only where the sides exclude each other: a `case X:` switch that can fall through, and a `catch`, give none. A call made on two sides keeps only what every site shares. |
+| `cond` | `true` (present only when true) | **Every** site of the call is written inside a branch -- an `if`/`else`, a `switch`/`match` arm, a ternary's result, a `catch` -- so it may not run. A call also made unconditionally has no `cond`. Both flags are a lower bound: `core/call_ctx.py` names the node types it reads, and anything else reports nothing. |
+
 ## Precision
 
 **Every language's call edges are a lower bound.** A call is drawn only when the receiver's type

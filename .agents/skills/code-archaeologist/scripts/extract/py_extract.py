@@ -41,6 +41,7 @@ import unicodedata
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from paths import SKILL_ROOT  # noqa: E402,F401  (also puts sibling script dirs on sys.path)
 
+import call_ctx  # noqa: E402  (where a call is written: line, loop, branch)
 import doc_text  # noqa: E402  (the one doc rule, shared with every producer)
 import grammars  # noqa: E402
 import taxonomy  # noqa: E402  (source_dirs: the one walk filter)
@@ -607,30 +608,32 @@ def _calls(fn, attr_types: dict[str, str], local_types: dict[str, str]) -> list[
                 producer cannot see the graph
 
     Deciding the type here and the target in `build_flow` is the split every other
-    language already has: tree-sitter gives declarations, never resolution.
+    language already has: tree-sitter gives declarations, never resolution. Each entry
+    also carries where it is written (`call_ctx.site`: `line`, and `loop` / `cond`).
     """
     out: list[dict] = []
     for node in calls_in(fn):
         func = field(node, "function")
         if func is None:
             continue
+        site = call_ctx.site(node, fn)
         if func.type == "attribute":
             method = text(field(func, "attribute"))
             base = field(func, "object")
             base_name = text(base) if base is not None and base.type == "identifier" else ""
             if is_self_attr(base):                                  # self.attr.method()
                 cls = attr_types.get(self_attr_name(base))
-                out.append({"name": method, "type": cls} if cls else {"name": method, "type": "?"})
+                out.append({"name": method, "type": cls or "?", **site})
             elif base_name == "self":                               # self.method()
-                out.append({"name": method, "type": "self"})
+                out.append({"name": method, "type": "self", **site})
             elif base_name in local_types:                          # typed param/local/global
-                out.append({"name": method, "type": local_types[base_name]})
+                out.append({"name": method, "type": local_types[base_name], **site})
             elif base_name:                                         # maybe `ClassName.method()`
-                out.append({"name": method, "type": "?", "recv": base_name})
+                out.append({"name": method, "type": "?", "recv": base_name, **site})
             else:
-                out.append({"name": method, "type": "?"})
+                out.append({"name": method, "type": "?", **site})
         elif func.type == "identifier":
-            out.append({"name": text(func), "type": ""})
+            out.append({"name": text(func), "type": "", **site})
     return out
 
 

@@ -54,7 +54,7 @@ the file only if the user asks (`start` on Windows, `open` on macOS, `xdg-open` 
 
 - One self-contained file, both maps (header switch), no network: it opens from `file://` and can
   be emailed to someone without the repo.
-- Seven views (Graph, Treemap, Matrix, Tree, Flowchart, Cluster, Bundle); the file tree filters the
+- Seven views (Flowchart, which it opens on, then Graph, Treemap, Matrix, Tree, Cluster, Bundle); the file tree filters the
   canvas; **Blast radius** shades what the selected node reaches; **Freeze** holds the current view
   while you click through its nodes; dragging pins a node, and the toolbar **reset** re-runs the
   layout and is the only click that clears a selection.

@@ -40,6 +40,7 @@ flowchart TD
     GRAMMARS["scripts/core/grammars.py<br>(Tree-sitter runtime & wheels)"]
     MANIFEST["scripts/core/manifest.py<br>(Source freshness SHA-1)"]
     DOCTEXT["scripts/core/doc_text.py<br>(One doc-comment rule)"]
+    CALLCTX["scripts/core/call_ctx.py<br>(Where a call is written)"]
 
     %% Extractors
     BW["scripts/extract/build_wiki.py"]
@@ -80,6 +81,8 @@ flowchart TD
     %% Structure Pipeline
     BW -->|"find_py_files(), extract_py_files()"| PX
     PX & JS & LANGS -->|"clean(), join()"| DOCTEXT
+    PX & JS & LANGS -->|"site(), merge()"| CALLCTX
+    BF -->|"merge(), facts()"| CALLCTX
     BW -->|"find_js_files(), extract_js_files()"| JS
     BW -->|"find_lang_files(), extract_lang_files()"| LANGS
     BW -->|"SharedNames((name, source))"| IDS
@@ -321,6 +324,7 @@ The extractors are kept in **three separate files** rather than one monolithic m
 | Script | Role | Technique / Algorithm | Key Invariant |
 | :--- | :--- | :--- | :--- |
 | `scripts/extract/build_wiki.py` | Structure Wiki | Extracts classes, JSX components, and module-level functions into Markdown notes. | JSX functions become `kind: component` / `layer: ui`. |
+| `scripts/core/call_ctx.py` | Call sites | Where a call is written: `site()` walks from a call node up to its definition and returns `line`, plus `loop` / `cond`; `arms` names each either/or branch the call is on one side of (`"line:col/arm"`, outermost first) -- an else-if chain, a ternary chain, a `match`/`when`, a switch without fall-through. `merge()` folds a call's sites (first line, loop if any, branch only if all, the arms every site shares). | Only a body counts -- a `for` iterable runs once, an `if` condition always runs. Node types are named per grammar; an unnamed one reports nothing (a lower bound). Pure; imports nothing. |
 | `scripts/core/doc_text.py` | Doc comments | The one rule for turning a doc comment into a node's `doc`: the block above the declaration, markers stripped, joined to one line (`clean()`, or `join()` for a Python docstring). | Pure string work; imports nothing, so it sits below every producer. |
 | `scripts/extract/build_wiki.py` | Structure Vault | One entity builder for Python and the Java family (`extract_backend_entities`), with the one thing that differs -- what an entity references -- in `_refs_of`; JS/TS keeps `extract_js_entities`, since a specifier names a file. | Python references come from the import list plus same-file names; the Java family's come from stated types plus `class_locator`. |
 | `scripts/extract/build_graph.py` | Structure Graph | Assembles `graph.json` from vault notes and type references. | Edges are references; carry no precision. |

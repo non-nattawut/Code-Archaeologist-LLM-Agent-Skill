@@ -272,7 +272,7 @@ does that end to end (both maps, report, render).
 python .agents/skills/code-archaeologist/scripts/query/build_html.py
 ```
 One page holds both maps (header switch): grade, tiles and file tree on the left; seven views
-(Graph, Treemap, Matrix, Tree, Flowchart, Cluster, Bundle) in the middle; FILE / PATTERNS / SECURITY
+(Flowchart, which it opens on, then Graph, Treemap, Matrix, Tree, Cluster, Bundle) in the middle; FILE / PATTERNS / SECURITY
 tabs on the right. A map with no report still renders, minus the grade and review tabs. A
 **Tests** checkbox appears when the map has test nodes. It starts **unchecked**, so the page opens
 on the architecture without the suite hanging off it; tick it to draw the test nodes.
@@ -287,8 +287,11 @@ them it does:
   to give the tree room, and both rails drag to resize from their inner border.
 - **Centre** — the seven views, folder hulls, and a **blast radius** toggle that shades everything
   reachable from the selected node. **Freeze** holds the current view: clicking another node
-  still opens its details but no longer re-narrows the Flowchart or moves the canvas. The `⋯`
-  overflow menu holds zoom in/out, fit and PNG export.
+  still opens its details but no longer re-narrows the Flowchart or moves the canvas. In the
+  Flowchart, selecting a node puts a badge before each of its calls numbering them in the order
+  they are **written** -- not the order they run; `3a` / `3b` are the sides of one if/else, only
+  one of which runs -- with a diamond for a call made only inside a
+  branch and a ring for one inside a loop; **Order** hides them. The `⋯` overflow menu holds zoom in/out, fit and PNG export.
 - **Right** — the three tabs click through into each other (a risk opens its file, a pattern opens
   its node).
 

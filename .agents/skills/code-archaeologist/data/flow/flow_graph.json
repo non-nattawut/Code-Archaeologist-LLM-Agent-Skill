@@ -794,12 +794,14 @@
     {
       "source": "EventService.Events",
       "target": "EventStore.List",
-      "type": "calls"
+      "type": "calls",
+      "line": 10
     },
     {
       "source": "EventService.Record",
       "target": "EventStore.Append",
-      "type": "calls"
+      "type": "calls",
+      "line": 15
     },
     {
       "source": "FlatRate.price",
@@ -809,42 +811,50 @@
     {
       "source": "InvoiceController.Create",
       "target": "InvoiceService.Issue",
-      "type": "calls"
+      "type": "calls",
+      "line": 19
     },
     {
       "source": "InvoiceController.Find",
       "target": "InvoiceService.Find",
-      "type": "calls"
+      "type": "calls",
+      "line": 26
     },
     {
       "source": "InvoiceService.Find",
       "target": "InvoiceStore.Get",
-      "type": "calls"
+      "type": "calls",
+      "line": 23
     },
     {
       "source": "InvoiceService.Issue",
       "target": "InvoiceService.Total(InvoiceRequest)",
-      "type": "calls"
+      "type": "calls",
+      "line": 16
     },
     {
       "source": "InvoiceService.Issue",
       "target": "InvoiceStore.Put",
-      "type": "calls"
+      "type": "calls",
+      "line": 17
     },
     {
       "source": "InvoiceService.Total(InvoiceRequest)",
       "target": "InvoiceService.Total(int,int)",
-      "type": "calls"
+      "type": "calls",
+      "line": 29
     },
     {
       "source": "OrderApiController.create",
       "target": "OrderWorkflow.place",
-      "type": "calls"
+      "type": "calls",
+      "line": 17
     },
     {
       "source": "OrderApiController.findOne",
       "target": "OrderWorkflow.find",
-      "type": "calls"
+      "type": "calls",
+      "line": 23
     },
     {
       "source": "OrderCard",
@@ -854,52 +864,62 @@
     {
       "source": "OrderCard",
       "target": "getOrder",
-      "type": "calls"
+      "type": "calls",
+      "line": 15
     },
     {
       "source": "OrderController.create_order",
       "target": "OrderService.place_order",
-      "type": "calls"
+      "type": "calls",
+      "line": 18
     },
     {
       "source": "OrderController.get_order",
       "target": "OrderService.find_order",
-      "type": "calls"
+      "type": "calls",
+      "line": 23
     },
     {
       "source": "OrderRepositoryTest.test_get_returns_the_row",
       "target": "OrderRepository.get",
-      "type": "calls"
+      "type": "calls",
+      "line": 25
     },
     {
       "source": "OrderService.find_order",
       "target": "OrderRepository.get",
-      "type": "calls"
+      "type": "calls",
+      "line": 20
     },
     {
       "source": "OrderService.place_order",
       "target": "OrderRepository.save",
-      "type": "calls"
+      "type": "calls",
+      "line": 16
     },
     {
       "source": "OrderService.place_order",
       "target": "PaymentClient.charge",
-      "type": "calls"
+      "type": "calls",
+      "line": 15
     },
     {
       "source": "OrderWorkflow.find",
       "target": "OrderArchive.get",
-      "type": "calls"
+      "type": "calls",
+      "line": 26
     },
     {
       "source": "OrderWorkflow.place",
       "target": "OrderArchive.save",
-      "type": "calls"
+      "type": "calls",
+      "line": 21
     },
     {
       "source": "OrderWorkflow.place",
       "target": "PricingRule.price",
-      "type": "calls"
+      "type": "calls",
+      "line": 20
     },
     {
       "source": "TieredRate.price",
@@ -914,7 +934,8 @@
     {
       "source": "createOrderHandler",
       "target": "saveOrder",
-      "type": "calls"
+      "type": "calls",
+      "line": 12
     },
     {
       "source": "getOrder",
@@ -934,42 +955,54 @@
     {
       "source": "handleOrderEvents",
       "target": "EventService.Events",
-      "type": "calls"
+      "type": "calls",
+      "line": 25
     },
     {
       "source": "loadOrder",
       "target": "getOrder",
-      "type": "calls"
+      "type": "calls",
+      "line": 9
     },
     {
       "source": "loadOrderHistory",
       "target": "getOrderEvents",
-      "type": "calls"
+      "type": "calls",
+      "line": 17
     },
     {
       "source": "order_detail",
       "target": "OrderService.find_order",
-      "type": "calls"
+      "type": "calls",
+      "line": 28
     },
     {
       "source": "orders",
       "target": "OrderService.place_order",
-      "type": "calls"
+      "type": "calls",
+      "line": 20,
+      "cond": true,
+      "arms": [
+        "19:5/0"
+      ]
     },
     {
       "source": "recordOrderEvent",
       "target": "EventService.Record",
-      "type": "calls"
+      "type": "calls",
+      "line": 33
     },
     {
       "source": "submitOrder",
       "target": "createOrder",
-      "type": "calls"
+      "type": "calls",
+      "line": 5
     },
     {
       "source": "test_place_order_charges_and_saves",
       "target": "OrderService.place_order",
-      "type": "calls"
+      "type": "calls",
+      "line": 16
     }
   ]
 }

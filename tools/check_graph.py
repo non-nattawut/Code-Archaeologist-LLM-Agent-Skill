@@ -542,12 +542,73 @@ def c22_overridden(c):
             for n in c.nodes if n.get("overridden")
             and (n.get("declaration") or n["id"] not in overridden_into)]
 
+SITE_WINDOW = 5
+ARM_RE = re.compile(r"(\d+):(\d+)/(\d+)")     # a call written across lines (`api\n  .get()`) names its callee a few lines on
+
+
+def c24_call_sites(c):
+    """Every call site is where the link says: its `line` lies in the caller's range and the
+    callee is named there or just after, `loop` / `cond` appear only as `true`, and no link
+    that is not a call carries a site. `arms` is a list of `"<line>:<col>/<arm>"`, only on a
+    `cond` link -- one side of an either/or never has to run -- each branch starting inside the
+    caller and no later than the call, outermost first, none named twice."""
+    out = []
+    for e in c.edges:
+        keys = {k for k in ("line", "loop", "cond", "arms") if k in e}
+        if not keys:
+            continue
+        where = f"{e.get('type')} edge {e.get('source')} -> {e.get('target')}"
+        if e.get("type") != "calls":
+            out.append(f"{where}: carries a call site ({sorted(keys)}) but is not a call")
+            continue
+        for flag in ("loop", "cond"):
+            if flag in e and e[flag] is not True:
+                out.append(f"{where}: {flag} is {e[flag]!r}; a false flag is left out, never written")
+        if "line" not in e:
+            out.append(f"{where}: {sorted(keys)} without a line")
+            continue
+        caller = c.by_id.get(e.get("source")) or {}
+        path, start = split_source(caller.get("source"))
+        end, line, lines = caller.get("end"), e["line"], c.lines(path)
+        if not isinstance(line, int):
+            out.append(f"{where}: line {line!r} is not a line number")
+            continue
+        if start is None or not isinstance(end, int):
+            continue                     # C05 / C06 report a caller with no range
+        if not start <= line <= end:
+            out.append(f"{where}: line {line} is outside its caller {caller.get('source')}-{end}")
+            continue
+        if "arms" in e:
+            arms = e["arms"]
+            parsed = [ARM_RE.fullmatch(a) if isinstance(a, str) else None for a in arms] \
+                if isinstance(arms, list) and arms else [None]
+            if not all(parsed):
+                out.append(f"{where}: arms {arms!r} is not a list of \"<line>:<col>/<arm>\"")
+            elif e.get("cond") is not True:
+                out.append(f"{where}: arms {arms} on a link that is not cond")
+            else:
+                starts = [(int(m.group(1)), int(m.group(2))) for m in parsed]
+                if any(not start <= ln <= line for ln, _ in starts):
+                    out.append(f"{where}: a branch in {arms} does not start between {start} and {line}")
+                elif starts != sorted(starts) or len({s for s in starts}) != len(starts):
+                    out.append(f"{where}: arms {arms} are not outermost first, each branch once")
+        if lines is None or synthetic(e.get("target", "")):
+            continue
+        name = short(e["target"])
+        near = "\n".join(lines[line - 1:min(end, line + SITE_WINDOW)])
+        if name == "constructor":
+            continue                     # `new X()` spells the class; c13 checks that
+        if name not in near:
+            out.append(f"{where}: {name!r} is not written at {path}:{line}")
+    return out
+
 
 STRUCTURAL = [c01_dangling, c02_duplicate_ids, c03_edge_types, c04_taxonomy, c05_source,
               c06_end_range, c07_name_at_source, c08_declaration_calls, c09_precision,
               c10_signatures, c11_routes, c12_http_edges, c13_call_text, c14_ext,
               c15_report_counts, c16_security_owner, c17_note_names, c18_ambiguous,
-              c19_unresolved, c20_render_text, c21_implements, c22_overridden, c23_passes_text]
+              c19_unresolved, c20_render_text, c21_implements, c22_overridden, c23_passes_text,
+              c24_call_sites]
 
 
 # --- D: derived features, tested by injecting a known defect -------------------
@@ -809,6 +870,21 @@ def _mutations():
         ("c20_render_text", "flow", "a renders edge from code that renders no such tag",
          lambda g, r: g["edges"].append({"source": "EventStore.List", "target": "OrderCard",
                                          "type": "renders"})),
+        ("c24_call_sites", "flow", "a call site moved outside its caller",
+         lambda g, r: next(e for e in g["edges"] if e.get("line")).__setitem__("line", 10 ** 6)),
+        ("c24_call_sites", "flow", "a call site moved to a line in its caller that does not name the callee",
+         lambda g, r: next(e for e in g["edges"] if e["source"] == "OrderWorkflow.place"
+                           and e["target"] == "PricingRule.price").__setitem__("line", 22)),
+        ("c24_call_sites", "flow", "a false loop flag written instead of left out",
+         lambda g, r: next(e for e in g["edges"] if e.get("line")).__setitem__("loop", False)),
+        ("c24_call_sites", "flow", "arms on a link that is not cond",
+         lambda g, r: next(e for e in g["edges"] if e.get("arms")).pop("cond")),
+        ("c24_call_sites", "flow", "an arm that names no branch position",
+         lambda g, r: next(e for e in g["edges"] if e.get("arms")).__setitem__("arms", ["19/0"])),
+        ("c24_call_sites", "flow", "an arm whose branch starts before its caller",
+         lambda g, r: next(e for e in g["edges"] if e.get("arms")).__setitem__("arms", ["1:1/0"])),
+        ("c24_call_sites", "flow", "a call site on a link that is not a call",
+         lambda g, r: next(e for e in g["edges"] if e["type"] == "http").__setitem__("line", 1)),
         ("c23_passes_text", "flow", "a passes edge from code that never names the function",
          lambda g, r: g["edges"].append({"source": "EventStore.List", "target": "OrderCard",
                                          "type": "passes"})),

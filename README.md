@@ -171,7 +171,7 @@ it or email it.
   actually has. Press `?` from anywhere, Escape to close.
 - **Left** — health ring (A–F), color-by (layer / folder / churn / risk), stat tiles, language
   mix, and a file tree that filters the canvas.
-- **Center** — seven views of the same graph: Graph, Treemap, Matrix, Tree, Flowchart, Cluster, Bundle. Nodes are labelled by name (the path is in the side panel); clicking a file or folder hides every node it does not link to directly, and the Flowchart narrows to a selected node's chain.
+- **Center** — seven views of the same graph: Flowchart (the one it opens on), Graph, Treemap, Matrix, Tree, Cluster, Bundle. Nodes are labelled by name (the path is in the side panel); clicking a file or folder hides every node it does not link to directly, and the Flowchart narrows to a selected node's chain. In the Flowchart a box wraps a long name onto two lines, and selecting a node puts a badge before each of its calls numbering them in the order they are written (not the order they run) -- `3a` / `3b` for the sides of one if / else, only one of which runs -- with a diamond for a call made only inside a branch and a ring for one inside a loop; the **Order** toggle hides them. Every link type has its own colour and dash.
   Plus folder hulls, a blast-radius toggle, a **Freeze** toggle that holds the current view while
   you click through its nodes, and an overflow menu (`⋯`) holding zoom, fit and PNG export.
 - **Right** — **FILE** (what it does, blast radius, connections, git ownership, risks),
@@ -341,6 +341,7 @@ architecture questions are *about*: scope and call hierarchy.
 │   │   ├── grammars.py     which tree-sitter grammars are installed, and a parser for each
 │   │   ├── ids.py          node ids: bare, or file-qualified where two files share a name
 │   │   ├── doc_text.py     the one rule for turning a doc comment into a node's description
+│   │   ├── call_ctx.py     where a call is written: its line, and whether a loop or branch holds it
 │   │   └── console.py      stdout that survives a non-UTF-8 console
 │   │
 │   ├── extract/          source -> graphs + notes

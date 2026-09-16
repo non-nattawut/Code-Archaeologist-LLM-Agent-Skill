@@ -303,6 +303,11 @@
   .item + .item { border-top: 1px solid var(--rule); }
   .item:hover .mono { color: var(--accent); }
   .item .grow { margin-left: auto; display: flex; gap: 6px; }
+  /* A node row's name gives way to its badges: a long id plus a rank glyph and two badges
+     overran the rail. The full id is the name's tooltip. Only node rows -- a cycle path
+     cut short would hide part of the cycle. */
+  .item .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item .grow, .item .order { flex: none; }
   .mono, code { font-family: inherit; }
   .link { color: var(--link); cursor: pointer; }
   .link:hover { text-decoration: underline; }
@@ -380,6 +385,7 @@
       <span class="sp"></span>
       <span class="toggles" id="toggles">
         <label id="hullsToggle"><input type="checkbox" id="hulls" checked /> Folders</label>
+        <label id="orderToggle" title="Number each node's calls in the order they are written; mark a call inside a loop or a branch"><input type="checkbox" id="showOrder" checked /> Order</label>
         <label><input type="checkbox" id="blast" /> Blast radius</label>
         <label title="Keep the current view when another node is clicked"><input type="checkbox" id="freeze" /> Freeze</label>
         <label id="testsToggle" style="display:none"><input type="checkbox" id="showTests" /> Tests</label>
@@ -440,7 +446,7 @@ let mapName = MAP_NAMES.includes("flow") ? "flow" : MAP_NAMES[0];
 
 // All of this is rebuilt by loadMap() whenever the active map changes.
 let GRAPH, REPORT, ANALYSIS, HEALTH, FINDINGS, CHURN, FILE_META, FILE_STATS, HAS_CHURN, DUPES, BLOCKS;
-let nodes, byId, links, isFlow, OUT_LABEL, IN_LABEL, outAdj, inAdj;
+let nodes, byId, links, isFlow, OUT_LABEL, IN_LABEL, outAdj, inAdj, CALL_SITES, CALL_FANOUT;
 let filesIndex, folders, issuesByNode, issuesByFile, MAX, treeRoot, openDirs;
 
 const fileOf = (n) => String(n.source || "").split(":")[0] || "(unknown)";
@@ -502,6 +508,61 @@ function loadMap(name) {
     outAdj.get(s)?.push(t); inAdj.get(t)?.push(s);
   });
 
+  // Where each call is written (build_flow / call_ctx): a node's call links in the order they
+  // are written, numbered as steps. Calls on different sides of one either/or branch (`arms`)
+  // share a step and take a letter per side -- 3a, 3b, only one of which runs -- and a digit
+  // when one side holds several (3a1, 3a2). Letters go to the outermost branch whose sides both
+  // hold calls. Numbered once per map, so a Flowchart selection that hides some callees never
+  // renumbers the rest -- the label is a fact about the source.
+  CALL_SITES = new Map(); CALL_FANOUT = new Map();
+  const bySource = new Map();
+  EDGES.forEach((e) => {
+    if (e.type !== "calls" || e.line == null) return;
+    if (!bySource.has(e.source)) bySource.set(e.source, []);
+    bySource.get(e.source).push(e);
+  });
+  const armAt = (e, k) => e.arms && e.arms[k] ? e.arms[k].split("/") : null;   // [branch, side]
+  const bySide = (a, b) => {
+    for (let k = 0; k < Math.max((a.arms || []).length, (b.arms || []).length); k++) {
+      const x = armAt(a, k), y = armAt(b, k);
+      if (!x || !y) return (x ? 1 : 0) - (y ? 1 : 0);     // a call outside a branch comes first
+      if (x[0] !== y[0]) return 0;
+      if (x[1] !== y[1]) return +x[1] - +y[1];
+    }
+    return 0;
+  };
+  bySource.forEach((calls, s) => {
+    calls.sort((a, b) => a.line - b.line || bySide(a, b)
+      || labelOf(byId.get(a.target)).localeCompare(labelOf(byId.get(b.target))));
+    let step = 0, rank = 0;
+    const put = (e, label, alternatives) => CALL_SITES.set(siteKey(e.source, e.target),
+      { rank: ++rank, label, alternatives, line: e.line, loop: !!e.loop, cond: !!e.cond });
+    const walk = (list, k) => {
+      for (let i = 0; i < list.length;) {
+        const branch = armAt(list[i], k);
+        let j = i + 1;
+        while (branch && j < list.length && (armAt(list[j], k) || [])[0] === branch[0]) j++;
+        const group = list.slice(i, j);
+        const sides = branch ? [...new Set(group.map((e) => +armAt(e, k)[1]))].sort((x, y) => x - y) : [];
+        if (sides.length > 1) {
+          step++;
+          sides.forEach((side, si) => {
+            const on = group.filter((e) => +armAt(e, k)[1] === side);
+            const letter = si < 26 ? String.fromCharCode(97 + si) : `(${si + 1})`;
+            on.forEach((e, n) => put(e, `${step}${letter}${on.length > 1 ? n + 1 : ""}`, sides.length));
+          });
+        } else if (branch) {
+          walk(group, k + 1);                             // one side only: look one branch deeper
+        } else {
+          put(list[i], String(++step), 0);
+        }
+        i = j;
+      }
+    };
+    walk(calls, 0);
+    CALL_FANOUT.set(s, calls.length);
+  });
+
   filesIndex = new Map();                   // file -> {nodes:[], lines, lang}
   nodes.forEach((n) => {
     const f = fileOf(n);
@@ -527,6 +588,7 @@ function loadMap(name) {
 }
 
 // ---------------------------------------------------------------- helpers
+const siteKey = (s, t) => s + "\n" + t;
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const num = (n) => (n == null ? "—" : n.toLocaleString());
@@ -610,7 +672,7 @@ function reach(id, adj) {
 let selected = null;        // node id
 let focus = null;           // node id the view is built around: the selection, unless Freeze holds it
 let fileFilter = null;      // file path or folder prefix
-let view = "graph";
+let view = "flow";
 let highlightNodes = new Set(), highlightLinks = new Set();
 // What a file filter or a flowchart focus leaves on the canvas; null = everything. Hidden,
 // not dimmed: at 1,500 nodes a faded node is still in the way.
@@ -797,6 +859,20 @@ function setFilter(path) {
 el("filterChip").addEventListener("click", () => setFilter(null));
 
 // ---------------------------------------------------------------- graph
+// One hue and one dash per link type: the edge channel. Every hue sits away from the
+// highlight green and the risk red, and the three inheritance links share a long dash
+// (yellow for implements, orange for extends and, short-dashed, overrides). Calls stay
+// faint on the canvas because they are most of the lines; `cell` is the matrix colour.
+const LINK_STYLE = {
+  http:       { rgb: "244,114,182", a: 0.6,  dash: [5, 3],       cell: "#f472b6" },
+  renders:    { rgb: "167,139,250", a: 0.6,  dash: [1, 3],       cell: "#a78bfa" },
+  passes:     { rgb: "56,189,248",  a: 0.6,  dash: [6, 2, 1, 2], cell: "#38bdf8" },
+  implements: { rgb: "250,204,21",  a: 0.55, dash: [9, 4],       cell: "#facc15" },
+  extends:    { rgb: "251,146,60",  a: 0.55, dash: [9, 4],       cell: "#fb923c" },
+  overrides:  { rgb: "251,146,60",  a: 0.55, dash: [3, 3],       cell: "#fb923c" },
+};
+const CALL_STYLE = { rgb: "139,152,173", a: 0.22, dash: null };
+const linkStyle = (l) => LINK_STYLE[l.type] || CALL_STYLE;
 const Graph = ForceGraph()(el("graph"))
   .backgroundColor("#0b0e14")
   .graphData({ nodes: [], links: [] })
@@ -804,15 +880,9 @@ const Graph = ForceGraph()(el("graph"))
   .nodeRelSize(5)
   .onDagError(() => {})            // cycles are fine: just fall back to a free layout
   .linkColor((l) => highlightLinks.has(l) ? "rgba(63,224,160,.9)"
-    : (l.type === "http" ? "rgba(226,116,161,.5)"
-      : l.type === "renders" ? "rgba(167,139,250,.45)"
-      : l.type === "passes" ? "rgba(125,211,252,.45)"
-      : l.type === "implements" ? "rgba(201,209,217,.4)"
-      : l.type === "extends" || l.type === "overrides" ? "rgba(214,190,140,.45)" : "rgba(139,152,173,.16)"))
+    : `rgba(${linkStyle(l).rgb},${linkStyle(l).a})`)
   .linkWidth((l) => highlightLinks.has(l) ? 2 : 1)
-  .linkLineDash((l) => l.type === "http" ? [4, 3] : l.type === "renders" ? [1, 3]
-    : l.type === "passes" ? [6, 2, 1, 2]
-    : l.type === "implements" || l.type === "extends" ? [6, 3] : l.type === "overrides" ? [2, 3] : null)
+  .linkLineDash((l) => linkStyle(l).dash)
   .linkDirectionalArrowLength(() => view === "flow" ? 0 : 4)
   .linkDirectionalArrowRelPos(1)
   .linkDirectionalParticles((l) => view !== "flow" && highlightLinks.has(l) ? 3 : 0)
@@ -1002,8 +1072,8 @@ function drawHulls(ctx, scale) {
   });
 }
 // ---------------------------------------------------------------- views
-const VIEWS = [["graph", "Graph"], ["treemap", "Treemap"], ["matrix", "Matrix"], ["tree", "Tree"],
-               ["flow", "Flowchart"], ["cluster", "Cluster"], ["bundle", "Bundle"]];
+const VIEWS = [["flow", "Flowchart"], ["graph", "Graph"], ["treemap", "Treemap"], ["matrix", "Matrix"],
+               ["tree", "Tree"], ["cluster", "Cluster"], ["bundle", "Bundle"]];
 el("views").innerHTML = VIEWS.map(([id, label]) =>
   `<button data-view="${id}" class="${id === view ? "on" : ""}">${label}</button>`).join("");
 el("views").querySelectorAll("button").forEach((b) =>
@@ -1029,6 +1099,9 @@ function setView(next) {
   el("views").querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.view === view));
   // Folder areas are drawn only where drawHulls draws them; elsewhere the box would do nothing.
   el("hullsToggle").style.display = (view === "graph" || view === "cluster") ? "" : "none";
+  // Call order is drawn on the Flowchart's links only, and only a map with calls has any. It
+  // takes Folders' place in the row: the two are never shown together.
+  el("orderToggle").style.display = view === "flow" && isFlow ? "" : "none";
   fitToolbar();                      // the row just changed width, and no resize will say so
   el("graph").style.display = (view === "matrix" || view === "treemap") ? "none" : "block";
   el("matrix").style.display = view === "matrix" ? "block" : "none";
@@ -1119,8 +1192,9 @@ function refocus(fit) {
 // call path from a node nothing calls (a cycle is cut where the walk meets its own stack). Each
 // column starts in folder order and is then pulled toward its neighbours' rows a few times,
 // which is what untangles the links. Nodes with no links sit in a grid underneath, so hundreds
-// of them cannot stretch the first column. Pinned, like Cluster and Bundle.
-const FC = { w: 180, h: 24, row: 34, col: 250 };
+// of them cannot stretch the first column. Pinned, like Cluster and Bundle. A box holds two
+// lines of name, so a long id wraps instead of losing its method name to an ellipsis.
+const FC = { w: 180, h: 34, row: 44, col: 250 };
 
 function layoutFlowchart() {
   const shown = nodes.filter(isVisible).sort((a, b) =>
@@ -1206,6 +1280,26 @@ function fitText(ctx, text, max) {
   return text.slice(0, lo) + "…";
 }
 
+// A name in at most two lines. It breaks where the name does -- after the last `.` that still
+// fits (`VersionControlService.` / `uploadFileToRepository`), else after `_` or `-`, else before
+// a capital -- and only then at the widest prefix; only the second line can end in "…".
+function fitLines(ctx, text, max) {
+  if (ctx.measureText(text).width <= max) return [text];
+  const fits = (i) => ctx.measureText(text.slice(0, i)).width <= max;
+  const last = (re) => {
+    let at = 0;
+    for (const m of text.matchAll(re)) if (m.index > 0 && m.index < text.length && fits(m.index)) at = m.index;
+    return at;
+  };
+  let cut = last(/(?<=\.)/g) || last(/(?<=[_-])/g) || last(/(?<=[a-z0-9])(?=[A-Z])/g);
+  if (!cut) {
+    let lo = 1, hi = text.length;
+    while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (fits(mid)) lo = mid; else hi = mid - 1; }
+    cut = lo;
+  }
+  return [text.slice(0, cut), fitText(ctx, text.slice(cut), max)];
+}
+
 // A box: the layer colour as a bar down its left edge (hollow for an interface, and a dashed
 // border for an abstract class -- a kind is a shape, never a colour), the name, and the same
 // selection / risk stroke the round nodes get.
@@ -1224,9 +1318,10 @@ function drawFlowBox(node, ctx, scale) {
   else ctx.fillRect(x + 3, y + 4, 3, h - 8);
   if (scale < 0.35) return;               // unreadable this far out, and not free on a big map
   ctx.font = "11px ui-monospace, monospace";
-  if (node._fcText == null) node._fcText = fitText(ctx, labelOf(node), w - 20);
+  if (node._fcText == null) node._fcText = fitLines(ctx, labelOf(node), w - 20);
   ctx.fillStyle = "#d7dde8";
-  ctx.fillText(node._fcText, x + 12, node.y + 4);
+  if (node._fcText.length === 1) ctx.fillText(node._fcText[0], x + 12, node.y + 4);
+  else { ctx.fillText(node._fcText[0], x + 12, node.y - 3); ctx.fillText(node._fcText[1], x + 12, node.y + 9); }
 }
 
 // An elbow from the caller's right edge to the callee's left edge, bending in the gap before
@@ -1255,6 +1350,102 @@ function drawFlowLink(l, ctx, scale) {
   ctx.beginPath();
   ctx.moveTo(x2, y2); ctx.lineTo(x2 - 6, y2 - 3.5); ctx.lineTo(x2 - 6, y2 + 3.5);
   ctx.closePath(); ctx.fill();
+  // Just behind the arrowhead, on the last run into the callee: that run is the one piece of
+  // a link no other outgoing link shares. A caller's links leave from one pixel and bend on one
+  // vertical trunk per column, so a badge anywhere before the last turn stacked on its siblings'.
+  // Rows are FC.row apart, far more than the ring's 22px, so badges of one fan-out cannot meet.
+  drawCallBadge(l, ctx, scale, x2 - 19, y2);
+}
+
+// One glyph, three facts about where a call is written, all shape and never a new colour:
+// a circle with the rank it is written in, a diamond when every site is inside a branch, a
+// ring when a site is inside a loop. The number only when the caller has two or more calls;
+// a lone unconditional call says nothing. Only on the **selected** node's own calls: a rank
+// belongs to its caller, and every link into a callee ends on the same arrowhead, so badges from
+// two callers would stack there and mean two different orders at once. The selection's links
+// are always highlighted, so the badge strokes in that colour.
+function drawCallBadge(l, ctx, scale, bx, by) {
+  const site = l.type === "calls" && CALL_SITES.get(siteKey(l.source.id, l.target.id));
+  if (!site || l.source.id !== selected || scale < 0.35 || !el("showOrder").checked) return;
+  const numbered = CALL_FANOUT.get(l.source.id) > 1;
+  if (!numbered && !site.loop && !site.cond) return;
+  const stroke = Graph.linkColor()(l);
+  ctx.font = "10px ui-monospace, monospace";
+  // A label longer than two characters (3a1) stretches the shape sideways, leftwards, so its
+  // right end stays clear of the arrowhead.
+  const flat = numbered ? Math.max(0, ctx.measureText(site.label).width / 2 - 4) : 0;
+  bx -= flat;
+  ctx.lineWidth = 1.2 / scale;
+  ctx.strokeStyle = stroke;
+  badgePath(ctx, bx, by, flat, site.cond);
+  ctx.fillStyle = "#131820"; ctx.fill(); ctx.stroke();
+  if (site.loop) {
+    const ring = loopRing(bx, by, flat);
+    ctx.beginPath();
+    ctx.ellipse(bx, by, ring.rx, ring.ry, 0, ring.from, ring.to);
+    ctx.stroke();
+    ctx.beginPath();
+    ring.head.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.closePath(); ctx.fillStyle = stroke; ctx.fill();
+  }
+  if (numbered) {
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "#d7dde8";
+    ctx.fillText(site.label, bx, by + 0.5);
+    ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
+  }
+}
+
+// The badge outline: a circle, or a diamond for a call only inside a branch, each stretched by
+// `flat` on both sides of its centre (a pill, a flat-topped diamond) when the label needs room.
+function badgePath(ctx, bx, by, flat, cond) {
+  ctx.beginPath();
+  if (cond) {
+    ctx.moveTo(bx - flat - 8.5, by); ctx.lineTo(bx - flat, by - 8.5); ctx.lineTo(bx + flat, by - 8.5);
+    ctx.lineTo(bx + flat + 8.5, by); ctx.lineTo(bx + flat, by + 8.5); ctx.lineTo(bx - flat, by + 8.5);
+  } else {
+    ctx.moveTo(bx - flat, by - 7.5); ctx.lineTo(bx + flat, by - 7.5);
+    ctx.arc(bx + flat, by, 7.5, -Math.PI / 2, Math.PI / 2);
+    ctx.lineTo(bx - flat, by + 7.5);
+    ctx.arc(bx - flat, by, 7.5, Math.PI / 2, 3 * Math.PI / 2);
+  }
+  ctx.closePath();
+}
+
+// The loop ring around a badge: an arc of an ellipse (a circle when `flat` is 0) from -50 to
+// 205 degrees, with an arrowhead along its direction of travel at the end.
+function loopRing(bx, by, flat) {
+  const rx = flat + 11, ry = 11, from = -50 * Math.PI / 180, to = 205 * Math.PI / 180;
+  const ex = bx + rx * Math.cos(to), ey = by + ry * Math.sin(to);
+  let dx = -rx * Math.sin(to), dy = ry * Math.cos(to);
+  const len = Math.hypot(dx, dy); dx /= len; dy /= len;
+  return { rx, ry, from, to, ex, ey,
+    head: [[ex + 4.5 * dx, ey + 4.5 * dy], [ex - 2.6 * dy, ey + 2.6 * dx], [ex + 2.6 * dy, ey - 2.6 * dx]] };
+}
+
+// The same glyph as inline SVG, for the panel and the legend; `tip` makes it a titled image.
+// A monospace digit at 10px is about 6px wide, which is all the width estimate needs.
+function callGlyph(site, numbered, tip) {
+  const label = numbered ? String(site.label) : "";
+  const flat = Math.max(0, label.length * 6.02 / 2 - 4);
+  const w = 26 + 2 * flat, cx = w / 2, f = (v) => +v.toFixed(2);
+  const n = label ? `<text x="${f(cx)}" y="16.5" font-size="10" text-anchor="middle" fill="#8b98ad"
+    font-family="ui-monospace, monospace">${esc(label)}</text>` : "";
+  const shape = site.cond
+    ? `<path d="M${f(cx - flat - 8.5)},13 L${f(cx - flat)},4.5 L${f(cx + flat)},4.5 L${f(cx + flat + 8.5)},13
+        L${f(cx + flat)},21.5 L${f(cx - flat)},21.5 Z" fill="#131820" stroke="#39414f" stroke-width="1.2"/>`
+    : `<rect x="${f(cx - flat - 7.5)}" y="5.5" width="${f(2 * flat + 15)}" height="15" rx="7.5"
+        fill="#131820" stroke="#39414f" stroke-width="1.2"/>`;
+  let ring = "";
+  if (site.loop) {
+    const r = loopRing(cx, 13, flat);
+    const sx = cx + r.rx * Math.cos(r.from), sy = 13 + r.ry * Math.sin(r.from);
+    ring = `<path d="M${f(sx)},${f(sy)} A ${f(r.rx)},${r.ry} 0 1 1 ${f(r.ex)},${f(r.ey)}" fill="none"
+        stroke="#39414f" stroke-width="1.2"/>
+      <path d="M${r.head.map(([x, y]) => `${f(x)},${f(y)}`).join(" L")} Z" fill="#39414f"/>`;
+  }
+  const head = tip ? `role="img"><title>${esc(tip)}</title>` : `aria-hidden="true">`;
+  return `<svg class="order" width="${f(w)}" height="26" viewBox="0 0 ${f(w)} 26" ${head}${ring}${shape}${n}</svg>`;
 }
 
 // ---------------------------------------------------------------- matrix view
@@ -1299,7 +1490,7 @@ function renderMatrix() {
   list.forEach((src, i) => list.forEach((dst, j) => {
     const key = src.id + "|" + dst.id;
     const x = pad + j * cell, y = pad + i * cell;
-    if (edgeSet.has(key)) ctx.fillStyle = httpSet.has(key) ? "#f778ba" : renderSet.has(key) ? "#a78bfa" : passSet.has(key) ? "#7dd3fc" : implSet.has(key) ? "#c9d1d9" : inheritSet.has(key) ? "#d6be8c" : "#3fe0a0";
+    if (edgeSet.has(key)) ctx.fillStyle = httpSet.has(key) ? LINK_STYLE.http.cell : renderSet.has(key) ? LINK_STYLE.renders.cell : passSet.has(key) ? LINK_STYLE.passes.cell : implSet.has(key) ? LINK_STYLE.implements.cell : inheritSet.has(key) ? LINK_STYLE.extends.cell : "#3fe0a0";
     else if (src.id === selected || dst.id === selected) ctx.fillStyle = "#16241f";
     else ctx.fillStyle = (i + j) % 2 ? "#0e131b" : "#111722";
     ctx.fillRect(x + 1, y + 1, cell - 2, cell - 2);
@@ -1490,16 +1681,40 @@ function severityOfImpact(pct) {
   return ["low", "LOW"];
 }
 
+// Called as `.map(nodeItem)`, so it takes one argument: the index `map` passes second would
+// otherwise land in `lead`. `nodeRow` is the form with room for a call's glyph and badges.
 function nodeItem(id) {
+  return nodeRow(id, "", "");
+}
+
+function nodeRow(id, lead, tags) {
   const m = metrics(id), n = byId.get(id);
   const ln = n ? lineOf(n) : null;
   const int = outAdj.get(id) ? outAdj.get(id).length : 0;
   const ext = n && n.ext ? n.ext : 0;
-  return `<div class="item" data-goto="${esc(id)}">
-    <span class="mono link" title="${esc(id)}">${esc(nameOf(id))}</span>
-    <span class="grow">${ln ? `<span class="badge">L${ln}</span>` : ""}
+  return `<div class="item" data-goto="${esc(id)}">${lead}
+    <span class="mono link name" title="${esc(id)}">${esc(nameOf(id))}</span>
+    <span class="grow">${tags}${ln ? `<span class="badge">L${ln}</span>` : ""}
       <span class="badge">${int} int</span>
       ${ext ? `<span class="badge med">${ext} ext</span>` : ""}</span></div>`;
+}
+
+// A node's outgoing links, calls first in the order they are written, each with the canvas's
+// glyph and a word for a loop or a branch; every other link after them, as before. The line
+// the call is written on is the glyph's tooltip -- an `L` badge is already the node's own line.
+function callRows(id) {
+  const site = (t) => CALL_SITES.get(siteKey(id, t));
+  const numbered = CALL_FANOUT.get(id) > 1;
+  return (outAdj.get(id) || []).slice()
+    .sort((a, b) => (site(a) ? site(a).rank : Infinity) - (site(b) ? site(b).rank : Infinity))
+    .map((t) => {
+      const s = site(t);
+      if (!s || (!numbered && !s.loop && !s.cond)) return nodeItem(t);
+      const glyph = callGlyph(s, numbered, `Written at line ${s.line}` + (s.alternatives
+        ? ` - one of ${s.alternatives} alternatives of one branch; only one of them runs` : ""));
+      const tags = (s.cond ? '<span class="badge">branch</span>' : "") + (s.loop ? '<span class="badge">loop</span>' : "");
+      return nodeRow(t, glyph, tags);
+    }).join("");
 }
 
 function renderFile(node) {
@@ -1550,7 +1765,8 @@ function renderFile(node) {
       <span class="grow badge">${degree(node.id)}</span></summary>
     <div class="body">
       <div class="grp">${OUT_LABEL}</div>
-      <div class="list">${(outAdj.get(node.id) || []).map(nodeItem).join("") || '<span class="empty">None</span>'}</div>
+      ${CALL_FANOUT.get(node.id) > 1 ? `<div class="sub" style="margin:-4px 0 8px">${esc(ORDER_CAVEAT)}</div>` : ""}
+      <div class="list">${callRows(node.id) || '<span class="empty">None</span>'}</div>
       <div class="grp">${IN_LABEL}</div>
       <div class="list">${(inAdj.get(node.id) || []).map(nodeItem).join("") || '<span class="empty">None</span>'}</div>
     </div></details>`);
@@ -1712,6 +1928,7 @@ el("zoomOut").addEventListener("click", () => Graph.zoom(Graph.zoom() / 1.4, 250
 el("zoomFit").addEventListener("click", () => Graph.zoomToFit(400, 60));
 el("reset").addEventListener("click", () => { setFilter(null); clearSelection(); resetLayout(); });
 el("hulls").addEventListener("change", repaint);
+el("showOrder").addEventListener("change", repaint);
 el("showTests").addEventListener("change", () => applyMap(mapName));
 el("blast").addEventListener("change", () => {
   if (selected) { computeHighlight(selected); refocus(view === "flow" && !el("freeze").checked); }
@@ -1792,12 +2009,13 @@ const VIEW_KEY = {
   Treemap: "Files as rectangles, sized by lines.",
   Matrix: "Who links to whom, as a grid; the 140 most connected nodes.",
   Tree: "The folder hierarchy.",
-  Flowchart: "Left to right, in columns by call depth. Selecting a node narrows it to that node's whole flow: every caller back to the start, every callee to the end.",
+  Flowchart: "Left to right, in columns by call depth. Selecting a node narrows it to that node's whole flow: every caller back to the start, every callee to the end. It also badges the selected node's own calls with the order they are written in (the Order toggle).",
   Cluster: "Nodes gathered into one circle per folder.",
   Bundle: "Every node on one ring, ordered by folder.",
 };
 const TOGGLE_KEY = [
   ["Folders", "Draw folder areas behind the nodes. Graph and Cluster only."],
+  ["Order", "Draw the call-order badges on the selected node's calls. Flowchart only; the Calls list in the panel keeps them either way."],
   ["Blast radius", "Highlight everything the selection reaches, in green."],
   ["Freeze", "Keep the current view when another node is clicked."],
   ["Tests", "Show test-code nodes. Hidden by default, and green when shown."],
@@ -1807,7 +2025,7 @@ const TOGGLE_KEY = [
 // floor to be visible at all. The hue and the dash -- the two things that identify a link --
 // are the canvas's own, untouched.
 const legible = (c) => String(c).replace(/rgba\(([^,]+,[^,]+,[^,]+),\s*([\d.]+)\)/,
-  (m, rgb, a) => "rgba(" + rgb + "," + Math.max(0.6, +a) + ")");
+  (m, rgb, a) => "rgba(" + rgb + "," + Math.max(0.9, +a) + ")");
 
 function linkSwatch(type, highlight) {
   const probe = { type };
@@ -1822,6 +2040,7 @@ function linkSwatch(type, highlight) {
 }
 
 const md = (t) => esc(t).replace(/`([^`]+)`/g, "<code>$1</code>");
+const ORDER_CAVEAT = "Numbered in the order the calls are written in this function - not the order they run.";
 const keyRow = (sw, term, meaning, off) =>
   `<div class="key-row${off ? " off" : ""}">${sw}<b>${term}</b><span>${md(meaning)}</span></div>`;
 const keyDef = (term, meaning) =>
@@ -1846,6 +2065,20 @@ function renderKey() {
   out.push(keyRow(linkSwatch("calls", true), "highlighted",
     "On the selected node's path, with Blast radius ticked. Not a link type of its own."));
   out.push(`<p class="note">${md(PRECISION_CAVEAT)}</p>`);
+
+  if (CALL_SITES.size) {
+    out.push(`<h4>Call order - the badge before each of the selected node's calls in the Flowchart</h4>`);
+    out.push(keyRow(`<span>${callGlyph({ label: 2 }, true)}</span>`, "circle",
+      "Written 2nd among this node's calls. Only when a node has two or more."));
+    out.push(keyRow(`<span>${callGlyph({ label: 3, cond: true }, true)}</span>`, "diamond",
+      "Every place this call is written is inside an `if`, `switch`, `match` arm or `catch`, so it may not run."));
+    out.push(keyRow(`<span>${callGlyph({ label: "3a", cond: true }, true)} ${callGlyph({ label: "3b", cond: true }, true)}</span>`, "3a / 3b",
+      "Alternatives: the sides of one `if` / `else if` / `else`, ternary, `match`, `when`, or a `switch` whose cases cannot fall through. Exactly one of them runs. A digit orders calls on one side: 3a1, 3a2."));
+    out.push(keyRow(`<span>${callGlyph({ label: 4, loop: true }, true)}</span>`, "ring",
+      "Written inside a loop's body, so it may run many times. A loop's iterable runs once, and is not marked."));
+    out.push(`<p class="note">${md(ORDER_CAVEAT)} Read from the syntax, so a callback handed to
+      <code>.map()</code> or <code>.forEach()</code> is not a loop, and what goes unmarked is a lower bound.</p>`);
+  }
 
   out.push(`<h4>Node colour - the layer it belongs to</h4>`);
   out.push(Object.entries(LAYER_KEY).map(([l, meaning]) =>

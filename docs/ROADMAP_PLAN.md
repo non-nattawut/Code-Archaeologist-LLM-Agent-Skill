@@ -2763,3 +2763,41 @@ already accepted for keeping `js_ts_extract` out of `langs_extract`.
 
 **Recommendation.** Leave them. If the duplication ever bites, the honest unit to share is the
 *node dict shape* -- one constructor taking the four fields that differ -- not the loop.
+
+### 40. Call-order badges may crowd on a wide fan-out -- 2026-09-16, needs a real graph
+
+**What.** A call link now carries its call site (`line`, `loop`, `cond` -- `core/call_ctx.py`),
+and the Flowchart draws one badge per call link on its elbow's turn, midway between the caller's
+row and the callee's. At the 44px row pitch two callees on adjacent rows put their badges 22px
+apart, and the loop ring (radius 11) clears a diamond on the row above by about 2px. The sample's
+widest fan-out is two calls, and every language fixture's is three, so nothing in the repository
+shows whether a caller with ten callees in consecutive rows stays readable. The plan's last
+verification step -- build one large real repository and look -- was not run: no real repository
+was available in the session that built it.
+
+**Why it is not obviously fixable.** Every fix trades something visible. Dropping the ring for a
+doubled outline on the glyph saves the extra radius but is a harder shape to read at a glance;
+spacing rows further apart makes every flowchart taller for a case that may be rare; staggering
+badges along the vertical segment breaks "the badge is at the turn", which is what ties a number
+to its link when several links bend in the same gap.
+
+**Recommendation.** Build a large real repository, select its widest caller in the Flowchart,
+and decide from the picture. If it collides, try the doubled outline first: it is a change to
+`drawCallBadge` and `callGlyph` only, and the **Order** toggle already lets a reader clear the
+badges while the question is open.
+
+### Update on #40 — decided 2026-09-16, on a real graph
+
+The user hit it on a real repository: a caller with ten calls into one column had badges
+stacked on the column's shared vertical trunk (`MaintenanceMasterDataService.uploadProjectData`),
+and asked for the badge behind the arrowhead instead. Measured on a real 21-call fan-out
+(`build_flow.analyze`, the skill's own code): badges midway along the bend -- the placement this
+entry was written about -- gave **19** pairs closer than a ring plus margin, closest 22px; badges
+19px before the callee's box give **0**, closest 44px (one row). Neither the doubled outline nor
+wider rows was needed.
+
+Moving it exposed the other case: every link *into* a callee ends on the same arrowhead, so a
+callee with several callers (`_claim` has four) would stack badges there, each rank belonging to a
+different caller. So the canvas draws badges only on the **selected** node's own calls -- the
+question a rank answers is "in what order does *this* function call things" -- and the panel's
+Calls list carries the same order. Without a selection the Flowchart shows no badges.

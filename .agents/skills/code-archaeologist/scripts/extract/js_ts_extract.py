@@ -44,6 +44,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from paths import SKILL_ROOT  # noqa: E402  (also puts sibling script dirs on sys.path)
 
+import call_ctx  # noqa: E402  (where a call is written: line, loop, branch)
 import doc_text  # noqa: E402  (the one doc-comment rule, shared with every producer)
 import grammars  # noqa: E402
 
@@ -629,10 +630,14 @@ def _collect_calls(root, axios_names: set, types: dict | None = None,
     visited a call's callee before its arguments. tree-sitter's children are in
     that same order, so `getOrder(x).then(y)` still yields `then` before
     `getOrder` -- the outer call first, then what it was called on.
+
+    A call made twice is one entry, carrying where it is written (`call_ctx.site`, folded
+    across its sites by `call_ctx.merge`: first line, a loop if any site is in one, a
+    branch only if every site is).
     """
     types = types or {}
     calls: list[dict] = []
-    seen: set = set()
+    seen: dict = {}
     http: list[dict] = []
     constructs: list[str] = []      # `new ApiError(...)`: a use of the class, not a call
     # `rows.map(formatDate)`, `onClick={run}`, `t.rich(k, { b: tag })`: handed over, not called here.
@@ -658,11 +663,13 @@ def _collect_calls(root, axios_names: set, types: dict | None = None,
             for child in value.named_children:
                 passed(_field(child, "value") if child.type == "pair" else child)
 
-    def add(recv: str, name: str, obj: str = "", via: dict | None = None) -> None:
+    def add(at, recv: str, name: str, obj: str = "", via: dict | None = None) -> None:
         key = (recv, name, (via["type"], tuple(via["names"]), via.get("field", "")) if via else ())
-        if name and key not in seen:
-            seen.add(key)
-            call = {"type": recv, "name": name}
+        if name and key in seen:
+            call_ctx.merge(seen[key], call_ctx.site(at, root))
+        elif name:
+            call = {"type": recv, "name": name, **call_ctx.site(at, root)}
+            seen[key] = call
             if recv and obj and re.fullmatch(r"[A-Za-z_$][\w$]*", obj):
                 # Untyped: maybe a namespace import (`errors.toMessage()`). Typed: the instance
                 # an import binds, which settles a class name two files define.
@@ -677,23 +684,23 @@ def _collect_calls(root, axios_names: set, types: dict | None = None,
             args = _args(node)
             if ident:
                 for name in held(ident):        # `save(x)` where `const save = id ? update : create`
-                    add("", name)
+                    add(node, "", name)
                 if ident == "fetch":
                     http.append({"method": _method_from_options(args[1] if len(args) > 1 else None),
                                  "url": _url_of(args[0] if args else None)})
             elif prop:
                 if obj in aliases and obj not in types:
                     for leaf in held(obj):      # `const api = ng ? ngApi : setdatApi; api.fetch()`
-                        add("?", prop, leaf)
+                        add(node, "?", prop, leaf)
                 elif obj in results and obj not in types:
                     # `const api = useSetdatApi(); api.fetch()`: typed by what that function returns.
-                    add("?", prop, obj, {"type": "", "names": [results[obj]]})
+                    add(node, "?", prop, obj, {"type": "", "names": [results[obj]]})
                 elif obj in picked and obj not in types:
                     # `const { api } = useSetdatVariant(); api.fetch()`: typed by that result's field.
                     callee, field = picked[obj]
-                    add("?", prop, obj, {"type": "", "names": [callee], "field": field})
+                    add(node, "?", prop, obj, {"type": "", "names": [callee], "field": field})
                 else:
-                    add(_receiver_type(node, types, self_type), prop, obj,
+                    add(node, _receiver_type(node, types, self_type), prop, obj,
                         _call_via(_member_object(node), types, self_type))
                 if obj in axios_names and prop in HTTP_VERBS:
                     http.append({"method": prop.upper(),
