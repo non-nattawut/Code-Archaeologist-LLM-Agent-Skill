@@ -1581,7 +1581,7 @@
      "<code>build_wiki.py</code> สกัดคลาส, component และ module group แล้วเขียนหน้า vault ต่อ entity จากนั้น <code>build_graph.py</code> ประกอบเป็น <code>graph.json</code>",
      "edge ของแผนที่นี้คือการอ้างอิงและการ import รวมถึง <code>new X()</code> ที่นับเป็นการใช้ <code>X</code> และ import ของ JS/TS ที่ resolve เป็นไฟล์ได้"],
     ["arch", "เพิ่ม “producer” ของภาษาใหม่ต้องแตะอะไร",
-     "<code>extract_*_entities</code> ใน <code>build_wiki.py</code> กับ <code>_analyze_*</code> ใน <code>build_flow.py</code> — ไม่มีอย่างอื่น",
+     "<code>_refs_of</code> ใน <code>build_wiki.extract_backend_entities</code> กับ <code>_analyze_*</code> ใน <code>build_flow.py</code> — ไม่มีอย่างอื่น",
      "แต่ในทางปฏิบัติภาษาใหม่แทบทุกภาษาไม่ต้องมี producer ใหม่ เพราะเข้าไปอยู่ใน <code>langs_extract.py</code> ได้ด้วยแถวในตาราง <code>SPEC</code>/<code>SHAPES</code> กับกฎการ resolve receiver"],
     ["arch", "<code>report.py</code> รวมอะไรบ้าง",
      "เจ็ด pass: <code>scan_security</code>, <code>git_insights</code>, <code>analyze</code>, <code>metrics</code>, <code>debt</code>, <code>tests_map</code>, <code>duplicates</code> → <code>data/report/&lt;map&gt;/</code>",

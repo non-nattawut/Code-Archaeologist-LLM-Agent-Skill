@@ -2728,3 +2728,38 @@ Plus, for any `templates/viewer.html` change: extract the inline `<script>` and 
 would accept top-level `return` that a browser rejects. Then open `data/explorer.html` in a real
 browser and exercise map switch, all seven views, explorer filter, blast toggle and tab
 drill-through.
+
+### 39. The two flow analyzers cannot honestly merge -- 2026-09-16, needs a decision
+
+**What.** Phase 10 made Python a producer and then merged the *structure* consumers:
+`extract_py_entities` and `extract_lang_entities` are now one `extract_backend_entities`,
+because what an entity *is* -- name, kind, range, bases, decorators, doc, methods -- does not
+differ between them, and the one thing that does (what an entity references) is named in
+`_refs_of` rather than duplicated. Output byte-identical.
+
+The **flow** consumers were measured for the same treatment and left alone:
+
+| | lines |
+| --- | --- |
+| `_analyze_py` + `_py_targets` | 132 |
+| `_analyze_lang` + `_lang_node` | 285 |
+
+At least 67 lines of `_analyze_lang` are machinery Python has none of -- overload sets, Spring
+beans, declared return types, Lombok getters, static fields, `init_calls`, `via` chains, ancestor
+walking. And the node constructors differ in three fields by construction, not by accident:
+`signature` is synthesized from parameter *names* for the Java family (`name(a, b)`) and is the
+real source signature in Python; `hash` is a digest of a JSON summary there and of the real
+source text here; `code` is the placeholder `// <file>
+<name>(...)` there and the real body here.
+What the two loops share is about eight lines: `ids.id`, `class_methods`, `classes.append`,
+`_claim`, and appending to the pending-calls list.
+
+**Why it is not obviously fixable.** Merging them means Python carrying empty overload, bean,
+getter and return-type structures through a 254-line loop it never uses, and the two resolvers
+(`_py_targets`'s four cases against overload picking, `via` walking, ancestor lookup and bean
+resolution) cannot merge at all -- they answer different questions about different evidence.
+The result would be one larger function holding two designs, which is the argument this project
+already accepted for keeping `js_ts_extract` out of `langs_extract`.
+
+**Recommendation.** Leave them. If the duplication ever bites, the honest unit to share is the
+*node dict shape* -- one constructor taking the four fields that differ -- not the loop.

@@ -34,8 +34,16 @@ from what the node calls and drops, never from its language alone: `name-matched
 `untyped`, the dropped calls through a receiver of unknown type whose names the graph defines. It
 was on every JS/TS/Ruby/PHP/Elixir/Groovy node until finding #25 (r51). It replaced a per-node `approx: true` on
 Java/Go/C#, which was honest while those three were read textually and became arbitrary once every
-language moved to tree-sitter. Adding a producer means adding an `extract_*_entities` in
-`build_wiki.py` and an `_analyze_*` in `build_flow.py`, nothing else.
+language moved to tree-sitter. Adding a producer means teaching `build_wiki` what its entities
+reference and `build_flow` how to resolve its calls, nothing else. Python and the Java family
+share one entity builder -- `build_wiki.extract_backend_entities`, called once per producer so
+the collision order stays Python, then JS/TS, then the rest -- because what an entity *is* does
+not differ between them; the one thing that does, *what it references*, is named in `_refs_of`.
+Their **flow** analyzers stay two on purpose (`_analyze_py`, `_analyze_lang`): at least 67 lines
+of the latter are overload sets, Spring beans, return types, getters and `via` chains that
+Python has none of, and their node constructors differ in `signature`, `hash` and `code` by
+construction (ROADMAP finding 39). JS/TS keeps its own entity pass, since a JS specifier names
+a *file* rather than a name.
 
 **A dropped call keeps its name.** `ext` counts the call sites that did not become edges, and
 used to keep nothing else, so `print(...)` -- correctly dropped, nothing in the graph is called

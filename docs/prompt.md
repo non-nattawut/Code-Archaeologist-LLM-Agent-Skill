@@ -6178,3 +6178,51 @@ folding JS/TS. `metrics.py` still imports `py_extract` for `walk` / `field` / `t
 `params_of` / `read_source`, which it uses for **all eighteen** languages, not for Python; that is a
 generic tree-accessor dependency wearing a Python name, and deleting `py_extract` would need those
 ~30 lines somewhere in `core/` first.
+
+## [154] 2026-09-16 — One entity builder; the flow analyzers measured and left alone
+
+**Prompt**
+> b
+
+**Response**
+Option (b) from the previous turn: merge the consumers rather than the producer files. I had
+flagged (b) as the one that trades a guarantee -- Python entities gaining `import_sources`, which
+feeds `build_graph`'s resolution. The first thing checked was whether that trade is actually
+required, and it is not: `class_locator` is built from `package` and `import`, which a Python source
+does not state, so passing no locator for Python is not a compromise but the honest answer. The
+merge went in with output unchanged.
+
+**Structure side: merged.** `extract_py_entities` and `extract_lang_entities` are one
+`extract_backend_entities(roots, kind)`. What an entity *is* -- name, kind, source, range, bases,
+decorators, doc, methods -- was duplicated in both and is now written once; the one thing that
+genuinely differs is *what an entity references*, and that is `_refs_of`: stated types plus
+`class_locator` for the Java family, the import list plus the names the file defines itself for
+Python. `build_wiki` 535 -> 524 lines, two functions to one, **all 100 built files byte-identical**.
+
+Three things nearly broke it, all caught before the build:
+
+- **Producer order is the collision rule.** `extract_entities` is
+  `py + js + lang` because an earlier producer keeps a contested name. A single pass over both
+  producers would have interleaved them, so the function takes the producer as an argument and is
+  called twice, with `extract_js_entities` between the calls.
+- **`container_entry` would newly have applied to Python classes.** It is Java-family only today,
+  and letting it run for Python would have changed which classes count as orphans. Branched
+  explicitly rather than inherited by accident.
+- **A lang module group carries no `import_sources`**, only its classes do; the merged loop had to
+  keep that or the graph would gain edges.
+
+**Flow side: measured, and left as two.** `_analyze_py` + `_py_targets` is 132 lines;
+`_analyze_lang` + `_lang_node` is 285. At least 67 of those are overload sets, Spring beans,
+declared return types, Lombok getters, static fields, `init_calls`, `via` chains and ancestor
+walking -- none of which Python has. The node constructors differ in three fields by construction:
+`signature` is synthesized from parameter names for the Java family and is the real source
+signature in Python; `hash` is a digest of a JSON summary there and of the real source text here;
+`code` is a placeholder there and the real body here. What the two loops share is about eight
+lines. Merging would mean one larger function holding two designs -- the argument this project
+already accepted for keeping `js_ts_extract` out of `langs_extract` -- so it is recorded as ROADMAP
+finding 39 with a recommendation (if the duplication ever bites, share the *node dict shape*, not
+the loop) rather than done.
+
+**Verification:** `git diff` on `data/` empty, `check_docs` OK, `check_graph` 32+32 OK,
+`check_langs` 21/21, `check_regressions` 80/80. Docs moved in the same commit: CLAUDE.md's "adding
+a producer means..." paragraph, and the Thai guide's copy of it.

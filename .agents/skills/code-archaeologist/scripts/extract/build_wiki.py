@@ -41,57 +41,108 @@ from langs_extract import class_locator, find_lang_files, extract_lang_files  # 
 # ---------------------------------------------------------------------------
 # Extraction
 # ---------------------------------------------------------------------------
-def extract_py_entities(roots: list[str]) -> list[dict]:
-    """Python classes and module function-groups, from `py_extract`'s dicts.
+def extract_backend_entities(roots: list[str], kind: str) -> list[dict]:
+    """Classes, interfaces and module function-groups for Python **and** every
+    `langs_extract` language -- one builder, because what an entity *is* does not
+    differ between them: a name, a kind, a range, its bases, its decorators, its doc
+    and its methods.
 
-    References come from the **import list** plus the names the file defines itself
-    (`_add_same_file_refs`, r77). That is the opposite of the Java family, which reads
-    them from stated types: Python states none, so an import is the only thing the
-    source says about where a name comes from.
+    What does differ is the one question the structure map actually asks -- *what does
+    this entity reference* -- and the two languages answer it from different evidence,
+    so that is the only thing branched here (`_refs_of`):
+
+    - **the Java family** reads what the source *states*: bases, field types, parameter
+      types, resolved call receivers, and `refs` (return types, generic arguments,
+      locals, `X.class`, a static constant's class; `langs_extract._type_refs`, r73).
+      That is what an IDE counts as a usage, and the only evidence available in Go,
+      where files of one package import each other not at all. `class_locator` then
+      settles which file a name means.
+    - **Python** states no types, so the evidence is the **import list**, plus the names
+      the file defines itself -- a class calling a function of its own module group
+      (r77). Nothing settles which file a name means, so a Python entity carries no
+      `import_sources`: matching by name is all the source supports.
     """
+    read = ((lambda r: extract_py_files(find_py_files(r))) if kind == "py"
+            else (lambda r: extract_lang_files(find_lang_files(r))))
+    files = [(_rel_source(res["file"], root), res) for root in roots for res in read(root)]
+    # A class name two files define: which one this file means. Java-family only -- it is
+    # settled by `package` and `import`, which a Python source does not state.
+    locate = class_locator(files) if kind == "lang" else None
+
     entities: list[dict] = []
-    for root in roots:
-        for res in extract_py_files(find_py_files(root)):
-            rel = _rel_source(res["file"], root)
-            here: list[dict] = []
-            # (entity, the bare names its own source calls) -- a module group is its
-            # functions, so it gets one pair per function.
-            owners: list[tuple[dict, list[str]]] = []
+    for rel, res in files:
+        here: list[dict] = []
+        # (entity, the bare names its own source calls), Python only: a module group is
+        # its functions, so it gets one pair per function.
+        owners: list[tuple[dict, list[str]]] = []
+        for cls in res.get("classes", []):
+            # A framework builds this class and calls into it: `@Configuration`, or a
+            # method of its own that a framework calls (`@Scheduled`). `find_orphans`
+            # reads `entry` on flow nodes already; structure nodes carried none (r75).
+            entry = ("" if kind == "py" else
+                     container_entry(cls.get("decorators", []),
+                                     [m.get("entry") for m in cls.get("methods", [])]))
+            here.append({
+                **({"entry": entry} if entry else {}),
+                "name": cls["name"], "kind": cls.get("kind") or "class", "source": rel,
+                "lang": res["lang"],
+                # From the first decorator, like every node in both maps (finding #6).
+                "line": cls.get("line", 0), "end": cls.get("endLine", 0),
+                "bases": [b for b in cls.get("bases", []) if b],
+                "decorators": [d for d in cls.get("decorators", []) if d],
+                "doc": cls.get("doc", ""),
+                "methods": [{"name": m["name"], "doc": m.get("doc", "")}
+                            for m in cls.get("methods", [])],
+                "imports": sorted(_refs_of(kind, cls, res)),
+            })
+            owners.append((here[-1], cls.get("bare_calls", [])))
 
-            for cls in res["classes"]:
-                ent = {
-                    "name": cls["name"], "kind": cls["kind"], "source": rel,
-                    # From the first decorator, like every node in both maps (finding #6).
-                    "line": cls["line"], "end": cls["endLine"],
-                    "bases": [b for b in cls["bases"] if b],
-                    "decorators": [d for d in cls["decorators"] if d],
-                    "doc": cls["doc"],
-                    "methods": [{"name": m["name"], "doc": m["doc"]} for m in cls["methods"]],
-                    "imports": list(res["imports"]),
-                    "lang": "py",
-                }
-                here.append(ent)
-                owners.append((ent, cls["bare_calls"]))
+        funcs = res.get("functions", [])
+        if funcs:
+            stem = os.path.splitext(os.path.basename(rel))[0]
+            refs: set[str] = set()
+            for fn in funcs:
+                refs |= _refs_of(kind, fn, res)
+            here.append({
+                "name": _module_entity_name(stem), "kind": "module", "source": rel,
+                "lang": res["lang"],
+                "bases": [], "decorators": [],
+                # Only Python has a module docstring; a file of Go functions has no doc.
+                "doc": res.get("doc", ""),
+                "methods": [{"name": f["name"], "doc": f.get("doc", "")} for f in funcs],
+                "imports": sorted(refs),
+            })
+            owners += [(here[-1], f.get("bare_calls", [])) for f in funcs]
 
-            if res["functions"]:
-                stem = os.path.splitext(os.path.basename(rel))[0]
-                mod = {
-                    "name": _module_entity_name(stem),
-                    "kind": "module",
-                    "source": rel,
-                    "bases": [],
-                    "decorators": [],
-                    "doc": res["doc"],
-                    "methods": [{"name": f["name"], "doc": f["doc"]} for f in res["functions"]],
-                    "imports": list(res["imports"]),
-                    "lang": "py",
-                }
-                here.append(mod)
-                owners += [(mod, f["bare_calls"]) for f in res["functions"]]
-
+        if kind == "py":
             _add_same_file_refs(here, owners)
-            entities.extend(here)
+        else:
+            for ent in here:
+                sources = {r: f for r in ent["imports"] for f in [locate(r, rel)] if f}
+                if ent["kind"] != "module":
+                    # The file each name means, even when two files define it. A module
+                    # group never carried one, and adding it would change the graph.
+                    ent["import_sources"] = sources
+        entities.extend(here)
     return entities
+
+
+def _refs_of(kind: str, member: dict, res: dict) -> set[str]:
+    """What one class or function references, from whatever its language states."""
+    if kind == "py":
+        # An imported name is the only thing a Python source says about where a name
+        # comes from; `_add_same_file_refs` adds the ones this file defines itself.
+        return set(res.get("imports", []))
+    refs = set(member.get("bases", [])) | set(member.get("fields", {}).values()) \
+        | set(member.get("refs", []))
+    for m in member.get("methods", []):
+        refs.update(m.get("params", {}).values())
+        refs.update(m.get("refs", []))
+        refs.update(c["type"] for c in m.get("calls", []) if c["type"] not in ("", "?"))
+    refs.update(member.get("params", {}).values())
+    refs.update(c["type"] for c in member.get("calls", []) if c["type"] not in ("", "?"))
+    return refs
+
 
 def _add_same_file_refs(ents: list[dict], owners: list[tuple[dict, list[str]]]) -> None:
     """A name this file defines is a reference too: a class calling a function of its own
@@ -105,6 +156,7 @@ def _add_same_file_refs(ents: list[dict], owners: list[tuple[dict, list[str]]]) 
         if found:
             ent["imports"] = sorted(set(ent["imports"]) | found)
 
+
 def _rel_source(path: str, root: str) -> str:
     rel = os.path.relpath(path, root).replace("\\", "/")
     return f"{os.path.basename(os.path.normpath(root))}/{rel}"
@@ -117,7 +169,9 @@ def extract_entities(roots: list[str]) -> list[dict]:
     so they win over the Java/Go/C# extractor. Within that, the order is
     arbitrary but fixed, which is what constraint 2 actually needs.
     """
-    return extract_py_entities(roots) + extract_js_entities(roots) + extract_lang_entities(roots)
+    return (extract_backend_entities(roots, "py")
+            + extract_js_entities(roots)
+            + extract_backend_entities(roots, "lang"))
 
 def _module_entity_name(mod: str) -> str:
     # snake_case module -> CamelCase-ish entity id, kept stable and readable.
@@ -298,71 +352,6 @@ def extract_js_entities(roots: list[str]) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Extraction: Java / Go / C#
 # ---------------------------------------------------------------------------
-def extract_lang_entities(roots: list[str]) -> list[dict]:
-    """Classes, structs and modules -- plus a module function-group per file -- for every
-    `langs_extract` language (Java, Go, C# and, since phase 7, eleven more).
-
-    References come from what the source *states* -- bases, field types, parameter types,
-    resolved call receivers, and `refs`: every other type a signature or body names (return
-    types, generic arguments, locals, `X.class`, a static constant's class; `langs_extract.
-    _type_refs`, r73). Never from the import list: that is a better source than Python's name
-    matching and the only one available for Go, where files in the same package import each
-    other not at all. `class_locator` settles which file a name means, including this one, so
-    a reference between two classes of the same file resolves here without a special case.
-    """
-    files = [(_rel_source(res["file"], root), res)
-             for root in roots for res in extract_lang_files(find_lang_files(root))]
-    locate = class_locator(files)       # a class name two files define: which one this file means
-    entities: list[dict] = []
-    for rel, res in files:
-        if True:
-            stem = os.path.splitext(os.path.basename(res["file"]))[0]
-
-            for cls in res.get("classes", []):
-                # `refs` is every type the class's own source names -- return types, generic
-                # arguments, locals, `X.class`, a static constant's class -- which is what an
-                # IDE counts as a usage and what the declared-type list below missed (r73).
-                refs = set(cls.get("bases", [])) | set(cls.get("fields", {}).values()) \
-                    | set(cls.get("refs", []))
-                for m in cls.get("methods", []):
-                    refs.update(m.get("params", {}).values())
-                    refs.update(m.get("refs", []))
-                    refs.update(c["type"] for c in m.get("calls", []) if c["type"] not in ("", "?"))
-                # A framework builds this class and calls into it: `@Configuration`, or a method
-                # of its own that a framework calls (`@Scheduled`). `find_orphans` reads `entry`
-                # on flow nodes already; structure nodes carried none at all (r75).
-                entry = container_entry(cls.get("decorators", []),
-                                        [m.get("entry") for m in cls.get("methods", [])])
-                entities.append({
-                    **({"entry": entry} if entry else {}),
-                    "name": cls["name"], "kind": cls.get("kind") or "class", "source": rel,
-                    "lang": res["lang"],
-                    "line": cls.get("line", 0), "end": cls.get("endLine", 0),
-                    "bases": cls.get("bases", []), "decorators": cls.get("decorators", []),
-                    "doc": cls.get("doc", ""),
-                    "methods": [{"name": m["name"], "doc": m.get("doc", "")}
-                                for m in cls.get("methods", [])],
-                    "imports": sorted(refs),
-                    "import_sources": {r: f for r in sorted(refs) for f in [locate(r, rel)] if f},
-                })
-
-            funcs = res.get("functions", [])
-            if funcs:
-                refs = set()
-                for fn in funcs:
-                    refs.update(fn.get("params", {}).values())
-                    refs.update(fn.get("refs", []))
-                    refs.update(c["type"] for c in fn.get("calls", []) if c["type"] not in ("", "?"))
-                entities.append({
-                    "name": _module_entity_name(stem), "kind": "module", "source": rel,
-                    "lang": res["lang"],
-                    "bases": [], "decorators": [], "doc": "",
-                    "methods": [{"name": f["name"], "doc": f.get("doc", "")} for f in funcs],
-                    "imports": sorted(refs),
-                })
-    return entities
-
-
 # ---------------------------------------------------------------------------
 # Rendering
 # ---------------------------------------------------------------------------
