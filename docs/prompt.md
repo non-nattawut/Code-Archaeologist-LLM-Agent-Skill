@@ -6735,3 +6735,57 @@ selected node, the Order toggle, one colour and dash per link type, the Flowchar
 default), c24 and r81 / r82, the regenerated sample explorer and flow graph, and every doc. This
 entry was appended before the commit so it is part of it. `origin/main` was 0 commits ahead and
 local `main` 2 ahead (`aa8bffa`, `4e8cc45`, not yet pushed), so the push carried those two as well.
+
+## [165] 2026-09-16 — Design: curved, mind-map links versus today's elbows
+
+**Prompt**
+> /design design if flowchart link is like this, dont implement code yet
+>
+> also give me your oppinion current vs new one which is better
+
+(with a mind-map image: smooth S-curves fanning from one parent to each child, one hue per branch)
+
+**Response**
+No code changed. Published a design canvas (https://claude.ai/artifact/Nzhuaqvbsc3sTd5prZRrG6),
+generated from one script so every version shares exact coordinates -- the explorer's own palette,
+180x34 boxes, 11px mono, highlight green, step badges -- on the `uploadProjectData` fan-out:
+**Current** (elbows on one trunk, as shipped), **New A** (cubic curves from the caller to a short
+straight run before each arrowhead, link-type colours kept), **New B** (curves with one hue per
+branch, like the reference), and **the hard cases** in the curve style: a back link, a link that
+skips a column, two callers into one callee, and a dense unselected overview.
+
+What designing it showed: in 70px of column gap a fan of eight curves is nearly vertical in the
+middle and reads like the trunk again, so New A spaces columns 300 apart instead of 250; a curve
+across a skipped column would cut through the box in between, so it needs a lane in the row gap;
+and per-branch hue (New B) spends colour on "which branch", which the colour rules already give
+to the link type and the selection.
+
+Opinion given: New A over Current for the selected flow -- each link traceable to its box, the
+badge on its own straight run -- keeping the type colours; New B not recommended; the costs are a
+wider chart, lane routing for skip and back links, and curves blurring into a braid in a dense
+unselected overview, where neither style reads well.
+
+## [166] 2026-09-16 — Draft the 0.3 release notes; tag and push
+
+**Prompt**
+> draft me a release for 0.3 version that accumate change from version 0.2 to 0.3
+>
+> also commit and push tag 0.3
+
+**Response**
+Read the 10 commits between tag `0.2` (`3f2c22a`) and `HEAD` (`01d4dd5`) and their bodies, and
+re-ran the checks each commit claimed rather than trusting the messages: `check_regressions.py`
+82/82, `check_graph.py` 33 checks on each map (25/23 structure, 53/36 flow) plus `--self-test`
+50/50, `check_langs.py` 21/21, `check_py_oracle.py` 0 disagreements. No CHANGELOG file exists in
+this repo -- 0.1 and 0.2 are both annotated tags carrying the release notes as the tag message --
+so 0.3 follows the same convention rather than introducing a new file.
+
+Release covers: call order on the Flowchart (`line`/`loop`/`cond`/`arms` on every `calls` link,
+step badges, the notation legend behind `?`), the legend's own overflow fix, `doc_text.py` (one
+doc-comment rule for every producer, replacing three inconsistent ones), `py_extract.py` becoming
+a real producer like the other two (595 lines out of the builders), one entity builder shared by
+Python and the Java family, the architecture guide checked mechanically against the source
+(one stale row fixed, `PRESENTATION.html` removed), and the README reorder.
+
+Committed this log entry with the pending docs/prompt.md entry [165] (already written, not yet
+committed), tagged `0.3` annotated with the release notes, pushed `main` and the tag.
