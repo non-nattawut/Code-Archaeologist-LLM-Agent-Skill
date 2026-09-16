@@ -5826,3 +5826,49 @@ a Release object cannot be created from here -- only the tag, which git pushes o
 remote auth. Told the user their two options: draft the release in the GitHub UI from tag 0.2
 (GitHub pre-fills from the tag message), or install and authenticate `gh` once, after which I can
 create it. Wrote the release notes into the tag message so either path has the same text.
+
+---
+
+## [148] 2026-09-16 — README: most important sections first
+
+**Prompt**
+> edit README.md rearrange each section important one must come first less important go lower
+>
+> since now many things like installation guide is almost at the bottom
+
+**Response**
+Pure reordering -- not one word of prose changed, and the diff is 104 lines moved (104+/104-).
+Split the file on its `---` rules with a throwaway script (header + 12 sections keyed by heading,
+asserting the set of headings before and after is identical), then wrote them back in a new order
+rather than cutting and pasting by hand.
+
+Old order: Why not RAG? / Quick start / The two maps / What it can tell you / How it works / The
+explorer / Language support / Requirements / Installation / How an agent uses it / Project
+structure / License -- so a reader hit the RAG argument before the install command, and the
+installer itself sat ninth.
+
+New order, "can I run it" before "why is it built this way":
+
+1. Quick start
+2. Requirements
+3. Installation
+4. What it can tell you
+5. The two maps
+6. The explorer
+7. How an agent uses it
+8. Language support
+9. How it works
+10. Why not RAG?
+11. Project structure
+12. License
+
+Requirements now sits directly under Quick start, which repeats the grammar-install note the
+Quick start's blockquote makes -- deliberate, they answer the same question a minute apart.
+"Why not RAG?" drops to tenth: it is positioning, and a reader who got that far is already
+convinced.
+
+Checked for wording that assumed a position: every "above"/"below" in the file is section-internal
+(a table row, the explorer's panel description), so nothing needed rewriting. The one cross-section
+link, `#language-support` from How it works, is an anchor and now points backwards instead of
+forwards; still resolves. Line endings verified unchanged (LF, 392 lines, same as HEAD) and
+`python tools/check_docs.py` -> `check_docs: OK`.
