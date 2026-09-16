@@ -6118,3 +6118,63 @@ and `check_regressions` 80/80.
 This commit is therefore the previous session's work plus its data, with the rename absent. The
 Python fold -- making Python a `langs_extract` row and deleting `py_extract.py` -- is the next
 piece of work and is not in it.
+
+## [153] 2026-09-16 — Python becomes a producer (step 1 of the fold)
+
+**Prompt**
+> commit doc_text and sample data, revert the rename, do the Python fold
+
+**Response**
+Three things, in that order.
+
+**Committed `doc_text` (`3b7cfb1`)** -- the previous session's refactor plus the regenerated sample
+data, with the `py_tree` rename absent. Reverting the rename first mattered for more than tidiness:
+the sample data came out **byte-identical** afterwards, which is the proof after the fact that the
+rename never touched output, the thing an earlier botched stash had made look doubtful.
+
+**Corrected my own estimate before cutting.** I had told the user the fold was "a `SHAPES` row plus
+a receiver rule". Measuring the two paths showed four things that are not node-type spellings:
+structure references come from the **import list** and same-file definitions rather than stated
+types (Python fields carry none, so langs' `fields: {name: type}` slot is empty for it); receiver
+types are *built* from what `__init__` was handed rather than *read* from a declaration; module
+groups carry a docstring and imports where langs' carry `doc: ""` and refs; and class kind is a
+convention (`Protocol` / `ABC` / `@abstractmethod`) rather than a modifier token. So it is a port of
+the same shape as phase 2's JS/TS one, split into two steps -- make Python a producer, then move
+that producer into `langs_extract` -- with byte-identical graphs as the bar for each.
+
+**Step 1 done.** `py_extract.py` now exposes `find_py_files` / `extract_py_files` and emits the
+normalized dicts the builders consume. 595 lines moved out of the builders. The split that matters
+is the one every other language already had: the producer says what the *source* states about a
+receiver, as `{name, type}` -- `""` a bare call, `"self"` a `self.method()`, `"Cls"` a receiver the
+source types, `"?"` one it does not, with `recv` when that receiver is a bare name the graph may
+still know as a class -- and the new `build_flow._py_targets` says what the *graph* knows. Mapping
+the old `_resolve_calls` onto that vocabulary case by case is what kept `untyped` exact: a call
+through a receiver the source *did* type whose target simply is not in the graph is dropped but not
+untyped, because only the second earns `precision: name-matched`. `_attr_types`, `_local_types`,
+`_routes_of`, `_imported_names`, `_module_docstring` and the cross-file globals pass
+(`_imported_globals`, finding #27) all moved with it; `extract_py_files` parses every file before
+reading any, for the same reason `extract_js_files` does. Python also joined `_extracted_defs` and
+the `implements` walk, so it now shares those with JS/TS and the Java family instead of having
+`_py_defs` of its own. `build_flow` lost 537 lines, `build_wiki` 264, and both lost their
+`doc_text` and `source_dirs` imports, which my own change had orphaned.
+
+**Verification.** `git diff` on `data/` empty -- **every one of the 100 built files byte-identical**
+-- plus `check_docs` OK, `check_py_oracle` 0 disagreements, `check_graph` 32+32 OK, `check_langs`
+21/21 (python 8 nodes / 3 edges / 1 route), `check_regressions` 80/80.
+
+**One mistake worth recording.** The first attempt at the `analyze()` surgery anchored on the line
+`for rel, root_node in py_files:` and searched from the top of the file. That line occurs twice, and
+the first occurrence is inside `_py_defs`, which sits *above* `analyze` -- so the replacement ate 176
+lines including `_local_names`, `_extracted_defs` and `analyze`'s own header. Restored from HEAD and
+redone with every anchor scoped to start at `def analyze(`. A unique-looking anchor is not a unique
+anchor.
+
+**Not done, and why.** Step 2 -- moving the producer into `langs_extract` -- was measured before
+starting and put back to the user instead: the 389 lines that moved are Python-specific reading that
+shares nothing with the `SPEC`/`SHAPES` walker, and the consumers (`extract_py_entities` vs
+`extract_lang_entities`, `_analyze_py` vs `_analyze_lang`) stay separate either way, so folding
+would mean one larger file holding two contracts -- the same argument I had just used against
+folding JS/TS. `metrics.py` still imports `py_extract` for `walk` / `field` / `text` /
+`params_of` / `read_source`, which it uses for **all eighteen** languages, not for Python; that is a
+generic tree-accessor dependency wearing a Python name, and deleting `py_extract` would need those
+~30 lines somewhere in `core/` first.

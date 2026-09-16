@@ -41,7 +41,9 @@ import unicodedata
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from paths import SKILL_ROOT  # noqa: E402,F401  (also puts sibling script dirs on sys.path)
 
+import doc_text  # noqa: E402  (the one doc rule, shared with every producer)
 import grammars  # noqa: E402
+import taxonomy  # noqa: E402  (source_dirs: the one walk filter)
 
 LANG = "python"
 
@@ -393,3 +395,390 @@ def load_time_calls(module):
             out.append(n)
         stack.extend(c for c in reversed(n.children) if c.type not in _RUN_LATER)
     return out
+
+
+# ---------------------------------------------------------------------------
+# The producer: `find_py_files` / `extract_py_files`, the contract `js_ts_extract`
+# and `langs_extract` already keep. Everything below turns a parse tree into the
+# normalized dicts the builders consume, so a Python resolution rule lives in the
+# Python file rather than inside `build_flow` (the asymmetry phase 10 deleted).
+# ---------------------------------------------------------------------------
+
+HTTP_VERBS = {"get", "post", "put", "patch", "delete"}
+
+
+def find_py_files(root: str) -> list[str]:
+    """Every `.py` file under `root`, in a fixed order (constraint 2)."""
+    out: list[str] = []
+    for base, dirs, files in os.walk(root):
+        dirs[:] = taxonomy.source_dirs(base, dirs)
+        for fn in files:
+            if fn.endswith(".py"):
+                out.append(os.path.join(base, fn))
+    return sorted(out)
+
+
+def _base_nodes(cls):
+    """Base-class expressions of a class definition (`ast`'s `cls.bases`)."""
+    args = field(cls, "superclasses")
+    if args is None:
+        return []
+    return [c for c in args.named_children if c.type != "keyword_argument"]
+
+
+def _decorator_names(decorators: list) -> list[str]:
+    return [name_of(d.named_children[0]) if d.named_children else "" for d in decorators]
+
+
+def _module_docstring(root) -> str:
+    """The module's own docstring: its first statement, when that is a string."""
+    if not root.named_children:
+        return ""
+    first = root.named_children[0]
+    if first.type != "expression_statement" or not first.named_children:
+        return ""
+    literal = first.named_children[0]
+    if literal.type != "string":
+        return ""
+    return "".join(text(c) for c in literal.children if c.type == "string_content")
+
+
+def _imported_names(root) -> set[str]:
+    """Every name an `import` / `from ... import` binds in this module.
+
+    `ast` gave `Import` and `ImportFrom` with a tidy `names` list. tree-sitter gives
+    `import_statement` and `import_from_statement` whose children are the dotted names
+    and aliases themselves, so the alias-wins rule is applied here instead of being read
+    off an attribute.
+    """
+    names: set[str] = set()
+    for node in walk(root):
+        plain = node.type == "import_statement"
+        if not plain and node.type != "import_from_statement":
+            continue
+        for child in node.named_children:
+            if child.type == "dotted_name" and child == field(node, "module_name"):
+                continue                      # the module in `from X import y`
+            if child.type == "aliased_import":
+                alias = field(child, "alias")
+                if alias is not None:
+                    names.add(text(alias))
+            elif child.type == "dotted_name":
+                # `import a.b.c` binds `a`; `from m import a.b` cannot occur.
+                names.add(text(child).split(".")[0] if plain else text(child))
+            elif child.type == "identifier":
+                names.add(text(child))
+    return names
+
+
+def _routes_of(decorators: list) -> list[dict]:
+    """Every {method, path} a set of decorators declares.
+
+    A list, not a single route, because one handler routinely serves several: Flask
+    writes `@app.route("/orders", methods=["GET", "POST"])`, and stacking two decorators
+    on one function is normal in every framework here. Returning only the first match
+    silently dropped the rest, so a POST to a handler that also accepts GET never linked
+    to its frontend caller.
+    """
+    routes: list[dict] = []
+    for d in decorators:
+        call = d.named_children[0] if d.named_children else None
+        if call is None or call.type != "call":
+            continue
+        # @router.post(...) as well as a bare `@get(...)` imported from the framework.
+        fn = field(call, "function")
+        if fn is None:
+            continue
+        if fn.type == "attribute":
+            verb = text(field(fn, "attribute")).lower()
+        elif fn.type == "identifier":
+            verb = text(fn).lower()
+        else:
+            continue
+        args = call_args(call)
+        path = string_value(args[0]) if args else ""
+        # A route path starts with "/". Without this, `@patch("subprocess.run")` --
+        # unittest.mock, in a test -- was a PATCH route (found on a real repository).
+        if not path.startswith("/"):
+            continue
+        if verb in HTTP_VERBS:
+            routes.append({"method": verb.upper(), "path": path})
+        elif verb in ("route", "add_url_rule"):
+            methods = [m.upper() for m in sequence_strings(call_keywords(call).get("methods"))]
+            for method in (methods or ["GET"]):
+                routes.append({"method": method, "path": path})
+    seen: set[tuple[str, str]] = set()
+    out: list[dict] = []
+    for r in sorted(routes, key=lambda r: (r["path"], r["method"])):
+        if (r["method"], r["path"]) not in seen:
+            seen.add((r["method"], r["path"]))
+            out.append(r)
+    return out
+
+
+def _attr_types(cls) -> dict[str, str]:
+    """Map self.<attr> -> ClassName using __init__ annotations/assignments and
+    class-level annotated attributes. Python states no field types, so the type of a
+    receiver has to be built from what `__init__` was handed."""
+    types: dict[str, str] = {}
+    body = body_of(cls)
+    if body is None:
+        return types
+
+    # Class-level annotated attributes:  service: OrderService
+    for targets, _value, annotation in assignments(body):
+        if annotation is None:
+            continue
+        target = targets[0] if targets else None
+        if target is not None and target.type == "identifier":
+            t = annotation_type(annotation)
+            if t:
+                types[text(target)] = t
+
+    init = next((m for _decs, m in defs_in(body) if def_name(m) == "__init__"), None)
+    if init is None:
+        return types
+
+    param_types = param_annotations(init)
+
+    for targets, value, annotation in assignments(init):
+        for tgt in targets:
+            attr = self_attr_name(tgt)
+            if not attr:
+                continue
+            # self.attr: OrderService = ...
+            if annotation is not None:
+                t = annotation_type(annotation)
+                if t:
+                    types[attr] = t
+                continue
+            # self.attr = param  /  self.attr = SomeClass()
+            if value is None:
+                continue
+            if value.type == "identifier" and param_types.get(text(value)):
+                types[attr] = param_types[text(value)]
+            elif value.type == "call":
+                ctor = name_of(field(value, "function"))
+                if ctor and ctor[:1].isupper():
+                    types[attr] = ctor
+    return types
+
+
+def _local_types(fn, seed: dict[str, str], decl=None, module: dict[str, str] | None = None) -> dict[str, str]:
+    """Local variable -> ClassName from param annotations and `x = SomeClass()`.
+
+    `fn` is the node to walk and `decl` the definition whose parameters to read. They
+    differ for a decorated function: `ast` folded decorators into the node it walked, so
+    the walk has to start at the wrapper to count the same call sites, while the
+    parameters only exist on the definition inside it. `module` is the file's typed
+    globals; a parameter or assignment of the same name hides one.
+    """
+    types = dict(seed)
+    if module:
+        params = params_of(decl if decl is not None else fn)
+        hidden = {text(n) for n in walk(params) if n.type == "identifier"} if params is not None else set()
+        hidden |= {text(t) for targets, _value, _ann in assignments(fn)
+                   for t in targets if t.type == "identifier"}
+        types = {**{k: v for k, v in module.items() if k not in hidden}, **types}
+    types.update({k: v for k, v in param_annotations(decl if decl is not None else fn).items() if v})
+    for targets, value, _annotation in assignments(fn):
+        if value is None or value.type != "call":
+            continue
+        ctor = name_of(field(value, "function"))
+        if ctor and ctor[:1].isupper():
+            for tgt in targets:
+                if tgt.type == "identifier":
+                    types[text(tgt)] = ctor
+    return types
+
+
+def _calls(fn, attr_types: dict[str, str], local_types: dict[str, str]) -> list[dict]:
+    """Every call site in `fn`, each as {name, type} and sometimes `recv`.
+
+    `type` is what the *source* states about the receiver, in the vocabulary the other
+    two producers use:
+
+      ""        a bare call -- `helper()` -- which only a module function can answer
+      "self"    `self.method()`, which only the enclosing class can answer
+      "Cls"     a receiver whose class the source states (a typed attribute, parameter,
+                local, or module global)
+      "?"       a receiver whose type is not stated; with `recv` when that receiver is a
+                bare name, because the graph may still know it as a class name and the
+                producer cannot see the graph
+
+    Deciding the type here and the target in `build_flow` is the split every other
+    language already has: tree-sitter gives declarations, never resolution.
+    """
+    out: list[dict] = []
+    for node in calls_in(fn):
+        func = field(node, "function")
+        if func is None:
+            continue
+        if func.type == "attribute":
+            method = text(field(func, "attribute"))
+            base = field(func, "object")
+            base_name = text(base) if base is not None and base.type == "identifier" else ""
+            if is_self_attr(base):                                  # self.attr.method()
+                cls = attr_types.get(self_attr_name(base))
+                out.append({"name": method, "type": cls} if cls else {"name": method, "type": "?"})
+            elif base_name == "self":                               # self.method()
+                out.append({"name": method, "type": "self"})
+            elif base_name in local_types:                          # typed param/local/global
+                out.append({"name": method, "type": local_types[base_name]})
+            elif base_name:                                         # maybe `ClassName.method()`
+                out.append({"name": method, "type": "?", "recv": base_name})
+            else:
+                out.append({"name": method, "type": "?"})
+        elif func.type == "identifier":
+            out.append({"name": text(func), "type": ""})
+    return out
+
+
+def _bare_calls(node) -> list[str]:
+    """Bare names this subtree calls -- `helper()`, `Page()`. A method call states its
+    receiver, which is the flow map's question, not the structure map's. Read from the
+    definition itself, never the decorated wrapper: a decorator is not a reference the
+    body makes."""
+    return sorted({text(f) for n in calls_in(node) for f in [field(n, "function")]
+                   if f is not None and f.type == "identifier"})
+
+
+def _member(node, decorators, attr_types: dict[str, str], module: dict[str, str]) -> dict:
+    """One `def` as the builders want it: its range opens at the first decorator
+    (finding #6), while its `code` is the text from `def` onward -- `ast` walked
+    decorators as part of the function but reported the segment from `def`, and both
+    counts have to stay what they were."""
+    outer = node.parent if decorators else node
+    decos = _decorator_names(decorators)
+    return {
+        "name": def_name(node),
+        "line": line(outer), "endLine": end_line(node),
+        "doc": doc_text.join(docstring_of(node)),
+        "signature": signature(node),
+        "decorators": decos,
+        "routes": _routes_of(decorators),
+        "abstract": any(d.split(".")[-1] == "abstractmethod" for d in decos),
+        "code": text(node),
+        "bare_calls": _bare_calls(node),
+        "calls": _calls(outer, attr_types, _local_types(outer, attr_types, decl=node, module=module)),
+    }
+
+
+def _class(node, decorators, module: dict[str, str]) -> dict:
+    bases = [name_of(b) for b in _base_nodes(node)]
+    attr_types = _attr_types(node)
+    methods = [_member(m, m_decos, attr_types, module)
+               for m_decos, m in defs_in(body_of(node))]
+    base_names = {b.split(".")[-1] for b in bases}
+    # Python states it by convention: a `Protocol` is an interface, an `ABC` or a class
+    # with an `@abstractmethod` is abstract.
+    kind = ("interface" if "Protocol" in base_names
+            else "abstract" if any(m["abstract"] for m in methods) or "ABC" in base_names
+            else "class")
+    outer = node.parent if decorators else node
+    return {
+        "name": def_name(node), "kind": kind,
+        "line": line(outer), "endLine": end_line(node),
+        "doc": doc_text.join(docstring_of(node)),
+        "bases": bases,
+        "decorators": _decorator_names(decorators),
+        "bare_calls": _bare_calls(node),
+        "methods": methods,
+    }
+
+
+def _own_globals(root) -> dict[str, str]:
+    """This file's top-level `store = Store()` / `store: Store = ...` (finding #27)."""
+    types: dict[str, str] = {}
+    for stmt in root.named_children:
+        if stmt.type != "expression_statement":
+            continue
+        for targets, value, annotation in assignments(stmt):
+            cls = annotation_type(annotation) if annotation is not None else ""
+            if not cls and value is not None and value.type == "call":
+                ctor = name_of(field(value, "function"))
+                cls = ctor if ctor[:1].isupper() else ""
+            for tgt in targets:
+                if cls and tgt.type == "identifier":
+                    types[text(tgt)] = cls
+    return types
+
+
+def _imported_globals(root, own: dict[str, dict[str, str]]) -> dict[str, str]:
+    """Each unaliased `from m import store` whose module is exactly one parsed file
+    typing `store`. The file's own assignment wins, so the caller merges this first."""
+    modules = {k[:-3].replace(os.sep, "/").replace("/", "."): k
+               for k in own if k.endswith(".py")}
+    imported: dict[str, str] = {}
+    for node in walk(root):
+        if node.type != "import_from_statement":
+            continue
+        mod = field(node, "module_name")
+        name = text(mod).lstrip(".") if mod is not None else ""
+        hits = [r for m, r in modules.items() if name and (m == name or m.endswith("." + name))]
+        if len(hits) != 1:
+            continue
+        for child in node.named_children:
+            if child.type == "dotted_name" and child != mod and text(child) in own[hits[0]]:
+                imported[text(child)] = own[hits[0]][text(child)]
+    return imported
+
+
+def _module_calls(root) -> list[str]:
+    """The bare names a module calls as it is imported -- what marks a callee
+    `entry: module`, since top-level code has no node to draw a link from."""
+    out: list[str] = []
+    for call in load_time_calls(root):
+        fn = field(call, "function")
+        if fn is not None and fn.type == "identifier":
+            out.append(text(fn))
+    return out
+
+
+def _parse_file(path: str):
+    """(source bytes, root node) for one file, or None -- warning once per run."""
+    try:
+        raw = read_source(path)
+    except OSError as exc:
+        print(f"  ! skipped {path}: {exc}", file=sys.stderr)
+        return None
+    tree = parse(raw)
+    if tree is None:
+        warn_missing()
+        return None
+    return tree.root_node
+
+
+def extract_py_files(paths: list[str]) -> list[dict]:
+    """The normalized per-file structure for `paths` ([] when nothing parses).
+
+    Every file is parsed before any is read, because a call through a global resolves
+    across files: `from store import widgets` types `widgets` from the module that
+    assigns it (finding #27). That is the same reason `extract_js_files` parses first.
+    """
+    parsed = [(p, root) for p in paths for root in [_parse_file(p)] if root is not None]
+    own = {p: _own_globals(root) for p, root in parsed}
+    results = []
+    for path, root in parsed:
+        module = {**_imported_globals(root, own), **own[path]}
+        classes, functions = [], []
+        for decorators, node in defs_in(root, ("class_definition", "function_definition")):
+            if node.type == "class_definition":
+                classes.append(_class(node, decorators, module))
+            else:
+                functions.append(_member(node, decorators, {}, module))
+        results.append({
+            "file": path, "lang": "py",
+            "doc": doc_text.join(_module_docstring(root)),
+            "imports": sorted(_imported_names(root)),
+            "classes": classes, "functions": functions,
+            "module_calls": _module_calls(root),
+        })
+    return results
+
+
+if __name__ == "__main__":
+    import json
+    args = sys.argv[1:]
+    targets = find_py_files(os.path.abspath(args[0] if args else "."))
+    print(json.dumps(extract_py_files(targets), indent=2, sort_keys=True))

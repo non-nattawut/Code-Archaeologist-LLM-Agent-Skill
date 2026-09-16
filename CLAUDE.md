@@ -114,7 +114,7 @@ base that does (`ancestor_defining`, r58), and a local's type is read from its d
 **What the source settles, the resolver follows** (findings #27 and #28, and Spring injection):
 
 - A call through a **global** resolves: a Python module-level `store = Store()`, or one imported
-  with an unaliased `from m import store` (`build_flow._py_module_types`); a Kotlin top-level
+  with an unaliased `from m import store` (`py_extract._imported_globals`); a Kotlin top-level
   `val`; a Go package `var`; and `Registry.STORE.save()` through the static field's declared type
   (`via.fields`). A parameter or local of the same name hides the global. Python's
   `ClassName.method()` resolves as every other language's does (r52).
@@ -282,7 +282,20 @@ delete. Nothing else in `core/` may import a skill module.
   comment above a `def` is not documentation in that language, so only a docstring counts, and it
   goes through `join()`. Pure string work -- it imports nothing -- so it sits in `core/` below every
   producer.
-- `py_extract.py` is the Python reader: the `ast` helpers of `build_flow.py`, `build_wiki.py` and
+- `py_extract.py` is the Python producer, and since phase 10 it really is one: `find_py_files`
+  / `extract_py_files`, the contract the other two already kept. It was a *helper library* until
+  then -- ~25 tree helpers, with the Python extraction itself spread over 120 `px.*` call sites in
+  the builders -- because phase 2's port swapped `ast` calls for tree-sitter calls **in place**, to
+  keep the diff that proved it. Fixing a Python resolution rule meant editing the graph builder.
+  595 lines moved here, and the graphs came out byte-identical. A call site is emitted as
+  `{name, type}` where `type` is what the source states -- `""` a bare call, `"self"` a
+  `self.method()`, `"Cls"` a receiver the source types, `"?"` one it does not (with `recv` when
+  that receiver is a bare name the graph may know as a class) -- and `build_flow._py_targets`
+  decides the target, the same split every other language has. Python states no field types, so
+  `_attr_types` builds `self.<attr> -> Class` out of what `__init__` was handed, and
+  `extract_py_files` parses every file before reading any, because a call through a global
+  resolves across files (`_imported_globals`, finding #27). The `ast` helpers it still exposes
+  are the `ast` helpers of `build_flow.py`, `build_wiki.py` and
   `metrics.py` translated node-for-node, plus `read_source()`, which normalises newlines because
   `ast` was handed universal-newline text and tree-sitter is handed raw bytes -- without it a CRLF
   checkout hashes every node differently and silently misses the description cache. `ast` is **not**

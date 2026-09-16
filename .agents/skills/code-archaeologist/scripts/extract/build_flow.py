@@ -43,10 +43,8 @@ DESCRIPTIONS_PATH = os.path.join(CACHE_DIR, "descriptions.json")
 # Transient list of nodes that still need an AI summary (agent fills these in).
 PENDING_PATH = os.path.join(CACHE_DIR, "pending_descriptions.json")
 
-
 def _hash(code: str) -> str:
     return hashlib.sha1((code or "").encode("utf-8")).hexdigest()[:12]
-
 
 def _load_json(path: str, default):
     try:
@@ -55,7 +53,6 @@ def _load_json(path: str, default):
     except (FileNotFoundError, ValueError):
         return default
 
-
 def _save_json(path: str, obj) -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
@@ -63,119 +60,11 @@ def _save_json(path: str, obj) -> None:
         fh.write("\n")
 
 from taxonomy import INHERITANCE_LINKS, infer_layer, is_test_path, precision_of, ROUTE_DECORATOR_RE  # noqa: E402
-import doc_text  # noqa: E402  (the one doc rule, shared with every producer)
-import py_extract as px  # noqa: E402  (Python, via tree-sitter)
+from py_extract import find_py_files, extract_py_files  # noqa: E402  (Python, via tree-sitter)
 from ids import SharedNames as FlowIds, bare  # noqa: E402  (one id rule for both maps)
 from js_ts_extract import find_js_files, extract_js_files, frontend_degraded   # noqa: E402
 from langs_extract import class_locator, find_lang_files, extract_lang_files  # noqa: E402  (14 languages, via tree-sitter)
 import route_tables  # noqa: E402  (Django / Rails / Laravel / Phoenix route tables)
-
-from taxonomy import source_dirs  # noqa: E402  (one definition of "not source")
-
-
-def iter_py_files(src: str):
-    for root, dirs, files in os.walk(src):
-        dirs[:] = source_dirs(root, dirs)
-        for fn in files:
-            if fn.endswith(".py"):
-                yield os.path.join(root, fn)
-
-
-def _base_nodes(cls):
-    """Base-class expressions of a class definition (`ast`'s `cls.bases`)."""
-    args = px.field(cls, "superclasses")
-    if args is None:
-        return []
-    return [c for c in args.named_children if c.type != "keyword_argument"]
-
-
-def _self_attr_types(cls) -> dict[str, str]:
-    """Map self.<attr> -> ClassName using __init__ annotations/assignments and
-    class-level annotated attributes."""
-    types: dict[str, str] = {}
-    body = px.body_of(cls)
-    if body is None:
-        return types
-
-    # Class-level annotated attributes:  service: OrderService
-    for targets, _value, annotation in px.assignments(body):
-        if annotation is None:
-            continue
-        target = targets[0] if targets else None
-        if target is not None and target.type == "identifier":
-            t = px.annotation_type(annotation)
-            if t:
-                types[px.text(target)] = t
-
-    init = next((m for _decs, m in px.defs_in(body) if px.def_name(m) == "__init__"), None)
-    if init is None:
-        return types
-
-    param_types = px.param_annotations(init)
-
-    for targets, value, annotation in px.assignments(init):
-        for tgt in targets:
-            attr = px.self_attr_name(tgt)
-            if not attr:
-                continue
-            # self.attr: OrderService = ...
-            if annotation is not None:
-                t = px.annotation_type(annotation)
-                if t:
-                    types[attr] = t
-                continue
-            # self.attr = param  /  self.attr = SomeClass()
-            if value is None:
-                continue
-            if value.type == "identifier" and param_types.get(px.text(value)):
-                types[attr] = param_types[px.text(value)]
-            elif value.type == "call":
-                ctor = px.name_of(px.field(value, "function"))
-                if ctor and ctor[:1].isupper():
-                    types[attr] = ctor
-    return types
-
-
-HTTP_VERBS = {"get", "post", "put", "patch", "delete"}
-
-
-def _route_of(decorators: list) -> list[dict]:
-    """Every {method, path} a set of decorators declares.
-
-    A list, not a single route, because one handler routinely serves several: Flask
-    writes `@app.route("/orders", methods=["GET", "POST"])`, and stacking two
-    decorators on one function is normal in every framework here. Returning only
-    the first match silently dropped the rest, so a POST to a handler that also
-    accepts GET never linked to its frontend caller.
-    """
-    routes: list[dict] = []
-    for d in decorators:
-        call = d.named_children[0] if d.named_children else None
-        if call is None or call.type != "call":
-            continue
-        # @router.post(...) as well as a bare `@get(...)` imported from the framework.
-        func = px.field(call, "function")
-        if func is None:
-            continue
-        if func.type == "attribute":
-            verb = px.text(px.field(func, "attribute")).lower()
-        elif func.type == "identifier":
-            verb = px.text(func).lower()
-        else:
-            continue
-        args = px.call_args(call)
-        path = px.string_value(args[0]) if args else ""
-        # A route path starts with "/". Without this, `@patch("subprocess.run")` --
-        # unittest.mock, in a test -- was a PATCH route (found on a real repository).
-        if not path.startswith("/"):
-            continue
-        if verb in HTTP_VERBS:
-            routes.append({"method": verb.upper(), "path": path})
-        elif verb in ("route", "add_url_rule"):
-            methods = [m.upper() for m in px.sequence_strings(px.call_keywords(call).get("methods"))]
-            for method in (methods or ["GET"]):
-                routes.append({"method": method, "path": path})
-    return _dedupe_routes(routes)
 
 
 def _dedupe_routes(routes: list[dict]) -> list[dict]:
@@ -188,7 +77,6 @@ def _dedupe_routes(routes: list[dict]) -> list[dict]:
             seen.add(key)
             out.append(r)
     return out
-
 
 def _norm_path(path: str) -> str:
     """Normalize a URL/route path so every framework's param syntax compares equal.
@@ -207,7 +95,6 @@ def _norm_path(path: str) -> str:
         else:
             segs.append(seg)
     return "/" + "/".join(segs)
-
 
 def _api_edges(methods: dict) -> set[tuple[str, str]]:
     """Link frontend HTTP calls to backend route handlers (method + path match).
@@ -240,7 +127,6 @@ def _api_edges(methods: dict) -> set[tuple[str, str]]:
                 edges.add((nid, owners[0]))
     return edges
 
-
 def _owners(routes: dict, method: str, path: str) -> list[str]:
     """Handlers registered for `path`, counting the ones registered for every verb.
 
@@ -250,7 +136,6 @@ def _owners(routes: dict, method: str, path: str) -> list[str]:
     not a near miss.
     """
     return (routes.get((method, path)) or []) + (routes.get(("ANY", path)) or [])
-
 
 def _suffix_match(routes: dict, method: str, url: str) -> list[str] | None:
     """Routes whose path is a trailing run of *whole segments* of `url`, same verb.
@@ -264,7 +149,6 @@ def _suffix_match(routes: dict, method: str, url: str) -> list[str] | None:
     for suffix in candidates:
         hits.extend(_owners(routes, method, suffix))
     return sorted(set(hits)) or None
-
 
 def _within_route(routes: dict, method: str, url: str) -> list[str] | None:
     """Routes whose path *ends with* `url` in whole segments, same verb.
@@ -282,18 +166,11 @@ def _within_route(routes: dict, method: str, url: str) -> list[str] | None:
             and path != tail and path.endswith(tail) for nid in owners]
     return sorted(set(hits)) or None
 
-
 def _rel_source(path: str, root: str) -> str:
     """Path relative to its root, prefixed with the root's name so monorepo
     areas (backend/… vs frontend/…) are distinguishable in the graph."""
     rel = os.path.relpath(path, root).replace("\\", "/")
     return f"{os.path.basename(os.path.normpath(root))}/{rel}"
-
-
-def _iter_sources(roots: list[str]):
-    for root in roots:
-        for path in iter_py_files(root):
-            yield path, root
 
 
 # Flow ids: bare where a name is defined in one file, file-qualified where it is not.
@@ -312,10 +189,8 @@ def _iter_sources(roots: list[str]):
 _COLLISIONS: list[tuple[str, str, str]] = []
 _COLLIDED: set[str] = set()
 
-
 def _file_of(node: dict) -> str:
     return (node.get("source") or "").rpartition(":")[0]
-
 
 def _claim(methods: dict, nid: str, node: dict) -> None:
     """`methods[nid] = node`, noting when `nid` already names another file's code.
@@ -329,39 +204,11 @@ def _claim(methods: dict, nid: str, node: dict) -> None:
         _COLLISIONS.append((nid, _file_of(prev), _file_of(node)))
     methods[nid] = node
 
-
 def _report_collisions(limit: int = 8) -> None:
     """The guard's voice: a final id still shared across files is an extractor bug."""
     for nid, first, second in _COLLISIONS[:limit]:
         print(f"  ! id collision after qualification (a bug): {nid} is defined in {first}"
               f" and in {second}", file=sys.stderr)
-
-
-def _py_files(roots: list[str]) -> list[tuple[str, object]]:
-    """Every Python file parsed once: (rel, root node). Shared by pre-scan and build."""
-    out = []
-    for path, root in _iter_sources(roots):
-        try:
-            raw = px.read_source(path)
-        except OSError as exc:
-            print(f"  ! skipped {path}: {exc}", file=sys.stderr)
-            continue
-        tree = px.parse(raw)
-        if tree is None:
-            px.warn_missing()
-            continue
-        out.append((_rel_source(path, root), tree.root_node))
-    return out
-
-
-def _py_defs(py_files):
-    for rel, root_node in py_files:
-        for _decos, cls in px.defs_in(root_node, ("class_definition",)):
-            for _m_decos, m in px.defs_in(px.body_of(cls)):
-                yield f"{px.def_name(cls)}.{px.def_name(m)}", rel
-        for _decos, fn in px.defs_in(root_node):
-            yield px.def_name(fn), rel
-
 
 def _local_names(members: list[dict]) -> list[str]:
     """Each member's name within its scope: bare, or `name(T1,T2)` when the scope overloads it.
@@ -376,7 +223,6 @@ def _local_names(members: list[dict]) -> list[str]:
         counts[m["name"]] = counts.get(m["name"], 0) + 1
     return [f'{m["name"]}({m["sig"]})' if counts[m["name"]] > 1 and "sig" in m else m["name"]
             for m in members]
-
 
 def _pick_overload(cands: list, args: list[str], rel: str) -> str | None:
     """The one overload a call with these argument kinds can mean, or None.
@@ -406,7 +252,6 @@ def _pick_overload(cands: list, args: list[str], rel: str) -> str | None:
             return fits.pop() if len(fits) == 1 else None
     return None
 
-
 def _extracted_defs(files):
     """Provisional ids from JS/TS or Java/Go/C# extraction results: (rel, res) pairs."""
     for rel, res in files:
@@ -423,7 +268,6 @@ def _extracted_defs(files):
             if not r.get("handler"):                     # an inline handler is its own node
                 yield f'{r["method"]} {r["path"]}', rel
 
-
 def analyze(roots: list[str]):
     """Two-pass analysis across one or more source roots (Python + JS/TS)."""
     _COLLISIONS.clear()
@@ -437,101 +281,21 @@ def analyze(roots: list[str]):
     abstract_py: set[str] = set()      # Python `@abstractmethod`s: a body that is a declaration
 
     # Read every source once, then decide every id before building any node.
-    py_files = _py_files(roots)
+    py_files = [(_rel_source(res["file"], root), res)
+                for root in roots for res in extract_py_files(find_py_files(root))]
     js_files = [(_rel_source(res["file"], root), res)
                 for root in roots for res in extract_js_files(find_js_files(root))]
     lang_files = [(_rel_source(res["file"], root), res)
                   for root in roots for res in extract_lang_files(find_lang_files(root))]
-    ids = FlowIds(itertools.chain(_py_defs(py_files), _extracted_defs(js_files),
+    ids = FlowIds(itertools.chain(_extracted_defs(py_files), _extracted_defs(js_files),
                                   _extracted_defs(lang_files)))
-    py_globals = _py_module_types(py_files)
 
-    for rel, root_node in py_files:
-        for cls_decos_nodes, cls in px.defs_in(root_node, ("class_definition",)):
-            cls_name = px.def_name(cls)
-            cls_decos = [px.name_of(d.named_children[0]) if d.named_children else ""
-                         for d in cls_decos_nodes]
-            cls_bases = [px.name_of(b) for b in _base_nodes(cls)]
-            classes.append(("py", cls_name, rel, cls_bases))
-            layer = infer_layer(cls_name, cls_decos, cls_bases, rel)
-            attr_types = _self_attr_types(cls)
-            class_methods.setdefault(cls_name, set())
-
-            for m_decos, m in px.defs_in(px.body_of(cls)):
-                m_name = px.def_name(m)
-                node_id = ids.id(f"{cls_name}.{m_name}", rel)
-                class_methods[cls_name].add(m_name)
-                decos = [px.name_of(d.named_children[0]) if d.named_children else ""
-                         for d in m_decos]
-                if any(d.split(".")[-1] == "abstractmethod" for d in decos):
-                    abstract_py.add(node_id)
-                routes = _route_of(m_decos)
-                is_endpoint = bool(routes) or layer == "controller" or any(ROUTE_DECORATOR_RE.search(d) for d in decos)
-                doc = doc_text.join(px.docstring_of(m))
-                code = px.text(m)
-                # `ast` walked decorators as part of the function but reported the
-                # source segment from `def` onward. Both are kept: `outer` for the
-                # walk, `m` for the text, so `ext` counts and hashes both match.
-                outer = m.parent if m_decos else m
-                _claim(methods, node_id, {
-                    "id": node_id, "name": m_name, "cls": cls_name, "layer": layer,
-                    "kind": "endpoint" if is_endpoint else "method",
-                    "signature": px.signature(m),
-                    "doc": doc,
-                    # A range opens at the first decorator (finding #6): what a node owns
-                    # includes the decorators that route it, guard it or cache it.
-                    "source": f"{rel}:{px.line(outer)}", "end": px.end_line(m),
-                    "calls": [], "callers": [],
-                    "hash": _hash(code), "code": code, "routes": routes,
-                })
-                local_types = _local_types(outer, attr_types, decl=m, module=py_globals[rel])
-                pending.append((node_id, cls_name, {"attr_types": attr_types, "local_types": local_types,
-                                                    "rel": rel}, outer))
-
-        for fn_decos, fn in px.defs_in(root_node):
-            fn_name = px.def_name(fn)
-            node_id = ids.id(fn_name, rel)
-            func_nodes[fn_name] = fn_name
-            doc = doc_text.join(px.docstring_of(fn))
-            code = px.text(fn)
-            # Flask's normal shape is @app.route on a module-level def, not on a
-            # class method -- so a whole framework was invisible until this loop
-            # asked the same question the class loop already asked.
-            routes = _route_of(fn_decos)
-            outer = fn.parent if fn_decos else fn
-            _claim(methods, node_id, {
-                "id": node_id, "name": fn_name, "cls": None,
-                "layer": "controller" if routes else "function",
-                "kind": "endpoint" if routes else "function", "signature": px.signature(fn),
-                "doc": doc,
-                "source": f"{rel}:{px.line(outer)}", "end": px.end_line(fn),
-                "calls": [], "callers": [],
-                "hash": _hash(code), "code": code, "routes": routes,
-            })
-            local_types = _local_types(outer, {}, decl=fn, module=py_globals[rel])
-            pending.append((node_id, None, {"attr_types": {}, "local_types": local_types,
-                                            "rel": rel}, outer))
-
-    # --- Pass 2: resolve Python call edges ---  (edges carry a type)
+    py_methods, py_edges, abstract_py = _analyze_py(py_files, ids)
+    for nid, node in py_methods.items():
+        _claim(methods, nid, node)
     edges: set[tuple[str, str, str]] = set()
-    for caller_id, cls_ctx, ctx, fn in pending:
-        targets, dropped, untyped = _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes, ids)
-        _record_dropped(methods[caller_id], dropped, untyped)
-        for target in targets:
-            if target != caller_id:
-                edges.add((caller_id, target, "calls"))
-
-    # A module's top-level code runs when it is imported -- `app = create_app()`, the
-    # `if __name__ == "__main__": raise SystemExit(main())` guard -- and has no node to
-    # draw an edge from, so what it calls looked dead. Named instead, as in JS/TS.
-    for rel, root_node in py_files:
-        for call in px.load_time_calls(root_node):
-            func = px.field(call, "function")
-            if func is None or func.type != "identifier" or px.text(func) not in func_nodes:
-                continue
-            target = ids.target(func_nodes[px.text(func)], rel)   # a shared `main`: this file's
-            if target in methods and not methods[target].get("entry"):
-                methods[target]["entry"] = "module"
+    for s, t in py_edges:
+        edges.add((s, t, "calls"))
 
     # --- Frontend (JS/TS): merge nodes + call edges into the same graph ---
     js_methods, js_edges, js_renders, js_passes = _analyze_js(js_files, ids)
@@ -556,7 +320,7 @@ def analyze(roots: list[str]):
             edges.add((s, t, "calls"))
 
     # --- Implementations: a method joined to the one its class's base defines ---
-    for producer, files in (("js", js_files), ("lang", lang_files)):
+    for producer, files in (("py", py_files), ("js", js_files), ("lang", lang_files)):
         for rel, res in files:
             classes.extend((producer, c["name"], rel, c.get("bases") or []) for c in res.get("classes", []))
     locate = class_locator(lang_files)
@@ -603,13 +367,11 @@ def analyze(roots: list[str]):
 
     return methods, sorted(edges)
 
-
 def _base_name(text: str) -> str:
     """`com.shop.PricingRule<T>`, `abc.ABC`, `Generic[T]` -> the bare class name."""
     for bracket in "<[(":
         text = text.split(bracket)[0]
     return text.split(".")[-1].split("::")[-1].strip()
-
 
 def _base_resolver(classes: list, locate=None):
     """(resolve, bases_of) for a list of (producer, class, file, bases).
@@ -635,7 +397,6 @@ def _base_resolver(classes: list, locate=None):
             pick = found if found in rels else None
         return (name, pick) if pick else None
     return resolve, bases_of
-
 
 def _implements_links(methods: dict, classes: list, locate=None) -> set[tuple[str, str]]:
     """(implementation, declaration) for every method a base of its class also defines.
@@ -673,7 +434,6 @@ def _implements_links(methods: dict, classes: list, locate=None) -> set[tuple[st
                         queue.append(ancestor)
     return links
 
-
 def _overridden_everywhere(methods: dict, classes: list, locate=None) -> set[str]:
     """Methods with a body that every subclass in the graph replaces.
 
@@ -706,7 +466,6 @@ def _overridden_everywhere(methods: dict, classes: list, locate=None) -> set[str
             out.add(nid)
     return out
 
-
 def _pair_overloads(impls: list[str], declared: list[str]) -> set[tuple[str, str]]:
     """One of each: that pair. Several: only the ids whose parameter types agree."""
     if len(impls) == 1 and len(declared) == 1:
@@ -714,7 +473,6 @@ def _pair_overloads(impls: list[str], declared: list[str]) -> set[tuple[str, str
     params = {nid[nid.index("("):]: nid for nid in declared if "(" in nid}
     return {(nid, params[nid[nid.index("("):]]) for nid in impls
             if "(" in nid and nid[nid.index("("):] in params}
-
 
 def _js_node(nid: str, name: str, cls, layer: str, kind: str, data: dict, rel: str) -> dict:
     doc = (data.get("doc") or "").strip()
@@ -738,7 +496,6 @@ def _js_node(nid: str, name: str, cls, layer: str, kind: str, data: dict, rel: s
         "routes": _dedupe_routes(data.get("routes") or []),
         **({"entry": data["entry"]} if data.get("entry") else {}),   # next:page, next:route
     }
-
 
 def _attach_routes(routes: list[dict], methods: dict, raw_calls: list, make_node,
                    rel: str, ids: "FlowIds") -> None:
@@ -764,7 +521,6 @@ def _attach_routes(routes: list[dict], methods: dict, raw_calls: list, make_node
             node["signature"] = label  # the route is the signature; `nid()` reads as nonsense
             _claim(methods, nid, node)
             raw_calls.append((nid, r.get("calls", []), rel))
-
 
 def _attach_table_routes(table_routes: list[dict], methods: dict) -> None:
     """Each route-table route -> the one node its handler reference names, or nothing.
@@ -805,6 +561,139 @@ def _attach_table_routes(table_routes: list[dict], methods: dict) -> None:
         print(f"  ! {len(dropped)} route-table route(s) name no single handler in the graph, so they"
               f" are not attached: {shown}.", file=sys.stderr)
 
+def _analyze_py(py_files, ids: "FlowIds"):
+    """Python nodes and call links, from `py_extract`'s dicts.
+
+    The same two passes every producer gets: build every node first, because a call
+    can only be resolved once the graph knows which classes and module functions
+    exist, then walk the `{name, type}` call list each node carries. What the source
+    states about a receiver was decided in `py_extract._calls`; what the *graph* knows
+    is decided here, and the two were one function inside this file until phase 10.
+
+    Returns (nodes, call links, the ids of `@abstractmethod`s -- a body that is really
+    a declaration, which decides `implements` against `overrides`).
+    """
+    methods: dict[str, dict] = {}
+    class_methods: dict[str, set[str]] = {}
+    func_nodes: dict[str, str] = {}
+    pending: list[tuple[str, str | None, str, list[dict]]] = []
+    abstract: set[str] = set()
+
+    for rel, res in py_files:
+        for cls in res["classes"]:
+            cls_name = cls["name"]
+            layer = infer_layer(cls_name, cls["decorators"], cls["bases"], rel)
+            class_methods.setdefault(cls_name, set())
+            for m in cls["methods"]:
+                node_id = ids.id(f'{cls_name}.{m["name"]}', rel)
+                class_methods[cls_name].add(m["name"])
+                if m["abstract"]:
+                    abstract.add(node_id)
+                is_endpoint = bool(m["routes"]) or layer == "controller" \
+                    or any(ROUTE_DECORATOR_RE.search(d) for d in m["decorators"])
+                _claim(methods, node_id, {
+                    "id": node_id, "name": m["name"], "cls": cls_name, "layer": layer,
+                    "kind": "endpoint" if is_endpoint else "method",
+                    "signature": m["signature"],
+                    "doc": m["doc"],
+                    # A range opens at the first decorator (finding #6): what a node owns
+                    # includes the decorators that route it, guard it or cache it.
+                    "source": f'{rel}:{m["line"]}', "end": m["endLine"],
+                    "calls": [], "callers": [],
+                    "hash": _hash(m["code"]), "code": m["code"], "routes": m["routes"],
+                })
+                pending.append((node_id, cls_name, rel, m["calls"]))
+
+        for fn in res["functions"]:
+            fn_name = fn["name"]
+            node_id = ids.id(fn_name, rel)
+            func_nodes[fn_name] = fn_name
+            # Flask's normal shape is @app.route on a module-level def, not on a class
+            # method -- so a whole framework was invisible until this loop asked the same
+            # question the class loop already asked.
+            routes = fn["routes"]
+            _claim(methods, node_id, {
+                "id": node_id, "name": fn_name, "cls": None,
+                "layer": "controller" if routes else "function",
+                "kind": "endpoint" if routes else "function", "signature": fn["signature"],
+                "doc": fn["doc"],
+                "source": f'{rel}:{fn["line"]}', "end": fn["endLine"],
+                "calls": [], "callers": [],
+                "hash": _hash(fn["code"]), "code": fn["code"], "routes": routes,
+            })
+            pending.append((node_id, None, rel, fn["calls"]))
+
+    # --- Pass 2: what the graph knows ---
+    edges: set[tuple[str, str]] = set()
+    for caller_id, cls_ctx, rel, calls in pending:
+        targets, dropped, untyped = _py_targets(calls, cls_ctx, rel, class_methods, func_nodes, ids)
+        _record_dropped(methods[caller_id], dropped, untyped)
+        for target in targets:
+            if target != caller_id:
+                edges.add((caller_id, target))
+
+    # A module's top-level code runs when it is imported -- `app = create_app()`, the
+    # `if __name__ == "__main__": raise SystemExit(main())` guard -- and has no node to
+    # draw a link from, so what it calls looked dead. Named instead, as in JS/TS.
+    for rel, res in py_files:
+        for called in res["module_calls"]:
+            if called not in func_nodes:
+                continue
+            target = ids.target(func_nodes[called], rel)    # a shared `main`: this file's
+            if target in methods and not methods[target].get("entry"):
+                methods[target]["entry"] = "module"
+    return methods, edges, abstract
+
+def _py_targets(calls: list[dict], cls_ctx: str | None, rel: str,
+                class_methods: dict[str, set[str]], func_nodes: dict[str, str],
+                ids: "FlowIds") -> tuple[set[str], list[str], list[str]]:
+    """(in-graph call targets, the names that did not resolve, and of those the ones
+    made through a receiver whose type the source never stated).
+
+    `type` is what `py_extract._calls` read from the source; the question here is only
+    whether the graph has such a member. A call whose receiver *is* typed and whose
+    target is simply not in the graph is dropped but **not** untyped -- it is the
+    boundary of the codebase, not of the resolver, and only the second earns
+    `precision: name-matched`.
+    """
+    found: set[str] = set()
+    dropped: list[str] = []
+    untyped: list[str] = []
+
+    def exists(cls_name, method):
+        return cls_name in class_methods and method in class_methods[cls_name]
+
+    for call in calls:
+        name, kind = call["name"], call["type"]
+        target = None
+        typed = True
+        if kind == "":                                   # helper()
+            if name in func_nodes:
+                target = func_nodes[name]
+        elif kind == "self":                             # self.method()
+            if cls_ctx and exists(cls_ctx, name):
+                target = f"{cls_ctx}.{name}"
+        elif kind == "?":
+            # A bare receiver of unknown type may still be a class the graph knows:
+            # `OrderRepository.get(...)`, a static or class method named through its
+            # class. Anything else is a receiver the source never typed.
+            recv = call.get("recv")
+            if recv and recv in class_methods:
+                if exists(recv, name):
+                    target = f"{recv}.{name}"
+            else:
+                typed = False
+        elif exists(kind, name):                         # a receiver the source typed
+            target = f"{kind}.{name}"
+        if target:
+            target = ids.target(target, rel)             # a shared name: the caller's own file only
+        if target:
+            found.add(target)
+        else:
+            dropped.append(name)     # library / stdlib / unresolvable: named, not a link
+            if not typed:
+                untyped.append(name)
+    return found, dropped, untyped
 
 def _analyze_js(js_files: list, ids: "FlowIds"):
     """JS/TS functions/methods as flow nodes, and their calls resolved.
@@ -1114,7 +1003,6 @@ def _analyze_js(js_files: list, ids: "FlowIds"):
                 passes.add((owner, target))
     return methods, edges, renders, passes
 
-
 def _lang_node(nid: str, name: str, cls, layer: str, kind: str, data: dict,
                rel: str, lang: str) -> dict:
     """A flow node from `langs_extract` (Java/Go/C# and the phase-7 languages). Same shape as `_js_node`.
@@ -1146,7 +1034,6 @@ def _lang_node(nid: str, name: str, cls, layer: str, kind: str, data: dict,
     if data.get("entry"):
         node["entry"] = data["entry"]    # a framework calls it: never dead code
     return node
-
 
 def _analyze_lang(lang_files: list, ids: "FlowIds"):
     """Nodes and call edges for every `langs_extract` language.
@@ -1403,76 +1290,6 @@ def _analyze_lang(lang_files: list, ids: "FlowIds"):
                     methods[target]["entry"] = "init"
     return methods, edges
 
-
-def _local_types(fn, seed: dict[str, str], decl=None, module: dict[str, str] | None = None) -> dict[str, str]:
-    """Local variable -> ClassName from param annotations and `x = SomeClass()`.
-
-    `fn` is the node to walk and `decl` the definition whose parameters to read.
-    They differ for a decorated function: `ast` folded decorators into the node it
-    walked, so the walk has to start at the wrapper to count the same call sites,
-    while the parameters only exist on the definition inside it. `module` is the
-    file's typed globals; a parameter or assignment of the same name hides one.
-    """
-    types = dict(seed)
-    if module:
-        params = px.params_of(decl if decl is not None else fn)
-        hidden = {px.text(n) for n in px.walk(params) if n.type == "identifier"} if params is not None else set()
-        hidden |= {px.text(t) for targets, _value, _ann in px.assignments(fn)
-                   for t in targets if t.type == "identifier"}
-        types = {**{k: v for k, v in module.items() if k not in hidden}, **types}
-    types.update({k: v for k, v in px.param_annotations(decl if decl is not None else fn).items() if v})
-    for targets, value, _annotation in px.assignments(fn):
-        if value is None or value.type != "call":
-            continue
-        ctor = px.name_of(px.field(value, "function"))
-        if ctor and ctor[:1].isupper():
-            for tgt in targets:
-                if tgt.type == "identifier":
-                    types[px.text(tgt)] = ctor
-    return types
-
-
-def _py_module_types(py_files) -> dict[str, dict[str, str]]:
-    """file -> {global name: class} for every Python file (finding #27).
-
-    A file's own top-level `store = Store()` / `store: Store = ...`, plus each unaliased
-    `from m import store` whose module is exactly one graphed file typing `store` that way.
-    The file's own assignment wins over an import of the same name.
-    """
-    own: dict[str, dict[str, str]] = {}
-    for rel, root in py_files:
-        types: dict[str, str] = {}
-        for stmt in root.named_children:
-            if stmt.type != "expression_statement":
-                continue
-            for targets, value, annotation in px.assignments(stmt):
-                cls = px.annotation_type(annotation) if annotation is not None else ""
-                if not cls and value is not None and value.type == "call":
-                    ctor = px.name_of(px.field(value, "function"))
-                    cls = ctor if ctor[:1].isupper() else ""
-                for tgt in targets:
-                    if cls and tgt.type == "identifier":
-                        types[px.text(tgt)] = cls
-        own[rel] = types
-    modules = {rel[:-3].replace("/", "."): rel for rel in own if rel.endswith(".py")}
-    out: dict[str, dict[str, str]] = {}
-    for rel, root in py_files:
-        imported: dict[str, str] = {}
-        for node in px.walk(root):
-            if node.type != "import_from_statement":
-                continue
-            mod = px.field(node, "module_name")
-            name = px.text(mod).lstrip(".") if mod is not None else ""
-            hits = [r for m, r in modules.items() if name and (m == name or m.endswith("." + name))]
-            if len(hits) != 1:
-                continue
-            for child in node.named_children:
-                if child.type == "dotted_name" and child != mod and px.text(child) in own[hits[0]]:
-                    imported[px.text(child)] = own[hits[0]][px.text(child)]
-        out[rel] = {**imported, **own[rel]}
-    return out
-
-
 def _record_dropped(node: dict, dropped: list[str], untyped=()) -> None:
     """Keep the names of the calls that did not become edges, not only how many.
 
@@ -1485,7 +1302,6 @@ def _record_dropped(node: dict, dropped: list[str], untyped=()) -> None:
     node["ext"] = len(dropped)
     node["_dropped"] = dropped
     node["_untyped"] = list(untyped)      # of those, the calls through a receiver of unknown type
-
 
 def _split_dropped(methods: dict) -> None:
     """Turn each node's dropped names into `unresolved`: the ones this graph defines.
@@ -1506,73 +1322,11 @@ def _split_dropped(methods: dict) -> None:
         if untyped:
             info["untyped"] = untyped
 
-
-def _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes,
-                   ids: "FlowIds") -> tuple[set[str], list[str], list[str]]:
-    """Returns (in-graph call targets, the names of the call sites that did not resolve,
-    and of those, the ones made through a receiver whose type is not stated)."""
-    attr_types, local_types = ctx["attr_types"], ctx["local_types"]
-    found: set[str] = set()
-    dropped: list[str] = []
-    untyped: list[str] = []
-
-    def exists(cls_name, method):
-        return cls_name in class_methods and method in class_methods[cls_name]
-
-    for node in px.calls_in(fn):
-        target = None
-        called = ""
-        typed = True
-        func = px.field(node, "function")
-        if func is None:
-            continue
-        if func.type == "attribute":
-            method = called = px.text(px.field(func, "attribute"))
-            base = px.field(func, "object")
-            base_name = px.text(base) if base is not None and base.type == "identifier" else ""
-            # self.attr.method()
-            if px.is_self_attr(base):
-                cls_name = attr_types.get(px.self_attr_name(base))
-                typed = bool(cls_name)
-                if cls_name and exists(cls_name, method):
-                    target = f"{cls_name}.{method}"
-            # self.method()
-            elif base_name == "self" and cls_ctx:
-                if exists(cls_ctx, method):
-                    target = f"{cls_ctx}.{method}"
-            # <var>.method()  where var is a typed param/local, or a typed global of this file
-            elif base_name in local_types:
-                cls_name = local_types[base_name]
-                if exists(cls_name, method):
-                    target = f"{cls_name}.{method}"
-            # ClassName.method(): a static or class method, named through its class
-            elif base_name in class_methods:
-                if exists(base_name, method):
-                    target = f"{base_name}.{method}"
-            else:
-                typed = False
-        elif func.type == "identifier":
-            # bare function call to a known module function
-            called = px.text(func)
-            if called in func_nodes:
-                target = func_nodes[called]
-        if target:
-            target = ids.target(target, ctx["rel"])   # a shared name: the caller's own file only
-        if target:
-            found.add(target)
-        elif called:
-            dropped.append(called)     # library / stdlib / unresolvable: named, not an edge
-            if not typed:
-                untyped.append(called)
-    return found, dropped, untyped
-
-
 def _auto_summary(info: dict) -> str:
     """Deterministic fallback used until an AI summary is available."""
     if info["calls"]:
         return "Delegates to " + ", ".join(f"[[{c}]]" for c in info["calls"]) + "."
     return "_No description available._"
-
 
 def resolve_descriptions(methods: dict, cache: dict) -> dict:
     """Hybrid description resolution, cheapest source first:
@@ -1596,10 +1350,8 @@ def resolve_descriptions(methods: dict, cache: dict) -> dict:
             }
     return pending
 
-
 def _safe(name: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]", "_", name)
-
 
 def write_vault(methods: dict, flow_dir: str) -> None:
     os.makedirs(flow_dir, exist_ok=True)
@@ -1642,7 +1394,6 @@ def write_vault(methods: dict, flow_dir: str) -> None:
         with open(long_path(os.path.join(flow_dir, f"{_safe(info['id'])}.md")), "w", encoding="utf-8") as fh:
             fh.write(page)
 
-
 def write_graph(methods: dict, edges, graph_path: str) -> None:
     nodes = []
     for i in sorted(methods.values(), key=lambda x: x["id"]):
@@ -1684,7 +1435,6 @@ def write_graph(methods: dict, edges, graph_path: str) -> None:
     with open(graph_path, "w", encoding="utf-8") as fh:
         json.dump(graph, fh, indent=2)
         fh.write("\n")
-
 
 def build(src, flow_dir: str, graph_path: str) -> int:
     roots = [os.path.abspath(s) for s in ([src] if isinstance(src, str) else src)]
@@ -1736,7 +1486,6 @@ def build(src, flow_dir: str, graph_path: str) -> int:
         print(f"  NOTE: {len(pending)} method(s) need an AI summary. Read {PENDING_PATH},")
         print("        write a one-line summary for each, then run apply_descriptions.py and rebuild.")
     return 0
-
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Build a method-level call/request-flow graph.")

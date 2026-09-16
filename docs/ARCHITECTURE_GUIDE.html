@@ -1518,7 +1518,7 @@ const SCRIPTS_DATA = [
     path: "scripts/extract/build_flow.py",
     role: "Builds the Flow Map (methods, functions, endpoints, call edges, and unresolved calls).",
     tech: "Receiver Resolution, Overload Picking & Dropped-Call Tracking",
-    algorithm: "Two-pass analysis: Pass 1 registers SharedNames. Pass 2 resolves calls via declared types (_self_attr_types) and selects overloads. Tracks dropped calls via _record_dropped, and classifies calls matching in-graph nodes as unresolved via _split_dropped.",
+    algorithm: "Two-pass analysis: Pass 1 registers SharedNames. Pass 2 resolves calls via declared types (py_extract._attr_types) and selects overloads. Tracks dropped calls via _record_dropped, and classifies calls matching in-graph nodes as unresolved via _split_dropped.",
     inputs: "Parsed AST/CSTs from py_extract, js_ts_extract, langs_extract",
     outputs: "data/flow/flow_graph.json, notes/*.md",
     invariant: "Lower bound: calls followed only through declared types. Dropped calls that match in-graph names are reported in unresolved without inventing false edges (check_graph c19, r35).",

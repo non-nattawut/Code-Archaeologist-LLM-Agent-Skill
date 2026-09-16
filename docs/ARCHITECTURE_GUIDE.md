@@ -137,13 +137,13 @@ flowchart TD
 | `scripts/archaeologist.py` | `scripts/core/manifest.py` | `compare(src)` | `src` roots list | Dict of modified/added/deleted files & grammar drift |
 | `scripts/archaeologist.py` | `scripts/core/manifest.py` | `write(src)` | `src` roots list | Computes and saves SHA-1 hashes into `manifest.json` |
 | `scripts/archaeologist.py` | `scripts/query/build_html.py` | `build(sources, out_path)` | Map dict: `{name: (graph, report)}`, output HTML path | Bundles graphs + reports + vendored D3 script into `explorer.html` |
-| `scripts/extract/build_wiki.py` | `scripts/extract/py_extract.py` | `parse()`, `read_source()`, `field()`, `text()`, `walk()` | Python file path / source bytes | Python CST tree nodes, docstrings, classes, functions |
+| `scripts/extract/build_wiki.py` | `scripts/extract/py_extract.py` | `find_py_files()`, `extract_py_files()` | Python source root | Classes with their methods, docstrings, bases and the names the file imports or defines |
 | `scripts/extract/build_wiki.py` | `scripts/extract/js_ts_extract.py` | `find_js_files()`, `extract_js_files()`, `frontend_degraded()` | Source roots | List of class and component definitions with types |
 | `scripts/extract/build_wiki.py` | `scripts/extract/langs_extract.py` | `find_lang_files()`, `extract_lang_files()` | Source roots | List of class/struct/interface and method definitions for 14 langs |
 | `scripts/extract/build_wiki.py` | `scripts/core/ids.py` | `SharedNames((name, source))` | Name/file pairs | Disambiguates duplicate names case-insensitively (`stem/path`) |
 | `scripts/extract/build_wiki.py` | `scripts/core/taxonomy.py` | `infer_layer()`, `is_test_path()`, `source_dirs()` | File path, kind, name | Architectural layer assignment (`controller`, `model`, `test`, etc.) |
 | `scripts/extract/build_wiki.py` | `scripts/paths.py` | `long_path()`, `DATA_DIR`, `TEMPLATES_DIR` | File path strings | Prepends `\\?\` past Windows 260-character limit |
-| `scripts/extract/build_flow.py` | `scripts/extract/py_extract.py` | `parse()`, `read_source()`, `field()`, `text()`, `defs_in()`, `load_time_calls()` | Python file path / source bytes | Method definitions, AST statements, call expressions |
+| `scripts/extract/build_flow.py` | `scripts/extract/py_extract.py` | `find_py_files()`, `extract_py_files()` | Python source root | Methods and functions with their routes, ranges and `{name, type}` call sites |
 | `scripts/extract/build_flow.py` | `scripts/extract/js_ts_extract.py` | `find_js_files()`, `extract_js_files()` | Source roots | Frontend methods, route endpoints, Axios/fetch API calls |
 | `scripts/extract/build_flow.py` | `scripts/extract/langs_extract.py` | `find_lang_files()`, `extract_lang_files()` | Source roots, candidate methods, caller arg count | Methods, call sites, and exact overload resolution |
 | `scripts/extract/build_flow.py` | `scripts/extract/route_tables.py` | `read(roots)` | Source roots, table file paths | Routes from Django `urlpatterns`, Rails `routes.rb`, Laravel, Phoenix |
@@ -179,7 +179,7 @@ flowchart TD
 #### Flow 1: Build Structure Map (`archaeologist.py project --src <roots>`)
 1. **Entrypoint Dispatch:** `scripts/archaeologist.py:run_project()` is invoked with source directories.
 2. **Extraction (`scripts/extract/build_wiki.py:build()`):**
-   - Discovers source files across all supported languages via `px.iter_py_files()`, `js_ts_extract.find_js_files()`, and `langs_extract.find_lang_files()`.
+   - Discovers source files across all supported languages via `py_extract.find_py_files()`, `js_ts_extract.find_js_files()`, and `langs_extract.find_lang_files()`.
    - Parses AST/CST trees using pinned Tree-sitter grammars via `scripts/core/grammars.py`.
    - Disambiguates duplicate class/component names case-insensitively using `scripts/core/ids.py:SharedNames`.
    - Infers architectural layers (`controller`, `service`, `ui`, `model`) via `scripts/core/taxonomy.py:infer_layer()`.

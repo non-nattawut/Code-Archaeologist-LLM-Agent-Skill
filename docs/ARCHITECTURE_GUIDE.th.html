@@ -2703,7 +2703,7 @@ const SCRIPTS_DATA = [
     path: "scripts/extract/build_flow.py",
     role: "สร้าง Flow map (method, function, endpoint, call edge และ call ที่ resolve ไม่ได้)",
     tech: "Receiver Resolution, Overload Picking และ Dropped-Call Tracking",
-    algorithm: "วิเคราะห์สอง pass: pass 1 ลงทะเบียน SharedNames, pass 2 resolve call ผ่าน declared type (_self_attr_types) และเลือก overload พร้อมบันทึก call ที่ถูก drop ด้วย _record_dropped และจัด call ที่ตรงกับ node ในกราฟให้เป็น unresolved ผ่าน _split_dropped",
+    algorithm: "วิเคราะห์สอง pass: pass 1 ลงทะเบียน SharedNames, pass 2 resolve call ผ่าน declared type (py_extract._attr_types) และเลือก overload พร้อมบันทึก call ที่ถูก drop ด้วย _record_dropped และจัด call ที่ตรงกับ node ในกราฟให้เป็น unresolved ผ่าน _split_dropped",
     inputs: "AST/CST ที่ parse แล้วจาก py_extract, js_ts_extract, langs_extract",
     outputs: "data/flow/flow_graph.json และ notes/*.md",
     invariant: "เป็น lower bound: ตาม call เฉพาะเมื่ออ่าน declared type ได้ ส่วน call ที่ถูก drop แต่ชื่อตรงกับ node ในกราฟจะรายงานไว้ใน unresolved โดยไม่สร้าง edge เท็จขึ้นมา (check_graph c19, r35)",

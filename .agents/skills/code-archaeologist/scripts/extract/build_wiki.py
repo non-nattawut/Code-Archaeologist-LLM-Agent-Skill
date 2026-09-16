@@ -31,47 +31,83 @@ TEMPLATE_PATH = os.path.join(TEMPLATES_DIR, "wiki_page_template.md")
 
 from taxonomy import container_entry, decoration_term, infer_layer, is_test_path  # noqa: E402
 import console  # noqa: E402  (stdout must survive a non-UTF-8 console)
-import doc_text  # noqa: E402  (the one doc rule, shared with every producer)
 from js_ts_extract import alias_targets, find_js_files, extract_js_files, frontend_degraded  # noqa: E402  (frontend, degrades to a no-op)
-import py_extract as px  # noqa: E402  (Python, via tree-sitter)
+from py_extract import find_py_files, extract_py_files  # noqa: E402  (Python, via tree-sitter)
 from ids import SharedNames  # noqa: E402  (one id rule for both maps)
 from langs_extract import class_locator, find_lang_files, extract_lang_files  # noqa: E402  (14 languages, via tree-sitter)
 
-from taxonomy import source_dirs  # noqa: E402  (one definition of "not source")
 
 
 # ---------------------------------------------------------------------------
 # Extraction
 # ---------------------------------------------------------------------------
-def _name_of(node) -> str:
-    """Best-effort dotted name for a decorator/base expression."""
-    if node is None:
-        return ""
-    if node.type == "identifier":
-        return px.text(node)
-    if node.type == "attribute":
-        return px.text(px.field(node, "attribute"))
-    if node.type == "call":
-        return _name_of(px.field(node, "function"))
-    if node.type == "subscript":
-        return _name_of(px.field(node, "value"))
-    if node.type == "decorator":
-        return _name_of(node.named_children[0]) if node.named_children else ""
-    return px.text(node)
+def extract_py_entities(roots: list[str]) -> list[dict]:
+    """Python classes and module function-groups, from `py_extract`'s dicts.
 
+    References come from the **import list** plus the names the file defines itself
+    (`_add_same_file_refs`, r77). That is the opposite of the Java family, which reads
+    them from stated types: Python states none, so an import is the only thing the
+    source says about where a name comes from.
+    """
+    entities: list[dict] = []
+    for root in roots:
+        for res in extract_py_files(find_py_files(root)):
+            rel = _rel_source(res["file"], root)
+            here: list[dict] = []
+            # (entity, the bare names its own source calls) -- a module group is its
+            # functions, so it gets one pair per function.
+            owners: list[tuple[dict, list[str]]] = []
 
-def iter_py_files(src: str):
-    for root, dirs, files in os.walk(src):
-        dirs[:] = source_dirs(root, dirs)
-        for fn in files:
-            if fn.endswith(".py"):
-                yield os.path.join(root, fn)
+            for cls in res["classes"]:
+                ent = {
+                    "name": cls["name"], "kind": cls["kind"], "source": rel,
+                    # From the first decorator, like every node in both maps (finding #6).
+                    "line": cls["line"], "end": cls["endLine"],
+                    "bases": [b for b in cls["bases"] if b],
+                    "decorators": [d for d in cls["decorators"] if d],
+                    "doc": cls["doc"],
+                    "methods": [{"name": m["name"], "doc": m["doc"]} for m in cls["methods"]],
+                    "imports": list(res["imports"]),
+                    "lang": "py",
+                }
+                here.append(ent)
+                owners.append((ent, cls["bare_calls"]))
 
+            if res["functions"]:
+                stem = os.path.splitext(os.path.basename(rel))[0]
+                mod = {
+                    "name": _module_entity_name(stem),
+                    "kind": "module",
+                    "source": rel,
+                    "bases": [],
+                    "decorators": [],
+                    "doc": res["doc"],
+                    "methods": [{"name": f["name"], "doc": f["doc"]} for f in res["functions"]],
+                    "imports": list(res["imports"]),
+                    "lang": "py",
+                }
+                here.append(mod)
+                owners += [(mod, f["bare_calls"]) for f in res["functions"]]
+
+            _add_same_file_refs(here, owners)
+            entities.extend(here)
+    return entities
+
+def _add_same_file_refs(ents: list[dict], owners: list[tuple[dict, list[str]]]) -> None:
+    """A name this file defines is a reference too: a class calling a function of its own
+    module group, or a module function building a class beside it. Python resolved
+    references from the import list alone, so nothing in a file ever pointed at anything
+    else in it (r77). A node never references itself."""
+    provides = _provided_names(ents)
+    for ent, called in owners:
+        found = {owner for name in called
+                 for owner in [provides.get(name)] if owner and owner != ent["name"]}
+        if found:
+            ent["imports"] = sorted(set(ent["imports"]) | found)
 
 def _rel_source(path: str, root: str) -> str:
     rel = os.path.relpath(path, root).replace("\\", "/")
     return f"{os.path.basename(os.path.normpath(root))}/{rel}"
-
 
 def extract_entities(roots: list[str]) -> list[dict]:
     """Every entity across one or more source roots, exact tiers first.
@@ -83,176 +119,11 @@ def extract_entities(roots: list[str]) -> list[dict]:
     """
     return extract_py_entities(roots) + extract_js_entities(roots) + extract_lang_entities(roots)
 
-
-def extract_py_entities(roots: list[str]) -> list[dict]:
-    """Python classes and module function-groups."""
-    entities: list[dict] = []
-    for root in roots:
-        for path in iter_py_files(root):
-            try:
-                raw = px.read_source(path)
-            except OSError as exc:
-                print(f"  ! skipped {path}: {exc}", file=sys.stderr)
-                continue
-            tree = px.parse(raw)
-            if tree is None:
-                px.warn_missing()
-                continue
-
-            rel = _rel_source(path, root)
-            _extract_from_tree(tree.root_node, raw, rel, entities)
-    return entities
-
-
-def _imported_names(root) -> set[str]:
-    """Every name an `import` / `from ... import` binds in this module.
-
-    `ast` gave `Import` and `ImportFrom` with a tidy `names` list. tree-sitter
-    gives `import_statement` and `import_from_statement` whose children are the
-    dotted names and aliases themselves, so the alias-wins rule is applied here
-    instead of being read off an attribute.
-    """
-    names: set[str] = set()
-    for node in px.walk(root):
-        plain = node.type == "import_statement"
-        if not plain and node.type != "import_from_statement":
-            continue
-        for child in node.named_children:
-            if child.type == "dotted_name" and child == px.field(node, "module_name"):
-                continue                      # the module in `from X import y`
-            if child.type == "aliased_import":
-                alias = px.field(child, "alias")
-                if alias is not None:
-                    names.add(px.text(alias))
-            elif child.type == "dotted_name":
-                # `import a.b.c` binds `a`; `from m import a.b` cannot occur.
-                names.add(px.text(child).split(".")[0] if plain else px.text(child))
-            elif child.type == "identifier":
-                names.add(px.text(child))
-    return names
-
-
-def _module_docstring(root) -> str:
-    """The module's own docstring: its first statement, when that is a string."""
-    if not root.named_children:
-        return ""
-    first = root.named_children[0]
-    if first.type != "expression_statement" or not first.named_children:
-        return ""
-    literal = first.named_children[0]
-    if literal.type != "string":
-        return ""
-    return "".join(px.text(c) for c in literal.children if c.type == "string_content")
-
-
-def _extract_from_tree(root, source, rel, entities):
-    # Module-level imported names (for reference resolution).
-    imports = _imported_names(root)
-
-    here: list[dict] = []
-    # (entity, one node whose calls belong to it) -- a module group is its functions, so it
-    # gets one pair per function.
-    owners: list[tuple[dict, object]] = []
-    module_funcs: list[dict] = []
-    for decorators, node in px.defs_in(root, ("class_definition", "function_definition")):
-        if node.type == "class_definition":
-            ent = _class_entity(node, decorators, rel, imports, source)
-            here.append(ent)
-            owners.append((ent, node))
-        else:
-            module_funcs.append({
-                "name": px.def_name(node),
-                "doc": doc_text.join(px.docstring_of(node)),
-                "node": node,
-            })
-
-    if module_funcs:
-        mod_name = os.path.splitext(os.path.basename(rel))[0]
-        mod = {
-            "name": _module_entity_name(mod_name),
-            "kind": "module",
-            "source": rel,
-            "bases": [],
-            "decorators": [],
-            "doc": doc_text.join(_module_docstring(root)),
-            "methods": [{"name": f["name"], "doc": f["doc"]}
-                        for f in module_funcs],
-            "imports": sorted(imports),
-            "lang": "py",
-        }
-        here.append(mod)
-        owners += [(mod, f["node"]) for f in module_funcs]
-
-    _add_same_file_refs(here, owners)
-    entities.extend(here)
-
-
-def _called_names(node) -> set[str]:
-    """Bare names this subtree calls -- `helper()`, `Page()`. A method call states its
-    receiver, which is the flow map's question, not this one's."""
-    names: set[str] = set()
-    for n in px.walk(node):
-        if n.type != "call":
-            continue
-        fn = px.field(n, "function")
-        if fn is not None and fn.type == "identifier":
-            names.add(px.text(fn))
-    return names
-
-
-def _add_same_file_refs(ents: list[dict], owners: list[tuple[dict, object]]) -> None:
-    """A name this file defines is a reference too: a class calling a function of its own
-    module group, or a module function building a class beside it. Python resolved references
-    from the import list alone, so nothing in a file ever pointed at anything else in it
-    (r77). A node never references itself."""
-    provides = _provided_names(ents)
-    for ent, node in owners:
-        found = {owner for name in _called_names(node)
-                 for owner in [provides.get(name)] if owner and owner != ent["name"]}
-        if found:
-            ent["imports"] = sorted(set(ent["imports"]) | found)
-
-
-def _base_nodes(cls):
-    """Base-class expressions of a class definition (`ast`'s `cls.bases`)."""
-    args = px.field(cls, "superclasses")
-    if args is None:
-        return []
-    return [c for c in args.named_children if c.type != "keyword_argument"]
-
-
 def _module_entity_name(mod: str) -> str:
     # snake_case module -> CamelCase-ish entity id, kept stable and readable.
     # Only the first letter is forced, so an already-CamelCase stem (OrderCard.tsx)
     # does not come back as "OrdercardModule".
     return "".join(part[:1].upper() + part[1:] for part in mod.split("_")) + "Module"
-
-
-def _class_entity(node, decorator_nodes, rel: str, imports: set[str], source: str) -> dict:
-    bases = [_name_of(b) for b in _base_nodes(node) if _name_of(b)]
-    decorators = [_name_of(d) for d in decorator_nodes if _name_of(d)]
-    methods = []
-    abstract = False
-    for _decs, item in px.defs_in(px.body_of(node)):
-        methods.append({"name": px.def_name(item), "doc": doc_text.join(px.docstring_of(item))})
-        abstract = abstract or any(_name_of(d).split(".")[-1] == "abstractmethod" for d in _decs)
-    base_names = {b.split(".")[-1] for b in bases}
-    # Python states it by convention: a `Protocol` is an interface, an `ABC` or a class with
-    # an `@abstractmethod` is abstract.
-    kind = "interface" if "Protocol" in base_names else "abstract" if abstract or "ABC" in base_names else "class"
-    return {
-        "name": px.def_name(node),
-        "kind": kind,
-        "source": rel,
-        # From the first decorator, like every node in both maps (finding #6).
-        "line": px.line(node.parent if decorator_nodes else node), "end": px.end_line(node),
-        "bases": bases,
-        "decorators": decorators,
-        "doc": doc_text.join(px.docstring_of(node)),
-        "methods": methods,
-        "imports": sorted(imports),
-        "lang": "py",
-    }
 
 
 # ---------------------------------------------------------------------------
@@ -262,7 +133,6 @@ def _class_entity(node, decorator_nodes, rel: str, imports: set[str], source: st
 # guessed back into a file the way a bundler would. Order is fixed, so the guess
 # is deterministic.
 JS_RESOLVE_EXTS = (".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs")
-
 
 def _names_used(funcs: list[dict]) -> set[str]:
     """Every name a set of functions calls or renders."""
@@ -274,7 +144,6 @@ def _names_used(funcs: list[dict]) -> set[str]:
         used.update(fn.get("constructs", []))                                 # `new ApiError(...)`
         used.update(fn.get("components", []))
     return used
-
 
 def _js_file_entities(res: dict, rel: str) -> list[dict]:
     """Entities defined by one JS/TS file, in the shape the renderer expects."""
@@ -329,7 +198,6 @@ def _js_file_entities(res: dict, rel: str) -> list[dict]:
             ent["uses"] |= types
     return ents
 
-
 def _type_names(res: dict) -> set[str]:
     """The names a file's type declarations state: the object behind `typeof setdatService`,
     a property's type, and the type a `createContext<T>` carries."""
@@ -339,7 +207,6 @@ def _type_names(res: dict) -> set[str]:
         names.update(r[len("typeof "):] if r.startswith("typeof ") else r for r in refs)
     names.update(res.get("contexts", {}).values())
     return {n for n in names if n}
-
 
 def _provided_names(ents: list[dict]) -> dict[str, str]:
     """Name -> the entity of this file a reader reaches by writing it: an entity's own name,
@@ -351,7 +218,6 @@ def _provided_names(ents: list[dict]) -> dict[str, str]:
             for m in ent["methods"]:
                 provides.setdefault(m["name"], ent["name"])
     return provides
-
 
 def _resolve_specifier(spec: str, from_file: str,
                        defs: dict[str, list[tuple[str, str]]]) -> list[tuple[str, str]]:
@@ -372,7 +238,6 @@ def _resolve_specifier(spec: str, from_file: str,
             if names is not None:
                 return names
     return []
-
 
 def extract_js_entities(roots: list[str]) -> list[dict]:
     """JS/TS classes, React components and module function-groups.
@@ -505,10 +370,8 @@ def load_template() -> str:
     with open(TEMPLATE_PATH, "r", encoding="utf-8") as fh:
         return fh.read()
 
-
 def wikilink(name: str, known: set[str]) -> str:
     return f"[[{name}]]" if name in known else f"`{name}`"
-
 
 def render_entity(ent: dict, known: set[str], template: str, names=None) -> str:
     references: set[str] = set()
@@ -657,7 +520,6 @@ def build(src, vault: str) -> int:
         print("           entities are missing. Do not commit it as the project's map; install")
         print("           the parser and rebuild (see the warning above).")
     return 0
-
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Scan Python source into a Markdown wiki vault.")
