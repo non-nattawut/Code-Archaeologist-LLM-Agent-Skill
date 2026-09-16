@@ -5806,3 +5806,23 @@ going `unknown` -> `service` from their `services/` folder, so the sample now ha
 node; `check_graph` OK both maps with 43/43 self-tests; `check_langs` 21/21; oracle 0
 disagreements; `check_docs` OK. Docs: CLAUDE.md (taxonomy bullet + the expected-numbers line),
 SKILL.md, TAXONOMY.md's `{{layer}}` row, ROADMAP #37 items 4/5/6. Nothing committed.
+
+## [147] 2026-09-16 — Commit, push, tag 0.2
+
+**Prompt**
+> commit & push this
+>
+> also can you create tag & release? or I need to do this myself in UI?
+
+**Response**
+Committed everything since `0ae9372` as one change (112 files, +9,246/-873): the explorer skill,
+the flow-map resolution work (r62-r72), the structure-map reference work (r73-r79), the docs that
+moved with them, and the regenerated example data. Bumped `package.json` 0.1.0 -> 0.2.0 to match
+the tag, and tagged **0.2** (annotated) -- the existing tag is `0.1`, so no `v` prefix, keeping the
+one convention this repo has. Pushed both to `main` on origin.
+
+On the release: `gh` is not installed on this machine and no GitHub token is in the environment, so
+a Release object cannot be created from here -- only the tag, which git pushes over the existing
+remote auth. Told the user their two options: draft the release in the GitHub UI from tag 0.2
+(GitHub pre-fills from the tag message), or install and authenticate `gh` once, after which I can
+create it. Wrote the release notes into the tag message so either path has the same text.
