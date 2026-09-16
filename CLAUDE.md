@@ -984,7 +984,6 @@ that nobody rewrites them.
 | `README.md` | a human evaluating/installing it | features, language table, requirements or the structure tree change |
 | `docs/USAGE.md` | a human running it by hand | any command's form or flags change |
 | `templates/TAXONOMY.md` | anyone adding a field value | a `kind`/`layer`/severity/grade value changes |
-| `docs/PRESENTATION.html` | someone being shown the project (**written in Thai**) | Features, Architecture, Honest limitations or Commands drift |
 | `docs/ARCHITECTURE_GUIDE.{html,md}` | someone learning how the 29 scripts fit together | a script is added/renamed/moved, an inter-script call changes, or a function it names by hand is renamed |
 | `docs/ARCHITECTURE_GUIDE.th.html` | the same reader, **in Thai** | the English guide changes — it is a translation, so it goes stale silently |
 
@@ -1000,7 +999,8 @@ before anyone noticed (finding #12).
 `ARCHITECTURE_GUIDE.th.html` is the Thai translation of the `.html`, structurally identical —
 same ids, same classes, same handlers — so a structural change must be made in **both**, and
 `fc-box` / `fc-cmd-chip` / `fc-phase` counts are expected to match exactly between them. Two
-house rules, both from `docs/PRESENTATION.html`: **every technical identifier stays in English**
+house rules govern the Thai text -- they came from `docs/PRESENTATION.html`, the Thai slide deck
+removed on 2026-09-16, and outlived it: **every technical identifier stays in English**
 (script and function names, `kind`/`layer` values, algorithm names like *Winnowing* and *Tarjan's
 SCC*, CLI flags — Thai is the connective prose around them), and **fonts are system-only**
 (`IBM Plex Sans Thai`, `Noto Sans Thai`, `Leelawadee UI`, `Sarabun`, Tahoma) at

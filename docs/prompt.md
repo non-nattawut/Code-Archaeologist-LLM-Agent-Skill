@@ -6281,3 +6281,56 @@ Verified: `check_docs` OK, `check_py_oracle` 0 disagreements, `check_graph` 32+3
 `check_langs` 21/21, `check_regressions` 80/80, and `git diff` on `data/` empty after a full
 rebuild. Then pushed -- four commits: `doc_text`, Python-as-producer, the entity-builder merge,
 and this sweep.
+
+## [156] 2026-09-16 — The guide checked mechanically; PRESENTATION.html removed
+
+**Prompt**
+> so ARCHITECTURE_GUIDE.md is up to date now?
+> also remove PRESENTATION.html
+
+**Response**
+**Answered the first question with a check rather than an opinion**, because the guide is exactly
+the file CLAUDE.md warns about -- "Both files name functions by hand and nothing checks them --
+eight were invented before anyone noticed (finding #12)". Two throwaway scripts, both run from the
+terminal:
+
+1. Every ``` `mod.fn()` ``` and ``` `fn()` ``` in the prose, checked against every function, class and
+   module-level assignment in the skill: **11 qualified mentions, all resolving to the right
+   module; no bare name that is not defined anywhere.** The only "unknown modules" were
+   `local.name()` / `param.name()` style prose, not references.
+2. Every row of the caller-to-callee matrix -- 59 claimed symbols -- checked both ways: does the
+   *caller* actually name it, and does the *callee* actually define it.
+
+That second check found exactly one stale row, and it was mine: `build_wiki.py -> taxonomy.py |
+infer_layer(), is_test_path(), source_dirs()`. `source_dirs` moved into the producers with the
+file walk two commits ago, and `build_wiki` no longer names it. Corrected to `container_entry()`,
+which it does call -- in the `.md` guide and in both HTML guides, whose matrix carries the same
+row.
+
+So the honest answer was "accurate, but incomplete": nothing it said was wrong, yet it named
+`_pick_overload` / `_record_dropped` / `_split_dropped` for `build_flow` while naming none of the
+three functions this session introduced. Added: the `build_flow` row now names `_analyze_py` +
+`_py_targets`, `_analyze_lang` and `_analyze_js`, and a new `build_wiki` row names
+`extract_backend_entities` and `_refs_of` with the reference models each producer uses. Re-ran both
+checks afterwards -- matrix all rows check out, 11 qualified mentions still resolve.
+
+**Removed `docs/PRESENTATION.html`** (218 KB, the Thai slide deck). Nothing ships or imports it:
+`package.json`'s file list carries only `docs/USAGE.md`, and `bin/cli.js` names no docs. Three
+things had to move with it:
+
+- `CLAUDE.md`'s principle-6 table row for it, deleted.
+- `CLAUDE.md`'s note that the Thai guide's two house rules -- identifiers stay in English, fonts
+  are system-only -- "both [come] from `docs/PRESENTATION.html`". The rules outlive the file, so
+  the sentence now says so and dates the removal, rather than citing a file that is gone.
+- `tools/check_docs.py` listed it in `DOCS`, so the check crashed with `FileNotFoundError` the
+  moment the file went. Removed from the list.
+
+`docs/PROJECT_HISTORY.md` and `docs/ROADMAP_PLAN.md` still name it in past entries and were left
+alone: they are records of what was true when written.
+
+Verified: `check_docs` OK, `check_graph` 32+32 OK, `check_langs` 21/21, `check_regressions` 80/80,
+`data/` byte-identical after a full rebuild, guide parity still 133 / 9 / 9.
+
+**Not done, offered instead:** both ad-hoc checks above are worth a repo tool -- they close the
+"nothing checks them" half of finding #12 and one of them caught a real regression on its first
+run. Not written as a script this turn, because it was not asked for and principle 3 binds.

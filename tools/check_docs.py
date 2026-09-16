@@ -36,7 +36,6 @@ DOCS = [
     "README.md",
     "docs/USAGE.md",
     "CLAUDE.md",
-    "docs/PRESENTATION.html",
     ".agents/skills/code-archaeologist/SKILL.md",
     ".agents/skills/code-archaeologist-explorer/SKILL.md",
     ".agents/skills/code-archaeologist/templates/TAXONOMY.md",
