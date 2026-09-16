@@ -10,12 +10,7 @@ entry:
 # OrderRoutesModule
 
 ## Summary
-Flask routes for the legacy orders API.
-
-Two things in this file that no other sample exercises: Flask's normal shape is a
-route decorator on a module-level `def` rather than a class method, and one handler
-serving several verbs through `methods=[...]`. Mounted under /legacy so it does not
-compete with the FastAPI controller for the same paths.
+Flask routes for the legacy orders API. Two things in this file that no other sample exercises: Flask's normal shape is a route decorator on a module-level `def` rather than a class method, and one handler serving several verbs through `methods=[...]`. Mounted under /legacy so it does not compete with the FastAPI controller for the same paths.
 
 ## Bases
 _None._

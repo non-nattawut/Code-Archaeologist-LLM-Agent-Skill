@@ -163,7 +163,7 @@ scripts/
   paths.py           SKILL_ROOT / DATA_DIR / TEMPLATES_DIR, the sys.path bootstrap, and
                      long_path() -- every per-node file goes through it (MAX_PATH, phase 6d),
                      and skill_rel() -- every report's `graph` field (cross-drive, phase 9)
-  core/     taxonomy.py  manifest.py  console.py  grammars.py  ids.py
+  core/     taxonomy.py  manifest.py  console.py  grammars.py  ids.py  doc_text.py
   extract/  build_wiki.py  build_graph.py  build_flow.py  py_extract.py
             js_ts_extract.py  langs_extract.py  route_tables.py  apply_descriptions.py
   review/   analyze.py  scan_security.py  git_insights.py  metrics.py  debt.py
@@ -265,6 +265,23 @@ delete. Nothing else in `core/` may import a skill module.
   referencing file's own definition or to nothing. Pure logic -- it imports nothing -- so it sits
   in `core/` below both `extract/` builders. The structure map used to keep the first entity of a
   shared name and drop the rest; the flow map used to merge them. Neither does now.
+- `doc_text.py` is the one rule for turning a doc comment into a node's `doc`, and every producer
+  asks it. The rule is `langs_extract`'s: the comment block above the declaration, blank lines
+  invisible, stopping at the first non-comment (a comment separated by code is not the doc);
+  *consecutive* blocks all count, which is how a run of `//` becomes one doc; markers are stripped
+  and every non-empty line is joined with a space, so a `doc` is always exactly one line. Finding
+  the block stays in each producer -- only it knows its grammar's comment node types -- and the
+  cleaning is `clean()`, or `join()` for a Python docstring, which has no markers. `clean(xml=True)`
+  is for the languages whose doc convention is XML or HTML (C#, and JS/TS, since JSDoc borrowed
+  Javadoc's); it is **off** for the rest, because the tag sweep cannot tell a tag from a generic and
+  `Vec<String>` in a Rust doc comment is not markup. Before this each producer answered
+  differently: JS/TS refused a comment that was not on the line directly above and kept only one
+  line *of the nearest block*, so a doc written as a run of `//` was published as its **last line**
+  -- three of the sample's five JS/TS docs were sentence fragments (r80); Python was truncated at
+  its first line by each call site separately. Python is the one deliberate asymmetry left: a `#`
+  comment above a `def` is not documentation in that language, so only a docstring counts, and it
+  goes through `join()`. Pure string work -- it imports nothing -- so it sits in `core/` below every
+  producer.
 - `py_extract.py` is the Python reader: the `ast` helpers of `build_flow.py`, `build_wiki.py` and
   `metrics.py` translated node-for-node, plus `read_source()`, which normalises newlines because
   `ast` was handed universal-newline text and tree-sitter is handed raw bytes -- without it a CRLF
@@ -947,7 +964,7 @@ that nobody rewrites them.
 | `docs/USAGE.md` | a human running it by hand | any command's form or flags change |
 | `templates/TAXONOMY.md` | anyone adding a field value | a `kind`/`layer`/severity/grade value changes |
 | `docs/PRESENTATION.html` | someone being shown the project (**written in Thai**) | Features, Architecture, Honest limitations or Commands drift |
-| `docs/ARCHITECTURE_GUIDE.{html,md}` | someone learning how the 28 scripts fit together | a script is added/renamed/moved, an inter-script call changes, or a function it names by hand is renamed |
+| `docs/ARCHITECTURE_GUIDE.{html,md}` | someone learning how the 29 scripts fit together | a script is added/renamed/moved, an inter-script call changes, or a function it names by hand is renamed |
 | `docs/ARCHITECTURE_GUIDE.th.html` | the same reader, **in Thai** | the English guide changes — it is a translation, so it goes stale silently |
 
 `ARCHITECTURE_GUIDE.html` is **one flowchart**, deliberately: BUILD (parses source, rewrites

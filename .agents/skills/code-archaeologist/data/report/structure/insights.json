@@ -269,15 +269,16 @@
       "owner": "non-nattawut"
     },
     "sample_src/services/orders_java/OrderWorkflow.java": {
-      "commits": 1,
-      "insertions": 28,
-      "deletions": 0,
+      "commits": 2,
+      "insertions": 30,
+      "deletions": 2,
       "authors": {
+        "Nattawut Rodthong": 1,
         "non-nattawut": 1
       },
-      "last_commit": "2026-09-08T22:13:49+07:00",
+      "last_commit": "2026-09-16T10:49:12+07:00",
       "first_commit": "2026-09-08T22:13:49+07:00",
-      "owner": "non-nattawut"
+      "owner": "Nattawut Rodthong"
     },
     "sample_src/services/orders_java/PricingRule.java": {
       "commits": 2,
@@ -537,17 +538,18 @@
     },
     "OrderWorkflow": {
       "file": "sample_src/services/orders_java/OrderWorkflow.java",
-      "commits": 1,
-      "owner": "non-nattawut",
+      "commits": 2,
+      "owner": "Nattawut Rodthong",
       "authors": {
+        "Nattawut Rodthong": 1,
         "non-nattawut": 1
       },
-      "author_count": 1,
-      "last_commit": "2026-09-08T22:13:49+07:00",
+      "author_count": 2,
+      "last_commit": "2026-09-16T10:49:12+07:00",
       "first_commit": "2026-09-08T22:13:49+07:00",
       "fan_in": 1,
       "fan_out": 2,
-      "risk": 4
+      "risk": 8
     },
     "OrdersController": {
       "file": "sample_src/api_nest/orders.controller.ts",
@@ -701,6 +703,22 @@
       "risk": 12
     },
     {
+      "node": "OrderWorkflow",
+      "file": "sample_src/services/orders_java/OrderWorkflow.java",
+      "commits": 2,
+      "owner": "Nattawut Rodthong",
+      "authors": {
+        "Nattawut Rodthong": 1,
+        "non-nattawut": 1
+      },
+      "author_count": 2,
+      "last_commit": "2026-09-16T10:49:12+07:00",
+      "first_commit": "2026-09-08T22:13:49+07:00",
+      "fan_in": 1,
+      "fan_out": 2,
+      "risk": 8
+    },
+    {
       "node": "PricingRule",
       "file": "sample_src/services/orders_java/PricingRule.java",
       "commits": 2,
@@ -806,21 +824,6 @@
       "first_commit": "2026-09-06T20:05:48+07:00",
       "fan_in": 0,
       "fan_out": 3,
-      "risk": 4
-    },
-    {
-      "node": "OrderWorkflow",
-      "file": "sample_src/services/orders_java/OrderWorkflow.java",
-      "commits": 1,
-      "owner": "non-nattawut",
-      "authors": {
-        "non-nattawut": 1
-      },
-      "author_count": 1,
-      "last_commit": "2026-09-08T22:13:49+07:00",
-      "first_commit": "2026-09-08T22:13:49+07:00",
-      "fan_in": 1,
-      "fan_out": 2,
       "risk": 4
     },
     {
@@ -1037,7 +1040,7 @@
   ],
   "summary": {
     "files_with_history": 26,
-    "commits_counted": 43,
+    "commits_counted": 44,
     "authors": 2,
     "graph": "graph.json",
     "note": null

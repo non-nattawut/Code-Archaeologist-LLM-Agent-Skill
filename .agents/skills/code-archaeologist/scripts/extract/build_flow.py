@@ -63,6 +63,7 @@ def _save_json(path: str, obj) -> None:
         fh.write("\n")
 
 from taxonomy import INHERITANCE_LINKS, infer_layer, is_test_path, precision_of, ROUTE_DECORATOR_RE  # noqa: E402
+import doc_text  # noqa: E402  (the one doc rule, shared with every producer)
 import py_extract as px  # noqa: E402  (Python, via tree-sitter)
 from ids import SharedNames as FlowIds, bare  # noqa: E402  (one id rule for both maps)
 from js_ts_extract import find_js_files, extract_js_files, frontend_degraded   # noqa: E402
@@ -466,7 +467,7 @@ def analyze(roots: list[str]):
                     abstract_py.add(node_id)
                 routes = _route_of(m_decos)
                 is_endpoint = bool(routes) or layer == "controller" or any(ROUTE_DECORATOR_RE.search(d) for d in decos)
-                doc = px.docstring_of(m)
+                doc = doc_text.join(px.docstring_of(m))
                 code = px.text(m)
                 # `ast` walked decorators as part of the function but reported the
                 # source segment from `def` onward. Both are kept: `outer` for the
@@ -476,7 +477,7 @@ def analyze(roots: list[str]):
                     "id": node_id, "name": m_name, "cls": cls_name, "layer": layer,
                     "kind": "endpoint" if is_endpoint else "method",
                     "signature": px.signature(m),
-                    "doc": doc.strip().splitlines()[0] if doc.strip() else "",
+                    "doc": doc,
                     # A range opens at the first decorator (finding #6): what a node owns
                     # includes the decorators that route it, guard it or cache it.
                     "source": f"{rel}:{px.line(outer)}", "end": px.end_line(m),
@@ -491,7 +492,7 @@ def analyze(roots: list[str]):
             fn_name = px.def_name(fn)
             node_id = ids.id(fn_name, rel)
             func_nodes[fn_name] = fn_name
-            doc = px.docstring_of(fn)
+            doc = doc_text.join(px.docstring_of(fn))
             code = px.text(fn)
             # Flask's normal shape is @app.route on a module-level def, not on a
             # class method -- so a whole framework was invisible until this loop
@@ -502,7 +503,7 @@ def analyze(roots: list[str]):
                 "id": node_id, "name": fn_name, "cls": None,
                 "layer": "controller" if routes else "function",
                 "kind": "endpoint" if routes else "function", "signature": px.signature(fn),
-                "doc": doc.strip().splitlines()[0] if doc.strip() else "",
+                "doc": doc,
                 "source": f"{rel}:{px.line(outer)}", "end": px.end_line(fn),
                 "calls": [], "callers": [],
                 "hash": _hash(code), "code": code, "routes": routes,

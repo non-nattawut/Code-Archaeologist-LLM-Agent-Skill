@@ -138,7 +138,7 @@
       "kind": "module",
       "lang": "py",
       "source": "sample_src/api_flask/order_routes.py",
-      "doc": "Flask routes for the legacy orders API.\n\nTwo things in this file that no other sample exercises: Flask's normal shape is a\nroute decorator on a module-level `def` rather than a class method, and one handler\nserving several verbs through `methods=[...]`. Mounted under /legacy so it does not\ncompete with the FastAPI controller for the same paths."
+      "doc": "Flask routes for the legacy orders API. Two things in this file that no other sample exercises: Flask's normal shape is a route decorator on a module-level `def` rather than a class method, and one handler serving several verbs through `methods=[...]`. Mounted under /legacy so it does not compete with the FastAPI controller for the same paths."
     },
     {
       "id": "OrderService",
@@ -208,7 +208,7 @@
       "kind": "module",
       "lang": "py",
       "source": "sample_src/backend/tests/test_orders.py",
-      "doc": "Demo tests: both common Python styles, so the skill has real test code to classify.\n\nThese call the production classes directly, which is what gives the flow map its\ntest -> production edges \u2014 the ones `context.py` reports under \"Covered by\"."
+      "doc": "Demo tests: both common Python styles, so the skill has real test code to classify. These call the production classes directly, which is what gives the flow map its test -> production edges \u2014 the ones `context.py` reports under \"Covered by\"."
     },
     {
       "id": "TieredRate",

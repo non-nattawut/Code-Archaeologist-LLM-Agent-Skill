@@ -10,7 +10,7 @@ desc_source: docstring
 # createInvoice
 
 ## What it does
-token shapes are identical, so the two must cluster despite the new names.
+Deliberate copy-paste, so the duplicate pass has something to find: this is `createOrder` with every identifier renamed and nothing else changed. The token shapes are identical, so the two must cluster despite the new names.
 
 ## Signature
 `createInvoice()`

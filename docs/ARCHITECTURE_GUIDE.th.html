@@ -647,7 +647,7 @@
     <div class="section-eyebrow">สถาปัตยกรรมการทำงาน</div>
     <h2>Call Graph ระหว่าง Script &amp; ลำดับชั้นการทำงาน</h2>
     <p style="color: var(--ink-2); max-width: 90ch; margin-bottom: 24px;">
-      สำรวจ graph การเรียกระหว่าง script อย่างละเอียด Code Archaeologist ประกอบด้วย 28 script ที่แต่ละตัวทำงานเฉพาะทาง และคุยกันผ่าน contract ที่ deterministic, taxonomy ที่ใช้ร่วมกัน และ artifact บน filesystem
+      สำรวจ graph การเรียกระหว่าง script อย่างละเอียด Code Archaeologist ประกอบด้วย 29 script ที่แต่ละตัวทำงานเฉพาะทาง และคุยกันผ่าน contract ที่ deterministic, taxonomy ที่ใช้ร่วมกัน และ artifact บน filesystem
     </p>
 
     <div class="cg-tabs">
@@ -2589,6 +2589,20 @@ const SCRIPTS_DATA = [
     invariant: "node ID จะ bare เว้นแต่ชื่อนั้นถูก define ในไฟล์ตั้งแต่ 2 ไฟล์ขึ้นไป การ call ชื่อที่ใช้ร่วมกันจะ resolve ได้เฉพาะ definition ในไฟล์ของ caller เอง มิฉะนั้นถูก drop",
     cli: "Imported by builders and tests_map",
     callers: [{ name: "build_wiki.py", fn: "SharedNames" }, { name: "build_flow.py", fn: "SharedNames" }, { name: "tests_map.py", fn: "bare()" }],
+    callees: []
+  },
+  {
+    name: "doc_text.py",
+    cat: "core",
+    path: "scripts/core/doc_text.py",
+    role: "กฎเดียวที่ใช้แปลง doc comment ให้เป็น description บรรทัดเดียวของ node",
+    tech: "Shared Marker Stripping & Block Joining",
+    algorithm: "clean() ตัดขอบ block /** */ ออกก่อน แล้วตัด marker ต้นบรรทัดทั้ง //, ///, //!, * และ # จากนั้น join ทุกบรรทัดที่ไม่ว่างด้วย space เดียว ส่วน join() ทำแบบเดียวกันกับ docstring ของ Python ซึ่งไม่มี marker ให้ตัด และ xml=True จะกวาด tag HTML/XML ออกเพิ่ม ใช้เฉพาะภาษาที่เขียน doc เป็น XML (C#) หรือยืม HTML มาอย่าง JSDoc เท่านั้น เพราะที่อื่นการกวาด tag แยกไม่ออกระหว่าง tag กับ generic",
+    inputs: "ข้อความ comment block (เรียงจากใกล้ declaration ออกไป) หรือ docstring ดิบ",
+    outputs: "description ที่เป็นบรรทัดเดียวเสมอ",
+    invariant: "ทุก producer ต้องถามตัวนี้ และ doc เป็นบรรทัดเดียวเสมอ ส่วนการหา block ยังอยู่ที่ producer แต่ละตัว เพราะมีแต่มันที่รู้ว่า grammar ของตัวเองเรียก comment node ว่าอะไร",
+    cli: "Imported by langs_extract, js_ts_extract, build_wiki, build_flow",
+    callers: [{ name: "langs_extract.py", fn: "clean()" }, { name: "js_ts_extract.py", fn: "clean()" }, { name: "build_wiki.py", fn: "join()" }, { name: "build_flow.py", fn: "join()" }],
     callees: []
   },
   {

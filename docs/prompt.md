@@ -5892,3 +5892,229 @@ bare `@`. Amended with `git commit --amend -F -` and a heredoc, and force-pushed
 The lesson is the shell, not the message: this repo's CLAUDE.md warns about heredocs mangling
 backslash-continuations, and the mirror of it is that `@'...'@` only works in the PowerShell tool.
 Multi-line strings through Bash take a heredoc, and `-F -` is the safer way to hand git one.
+
+---
+
+## [150] 2026-09-16 — Where a method's description comes from
+
+**Prompt**
+> Methods
+>
+> * `fetchVersionControlList()` — One page of the versions uploaded through the system, filtered by the screen's criteria.
+>
+>
+> how each method or summary get describe
+
+**Response**
+Question only, no behavior change asked for. Traced the two renderers rather than guessing:
+
+- The pasted line is a **structure** vault note, `build_wiki.render_entity` (build_wiki.py:555):
+  `doc = f" - {m['doc']}" if m["doc"] else ""`. `m["doc"]` is the method's own doc comment and
+  nothing else -- no cache, no AI, no fallback. Class summary one level up is the same rule, else
+  `_No docstring provided._`.
+- The **flow** note is the three-rung ladder, `build_flow.resolve_descriptions` (build_flow.py:1576):
+  docstring -> cached AI summary while the source hash still matches -> deterministic
+  `Delegates to [[x]].` / `_No description available._`, with the winner written to the note's
+  front matter as `desc_source`.
+
+Told them how to check which rung applied for a given node (`context.py --id`, or the
+`desc_source:` line in `data/flow/notes/<id>.md`).
+
+**Follow-up: does it read Java `/** */`?** Yes -- and answering it properly turned up something
+worth recording. Ran `langs_extract` over a scratch Java file and a scratch C# file:
+
+- Java: `_doc_above` walks previous *named* siblings (blank lines invisible), stops at the first
+  non-comment, joins consecutive line comments, strips `/**`, trailing `*/` and leading `*`/`//`.
+  So `/** ... */`, `/* ... */` and a run of `//` are all equally "the doc"; there is no Javadoc
+  test. A comment separated from the declaration by code is correctly not its doc (verified: the
+  `gap()` case came back `""`).
+- But the tag block survives: `"... filtered by the screen's criteria. @param req the search
+  criteria @return one page of versions"`. C# is worse -- the `<[^>]+>` sweep deletes the
+  `<param>` tags and keeps their text, so it reads `"One page of the uploaded versions. the search
+  criteria one page"` with nothing marking where the description ended.
+
+That is a user-visible field in both graphs and both vaults, it moves every
+`tests/fixtures/langs/*/expected.json` doc assertion and the committed sample artifacts, and it
+also suppresses the AI summary (a documented node is never pending) -- a judgement call, so
+recorded as *Found while implementing* #38 in `docs/ROADMAP_PLAN.md` with three options and a
+recommendation (cut at the first tag line; not a first-sentence rule, which no other producer
+applies). Not fixed. Python and JS/TS are unaffected, both by accident: each keeps only the first
+line.
+
+---
+
+## [151] 2026-09-16 — One doc rule for every producer
+
+**Prompt**
+> can we make it same bihavior?
+>
+> since we not implement it as shared langs_extract
+
+**Response**
+Asked three questions first, because the target rule changes user-visible output. Answers:
+`langs_extract` is the standard for the gap rule *and* for how much is kept; Python still refuses
+`#` comments (docstring only).
+
+Flagged before building: "whole block joined" lands differently on a Python docstring than on a
+Java comment. Measured on the skill's own scripts -- 157 of 321 docstrings are multi-line, median
+72 -> 93 chars, worst 996 (`taxonomy.is_test_path`). Same tail a three-paragraph Javadoc already
+produces, so consistent, just verbose. Proceeded as chosen.
+
+**What was built.** `scripts/core/doc_text.py` -- `clean(blocks, xml=False)` and `join(text)`.
+Finding the block stays per-grammar (only the producer knows its comment node types); the cleaning
+is shared. `xml` is on for C#/JS-TS (XML and borrowed HTML) and off elsewhere, because `<[^>]+>`
+cannot tell a tag from a generic and `Vec<String>` in a Rust doc comment is not markup -- that
+distinction is new, and is why the two existing cleaners could be merged without regressing.
+`langs_extract` had **two** cleaners (`_doc_above` inline, `_clean_doc`) differing in exactly that:
+one stripped XML, the other stripped `#` and `//!`. Neither was a superset.
+
+- `langs_extract`: both cleaners now call it. `check_langs.py` 21/21 unchanged -> output-preserving.
+- `js_ts_extract._doc_above`: rewritten to the named-sibling walk, no adjacency test, whole block.
+- `build_wiki` / `build_flow`: Python docstrings go through `join()` instead of being cut at the
+  first line by each call site. `py_tree.docstring_of` itself untouched, so `check_py_oracle`'s
+  `ast` comparison still holds.
+
+**What it fixed, which I did not expect.** The old JS/TS rule walked to the *nearest* comment node
+and took its first line -- for a run of `//` lines that is the **last** line of the doc. Three of
+the sample's five JS/TS docs were published as sentence fragments ("token shapes are identical, so
+the two must cluster despite the new names."). Visible in the committed data diff.
+
+**Verification.** Sample unchanged at 25/23 and 53/36, grades C(73)/C(70), 4 risk findings each;
+`check_graph` 32 checks both maps; oracle 0 disagreements; `check_docs` OK. Added **r80**
+(`80/80`), and proved it discriminates by monkeypatching each half of the old behavior back in
+(scratch script, no repo mutation): old JS rule -> caught on `fetchList`, old Python rule -> caught
+on `fetch_list`. Did **not** use `git stash` for that proof -- see below.
+
+**Concurrent writer in the same tree.** Partway through, another process began rewriting this
+working tree: `py_extract.py` -> `py_tree.py` (`px` -> `pt`) plus `metrics.py`,
+`check_py_oracle.py`, `README.md`, `CLAUDE.md`, `PRESENTATION.html` and both architecture guides,
+with mtimes seconds apart. My `git stash push/pop` (used to check r80 against the old code) ran
+inside that window; the stash reflog is empty and the rename is intact, so it did no damage, but I
+stopped using stash immediately. The guides were then reverted under me **twice** -- once losing
+the `doc_text.py` card, once losing the 28 -> 29 count -- and one write failed outright with
+`OSError: [Errno 22]` (file locked). Re-applied with read-verify-after-write; both guides now parse
+as classic scripts, carry one card each, keep `fc-box`/`fc-cmd-chip`/`fc-phase` parity at
+145/14/20, and say 29. Told the user, because two agents editing one tree will lose work silently.
+
+**Not fixed:** finding #38 (a Javadoc tag block is kept as prose) stands -- "same as
+`langs_extract`" means tags are kept, and cutting them was the option not chosen.
+
+
+## [152] 2026-09-16 — Why the three readers are three, and a rename that was reverted
+
+**Prompt**
+> tell me why we cannot merge all ts_js/py extract to unify langs_extract again?
+>
+> make it concise
+>
+> so you mena js_ts do same as langs_extract
+> but py_extract do the different things?
+>
+> so you just split to sj_ts_extract because
+>
+> 1. old skil strucutre
+> 2. reduce code line from unify script
+>
+> py_extract: different kind of thing. Not a producer at all — it's a helper library of tree
+> functions. The Python extraction lives in the consumers: 72 px.* call sites in build_flow,
+> 28 in build_wiki, 21 in metrics.
+>
+> so rename it it confuse me
+>
+> also rename this in other file
+>
+> so it would be better to unify it since now we use babel for extract js_ts???
+>
+> so can we move py_tree.py out of extract directory? or it is helper of extracting process
+>
+> it is already finish check it again
+>
+> then move py_tree out from extract since it is helper of tree building right?
+>
+> please rename it more better py_tree still confuse it is apply to python only???
+>
+> no answer me first what this script use to do what
+>
+> so why it is python only? python need special treat for better graph/tree create?
+>
+> so it is becuase python is not part of langs_extract?
+>
+> so why we dont use tree-sitter to extract python same as other
+>
+> I still confuse why it need to use py_tree since we can extract python from langs extract too
+>
+> ok then we can unify py_tree, js_ts -> langs_extract right?
+>
+> why js_ts cannot unify
+>
+> tell me conise in list
+>
+> so it is becuase of js/ts behavior of variable type, js/ts being frontend so it cannot do the
+> same as backend/service do
+>
+> ah, so it is also becuase of JS/TS useally send answer/function/something trough parameter os
+> it cannot read same apprach as other
+>
+> commit doc_text and sample data, revert the rename, do the Python fold
+
+**Response**
+A long question-and-answer turn that ended in a decision, plus one rename made and unmade.
+
+**The question, answered with measurements rather than prose.** The repeated ask was "why three
+readers, not one". Three separate answers, each measured rather than asserted:
+
+- `py_extract.py` is not a producer at all. `langs_extract` and `js_ts_extract` expose
+  `find_*_files` + `extract_*_files`; `py_extract` exposes `parse`, `read_source` and ~25 tree
+  helpers, and the Python extraction lives in the consumers -- 72 `px.*` call sites in
+  `build_flow`, 27 in `build_wiki`, 21 in `metrics`. Measured per function: 411 lines of
+  `build_flow` and 152 of `build_wiki` touch `px.`; `metrics`' 105 are mostly the parse itself,
+  and `metrics.TABLES` already has a `python` row like the other seventeen.
+- Python is not special. Ruby, PHP and Elixir are already `SHAPES` rows and are as dynamic as
+  Python is; the one genuine difference is that Python's doc is the first *statement* of the body
+  rather than a comment above the declaration, which is exactly why `doc_text` has both `join()`
+  and `clean()`. Python is outside `langs_extract` because there was never a Python producer to
+  move in, not because of anything about the language.
+- JS/TS cannot fold. Measured: **765 of its 1,567 lines** have no `SPEC`/`SHAPES` analogue --
+  344 whole-corpus pre-pass (axios instances, import resolution, tsconfig `paths`, Next.js
+  conventions), 129 JSX (`renders` / `passes`), 128 type following (hooks, `createContext<T>`,
+  interfaces), 112 Express/Nest route shapes, 52 re-exports and object literals. The structural
+  reason is that `langs_extract` reads one file at a time and JS/TS answers are cross-file: the
+  type of `const api = createApiInstance()` is in another file, and reading per-file gave 0 HTTP
+  calls on a real Next.js frontend.
+
+Two premises of the user's were corrected: Babel is gone (deleted in phase 2, `fd9c7d8`), so
+"now we use babel" was backwards; and "we don't use tree-sitter for Python" is false -- Python has
+been tree-sitter since phase 2 and `ast` survives only as `check_py_oracle`'s oracle.
+
+**The rename, made and then reverted.** Asked to rename the confusing file, renamed
+`py_extract.py` -> `py_tree.py` with the alias `px` -> `pt`, across the three consumers, both
+repo tools and six docs, plus a CLAUDE.md paragraph stating the producer/helper asymmetry. All
+checks passed. The user then chose the fold instead, which deletes the file, so the rename was
+reverted in full -- and the sample data came out byte-identical before and after the revert, which
+is the proof after the fact that the rename never touched output.
+
+**A verification that went wrong, and why.** The first attempt to prove the rename output-neutral
+rebuilt the sample and found 15 changed data files. Two false leads followed. First a clean-HEAD
+`git worktree` was built -- invalid, because `vendor/` is git-ignored, so that build degraded to
+"frontend skipped" (12/10 and 25/17 nodes) rather than comparing anything. Then a `git stash push`
+with a *directory* pathspec swept the previous session's uncommitted `doc_text` work into the
+stash along with the rename, so the "without rename" build was really "without rename *and*
+without doc_text", and the difference looked like the rename's. Only diffing the non-alias hunks
+per file showed the truth: every change in `build_flow` / `build_wiki` beyond `import` and `px.`
+was a `doc_text` line that predated this session. The lesson is the one CLAUDE.md already states
+about probing the explorer -- construct the comparison so it can only differ in the thing being
+tested, and check that assumption before believing the result.
+
+**What was found in the tree.** An earlier session had left the `doc_text` refactor uncommitted:
+untracked `scripts/core/doc_text.py` plus edits to `js_ts_extract`, `langs_extract`, `build_wiki`,
+`build_flow` and `check_regressions` (r80). It was complete -- documented in CLAUDE.md, README and
+both architecture guides, logged as entries 150 and 151, with ROADMAP finding 38 recording the
+open Javadoc-tag question -- except that the committed sample data had never been regenerated.
+Regenerated it here: every pinned number holds (structure 25/23 grade C, flow 53/36 grade C, 16
+endpoints, 4+4 risk findings, 1 duplicate cluster / 4 lines, `stale: false`), with
+`check_docs` OK, `check_py_oracle` 0 disagreements, `check_graph` 32+32 OK, `check_langs` 21/21
+and `check_regressions` 80/80.
+
+This commit is therefore the previous session's work plus its data, with the rename absent. The
+Python fold -- making Python a `langs_extract` row and deleting `py_extract.py` -- is the next
+piece of work and is not in it.

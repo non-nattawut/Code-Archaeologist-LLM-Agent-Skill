@@ -2550,7 +2550,65 @@ quoted a docstring, not the code, which is item 3 and the reason it happened).
 The sample did not move (25 nodes / 23 links, grades C(73) / C(70), same orphans): none of its
 files calls across entities within one file, and none of its names hits the shortened layer words.
 
+### 38. A doc comment's tag block is kept as prose — 2026-09-16, needs a decision
+
+**What.** `langs_extract._doc_above` joins a whole comment block into one line after stripping
+only the comment markers, so a Javadoc's tag section lands in the node's `doc` alongside the
+description. Measured on a scratch file:
+
+```java
+/**
+ * One page of the versions uploaded through the system,
+ * filtered by the screen's criteria.
+ *
+ * @param req the search criteria
+ * @return one page of versions
+ */
+```
+
+-> `"One page of the versions uploaded through the system, filtered by the screen's criteria. @param req the search criteria @return one page of versions"`
+
+C# is the same shape through a different route: `_doc_above` strips `<summary>` / `<remarks>` /
+`<para>` by name and then every remaining tag with `<[^>]+>`, which deletes the `<param>` and
+`<returns>` *tags* and keeps their text, so `/// <summary>One page of the uploaded
+versions.</summary> /// <param name="req">the search criteria</param> /// <returns>one
+page</returns>` -> `"One page of the uploaded versions. the search criteria one page"`. The
+`<param>` case is worse than Java's: the joined text reads like part of the sentence, with nothing
+marking where the description ended.
+
+That `doc` is the node's `doc` in both graphs, the `— <text>` after a method in a structure vault
+note (`build_wiki.render_entity`), and the first rung of `build_flow.resolve_descriptions`, so a
+tag block also **suppresses** the AI summary that would otherwise be written for that node: a
+documented method is never pending. Python is unaffected (`docstring_of` -> `.splitlines()[0]`
+keeps the first line only), and so is JS/TS (`js_ts_extract._doc_above` returns the first non-empty
+line and would drop a `@param` block as a side effect).
+
+**Why it is not just a fix.** Three defensible answers and they disagree about what a `doc` is:
+
+1. **Cut at the first tag line** (`@param`, `@return`, `@throws`, `<param>`, `<returns>`, ...) and
+   keep the description. Matches what Javadoc itself calls the description, and matches what
+   Python and JS/TS already do by accident.
+2. **Keep only the first sentence**, which is Javadoc's own summary rule and would also fix a long
+   multi-paragraph description that is currently joined whole.
+3. **Leave it**, on the grounds that a tag block is real documentation and truncating it loses
+   what the author wrote.
+
+It changes a user-visible field in both graphs and both vaults, so it is not a silent internal
+fix; the pinned expectations in `tests/fixtures/langs/*/expected.json` assert every node's doc and
+would move, and the committed `sample_src` artifacts would need regenerating. It also shifts the
+pending-description count on any documented repository, which is the one place cost is spent.
+
+**Recommendation:** option 1, and only option 1 -- cut the block at the first tag line in the
+Java/C#/Kotlin/Groovy/Scala/Swift/Dart/PHP families, leaving the description untouched. Option 2
+is a second, independent truncation rule that no other producer applies, and applying it here
+alone would make Java's doc shorter than Python's for the same comment. Neither should touch the
+tag text in a *structure* note's class summary without the same reasoning.
+
+**Not fixed, not urgent:** nothing is wrong -- the text is the author's own -- it just reads as a
+run-on where a description was expected.
+
 ---
+
 ---
 
 ## Open concerns — review these before implementing

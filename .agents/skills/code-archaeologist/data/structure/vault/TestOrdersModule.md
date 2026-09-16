@@ -10,10 +10,7 @@ entry:
 # TestOrdersModule
 
 ## Summary
-Demo tests: both common Python styles, so the skill has real test code to classify.
-
-These call the production classes directly, which is what gives the flow map its
-test -> production edges — the ones `context.py` reports under "Covered by".
+Demo tests: both common Python styles, so the skill has real test code to classify. These call the production classes directly, which is what gives the flow map its test -> production edges — the ones `context.py` reports under "Covered by".
 
 ## Bases
 _None._

@@ -47,6 +47,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from paths import DATA_DIR  # noqa: E402,F401  (puts sibling script dirs on sys.path)
 
+import doc_text  # noqa: E402  (the one doc-comment rule, shared with every producer)
 import grammars  # noqa: E402
 
 LANG_EXTS = {".java": "java", ".go": "go", ".cs": "csharp",
@@ -297,19 +298,7 @@ def _doc_above(node, src: bytes, lang: str) -> str:
     while prev is not None and prev.type in SPEC[lang]["comment"]:
         comments.append(_text(prev, src))
         prev = prev.prev_named_sibling
-    if not comments:
-        return ""
-    lines: list[str] = []
-    for block in reversed(comments):
-        block = re.sub(r"^/\*+|\*+/$", "", block.strip())
-        for raw in block.splitlines():
-            raw = raw.strip()
-            raw = re.sub(r"^(?://+/?|\*+)\s?", "", raw)
-            raw = re.sub(r"</?(?:summary|remarks|para)>", "", raw)     # C# XML doc
-            raw = re.sub(r"<[^>]+>", "", raw)
-            if raw.strip():
-                lines.append(raw.strip())
-    return " ".join(lines).strip()
+    return doc_text.clean(comments, xml=True)
 
 
 def _walk(node, types: set[str], stop: set[str] = frozenset()):
@@ -1571,14 +1560,9 @@ def _glocals(body_text: str, lang: str) -> dict[str, str]:
 
 
 def _clean_doc(comments: list[str]) -> str:
-    lines: list[str] = []
-    for block in reversed(comments):
-        block = re.sub(r"^/\*+|\*+/$", "", block.strip())
-        for raw in block.splitlines():
-            raw = re.sub(r"^(?://+[/!]?|\*+|#+)\s?", "", raw.strip())
-            if raw.strip():
-                lines.append(raw.strip())
-    return " ".join(lines).strip()
+    # No `xml`: these grammars write no XML doc, and the tag sweep would eat a
+    # generic -- `Vec<String>` in a Rust doc comment is not markup.
+    return doc_text.clean(comments)
 
 
 def _gdoc(node, src: bytes, lang: str) -> str:

@@ -672,7 +672,7 @@
         <div>
           <div class="flow-banner-title">Two phases, and one hinge between them</div>
           <div class="flow-banner-desc">
-            Every one of the 28 scripts sits on exactly one side of a single line: <strong>BUILD</strong> parses source and
+            Every one of the 29 scripts sits on exactly one side of a single line: <strong>BUILD</strong> parses source and
             rewrites artifacts; <strong>QUERY</strong> reads those artifacts and <em>never opens a source file</em>. That second
             half is the Zero-RAG guarantee &mdash; the reason an agent can answer architecture questions in a fixed-size context
             instead of reading the repository. <code>check</code> is the hinge: the only command that reads source and writes nothing.
@@ -1404,6 +1404,20 @@ const SCRIPTS_DATA = [
     invariant: "Node IDs are bare unless defined in 2+ files. Call to shared name resolves only to caller's own file or dropped.",
     cli: "Imported by builders and tests_map",
     callers: [{ name: "build_wiki.py", fn: "SharedNames" }, { name: "build_flow.py", fn: "SharedNames" }, { name: "tests_map.py", fn: "bare()" }],
+    callees: []
+  },
+  {
+    name: "doc_text.py",
+    cat: "core",
+    path: "scripts/core/doc_text.py",
+    role: "The one rule for turning a doc comment into a node's one-line description.",
+    tech: "Shared Marker Stripping & Block Joining",
+    algorithm: "clean() strips /** */ block edges, then per-line //, ///, //!, * and # markers, and joins every non-empty line with a space. join() does the same for a Python docstring, which has no markers. xml=True additionally sweeps HTML/XML tags, and is used only where the doc convention is XML (C#) or borrowed HTML (JSDoc) -- elsewhere the sweep cannot tell a tag from a generic.",
+    inputs: "Comment block texts (innermost first), or a raw docstring",
+    outputs: "Exactly one line of description text",
+    invariant: "Every producer asks this; a doc is always one line. Finding the block stays per-grammar, because only the producer knows its comment node types.",
+    cli: "Imported by langs_extract, js_ts_extract, build_wiki, build_flow",
+    callers: [{ name: "langs_extract.py", fn: "clean()" }, { name: "js_ts_extract.py", fn: "clean()" }, { name: "build_wiki.py", fn: "join()" }, { name: "build_flow.py", fn: "join()" }],
     callees: []
   },
   {

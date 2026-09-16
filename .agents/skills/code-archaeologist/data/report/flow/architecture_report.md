@@ -151,10 +151,10 @@ _None._
 | `getOrderStatus` | 5 | 0 | 1 | 10 | non-nattawut |
 | `OrderRepository.get` | 3 | 2 | 0 | 9 | non-nattawut |
 | `InvoiceService.Issue` | 2 | 1 | 2 | 8 | non-nattawut |
+| `OrderWorkflow.place` | 2 | 1 | 2 | 8 | Nattawut Rodthong |
 | `PricingRule.price` | 2 | 3 | 0 | 8 | Nattawut Rodthong |
 | `InvoiceService.Find` | 2 | 1 | 1 | 6 | non-nattawut |
 | `InvoiceService.Total(InvoiceRequest)` | 2 | 1 | 1 | 6 | non-nattawut |
-| `OrderController.create_order` | 2 | 1 | 1 | 6 | Nattawut Rodthong |
 
 ## Debt — 2 marker(s) (FIXME 1, TODO 1), 5 dead node(s)
 

@@ -2062,6 +2062,81 @@ def r79_layer_from_the_folder():
         return f"the builder did not pass the path to infer_layer: {got}"
 
 
+def r80_one_doc_rule():
+    """Each producer answered "what documents this node" differently. JS/TS refused a comment
+    that was not on the line directly above and kept one line of the *nearest* block, so a doc
+    written as a run of `//` was published as its last line -- three of the sample's five JS/TS
+    docs were sentence fragments. Python was truncated at its first line. `langs_extract`'s rule
+    is now the only rule (`core/doc_text.py`): the block above, blank lines invisible, stop at
+    code, consecutive blocks joined, everything on one line."""
+    d = _tree({
+        "run.ts": (
+            "// Reads one page of versions,\n"
+            "// filtered by the screen's criteria.\n"
+            "export function fetchList() { return 1; }\n"
+            "\n"
+            "// Doc with a blank-line gap.\n"
+            "\n"
+            "export function gapped() { return 2; }\n"
+            "\n"
+            "// Not this one.\n"
+            "const sep = 0;\n"
+            "export function separated() { return sep; }\n"),
+        "Svc.java": (
+            "public class Svc {\n"
+            "    /** Reads one page,\n"
+            "     * filtered by the criteria. */\n"
+            "\n"
+            "    public int fetch() { return 1; }\n"
+            "\n"
+            "    /** Not this one. */\n"
+            "    private int sep = 0;\n"
+            "    public int separated() { return sep; }\n"
+            "}\n"),
+        "svc.py": (
+            '"""Module doc.\n'
+            '\n'
+            'Second paragraph.\n'
+            '"""\n'
+            '\n'
+            '\n'
+            'def fetch_list():\n'
+            '    """Reads one page,\n'
+            '\n'
+            '    filtered by the criteria.\n'
+            '    """\n'
+            '    return 1\n'
+            '\n'
+            '\n'
+            '# a plain comment, which is not documentation in Python\n'
+            'def commented():\n'
+            '    return 2\n'),
+    })
+    methods, _ = _flow(d)
+    want = {
+        # a run of `//` is one doc, joined -- not its last line
+        "fetchList": "Reads one page of versions, filtered by the screen's criteria.",
+        # a blank line no longer hides a JS/TS doc, exactly as in the Java family
+        "gapped": "Doc with a blank-line gap.",
+        # ...but code between still stops the walk, in both
+        "separated": "",
+        "Svc.fetch": "Reads one page, filtered by the criteria.",
+        "Svc.separated": "",
+        # a Python docstring is joined whole, not cut at its first line
+        "fetch_list": "Reads one page, filtered by the criteria.",
+        # and a `#` comment above a def is still not a docstring
+        "commented": "",
+    }
+    got = {nid: (methods.get(nid) or {}).get("doc", "<missing node>") for nid in want}
+    if got != want:
+        return f"doc(s) wrong (got, want): { {k: (got[k], want[k]) for k in want if got[k] != want[k]} }"
+    # The structure map reads the same rule, and its module summary is one line too.
+    nodes, _edges = _structure(d)
+    mod = next((n for n in nodes.values() if n.get("kind") == "module" and n.get("lang") == "py"), None)
+    if mod is None or mod.get("doc") != "Module doc. Second paragraph.":
+        return f"module summary not joined: {mod and mod.get('doc')!r}"
+
+
 CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_append,
          r05_duplicates_declarations, r06_orphan_guard, r07_flask_routes,
          r08_missing_parser_is_visible, r09_no_absolute_paths, r10_brief_agrees_with_check,
@@ -2091,7 +2166,7 @@ CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_app
          r71_pattern_variables, r72_typed_hook_fields, r73_type_refs_are_references,
          r74_extended_classes_are_used, r75_structure_entry_points, r76_type_position_imports,
          r77_same_file_references, r78_layer_words_end_where_the_word_ends,
-         r79_layer_from_the_folder]
+         r79_layer_from_the_folder, r80_one_doc_rule]
 
 
 def main() -> int:

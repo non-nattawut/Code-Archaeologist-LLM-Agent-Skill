@@ -11,7 +11,7 @@ desc_source: docstring
 # getOrderStatus
 
 ## What it does
-to its mount point - so this only links via the unique-suffix fallback.
+Reads the status through the Express router, which registers the path relative to its mount point - so this only links via the unique-suffix fallback.
 
 ## Signature
 `getOrderStatus()`

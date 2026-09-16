@@ -337,6 +337,7 @@ architecture questions are *about*: scope and call hierarchy.
 │   │   ├── manifest.py     what counts as a source file + freshness hashes
 │   │   ├── grammars.py     which tree-sitter grammars are installed, and a parser for each
 │   │   ├── ids.py          node ids: bare, or file-qualified where two files share a name
+│   │   ├── doc_text.py     the one rule for turning a doc comment into a node's description
 │   │   └── console.py      stdout that survives a non-UTF-8 console
 │   │
 │   ├── extract/          source -> graphs + notes

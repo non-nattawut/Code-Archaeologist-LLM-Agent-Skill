@@ -44,6 +44,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from paths import SKILL_ROOT  # noqa: E402  (also puts sibling script dirs on sys.path)
 
+import doc_text  # noqa: E402  (the one doc-comment rule, shared with every producer)
 import grammars  # noqa: E402
 
 JS_EXTS = (".js", ".jsx", ".ts", ".tsx")
@@ -114,36 +115,30 @@ def _named(node, *types):
 
 
 def _doc_above(node) -> str:
-    """First line of the comment directly above `node`, or "".
+    """The comment block above `node`, read exactly as `langs_extract` reads one.
 
-    Babel hands the first statement in a file *every* comment that precedes it,
-    which is how a file header once became the summary of whichever symbol
-    happened to be declared first. Its fix was an adjacency test, and this keeps
-    it: only a comment ending on the previous line counts, and only the last one
-    of a run, which is the immediately preceding sibling.
+    Walks previous *named* siblings so blank lines are invisible, stops at the
+    first non-comment -- a comment separated from the declaration by code is not
+    its doc -- and hands every consecutive block to `doc_text.clean`, which joins
+    the lot into one line. That is the one rule now, so the same comment gets the
+    same answer in a .ts file as it does in a .java one.
+
+    What this gave up, deliberately: Babel hands the first statement in a file
+    *every* comment that precedes it, which is how a file header once became the
+    summary of whichever symbol was declared first, and the fix was an adjacency
+    test -- only a comment ending on the previous line counted. The Java family
+    never needed one because `package` and `import` sit between a header and the
+    first declaration, and a JS/TS file's own imports do that job in practice. A
+    header in a file that imports nothing is now read as the first declaration's
+    doc, which is the price of one rule.
     """
-    prev = node.prev_sibling
-    while prev is not None and prev.type not in ("comment",):
-        if prev.is_named or _text(prev).strip():
-            return ""
-        prev = prev.prev_sibling
-    if prev is None or prev.end_point[0] + 1 != _line(node) - 1:
-        return ""
-    raw = _text(prev)
-    if raw.startswith("//"):
-        body = raw[2:]
-    elif raw.startswith("/*"):
-        body = raw[2:-2] if raw.endswith("*/") else raw[2:]
-    else:
-        body = raw
-    for line in body.split("\n"):
-        cleaned = line.lstrip()
-        if cleaned.startswith("*"):
-            cleaned = cleaned[1:]
-        cleaned = cleaned.strip()
-        if cleaned:
-            return cleaned
-    return ""
+    comments = []
+    prev = node.prev_named_sibling
+    while prev is not None and prev.type == "comment":
+        comments.append(_text(prev))
+        prev = prev.prev_named_sibling
+    # `xml`: JSDoc borrowed Javadoc's HTML, so `<p>` is markup here as it is there.
+    return doc_text.clean(comments, xml=True)
 
 
 def _decorators_of(node) -> list:

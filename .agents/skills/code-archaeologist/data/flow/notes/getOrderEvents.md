@@ -11,7 +11,7 @@ desc_source: docstring
 # getOrderEvents
 
 ## What it does
-match rather than the unique-suffix fallback that getOrderStatus needs.
+Reads an order's event history from the Go service. The Go router registers this path exactly, so the cross-stack edge comes from an exact (METHOD, path) match rather than the unique-suffix fallback that getOrderStatus needs.
 
 ## Signature
 `getOrderEvents()`

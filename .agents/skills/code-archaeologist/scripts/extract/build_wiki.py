@@ -31,6 +31,7 @@ TEMPLATE_PATH = os.path.join(TEMPLATES_DIR, "wiki_page_template.md")
 
 from taxonomy import container_entry, decoration_term, infer_layer, is_test_path  # noqa: E402
 import console  # noqa: E402  (stdout must survive a non-UTF-8 console)
+import doc_text  # noqa: E402  (the one doc rule, shared with every producer)
 from js_ts_extract import alias_targets, find_js_files, extract_js_files, frontend_degraded  # noqa: E402  (frontend, degrades to a no-op)
 import py_extract as px  # noqa: E402  (Python, via tree-sitter)
 from ids import SharedNames  # noqa: E402  (one id rule for both maps)
@@ -161,7 +162,7 @@ def _extract_from_tree(root, source, rel, entities):
         else:
             module_funcs.append({
                 "name": px.def_name(node),
-                "doc": px.docstring_of(node).strip().splitlines()[0:1],
+                "doc": doc_text.join(px.docstring_of(node)),
                 "node": node,
             })
 
@@ -173,8 +174,8 @@ def _extract_from_tree(root, source, rel, entities):
             "source": rel,
             "bases": [],
             "decorators": [],
-            "doc": _module_docstring(root).strip(),
-            "methods": [{"name": f["name"], "doc": (f["doc"][0] if f["doc"] else "")}
+            "doc": doc_text.join(_module_docstring(root)),
+            "methods": [{"name": f["name"], "doc": f["doc"]}
                         for f in module_funcs],
             "imports": sorted(imports),
             "lang": "py",
@@ -233,9 +234,7 @@ def _class_entity(node, decorator_nodes, rel: str, imports: set[str], source: st
     methods = []
     abstract = False
     for _decs, item in px.defs_in(px.body_of(node)):
-        doc = px.docstring_of(item)
-        first = doc.strip().splitlines()[0] if doc.strip() else ""
-        methods.append({"name": px.def_name(item), "doc": first})
+        methods.append({"name": px.def_name(item), "doc": doc_text.join(px.docstring_of(item))})
         abstract = abstract or any(_name_of(d).split(".")[-1] == "abstractmethod" for d in _decs)
     base_names = {b.split(".")[-1] for b in bases}
     # Python states it by convention: a `Protocol` is an interface, an `ABC` or a class with
@@ -249,7 +248,7 @@ def _class_entity(node, decorator_nodes, rel: str, imports: set[str], source: st
         "line": px.line(node.parent if decorator_nodes else node), "end": px.end_line(node),
         "bases": bases,
         "decorators": decorators,
-        "doc": px.docstring_of(node).strip(),
+        "doc": doc_text.join(px.docstring_of(node)),
         "methods": methods,
         "imports": sorted(imports),
         "lang": "py",
