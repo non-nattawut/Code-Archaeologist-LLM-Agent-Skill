@@ -6378,3 +6378,93 @@ Rebuilt the committed example data (`both` + `report` against `sample_src`): 25/
 expected block, and the only diff outside the template is the same five lines inside
 `data/explorer.html`. `tools/check_docs.py` OK; `node bin/cli.js --harness claude --self-test`
 OK, including "Explorer is fully offline".
+
+## [158] 2026-09-16 — The notation gets a key
+
+**Prompt**
+> I understand dash line of frontend -> service controller
+>
+> but what dashline in frontend -> frontend do
+>
+> please add a small button that will show modal to explain
+>
+> 1. abbrevation
+> 2. something like these solid line and dashline
+> 3. other that you think it should explain
+>
+> (with a Flowchart screenshot: `ProjectModal -> createSetdatProject` solid, and two pink
+> dashed arrows into `SetdatRestController.*`)
+
+**Response**
+
+**The answer to the question first.** Both dashed lines in that screenshot are `http`, and
+neither is front-end to front-end: `SetdatRestController.getN...` carries a pink bar, and pink
+is the controller/endpoint layer, so those arrows are the frontend call reaching its backend
+route handler. What *would* be a dashed front-end-to-front-end line is one of two others, and
+they are a different colour: `renders` (lavender, dotted) when a component's JSX draws another,
+and `passes` (sky, dash-dot) when a function is handed over as a callback or a prop. There are
+three more: `implements` / `extends` (long-dashed) and `overrides` (short-dashed), all sand or
+light grey. Six dash patterns in one page, which is exactly why the request is a good one.
+
+**What was built.** `#keyOverlay` in `templates/viewer.html`, opened by a `?` in the header or
+by pressing `?`, with seven sections: the two maps, links (a swatch per type), node colour by
+layer, node shape by class kind, badges and abbreviations, precision markers, views and toggles.
+
+Three decisions worth recording:
+
+1. **The swatches are drawn from the canvas's own accessors** —
+   `Graph.linkColor()({type})` and `Graph.linkLineDash()({type})`, with the highlight row
+   probing through `highlightLinks.add(probe)` — so the key cannot drift from the screen. That
+   is the whole reason it is generated rather than written as static markup. The one hand-kept
+   thing is the *list* of types and layers, so CLAUDE.md now says a new one needs its `LINK_KEY`
+   / `LAYER_KEY` line in the same commit, beside the existing `LAYER_COLORS` rule.
+2. **Counts come from `EDGES` and `nodes`**, so each row says `4 here` or `none here` for the
+   active map. That is what actually answers "what is *this* line" — on the flow map
+   `references`, `extends` and `overrides` are greyed out as absent, and switching to Structure
+   flips it. It also means the counts follow the Tests toggle (27 `calls`, not 29), which is
+   consistent with the status bar and with the house rule that nothing reads `GRAPH.edges`.
+3. **It lives in the header, not the toolbar.** The toolbar's own documented rule is that a new
+   control goes in the `⋯` menu unless it is used on nearly every visit; a legend is neither
+   constant nor a view control, and the row has ~44px to spare only above the 1020px floor.
+   The header has no such budget. `#mapSub` got `flex: 1` so the grade pill and the button both
+   sit hard right even when the pill is empty (`.pill:empty { display: none }` would otherwise
+   have dropped the button back to the middle).
+
+Two smaller calls. `legible()` raises a swatch's alpha to a 0.6 floor: `calls` is
+`rgba(139,152,173,.16)`, tuned for hundreds of overlapping lines on canvas and completely
+invisible as one 80px rule. The hue and the dash — the two things that identify a link — are
+untouched. And `PRECISION_CAVEAT` is mirrored from `taxonomy.py` the way `PRECISION_NOTES`
+already was, reworded `edge` -> `link` because the explorer says "link" everywhere else.
+
+Escape needed a real fix rather than a new listener: the existing handler would have closed the
+overlay *and* cleared the selection, because both listen on `window` and `stopPropagation` does
+not stop a sibling listener on the same target. So that handler now owns both cases — search
+focused returns early (so `?` types instead of opening the key), then `/`, then `?`, then
+Escape closing the overlay and stopping there.
+
+**Verified in the browser** on the built page, at 1440x900 and again at the documented 1020px
+floor with both rails at their minimum:
+
+- opens from the button and from `?`; closes on Escape, the × and a backdrop click; a click
+  inside does not close it
+- Escape with the key open keeps the selection (`EventStore.List`); a second Escape clears it,
+  as before
+- `?` typed into the search box does not open it; `/` still focuses search
+- 47 rows, 9 swatches, the body scrolls and the page does not; the box is 920x844 at 1440x900
+  and 920x704 at 1020x760, fully on screen both times
+- link rows report `calls 27`, `http 4`, `renders 1`, `implements 2` on the flow map and
+  `references 15`, `implements 2` on structure, with the rest greyed — and the dash arrays read
+  back as the accessors' own (`4 3`, `1 3`, `6 2 1 2`, `6 3`, `2 3`)
+- the header does not clip with a 400-character title, and the button stays at x=1020 with the
+  grade pill emptied
+- the folder-legend cap from entry 157 still holds (132px box, 1093px scrollHeight)
+- no console errors on load
+
+Checks: the inline script parses as a **classic** script via `new vm.Script` (not `node
+--check`, which would accept top-level `return`); `tools/check_docs.py` OK; `node bin/cli.js
+--harness claude --self-test` OK including "Explorer is fully offline"; sample rebuilt to the
+same 25/23, 53/36, C(73)/C(70).
+
+Docs in the same commit: CLAUDE.md gains the overlay in *Where the front-end lives*, the
+`LINK_KEY` / `LAYER_KEY` rule in *Colour rules*, and the "one overlay other than the toolbar
+menu" line in *Layout rules*; README's explorer section gains a **Header** bullet.

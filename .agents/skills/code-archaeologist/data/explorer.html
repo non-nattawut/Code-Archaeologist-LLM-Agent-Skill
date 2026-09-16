@@ -60,8 +60,15 @@
   .brand b { letter-spacing: .04em; font-size: 12px; font-weight: 500; color: var(--bright);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1; }
   /* One line, always: the header is a fixed 44px and must never clip its own text. */
-  #mapSub { align-self: center; min-width: 0; padding-left: 16px; color: var(--muted);
+  #mapSub { align-self: center; flex: 1; min-width: 0; padding-left: 16px; color: var(--muted);
     font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* The key to the notation. It sits in the header, not the toolbar: it explains the whole
+     page rather than the current view, and the toolbar has no width to spare -- its own rule
+     is that a new control goes in the overflow menu. #mapSub eats the slack, so this stays
+     hard right whether or not the grade pill has anything to say. */
+  #keyBtn { flex: none; width: 44px; border-left: 1px solid var(--border); color: var(--muted);
+    font-size: 13px; }
+  #keyBtn:hover, #keyBtn.on { color: var(--accent); }
 
   .health { padding: 16px; border-bottom: 1px solid var(--border); }
   .health .score { font-size: 30px; font-weight: 700; line-height: 1; color: var(--bright);
@@ -193,6 +200,40 @@
   .menu-toggles:empty { display: none; }
   .menu-toggles { border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 4px; }
   .menu label { display: flex; border-left: none; padding: 6px 12px; }
+
+  /* The legend. A dashed line could be any of four relations and `int`/`ext` mean nothing
+     until someone says so, so the notation gets a key. It is an overlay, not a pane, so its
+     one scroller does not break "one scroll region per pane". */
+  #keyOverlay { position: fixed; inset: 0; z-index: 60; padding: 28px;
+    background: rgba(4,5,7,.74); display: flex; align-items: center; justify-content: center; }
+  #keyOverlay[hidden] { display: none; }
+  #keyBox { display: flex; flex-direction: column; width: min(920px, 100%); max-height: 100%;
+    background: var(--panel); border: 1px solid var(--border); }
+  .key-head { display: flex; align-items: baseline; gap: 12px; flex: none; padding: 12px 16px;
+    border-bottom: 1px solid var(--border); }
+  .key-head b { color: var(--bright); font-weight: 500; font-size: 10px; letter-spacing: .14em;
+    text-transform: uppercase; }
+  .key-head .sub { color: var(--dim); font-size: 11px; }
+  #keyClose { margin-left: auto; color: var(--muted); font-size: 15px; line-height: 1; }
+  #keyClose:hover { color: var(--bright); }
+  .key-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0 16px 20px; }
+  .key-body h4 { margin: 20px 0 4px; font-size: 10px; letter-spacing: .14em; font-weight: 400;
+    text-transform: uppercase; color: var(--muted); }
+  .key-body .note { color: var(--muted); margin: 0 0 6px; }
+  .key-body code { color: var(--text); }
+  .key-row { display: grid; grid-template-columns: 92px 148px 1fr; gap: 12px; align-items: center;
+    padding: 6px 0; border-top: 1px solid var(--rule); }
+  .key-row.def { grid-template-columns: 148px 1fr; }
+  .key-row.off { opacity: .4; }
+  .key-row > b { color: var(--text); font-weight: 400; }
+  .key-row > span { color: var(--muted); }
+  .key-row .tag { color: var(--dim); font-size: 10px; letter-spacing: .06em; }
+  .key-row i { display: inline-block; width: 8px; height: 8px; margin-right: 8px;
+    vertical-align: -1px; }
+  .key-row i.kind-interface { background: transparent; box-shadow: inset 0 0 0 2px #8b98ad;
+    border-radius: 50%; }
+  .key-row i.kind-abstract { background: transparent; border: 1px dashed #8b98ad;
+    border-radius: 50%; }
 
   #stage { position: relative; flex: 1; min-height: 0; }
   #graph, #matrix, #treemap { position: absolute; inset: 0; }
@@ -328,6 +369,8 @@ ii.readability=function(t,n){var e=ii(t),r=ii(n);return(Math.max(e.getLuminance(
     <div class="mapswitch" id="mapSwitch"></div>
     <span id="mapSub"></span>
     <span class="pill" id="mapGrade"></span>
+    <button id="keyBtn" aria-haspopup="dialog"
+      title="Legend: what the lines, colours and abbreviations mean (press ?)">?</button>
   </header>
 
   <aside id="left">
@@ -407,6 +450,16 @@ ii.readability=function(t,n){var e=ii(t),r=ii(n);return(Math.max(e.getLuminance(
 
   <div class="rsz" id="rszL" title="Drag to resize the left rail"></div>
   <div class="rsz" id="rszR" title="Drag to resize the right panel"></div>
+</div>
+
+<div id="keyOverlay" hidden>
+  <div id="keyBox" role="dialog" aria-modal="true" aria-labelledby="keyTitle">
+    <div class="key-head">
+      <b id="keyTitle">Legend</b><span class="sub" id="keySub"></span>
+      <button id="keyClose" title="Close (Esc)">&times;</button>
+    </div>
+    <div class="key-body" id="keyBody"></div>
+  </div>
 </div>
 
 <script>
@@ -1713,6 +1766,165 @@ moreMenu.addEventListener("click", (e) => { if (!e.target.closest("label")) setM
 document.addEventListener("click", (e) => { if (!el("more").contains(e.target)) setMore(false); });
 window.addEventListener("keydown", (e) => { if (e.key === "Escape") setMore(false); });
 
+// ---------------------------------------------------------------- legend
+// A dashed line could be any of four relations, and `int` / `ext` mean nothing until someone
+// says so, so the notation gets a key. Every swatch is drawn from the *same* accessors the
+// canvas uses (Graph.linkColor / linkLineDash, LAYER_COLORS), so it cannot drift from what is
+// on screen, and the counts come from EDGES, so it also answers "which of these does THIS
+// map have" -- which is the question someone staring at one dashed line actually has.
+const keyOverlay = el("keyOverlay");
+
+// Mirrors taxonomy.PRECISION_CAVEAT, in the explorer's own word for an edge ("link"), exactly
+// as PRECISION_NOTES above mirrors taxonomy.PRECISION_NOTES: the page must not invent its own
+// wording for something the graph states.
+const PRECISION_CAVEAT = "Call links are a lower bound in every language. A link is drawn only "
+  + "when the receiver's type can be read from the source; anything else is dropped rather than "
+  + "guessed, because a wrong link is worse than a missing one. A missing link is not proof the "
+  + "call is not there.";
+
+const LINK_KEY = [
+  ["calls", "A calls B."],
+  ["references", "A's own source names B: a field, a parameter, a return or generic type, an import, a `new B()`."],
+  ["http", "A frontend fetch/axios call and the route handler it reaches. The only link that crosses the stack."],
+  ["renders", "A React component renders another: `<B />` in A's JSX. Front-end to front-end, and not a call."],
+  ["passes", "A hands B to something that will call it: a callback argument, a value in an options object, a JSX prop. Not a call."],
+  ["implements", "B is the declaration A fills in. The arrow points at the interface; traces and blast radius walk it the other way, because a call landing on B runs A."],
+  ["extends", "A class inherits a class, or an interface an interface. Points at the base."],
+  ["overrides", "A method replaces a base method that has a body. Points at the base."],
+];
+const LAYER_KEY = {
+  controller: "Takes a request from outside: a route handler, or the class holding them.",
+  endpoint: "A route handler node - the root of one request's flow.",
+  service: "Business logic.",
+  repository: "Data access: a repository, DAO or mapper.",
+  model: "A data shape: an entity, DTO, request or response.",
+  client: "Calls something outside this codebase.",
+  config: "Wiring and settings.",
+  ui: "A React component or view.",
+  test: "Test code. Hidden until you tick Tests, and never counted as coupling or as dead code.",
+  function: "A plain function; nothing stated a role.",
+  module: "One file's module-level functions, grouped into a single node.",
+  unknown: "Neither an annotation, nor the name, nor the folder named a role.",
+};
+const BADGE_KEY = [
+  ["N int", "Links out of this node that stay inside the graph."],
+  ["N ext", "Call sites in this node that became no link: a library, the stdlib, or a receiver whose type the source never states. A place to look, never a link."],
+  ["L42", "The line the node starts on - its first decorator, annotation or attribute, not its name line."],
+  ["N in / N out", "Links in and links out (fan-in / fan-out), in the hubs list."],
+  ["Blast radius", "How many nodes depend on this one, directly or through others, as a share of the map. MEDIUM from 10%, HIGH from 25%, CRITICAL from 50%."],
+  ["Churn", "Commits that touched the file. Empty unless the report ran inside a git repository."],
+  ["Risk", "Churn x links: how often it changes, weighted by how connected it is."],
+  ["LOC", "Lines of code."],
+  ["Grade A-F", "The 0-100 health score: coupling, cycles, dead code, backwards layer calls and risk findings."],
+  ["Unused", "Nothing in the graph references it. Judged the way an IDE's unused hint is, so a function a framework finds by a name held in data - a JSON key, a string-keyed bean, reflection - counts as unused here."],
+];
+const VIEW_KEY = {
+  Graph: "Force layout of the whole map.",
+  Treemap: "Files as rectangles, sized by lines.",
+  Matrix: "Who links to whom, as a grid; the 140 most connected nodes.",
+  Tree: "The folder hierarchy.",
+  Flowchart: "Left to right, in columns by call depth. Selecting a node narrows it to that node's whole flow: every caller back to the start, every callee to the end.",
+  Cluster: "Nodes gathered into one circle per folder.",
+  Bundle: "Every node on one ring, ordered by folder.",
+};
+const TOGGLE_KEY = [
+  ["Folders", "Draw folder areas behind the nodes. Graph and Cluster only."],
+  ["Blast radius", "Highlight everything the selection reaches, in green."],
+  ["Freeze", "Keep the current view when another node is clicked."],
+  ["Tests", "Show test-code nodes. Hidden by default, and green when shown."],
+];
+
+// The canvas alphas are tuned for hundreds of overlapping lines; one line in a key needs a
+// floor to be visible at all. The hue and the dash -- the two things that identify a link --
+// are the canvas's own, untouched.
+const legible = (c) => String(c).replace(/rgba\(([^,]+,[^,]+,[^,]+),\s*([\d.]+)\)/,
+  (m, rgb, a) => "rgba(" + rgb + "," + Math.max(0.6, +a) + ")");
+
+function linkSwatch(type, highlight) {
+  const probe = { type };
+  if (highlight) highlightLinks.add(probe);
+  const color = legible(Graph.linkColor()(probe));
+  const dash = (Graph.linkLineDash()(probe) || []).join(" ");
+  if (highlight) highlightLinks.delete(probe);
+  return `<svg width="84" height="10" viewBox="0 0 84 10" aria-hidden="true">
+    <line x1="1" y1="5" x2="75" y2="5" stroke="${color}" stroke-width="${highlight ? 2 : 1.4}"
+      ${dash ? `stroke-dasharray="${dash}"` : ""} />
+    <path d="M75 1.4 L84 5 L75 8.6 Z" fill="${color}" /></svg>`;
+}
+
+const md = (t) => esc(t).replace(/`([^`]+)`/g, "<code>$1</code>");
+const keyRow = (sw, term, meaning, off) =>
+  `<div class="key-row${off ? " off" : ""}">${sw}<b>${term}</b><span>${md(meaning)}</span></div>`;
+const keyDef = (term, meaning) =>
+  `<div class="key-row def"><b>${esc(term)}</b><span>${md(meaning)}</span></div>`;
+
+function renderKey() {
+  const seen = {}, layers = {};
+  EDGES.forEach((e) => { seen[e.type] = (seen[e.type] || 0) + 1; });
+  nodes.forEach((n) => { layers[n.layer] = (layers[n.layer] || 0) + 1; });
+  const kinds = ["interface", "abstract"].filter((k) => nodes.some((n) => n.kind === k));
+  const tag = (n) => `<span class="tag">${n ? n + " here" : "none here"}</span>`;
+
+  const out = [`<h4>The two maps</h4>
+    ${keyDef("Structure", "Classes, React components, and one module node per file. Its links are references.")}
+    ${keyDef("Flow", "One node per method or function. Its links are calls, requests and inheritance.")}
+    <p class="note">Node names differ between them, so the header switch rebuilds everything -
+      including this key.</p>
+
+    <h4>Links - the lines between nodes</h4>`];
+  out.push(LINK_KEY.map(([t, meaning]) =>
+    keyRow(linkSwatch(t), `${t} ${tag(seen[t])}`, meaning, !seen[t])).join(""));
+  out.push(keyRow(linkSwatch("calls", true), "highlighted",
+    "On the selected node's path, with Blast radius ticked. Not a link type of its own."));
+  out.push(`<p class="note">${md(PRECISION_CAVEAT)}</p>`);
+
+  out.push(`<h4>Node colour - the layer it belongs to</h4>`);
+  out.push(Object.entries(LAYER_KEY).map(([l, meaning]) =>
+    keyRow(`<span><i style="background:${LAYER_COLORS[l]}"></i></span>`,
+      `${l} ${tag(layers[l])}`, meaning, !layers[l])).join(""));
+  out.push(`<p class="note">Colour means the layer only while <b>Color by</b> is on Layer: on
+    Folder, Churn or Risk the same dot means a folder or a heat value instead, and the swatches
+    in the left rail always list what the current mode means.</p>`);
+
+  if (kinds.length) {
+    out.push(`<h4>Node shape - what kind of class it is</h4>`);
+    out.push(kinds.map((k) => keyRow(`<span><i class="kind-${k}"></i></span>`, k,
+      k === "interface"
+        ? "An interface, trait or protocol. A hollow dot, because colour already means the layer."
+        : "An abstract class. A dashed ring, for the same reason.")).join(""));
+  }
+
+  out.push(`<h4>Badges and abbreviations</h4>`);
+  out.push(BADGE_KEY.map(([t, m]) => keyDef(t, m)).join(""));
+
+  out.push(`<h4>Precision markers on a node</h4>`);
+  out.push(Object.entries(PRECISION_NOTES).map(([k, v]) => keyDef(k, v)).join(""));
+  out.push(`<p class="note">Each names a loss the graph can point at. Their absence means nothing
+    <b>nameable</b> was lost - never that the links are complete.</p>`);
+
+  out.push(`<h4>Views</h4>`);
+  out.push(VIEWS.map(([, label]) => keyDef(label, VIEW_KEY[label] || "")).join(""));
+  out.push(`<h4>Toggles</h4>`);
+  out.push(TOGGLE_KEY.map(([t, m]) => keyDef(t, m)).join(""));
+  out.push(`<p class="note">A file filter or a Flowchart selection <b>hides</b> what it leaves
+    out rather than fading it. The toolbar's reset button (or Escape) is the only thing that
+    clears the selection and un-pins a dragged layout.</p>`);
+
+  el("keySub").textContent = MAPS[mapName].label + " map";
+  el("keyBody").innerHTML = out.join("");
+  el("keyBody").scrollTop = 0;
+}
+
+function setKey(open) {
+  if (open) renderKey();
+  keyOverlay.hidden = !open;
+  el("keyBtn").classList.toggle("on", open);
+  if (open) el("keyClose").focus();
+}
+el("keyBtn").addEventListener("click", () => setKey(true));
+el("keyClose").addEventListener("click", () => setKey(false));
+keyOverlay.addEventListener("click", (e) => { if (e.target === keyOverlay) setKey(false); });
+
 // Compact toolbar. FULL_NEED is measured while the toggles are in the row, and the row
 // goes compact only when the toolbar is narrower than that -- so it never clips, and it
 // comes back out as soon as there is room. Re-parenting moves the same label elements,
@@ -1795,8 +2007,19 @@ hitBox.addEventListener("mousedown", (e) => {
   if (row) pickHit(+row.dataset.hit);
 });
 window.addEventListener("keydown", (e) => {
-  if (e.key === "/" && document.activeElement !== search) { e.preventDefault(); search.focus(); }
-  else if (e.key === "Escape") { clearSelection(); hitBox.hidden = true; search.blur(); }
+  // Typing in the search box owns every key but Escape -- "?" must reach the input.
+  if (document.activeElement === search) {
+    if (e.key === "Escape") { clearSelection(); hitBox.hidden = true; search.blur(); }
+    return;
+  }
+  if (e.key === "/") { e.preventDefault(); search.focus(); }
+  else if (e.key === "?") { e.preventDefault(); setKey(true); }
+  // The legend is an overlay: Escape closes it and stops there, so it cannot also throw away
+  // the selection the reader opened it to understand.
+  else if (e.key === "Escape") {
+    if (!keyOverlay.hidden) return setKey(false);
+    clearSelection(); hitBox.hidden = true; search.blur();
+  }
 });
 
 const stage = el("stage");

@@ -166,6 +166,9 @@ One self-contained HTML file with both maps embedded. No server, no repo access,
 — the graph library is vendored and inlined**, so it opens from `file://` with the wifi off. Commit
 it or email it.
 
+- **Header** — the map switch, the grade, and a **`?`** that opens the legend: what every line
+  style, node colour, shape and badge means, with a live count of which link types *this* map
+  actually has. Press `?` from anywhere, Escape to close.
 - **Left** — health ring (A–F), color-by (layer / folder / churn / risk), stat tiles, language
   mix, and a file tree that filters the canvas.
 - **Center** — seven views of the same graph: Graph, Treemap, Matrix, Tree, Flowchart, Cluster, Bundle. Nodes are labelled by name (the path is in the side panel); clicking a file or folder hides every node it does not link to directly, and the Flowchart narrows to a selected node's chain.

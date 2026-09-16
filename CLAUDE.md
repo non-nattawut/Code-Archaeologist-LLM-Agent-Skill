@@ -521,6 +521,26 @@ FILE/PATTERNS/SECURITY tabs). Edit it directly; don't move markup back into Pyth
 state is rebuilt by `loadMap()` / `applyMap()` — anything derived from a graph belongs in there,
 not in a top-level `const`.
 
+**The notation has a key** (`#keyOverlay`, opened by the `?` in the header or the `?` key). A
+dashed line could be any of four relations and `int` / `ext` mean nothing until something says
+so, so one overlay names every link type, layer colour, class shape, badge, precision marker,
+view and toggle. Every swatch is drawn from the **same accessors the canvas uses**
+(`Graph.linkColor()` / `linkLineDash()`, `LAYER_COLORS`), and the counts beside each row come
+from `EDGES` / `nodes`, so the key cannot drift from the screen and also answers "which of these
+does *this* map have". The one thing that is by hand is the **list**: a new link type needs its
+`LINK_KEY` row and a new `layer` its `LAYER_KEY` line, in the same commit that adds it -- exactly
+as a new `layer` needs its `LAYER_COLORS` colour. `legible()` raises a swatch's alpha to a 0.6
+floor, because the canvas alphas are tuned for hundreds of overlapping lines and `calls` at .16
+is invisible as a single rule; the hue and the dash, the two things that identify a link, are
+the canvas's own. `PRECISION_CAVEAT` is mirrored from `taxonomy.py` the way `PRECISION_NOTES`
+already is, reworded `edge` -> `link` because the explorer says link everywhere else. Escape
+closes the key **and stops there** -- it must not also throw away the selection the reader
+opened it to understand.
+
+It lives in the **header**, not the toolbar: it explains the whole page rather than the current
+view, and the toolbar's own rule is that a new control goes in the `⋯` menu. `#mapSub` takes
+`flex: 1` so the grade pill and the button both sit hard right even when the pill is empty.
+
 A node is drawn and listed by `labelOf(n)` -- its id without the file qualifier `ids.py` adds
 to a shared name -- and its path lives in the right panel, never on the canvas. A file/folder
 filter and a Flowchart selection **hide** what they leave out (`visibleIds`, through
@@ -549,8 +569,9 @@ One meaning, one colour, everywhere — a reader learns the scheme once, from an
   from the visible list. Colouring off the visible list meant hiding the test folder re-coloured
   everything after it, and pink stopped meaning the same folder from one screenshot to the next.
 - **A new `layer` / `kind` value needs its colour in `LAYER_COLORS` in the same commit** that adds
-  it to `taxonomy.py`. The legend, the node painter and every view read from there; nothing
-  hard-codes a colour at a call site. The one exception is a **class kind** (`interface`,
+  it to `taxonomy.py`, and a line in `LAYER_KEY` saying what the role *is* (a new link type needs
+  its `LINK_KEY` row the same way). The legend, the node painter and every view read from there;
+  nothing hard-codes a colour at a call site. The one exception is a **class kind** (`interface`,
   `abstract`): a node's colour already means its layer, so a class kind is a *shape* in
   `drawNode` (hollow / dashed ring) and in the legend (`.kind-interface` / `.kind-abstract`).
 - **Languages are coloured by family** (`LANG_COLORS`, the rail's language-mix bar): JVM
@@ -587,6 +608,9 @@ scrolls.
   repository's ~120 folders pushed Census, Explorer and the tree out of the pane with no way to
   reach them. It is a bounded list inside a section, not a pane, and the other three colour modes
   are a handful of rows that never reach the cap.
+- **There is one overlay other than the toolbar menu**: the legend (`#keyOverlay`). It is
+  `position: fixed` over the whole app, so it is not a pane and its single scroller does not
+  break the rule above. Anything else that needs explaining belongs in it, not in a new panel.
 - **The node search lists, it never scrolls.** `#results` is `position: fixed` under `#search`,
   because the rail's `overflow: hidden` would clip it, and shows up to 12 matches (fewer when the box sits low in a short window) plus a count -- a
   scrolling dropdown would be a second scroll region in the rail.
