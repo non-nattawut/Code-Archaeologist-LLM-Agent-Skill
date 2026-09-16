@@ -6226,3 +6226,58 @@ the loop) rather than done.
 **Verification:** `git diff` on `data/` empty, `check_docs` OK, `check_graph` 32+32 OK,
 `check_langs` 21/21, `check_regressions` 80/80. Docs moved in the same commit: CLAUDE.md's "adding
 a producer means..." paragraph, and the Thai guide's copy of it.
+
+## [155] 2026-09-16 — The doc sweep the last two commits owed
+
+**Prompt**
+> ok commit and push
+>
+> [interrupted]
+>
+> ok then fix all other file then mention py_tree, py_extract etc. then commit and push
+
+**Response**
+A sweep of every file that names `py_extract` (or still described it as what it was), before
+pushing. `py_tree` has **zero** occurrences outside `docs/prompt.md`, which is the append-only log
+and correctly keeps the record of the rename that was made and reverted.
+
+What was actually stale, and fixed:
+
+- **`docs/ARCHITECTURE_GUIDE.md`** -- two mermaid edges still read `px.parse(), px.field()` and
+  `px.parse(), px.read_source()`; both are `find_py_files(), extract_py_files()` now. The
+  degradation list called it "Python CST + newline normalization", and the extractor table row
+  said "Tree-sitter CST queries + newline normalization" -- both described the helper library, not
+  the producer, so both now say what it emits and that an untyped receiver is dropped rather than
+  guessed.
+- **Both architecture guides' script cards** -- `build_wiki` and `build_flow` listed
+  `py_extract.py, fn: "parse()"` as their callee, and `py_extract.py`'s own card had
+  `cli: "Helper module for Python AST/CST operations"`, `role: "Python extractor..."` and an
+  algorithm describing CST pattern matching. All four cards now name `extract_py_files()`, and the
+  card states the producer contract, the `{name, type}` call vocabulary, `_attr_types`, the
+  parse-everything-first rule, and the invariant that the producer decides what the *source*
+  states while `build_flow._py_targets` decides what the *graph* knows. `build_flow`'s algorithm
+  line credited resolution to `py_extract._attr_types`; it now names `_py_targets` and
+  `_analyze_lang`.
+
+Three things the sweep turned up that had nothing to do with this rename -- fixed under principle
+7, since none needed a decision:
+
+- **`doc_text.py` was missing from three docs.** It is a script added two commits ago, so
+  `ARCHITECTURE_GUIDE.md` (no node, no edge, no table row), `PRESENTATION.html`'s `core/` row and
+  the Thai guide's `core/` answer all listed five core scripts where there are six. `check_docs`
+  did not catch it: it checks README and CLAUDE.md, which both already had it. Added in all three.
+- **The Thai guide still said 28 scripts.** There are 29. The English guide already said 29.
+- Nothing else: all 29 scripts have a card in both guides, and the `fc-box` / `fc-cmd-chip` /
+  `fc-phase` counts still match exactly (133 / 9 / 9).
+
+Left alone deliberately: `docs/ROADMAP_PLAN.md`'s mentions of `px.` and `_resolve_calls` are inside
+past *Found while implementing* findings, which are records of what was true when written;
+`metrics.py`, `check_py_oracle.py` and `check_regressions.py` genuinely still import `py_extract`
+as `px` -- the first for generic node accessors it uses on all eighteen languages, the other two
+because comparing `ast` against tree-sitter is exactly what those helpers are for. `px` in
+`viewer.html` and `explorer.html` is the CSS unit.
+
+Verified: `check_docs` OK, `check_py_oracle` 0 disagreements, `check_graph` 32+32 OK,
+`check_langs` 21/21, `check_regressions` 80/80, and `git diff` on `data/` empty after a full
+rebuild. Then pushed -- four commits: `doc_text`, Python-as-producer, the entity-builder merge,
+and this sweep.

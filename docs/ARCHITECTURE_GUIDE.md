@@ -39,6 +39,7 @@ flowchart TD
     TAXONOMY["scripts/core/taxonomy.py<br>(Layers, Kinds, Precision)"]
     GRAMMARS["scripts/core/grammars.py<br>(Tree-sitter runtime & wheels)"]
     MANIFEST["scripts/core/manifest.py<br>(Source freshness SHA-1)"]
+    DOCTEXT["scripts/core/doc_text.py<br>(One doc-comment rule)"]
 
     %% Extractors
     BW["scripts/extract/build_wiki.py"]
@@ -77,7 +78,8 @@ flowchart TD
     CLI -->|"render_explorer() -> build()"| HTML
 
     %% Structure Pipeline
-    BW -->|"px.parse(), px.field()"| PX
+    BW -->|"find_py_files(), extract_py_files()"| PX
+    PX & JS & LANGS -->|"clean(), join()"| DOCTEXT
     BW -->|"find_js_files(), extract_js_files()"| JS
     BW -->|"find_lang_files(), extract_lang_files()"| LANGS
     BW -->|"SharedNames((name, source))"| IDS
@@ -85,7 +87,7 @@ flowchart TD
     BG -->|"Reads Markdown vault"| BG
 
     %% Flow Pipeline
-    BF -->|"px.parse(), px.read_source()"| PX
+    BF -->|"find_py_files(), extract_py_files()"| PX
     BF -->|"find_js_files(), extract_js_files()"| JS
     BF -->|"find_lang_files(), extract_lang_files()"| LANGS
     BF -->|"read(roots)"| ROUTES
@@ -312,16 +314,17 @@ python .agents/skills/code-archaeologist/scripts/archaeologist.py brief
 ### Extraction Engine (Why 3 Extractor Files?)
 
 The extractors are kept in **three separate files** rather than one monolithic module because the file boundary is the **graceful degradation boundary** required by Constraint 1:
-- `py_extract.py` (Python CST + newline normalization) — degrades via `python skipped`.
+- `py_extract.py` (Python) — degrades via `python skipped`.
 - `js_ts_extract.py` (JS/TS/JSX/TSX) — degrades via `frontend skipped` (needs both `javascript` and `typescript` grammars).
 - `langs_extract.py` (14 languages: Java, Go, C#, Rust, Kotlin, etc.) — degrades on a per-language basis.
 
 | Script | Role | Technique / Algorithm | Key Invariant |
 | :--- | :--- | :--- | :--- |
 | `scripts/extract/build_wiki.py` | Structure Wiki | Extracts classes, JSX components, and module-level functions into Markdown notes. | JSX functions become `kind: component` / `layer: ui`. |
+| `scripts/core/doc_text.py` | Doc comments | The one rule for turning a doc comment into a node's `doc`: the block above the declaration, markers stripped, joined to one line (`clean()`, or `join()` for a Python docstring). | Pure string work; imports nothing, so it sits below every producer. |
 | `scripts/extract/build_graph.py` | Structure Graph | Assembles `graph.json` from vault notes and type references. | Edges are references; carry no precision. |
 | `scripts/extract/build_flow.py` | Flow Graph | Two-pass caller resolution, overload picking (`_pick_overload`), cross-stack linking, and **`unresolved` dropped-call tracking** (`_record_dropped`, `_split_dropped`). | Lower bound: calls resolved only through declared types. Interface calls stop at `declaration: true`. Dropped calls matching known graph nodes are tracked in `unresolved` (never guessed as edges). |
-| `scripts/extract/py_extract.py` | Python CST | Tree-sitter CST queries + newline normalization (`read_source()`). | Validated against stdlib `ast` via `check_py_oracle.py`. |
+| `scripts/extract/py_extract.py` | Python | Classes, functions, routes, imports and `{name, type}` call sites; `_attr_types` builds `self.<attr> -> Class` from `__init__`, and `read_source()` normalizes CRLF so hashes match across OS. | Validated against stdlib `ast` via `check_py_oracle.py`. A receiver the source never types is emitted as `?` and dropped, never guessed. |
 | `scripts/extract/js_ts_extract.py` | JS/TS CST | Multi-grammar parsing (`javascript`, `typescript`, `tsx`), routes, axios/fetch calls. | Emits `{type, name}` calls for typed receivers (`new X()`, `this.<field>`, typed params). |
 | `scripts/extract/langs_extract.py` | 14 Lang Extractor | Table-driven CST extraction via `SPEC` and `SHAPES` tables; handles `OVERLOADING`. | Range starts at first annotation/decorator (`source..end`). |
 | `scripts/extract/route_tables.py` | Route Tables | Parses external routing tables (Django `urlpatterns`, Rails `routes.rb`, Laravel, Phoenix). | Dropped if route matches 0 or >1 target handler. |
