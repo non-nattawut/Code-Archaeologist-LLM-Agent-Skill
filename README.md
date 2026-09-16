@@ -23,7 +23,7 @@ is **named and skipped**, never silently dropped.
 The same question in the explorer: pick `OrderRepository.save` in the **Flowchart** view and it
 shows every path that reaches it, plus its blast radius (built from the bundled `sample_src/`):
 
-![Explorer Flowchart view: the call chain from submitOrder, orders and a test to OrderRepository.save, with its blast radius in the side panel](docs/images/explorer-flowchart.png)
+![Explorer Flowchart view: the flow through OrderService.place_order from submitOrder and orders, with call-order badges 1 and 2 on its calls and its blast radius in the side panel](docs/images/explorer-flowchart.png)
 
 ---
 
@@ -171,7 +171,7 @@ it or email it.
   actually has. Press `?` from anywhere, Escape to close.
 - **Left** — health ring (A–F), color-by (layer / folder / churn / risk), stat tiles, language
   mix, and a file tree that filters the canvas.
-- **Center** — seven views of the same graph: Flowchart (the one it opens on), Graph, Treemap, Matrix, Tree, Cluster, Bundle. Nodes are labelled by name (the path is in the side panel); clicking a file or folder hides every node it does not link to directly, and the Flowchart narrows to a selected node's chain. In the Flowchart a box wraps a long name onto two lines, and selecting a node puts a badge before each of its calls numbering them in the order they are written (not the order they run) -- `3a` / `3b` for the sides of one if / else, only one of which runs -- with a diamond for a call made only inside a branch and a ring for one inside a loop; the **Order** toggle hides them. Every link type has its own colour and dash.
+- **Center** — seven views of the same graph: Flowchart (the one it opens on), Graph, Treemap, Matrix, Tree, Cluster, Bundle. Nodes are labelled by name (the path is in the side panel); clicking a file or folder hides every node it does not link to directly, and the Flowchart narrows to a selected node's chain. In the Flowchart a box wraps a long name onto two lines, and a badge before each call's arrowhead numbers a node's calls in the order they are written (not the order they run) -- `3a` / `3b` for the sides of one if / else, only one of which runs -- with a diamond for a call made only inside a branch and a ring for one inside a loop (where several callers meet at one box, the badge shown is the hovered or selected node's); the **Order** toggle hides them. Every link type has its own colour and dash.
   Plus folder hulls, a blast-radius toggle, a **Freeze** toggle that holds the current view while
   you click through its nodes, and an overflow menu (`⋯`) holding zoom, fit and PNG export.
 - **Right** — **FILE** (what it does, blast radius, connections, git ownership, risks),

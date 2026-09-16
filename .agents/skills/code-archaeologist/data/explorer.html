@@ -701,6 +701,8 @@ function reach(id, adj) {
 
 // ---------------------------------------------------------------- state
 let selected = null;        // node id
+let hovered = null;         // node id under the pointer: its call order wins a shared arrowhead
+let BADGE_CALLERS = new Map();   // callee id -> the visible callers whose link to it carries a badge
 let focus = null;           // node id the view is built around: the selection, unless Freeze holds it
 let fileFilter = null;      // file path or folder prefix
 let view = "flow";
@@ -931,6 +933,11 @@ const Graph = ForceGraph()(el("graph"))
     ctx.fillStyle = color;
     if (view === "flow") return ctx.fillRect(node.x - FC.w / 2, node.y - FC.h / 2, FC.w, FC.h);
     ctx.beginPath(); ctx.arc(node.x, node.y, 5, 0, 2 * Math.PI); ctx.fill();
+  })
+  // Pointing at a box lets its call order win every arrowhead it shares with another caller.
+  .onNodeHover((n) => {
+    const id = n ? n.id : null;
+    if (id !== hovered) { hovered = id; repaint(); }
   })
   .onNodeClick((n) => selectNode(n.id, true));   // empty canvas keeps the focus: only reset clears it
 
@@ -1207,6 +1214,17 @@ function computeVisible() {
   if (view === "flow" && focus)
     keep = new Set([focus, ...reach(focus, inAdj).set, ...reach(focus, outAdj).set]);
   visibleIds = keep;
+  // Every call link in view carries its badge, just behind its arrowhead. Links into one callee
+  // share that arrowhead, so where two or more visible callers would badge it, only one can:
+  // `drawCallBadge` asks this map how many there are.
+  BADGE_CALLERS = new Map();
+  EDGES.forEach((e) => {
+    const s = e.type === "calls" && CALL_SITES.get(siteKey(e.source, e.target));
+    if (!s || !(CALL_FANOUT.get(e.source) > 1 || s.loop || s.cond)) return;
+    if (keep && !(keep.has(e.source) && keep.has(e.target))) return;
+    if (!BADGE_CALLERS.has(e.target)) BADGE_CALLERS.set(e.target, new Set());
+    BADGE_CALLERS.get(e.target).add(e.source);
+  });
 }
 
 // Recompute what is shown, re-lay the flowchart around it, and zoom to it if asked.
@@ -1391,16 +1409,24 @@ function drawFlowLink(l, ctx, scale) {
 // One glyph, three facts about where a call is written, all shape and never a new colour:
 // a circle with the rank it is written in, a diamond when every site is inside a branch, a
 // ring when a site is inside a loop. The number only when the caller has two or more calls;
-// a lone unconditional call says nothing. Only on the **selected** node's own calls: a rank
-// belongs to its caller, and every link into a callee ends on the same arrowhead, so badges from
-// two callers would stack there and mean two different orders at once. The selection's links
-// are always highlighted, so the badge strokes in that colour.
+// a lone unconditional call says nothing. On every call link in view -- but a rank belongs to its
+// caller, and every link into a callee ends on the same arrowhead, so where two or more visible
+// callers badge one callee, only one badge is drawn there: the hovered caller's, else the
+// selected node's, else none. On a real repository's flows 45% of badges met another at an
+// arrowhead, which is why "every badge" alone piled them up again. Stroked in the link's colour
+// when highlighted, in a quiet grey otherwise.
 function drawCallBadge(l, ctx, scale, bx, by) {
   const site = l.type === "calls" && CALL_SITES.get(siteKey(l.source.id, l.target.id));
-  if (!site || l.source.id !== selected || scale < 0.35 || !el("showOrder").checked) return;
+  if (!site || scale < 0.35 || !el("showOrder").checked) return;
   const numbered = CALL_FANOUT.get(l.source.id) > 1;
   if (!numbered && !site.loop && !site.cond) return;
-  const stroke = Graph.linkColor()(l);
+  const callers = BADGE_CALLERS.get(l.target.id);
+  if (callers && callers.size > 1) {
+    const owner = callers.has(hovered) ? hovered : callers.has(selected) ? selected : null;
+    if (l.source.id !== owner) return;
+  }
+  const lit = highlightLinks.has(l);
+  const stroke = lit ? Graph.linkColor()(l) : "#39414f";
   ctx.font = "10px ui-monospace, monospace";
   // A label longer than two characters (3a1) stretches the shape sideways, leftwards, so its
   // right end stays clear of the arrowhead.
@@ -1421,7 +1447,7 @@ function drawCallBadge(l, ctx, scale, bx, by) {
   }
   if (numbered) {
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillStyle = "#d7dde8";
+    ctx.fillStyle = lit ? "#d7dde8" : "#8b98ad";
     ctx.fillText(site.label, bx, by + 0.5);
     ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
   }
@@ -2040,13 +2066,13 @@ const VIEW_KEY = {
   Treemap: "Files as rectangles, sized by lines.",
   Matrix: "Who links to whom, as a grid; the 140 most connected nodes.",
   Tree: "The folder hierarchy.",
-  Flowchart: "Left to right, in columns by call depth. Selecting a node narrows it to that node's whole flow: every caller back to the start, every callee to the end. It also badges the selected node's own calls with the order they are written in (the Order toggle).",
+  Flowchart: "Left to right, in columns by call depth. Selecting a node narrows it to that node's whole flow: every caller back to the start, every callee to the end. A badge on each call link gives the order it is written in (the Order toggle); where several callers meet at one box, the badge shown is the hovered or selected node's.",
   Cluster: "Nodes gathered into one circle per folder.",
   Bundle: "Every node on one ring, ordered by folder.",
 };
 const TOGGLE_KEY = [
   ["Folders", "Draw folder areas behind the nodes. Graph and Cluster only."],
-  ["Order", "Draw the call-order badges on the selected node's calls. Flowchart only; the Calls list in the panel keeps them either way."],
+  ["Order", "Draw the call-order badges on the call links. Flowchart only; the Calls list in the panel keeps them either way."],
   ["Blast radius", "Highlight everything the selection reaches, in green."],
   ["Freeze", "Keep the current view when another node is clicked."],
   ["Tests", "Show test-code nodes. Hidden by default, and green when shown."],
@@ -2098,7 +2124,7 @@ function renderKey() {
   out.push(`<p class="note">${md(PRECISION_CAVEAT)}</p>`);
 
   if (CALL_SITES.size) {
-    out.push(`<h4>Call order - the badge before each of the selected node's calls in the Flowchart</h4>`);
+    out.push(`<h4>Call order - the badge before each call's arrowhead in the Flowchart</h4>`);
     out.push(keyRow(`<span>${callGlyph({ label: 2 }, true)}</span>`, "circle",
       "Written 2nd among this node's calls. Only when a node has two or more."));
     out.push(keyRow(`<span>${callGlyph({ label: 3, cond: true }, true)}</span>`, "diamond",

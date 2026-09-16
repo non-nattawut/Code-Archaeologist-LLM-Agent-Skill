@@ -288,10 +288,11 @@ them it does:
 - **Centre** — the seven views, folder hulls, and a **blast radius** toggle that shades everything
   reachable from the selected node. **Freeze** holds the current view: clicking another node
   still opens its details but no longer re-narrows the Flowchart or moves the canvas. In the
-  Flowchart, selecting a node puts a badge before each of its calls numbering them in the order
+  Flowchart, a badge before each call's arrowhead numbers a node's calls in the order
   they are **written** -- not the order they run; `3a` / `3b` are the sides of one if/else, only
   one of which runs -- with a diamond for a call made only inside a
-  branch and a ring for one inside a loop; **Order** hides them. The `⋯` overflow menu holds zoom in/out, fit and PNG export.
+  branch and a ring for one inside a loop; where several callers meet at one box, the badge shown
+  is the hovered or selected node's; **Order** hides them. The `⋯` overflow menu holds zoom in/out, fit and PNG export.
 - **Right** — the three tabs click through into each other (a risk opens its file, a pattern opens
   its node).
 

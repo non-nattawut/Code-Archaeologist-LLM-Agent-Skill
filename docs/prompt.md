@@ -6789,3 +6789,91 @@ Python and the Java family, the architecture guide checked mechanically against 
 
 Committed this log entry with the pending docs/prompt.md entry [165] (already written, not yet
 committed), tagged `0.3` annotated with the release notes, pushed `main` and the tag.
+
+## [166] 2026-09-16 — "Ordering feature is gone": diagnosed, not changed
+
+**Prompt**
+> ordering feature is gone fix it
+
+(with a screenshot of a Flowchart region in a real repository: yellow `implements` links, no badges)
+
+**Response**
+No code changed. Found the explorer the screenshot came from,
+`D:/Project/srs-eol-system/.claude/skills/code-archaeologist/`, and checked it before touching
+anything: 2,890 of 2,896 call links carry `line`, 161 carry `arms`, and its `explorer.html`
+contains the badge and step code -- the pipeline and viewer are intact. The badges are absent
+because of the rule from [161]: they draw only on the *selected* node's own calls, and the
+screenshot shows no selection in view (no highlighted links, no white box).
+
+Restoring badges everywhere was measured first on that graph: 2,523 links would carry one, and
+74% of those end on an arrowhead shared with another caller (`GlobalResponse.success` has 110
+callers, `errorAlert` 37) -- the stacking [161] removed. Asked the user to choose: show a node's
+order on hover as well as on selection (recommended, never stacks), badge every visible link and
+accept stacking at shared callees, or badge every visible link but skip shared arrowheads. The
+user dismissed the question; waiting for their instruction.
+
+## [167] 2026-09-16 — Badges on every link again; shared arrowheads go to the hovered or selected caller
+
+**Prompt**
+> answer you question: same as before like in picture
+>
+> but now its gone why
+
+(with the "Current - elbow links (as shipped)" artboard from [165], badges on a fan-out)
+
+**Response**
+Why it was gone: the rule from [161] -- badges on the selected node's own calls only. Verified on
+the user's data, not assumed: loaded `MaintenanceMasterAASDataService.uploadProjectData` and its 11
+calls from `srs-eol-system`'s `flow_graph.json` into the sample explorer (the pane refuses files
+outside this project, and refused a temporary copy of the user's explorer placed in this repo's
+`data/`, which was restored with `git checkout` straight away), selected it, and all eleven drew:
+1..5, 6a/6b, 7, 8a/8b, 9. So the pipeline and viewer were fine; nothing in view was selected.
+
+"Same as before" means badges across the flow. Measured first: inside a selected flow on that
+repository 45% of badged links share an arrowhead with another visible caller, and 38 of the 40
+busiest flows have one -- plain "every link" would stack again. Implemented: every call link in view
+carries its badge; `BADGE_CALLERS` (built in `computeVisible`) counts the visible badging callers per
+callee, and where there are two or more, one badge is drawn -- the hovered caller's (new
+`onNodeHover`), else the selected node's, else none. Unhighlighted badges stroke `#39414f` with a
+`#8b98ad` label again.
+
+Tested on a real flow from that repository (`PasswordHistoryService.assertNotReused`, tests shown so
+callers share arrowheads), recording `drawCallBadge`'s fills per link: nothing selected -> only the
+unshared badge; hovering a test -> its three badges win their shared arrowheads; selecting
+`assertNotReused` -> its three. My first recording said nothing drew in every case: it ran before
+force-graph had turned link endpoints into node objects, so `l.source.id` was undefined -- a probe
+bug, re-run after the graph settled. Screenshot matches. Script parses as a classic script; explorer
+regenerated. Docs: CLAUDE.md, README, SKILL.md, the legend text, ROADMAP #40 second update. Not
+committed.
+
+## [168] 2026-09-16 — Pull, new README screenshot, commit and tag 0.3.1 with release notes
+
+**Prompt**
+> git pull then
+>
+> replace this pic with current pic in readme
+>
+> then commit and push with tag 0.3.1
+>
+> then generate release note for this 0.3.1
+
+(with a screenshot of the Flow map's Flowchart, `OrderService.place_order` selected, Freeze on)
+
+**Response**
+`git pull` refused: the remote's one new commit (`051a32f`, the README title centred as `<h1
+align="center">`) touched README.md, which had uncommitted [167] changes. Stashed, pulled
+(fast-forward), popped -- merged cleanly.
+
+The pasted image is not on disk (the newest file in Pictures/Screenshots was an older design
+artboard), so the screenshot was re-made from the current `data/explorer.html`: a scratch copy with
+a script appended (`applyMap("flow")`, `selectNode("OrderService.place_order")`, Freeze ticked,
+zoom-to-fit) rendered by headless Edge at 1920x914, the size of the image it replaces. The first
+render skipped zoom-to-fit and was cut off at the left; the second matches the user's screenshot.
+Replaced `docs/images/explorer-flowchart.png` and its alt text, which still described the old
+picture (a test and `OrderRepository.save`).
+
+Checks before committing: check_docs OK, check_regressions 82/82, check_graph 33/33 on both maps
+and 50/50 self-tests, check_langs all rows, check_py_oracle 0 disagreements. Committed with the
+uncommitted [167] work (badges on every link) and tagged `0.3.1` annotated, following 0.1-0.3: the
+release notes are the tag message; no CHANGELOG file exists. `package.json` still says 0.2.0 as it
+did at 0.3 -- left alone, mentioned to the user.

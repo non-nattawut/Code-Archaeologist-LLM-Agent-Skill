@@ -606,9 +606,8 @@ rows, puts unlinked nodes in a grid underneath, and pins the result like Cluster
 accessors as every other view. A box is `FC` 180x34 on a 44px row and holds **two lines** of
 name: `fitLines` breaks after the last `.` that fits (`VersionControlService.` /
 `uploadFileToRepository`), else after `_` / `-`, else before a capital, and only the second line
-can end in `…` -- a one-line box used to throw the method name away. The **selected** node's
-call links each carry a **badge** just behind the arrowhead (`drawCallBadge`, 19px before the
-callee's box): its step in the order the caller's calls are written -- `1, 2, 3a, 3b, 4`: calls on different
+can end in `…` -- a one-line box used to throw the method name away. **Every call link in view**
+carries a **badge** just behind the arrowhead (`drawCallBadge`, 19px before the callee's box): its step in the order the caller's calls are written -- `1, 2, 3a, 3b, 4`: calls on different
 sides of one either/or branch share a step and take a letter per side, with a digit when a side
 holds several (`3a1`, `3a2`), letters going to the outermost branch with calls on two sides, and a
 label longer than two characters stretching the badge leftwards (`badgePath`, `loopRing`) -- a diamond when every site is
@@ -616,9 +615,13 @@ inside a branch, a ring when a site is inside a loop. That spot is the one piece
 sibling shares -- a caller's links leave from one pixel and bend on one vertical trunk per column,
 and the first placement, midway along that bend, put adjacent rows' badges 22px apart, exactly a
 ring's width: on a real 21-call fan-out 19 pairs touched or overlapped, and 0 do at the arrowhead
-(closest 44px, a full row). Only the selection's calls, because every link *into* a callee ends on
-that same arrowhead: two callers' badges would stack there, and mean two different orders at once
-(`build_flow.analyze` -> `_claim` has four callers). Ranks are `CALL_SITES` / `CALL_FANOUT`,
+(closest 44px, a full row). But every link *into* a callee ends on that same arrowhead, so where two
+or more visible callers badge one callee (`BADGE_CALLERS`, rebuilt in `computeVisible`), only one
+badge is drawn there: the **hovered** caller's (`onNodeHover`), else the **selected** node's, else
+none -- two would stack and mean two different orders at once. On a real repository 45% of the
+badges inside a selected flow met another at an arrowhead (38 of its 40 busiest flows had at least
+one). For one turn ([161]) badges were drawn on the selection's calls only; that read as the
+feature being gone everywhere else in the flow. Ranks are `CALL_SITES` / `CALL_FANOUT`,
 computed once per map in `loadMap`, so a selection that hides callees never renumbers the rest;
 the number is drawn only when a node has two or more calls. Rows are **not** reordered by rank --
 the barycentre sweep is what untangles the links. The panel's Calls list shows the same glyph
@@ -667,9 +670,9 @@ One meaning, one colour, everywhere — a reader learns the scheme once, from an
   on the canvas because they are most of the lines. Pink, yellow and orange also live on node dots
   (controller, model, ui), a different channel.
 - **A call badge is shape, never colour**, like a class kind: circle (written Nth), diamond (only
-  inside a branch), ring (inside a loop). On the canvas it strokes in the highlight colour -- it is
-  drawn only on the selected node's calls, which are always highlighted; in the panel and the
-  legend (`callGlyph`) it is `#39414f`, legible on the dark ground.
+  inside a branch), ring (inside a loop). On the canvas it strokes in the link's colour while the
+  link is highlighted, else `#39414f` with a `#8b98ad` label, quiet beside the faint call line; in
+  the panel and the legend (`callGlyph`) it is `#39414f`, legible on the dark ground.
 
 ### Layout rules
 

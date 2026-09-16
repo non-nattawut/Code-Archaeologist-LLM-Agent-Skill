@@ -2801,3 +2801,14 @@ callee with several callers (`_claim` has four) would stack badges there, each r
 different caller. So the canvas draws badges only on the **selected** node's own calls -- the
 question a rank answers is "in what order does *this* function call things" -- and the panel's
 Calls list carries the same order. Without a selection the Flowchart shows no badges.
+
+### Second update on #40 — 2026-09-16, badges back on every link
+
+Drawing badges on the selected node's calls only ([161]) read to the user as the feature being gone:
+in a selected flow, every other link carries no number. Measured on the same real repository before
+changing it: inside a selected flow, 45% of badged links share their arrowhead with another visible
+caller (38 of the 40 busiest flows have at least one), so badging every link would pile them up
+again. The canvas now badges **every** call link in view, and at an arrowhead two or more visible
+callers share it draws one: the hovered caller's, else the selected node's, else none. Pointing at
+any box brings its whole order up without re-narrowing the Flowchart. What stays open: at a shared
+arrowhead with nothing hovered or selected among its callers, no badge is drawn at all.
