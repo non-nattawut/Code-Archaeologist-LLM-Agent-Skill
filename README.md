@@ -2,7 +2,7 @@
   <img src="docs/images/mascot.png" alt="Code Archaeologist mascot: a mole in an explorer hat holding a tablet of code" width="240">
 </p>
 
-# Code Archaeologist
+<h1 align="center">Code Archaeologist</h1>
 
 **A codebase map your AI agent can query instead of reading your whole repo.**
 
