@@ -332,9 +332,9 @@
       "author_count": 1,
       "last_commit": "2026-09-08T22:13:49+07:00",
       "first_commit": "2026-09-08T22:13:49+07:00",
-      "fan_in": 1,
+      "fan_in": 2,
       "fan_out": 0,
-      "risk": 2
+      "risk": 3
     },
     "FlatRate": {
       "file": "sample_src/services/orders_java/PricingRule.java",
@@ -604,8 +604,8 @@
       "last_commit": "2026-09-08T22:13:49+07:00",
       "first_commit": "2026-09-08T22:13:49+07:00",
       "fan_in": 0,
-      "fan_out": 1,
-      "risk": 2
+      "fan_out": 2,
+      "risk": 3
     },
     "StatusBadge": {
       "file": "sample_src/frontend/OrderCard.tsx",
@@ -870,6 +870,21 @@
       "risk": 3
     },
     {
+      "node": "EventStore",
+      "file": "sample_src/services/orders_go/event_store.go",
+      "commits": 1,
+      "owner": "non-nattawut",
+      "authors": {
+        "non-nattawut": 1
+      },
+      "author_count": 1,
+      "last_commit": "2026-09-08T22:13:49+07:00",
+      "first_commit": "2026-09-08T22:13:49+07:00",
+      "fan_in": 2,
+      "fan_out": 0,
+      "risk": 3
+    },
+    {
       "node": "OrderCard",
       "file": "sample_src/frontend/OrderCard.tsx",
       "commits": 1,
@@ -885,8 +900,8 @@
       "risk": 3
     },
     {
-      "node": "EventStore",
-      "file": "sample_src/services/orders_go/event_store.go",
+      "node": "RouterModule",
+      "file": "sample_src/services/orders_go/router.go",
       "commits": 1,
       "owner": "non-nattawut",
       "authors": {
@@ -895,9 +910,9 @@
       "author_count": 1,
       "last_commit": "2026-09-08T22:13:49+07:00",
       "first_commit": "2026-09-08T22:13:49+07:00",
-      "fan_in": 1,
-      "fan_out": 0,
-      "risk": 2
+      "fan_in": 0,
+      "fan_out": 2,
+      "risk": 3
     },
     {
       "node": "InvoiceController",
@@ -970,21 +985,6 @@
       "author_count": 1,
       "last_commit": "2026-09-08T21:12:23+07:00",
       "first_commit": "2026-09-08T21:12:23+07:00",
-      "fan_in": 0,
-      "fan_out": 1,
-      "risk": 2
-    },
-    {
-      "node": "RouterModule",
-      "file": "sample_src/services/orders_go/router.go",
-      "commits": 1,
-      "owner": "non-nattawut",
-      "authors": {
-        "non-nattawut": 1
-      },
-      "author_count": 1,
-      "last_commit": "2026-09-08T22:13:49+07:00",
-      "first_commit": "2026-09-08T22:13:49+07:00",
       "fan_in": 0,
       "fan_out": 1,
       "risk": 2

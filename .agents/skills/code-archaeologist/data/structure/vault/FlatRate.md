@@ -1,10 +1,11 @@
 ---
 entity: FlatRate
-layer: unknown
+layer: service
 source: sample_src/services/orders_java/PricingRule.java:11
 end: 17
 kind: class
 lang: java
+entry: 
 ---
 # FlatRate
 
@@ -14,7 +15,7 @@ Everything costs the same.
 ## Bases
 - [[PricingRule]]
 
-## Decorators
+## Annotations
 _None._
 
 ## Methods

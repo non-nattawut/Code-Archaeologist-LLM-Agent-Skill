@@ -28,7 +28,7 @@
     },
     {
       "id": "FlatRate",
-      "layer": "unknown",
+      "layer": "service",
       "kind": "class",
       "lang": "java",
       "source": "sample_src/services/orders_java/PricingRule.java:11",
@@ -178,8 +178,8 @@
     },
     {
       "id": "PricingRule",
-      "layer": "unknown",
-      "kind": "class",
+      "layer": "service",
+      "kind": "interface",
       "lang": "java",
       "source": "sample_src/services/orders_java/PricingRule.java:4",
       "doc": "How an order's total is calculated.",
@@ -212,7 +212,7 @@
     },
     {
       "id": "TieredRate",
-      "layer": "unknown",
+      "layer": "service",
       "kind": "class",
       "lang": "java",
       "source": "sample_src/services/orders_java/PricingRule.java:20",
@@ -229,7 +229,7 @@
     {
       "source": "FlatRate",
       "target": "PricingRule",
-      "type": "references"
+      "type": "implements"
     },
     {
       "source": "InvoiceController",
@@ -312,6 +312,11 @@
       "type": "references"
     },
     {
+      "source": "RouterModule",
+      "target": "EventStore",
+      "type": "references"
+    },
+    {
       "source": "TestOrdersModule",
       "target": "OrderRepository",
       "type": "references"
@@ -329,7 +334,7 @@
     {
       "source": "TieredRate",
       "target": "PricingRule",
-      "type": "references"
+      "type": "implements"
     }
   ]
 }

@@ -5,6 +5,7 @@ source: sample_src/backend/payment_client.py:8
 end: 15
 kind: class
 lang: py
+entry: 
 ---
 # PaymentClient
 

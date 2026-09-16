@@ -38,6 +38,7 @@ from paths import DATA_DIR  # noqa: E402  (also puts sibling script dirs on sys.
 DEFAULT_GRAPH = os.path.join(DATA_DIR, "structure", "graph.json")
 
 import console      # noqa: E402  (stdout must survive a non-UTF-8 console)
+from taxonomy import CLASS_KINDS, INHERITANCE_LINKS, call_direction  # noqa: E402  (which way an inheritance link is walked)
 
 
 # Standard layering, shallow -> deep. A call from a deeper layer to a shallower
@@ -76,8 +77,9 @@ def load(path: str) -> tuple[dict, list[tuple[str, str, str]]]:
 def find_cycles(nodes: dict, edges: list[tuple[str, str, str]]) -> list[list[str]]:
     """Strongly-connected components with > 1 node (iterative Tarjan), plus self-loops."""
     adj: dict[str, list[str]] = {n: [] for n in nodes}
-    for s, t, _ in edges:
-        adj[s].append(t)
+    for s, t, kind in edges:
+        if kind not in INHERITANCE_LINKS:    # a decorator delegating to its own interface is not a cycle
+            adj[s].append(t)
 
     index: dict[str, int] = {}
     low: dict[str, int] = {}
@@ -139,31 +141,56 @@ def find_orphans(nodes: dict, edges: list[tuple[str, str, str]]) -> list[str]:
     """Nodes with no incoming edges that aren't legitimate entry points.
     Dunder methods (e.g. __init__) are excluded — they're called implicitly, and so
     is test code — a runner calls it, so nothing in the graph ever will."""
-    has_caller = {t for _, t, _ in edges}
+    # An implementation is reached through the declaration its `implements` link names.
+    has_caller = {call_direction(s, t, kind)[1] for s, t, kind in edges}
+    # ...and the base end is *named* by the class that inherits it: `class Audited extends
+    # Auditable` is a reference to Auditable written in Audited's own source, which an IDE
+    # counts as a usage. The flip above only ever marks the child, so a base class with
+    # twelve subclasses and no other mention was reported dead (r74). Not `overrides`:
+    # replacing a method does not reference the base method's body (`find_overridden` is
+    # where that case is reported).
+    has_caller |= {t for s, t, kind in edges if kind in ("implements", "extends")}
+    # A call that could not pick an overload (`this::values`, `values(x)` with x untyped)
+    # still calls one of them: `ambiguous` names the set, and none of it is dead.
+    maybe_called = {base.rpartition(".")[::2] for n in nodes.values() for base in n.get("ambiguous") or []}
     orphans = []
     for nid, n in nodes.items():
         if nid in has_caller or _is_dunder(nid):
+            continue
+        if nid.endswith(")") and ((n.get("cls") or ""), nid[:nid.index("(")].rpartition(".")[2]) in maybe_called:
             continue
         # A React component is mounted by the framework and a route handler is
         # called by the server: in both cases the caller is outside the graph, so
         # having no incoming edge says nothing about whether the code is used.
         # A body-less declaration is excluded for a different reason -- it holds
         # no code at all, so "dead code" is the wrong question to ask of it.
+        # `entry` names a framework caller the graph cannot see (`@Scheduled`,
+        # `override`, `next:page`) -- the same reason as a route, stated per node.
+        # `overridden` is listed on its own (find_overridden): its body never runs, but
+        # deleting it changes what a new subclass inherits, which dead code never does.
         is_entry = (n.get("kind") in ("endpoint", "component") or bool(n.get("routes"))
                     or n.get("layer") in ("controller", "test")
-                    or bool(n.get("declaration")))
+                    or bool(n.get("declaration")) or bool(n.get("entry")) or bool(n.get("overridden")))
         if not is_entry:
             orphans.append(nid)
     return sorted(orphans)
 
 
+def find_overridden(nodes: dict, edges: list[tuple[str, str, str]]) -> list[str]:
+    """Methods with a body that nothing calls and every subclass replaces: the body never
+    runs today. Not graded -- it is a design question (is the default still wanted?), not rot."""
+    has_caller = {call_direction(s, t, kind)[1] for s, t, kind in edges}
+    return sorted(nid for nid, n in nodes.items() if n.get("overridden") and nid not in has_caller)
+
+
 def find_layer_violations(nodes: dict, edges: list[tuple[str, str, str]]) -> list[dict]:
     """Backwards (deep -> shallow) call edges. Cross-stack `http` edges are
     skipped — a frontend client calling a backend controller is the intended
-    direction across the API boundary, not a violation."""
+    direction across the API boundary, not a violation. Nor is an `implements` link:
+    it is not a call in either direction."""
     violations = []
     for s, t, etype in edges:
-        if etype == "http":
+        if etype == "http" or etype in INHERITANCE_LINKS:
             continue
         sl, tl = nodes[s].get("layer"), nodes[t].get("layer")
         if sl in LAYER_RANK and tl in LAYER_RANK and LAYER_RANK[tl] < LAYER_RANK[sl]:
@@ -183,10 +210,13 @@ def app_edges(nodes: dict, edges: list[tuple[str, str, str]]) -> list[tuple[str,
     """Edges between application nodes only.
 
     A test calls production code, which is coverage, not coupling: counting those
-    calls would make every well-tested function look like a hub.
+    calls would make every well-tested function look like a hub. A `renders` edge is
+    the component tree, followed by traces but not counted as call coupling either, and
+    an `implements` link says which class a method belongs to, not who calls whom.
     """
     return [e for e in edges
-            if nodes[e[0]].get("layer") != "test" and nodes[e[1]].get("layer") != "test"]
+            if nodes[e[0]].get("layer") != "test" and nodes[e[1]].get("layer") != "test"
+            and e[2] not in ("renders", "passes") and e[2] not in INHERITANCE_LINKS]
 
 
 def find_hubs(nodes: dict, edges: list[tuple[str, str, str]]) -> list[dict]:
@@ -210,7 +240,7 @@ def find_god_objects(nodes: dict, edges: list[tuple[str, str, str]]) -> list[dic
 
     deg = degrees(nodes, app_edges(nodes, edges))
     for nid, n in nodes.items():
-        if n.get("kind") == "class" and deg[nid]["fan_out"] >= GOD_FANOUT:
+        if n.get("kind") in CLASS_KINDS and deg[nid]["fan_out"] >= GOD_FANOUT:
             found.append({"name": nid, "reason": "references", "count": deg[nid]["fan_out"]})
     return sorted(found, key=lambda g: (-g["count"], g["name"]))
 
@@ -250,6 +280,7 @@ def report(graph_path: str, security: dict | None = None) -> dict:
     nodes, edges = load(graph_path)
     cycles = find_cycles(nodes, edges)
     orphans = find_orphans(nodes, edges)
+    overridden = find_overridden(nodes, edges)
     violations = find_layer_violations(nodes, edges)
     hubs = find_hubs(nodes, edges)
     gods = find_god_objects(nodes, edges)
@@ -257,13 +288,15 @@ def report(graph_path: str, security: dict | None = None) -> dict:
     return {
         "cycles": cycles,
         "orphans": orphans,
+        "overridden": overridden,
         "layer_violations": violations,
         "hubs": hubs,
         "god_objects": gods,
         "patterns": patterns,
         "health": health(len(nodes), cycles, orphans, violations, hubs, gods, security),
         "summary": {"nodes": len(nodes), "edges": len(edges), "cycles": len(cycles),
-                    "orphans": len(orphans), "layer_violations": len(violations),
+                    "orphans": len(orphans), "overridden": len(overridden),
+                    "layer_violations": len(violations),
                     "hubs": len(hubs), "god_objects": len(gods)},
     }
 
@@ -282,6 +315,7 @@ def to_text(d: dict) -> str:
     out += [f"  god       {g['name']} {g['reason']} {g['count']}" for g in d["god_objects"]]
     out += [f"  idiom     {k}: " + ", ".join(v) for k, v in d["patterns"].items()]
     out += [f"  orphan    {n}" for n in d["orphans"]]
+    out += [f"  overridden {n}" for n in d.get("overridden", [])]
     return "\n".join(out)
 
 

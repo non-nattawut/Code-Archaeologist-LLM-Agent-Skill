@@ -5,6 +5,7 @@ source: sample_src/services/orders_java/OrderWorkflow.java:4
 end: 28
 kind: class
 lang: java
+entry: 
 ---
 # OrderWorkflow
 
@@ -14,7 +15,7 @@ Application service: price an order, then archive it.
 ## Bases
 _None._
 
-## Decorators
+## Annotations
 - `Service`
 
 ## Methods

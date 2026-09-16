@@ -2,15 +2,14 @@
   "graph": "data/structure/graph.json",
   "census": {
     "nodes": 25,
-    "edges": 22,
+    "edges": 23,
     "layers": {
       "client": 2,
       "controller": 7,
       "repository": 4,
-      "service": 4,
+      "service": 7,
       "test": 2,
-      "ui": 3,
-      "unknown": 3
+      "ui": 3
     },
     "langs": {
       "csharp": 3,
@@ -20,12 +19,14 @@
       "py": 7
     },
     "kinds": {
-      "class": 17,
+      "class": 16,
       "component": 2,
+      "interface": 1,
       "module": 6
     },
     "edge_types": {
-      "references": 22
+      "implements": 2,
+      "references": 21
     },
     "routes": [],
     "imprecise_nodes": 0
@@ -145,20 +146,19 @@
   "analysis": {
     "cycles": [],
     "orphans": [
-      "FlatRate",
-      "OrderPageModule",
-      "TieredRate"
+      "OrderPageModule"
     ],
+    "overridden": [],
     "layer_violations": [],
     "hubs": [],
     "god_objects": [],
     "patterns": {},
     "health": {
-      "score": 69,
-      "grade": "D",
-      "dead_code_pct": 12.0,
+      "score": 73,
+      "grade": "C",
+      "dead_code_pct": 4.0,
       "deductions": {
-        "dead_code": 6,
+        "dead_code": 2,
         "cycles": 0,
         "layer_violations": 0,
         "high_coupling": 0,
@@ -168,9 +168,10 @@
     },
     "summary": {
       "nodes": 25,
-      "edges": 22,
+      "edges": 23,
       "cycles": 0,
-      "orphans": 3,
+      "orphans": 1,
+      "overridden": 0,
       "layer_violations": 0,
       "hubs": 0,
       "god_objects": 0
@@ -566,9 +567,9 @@
         "author_count": 1,
         "last_commit": "2026-09-08T22:13:49+07:00",
         "first_commit": "2026-09-08T22:13:49+07:00",
-        "fan_in": 1,
+        "fan_in": 2,
         "fan_out": 0,
-        "risk": 2
+        "risk": 3
       },
       "FlatRate": {
         "file": "sample_src/services/orders_java/PricingRule.java",
@@ -838,8 +839,8 @@
         "last_commit": "2026-09-08T22:13:49+07:00",
         "first_commit": "2026-09-08T22:13:49+07:00",
         "fan_in": 0,
-        "fan_out": 1,
-        "risk": 2
+        "fan_out": 2,
+        "risk": 3
       },
       "StatusBadge": {
         "file": "sample_src/frontend/OrderCard.tsx",
@@ -1104,6 +1105,21 @@
         "risk": 3
       },
       {
+        "node": "EventStore",
+        "file": "sample_src/services/orders_go/event_store.go",
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-08T22:13:49+07:00",
+        "first_commit": "2026-09-08T22:13:49+07:00",
+        "fan_in": 2,
+        "fan_out": 0,
+        "risk": 3
+      },
+      {
         "node": "OrderCard",
         "file": "sample_src/frontend/OrderCard.tsx",
         "commits": 1,
@@ -1119,8 +1135,8 @@
         "risk": 3
       },
       {
-        "node": "EventStore",
-        "file": "sample_src/services/orders_go/event_store.go",
+        "node": "RouterModule",
+        "file": "sample_src/services/orders_go/router.go",
         "commits": 1,
         "owner": "non-nattawut",
         "authors": {
@@ -1129,9 +1145,9 @@
         "author_count": 1,
         "last_commit": "2026-09-08T22:13:49+07:00",
         "first_commit": "2026-09-08T22:13:49+07:00",
-        "fan_in": 1,
-        "fan_out": 0,
-        "risk": 2
+        "fan_in": 0,
+        "fan_out": 2,
+        "risk": 3
       },
       {
         "node": "InvoiceController",
@@ -1204,21 +1220,6 @@
         "author_count": 1,
         "last_commit": "2026-09-08T21:12:23+07:00",
         "first_commit": "2026-09-08T21:12:23+07:00",
-        "fan_in": 0,
-        "fan_out": 1,
-        "risk": 2
-      },
-      {
-        "node": "RouterModule",
-        "file": "sample_src/services/orders_go/router.go",
-        "commits": 1,
-        "owner": "non-nattawut",
-        "authors": {
-          "non-nattawut": 1
-        },
-        "author_count": 1,
-        "last_commit": "2026-09-08T22:13:49+07:00",
-        "first_commit": "2026-09-08T22:13:49+07:00",
         "fan_in": 0,
         "fan_out": 1,
         "risk": 2
@@ -1864,7 +1865,7 @@
         "FIXME": 1,
         "TODO": 1
       },
-      "dead_nodes": 3,
+      "dead_nodes": 1,
       "dead_files": 1
     },
     "markers": [
@@ -1885,22 +1886,10 @@
     ],
     "dead_nodes": [
       {
-        "id": "FlatRate",
-        "source": "sample_src/services/orders_java/PricingRule.java:11",
-        "layer": "unknown",
-        "kind": "class"
-      },
-      {
         "id": "OrderPageModule",
         "source": "sample_src/frontend/order_page.ts",
         "layer": "ui",
         "kind": "module"
-      },
-      {
-        "id": "TieredRate",
-        "source": "sample_src/services/orders_java/PricingRule.java:20",
-        "layer": "unknown",
-        "kind": "class"
       }
     ],
     "dead_files": [
@@ -1956,7 +1945,7 @@
       {
         "id": "FlatRate",
         "source": "sample_src/services/orders_java/PricingRule.java:11",
-        "layer": "unknown",
+        "layer": "service",
         "kind": "class"
       },
       {
@@ -2034,8 +2023,8 @@
       {
         "id": "PricingRule",
         "source": "sample_src/services/orders_java/PricingRule.java:4",
-        "layer": "unknown",
-        "kind": "class"
+        "layer": "service",
+        "kind": "interface"
       },
       {
         "id": "RouterModule",
@@ -2052,7 +2041,7 @@
       {
         "id": "TieredRate",
         "source": "sample_src/services/orders_java/PricingRule.java:20",
-        "layer": "unknown",
+        "layer": "service",
         "kind": "class"
       }
     ]

@@ -5,6 +5,7 @@ source: sample_src/services/orders_cs/InvoiceController.cs:4
 end: 28
 kind: class
 lang: csharp
+entry: 
 ---
 # InvoiceController
 
@@ -14,7 +15,7 @@ HTTP entry point for invoices.
 ## Bases
 - `ControllerBase`
 
-## Decorators
+## Attributes
 - `ApiController`
 - `Route`
 

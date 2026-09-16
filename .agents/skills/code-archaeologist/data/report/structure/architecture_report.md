@@ -1,25 +1,25 @@
 # Architecture report — graph.json
 
-25 nodes · 22 edges
+25 nodes · 23 edges
 
-## Health: **D** (69/100)
+## Health: **C** (73/100)
 
 | Deduction | Points |
 | --- | --- |
-| dead code | -6 |
+| dead code | -2 |
 | security | -25 |
 
-Dead-code ratio 12.0% · cycles 0 · layer violations 0 · security findings 4
+Dead-code ratio 4.0% · cycles 0 · layer violations 0 · security findings 4
 
 > **This grade rests on a lower bound.** Call edges are a lower bound in every language: a call is only drawn when the receiver's type can be read from the source, and anything else is dropped rather than guessed. The real coupling is at least this much, never less.
 
 ## Census
 
 - Source: 22 file(s), 529 lines (py 23.8%, java 19.3%, csharp 17.0%, ts 17.0%, go 12.5%, js 5.3%, tsx 5.1%)
-- Layers: `client` 2, `controller` 7, `repository` 4, `service` 4, `test` 2, `ui` 3, `unknown` 3
-- Kinds: `class` 17, `component` 2, `module` 6
+- Layers: `client` 2, `controller` 7, `repository` 4, `service` 7, `test` 2, `ui` 3
+- Kinds: `class` 16, `component` 2, `interface` 1, `module` 6
 - Languages: `csharp` 3, `go` 3, `java` 6, `js` 6, `py` 7
-- Edge types: `references` 22
+- Edge types: `implements` 2, `references` 21
 
 ## Entry points (routes)
 
@@ -85,13 +85,15 @@ _None._
 
 _None._
 
-### Orphans (no callers, not an entry point) — 3
+### Orphans (no callers, not an entry point) — 1
 
 | Node |
 | --- |
-| `FlatRate` |
 | `OrderPageModule` |
-| `TieredRate` |
+
+### Overridden everywhere (a body every subclass replaces, so it never runs) — 0
+
+_None._
 
 ## Anti-patterns & idioms
 
@@ -131,7 +133,7 @@ _None._
 | `OrderController` | 2 | 0 | 1 | 4 | Nattawut Rodthong |
 | `OrderRepositoryTest` | 1 | 0 | 3 | 4 | non-nattawut |
 
-## Debt — 2 marker(s) (FIXME 1, TODO 1), 3 dead node(s)
+## Debt — 2 marker(s) (FIXME 1, TODO 1), 1 dead node(s)
 
 | Tag | Location | Owner | Note |
 | --- | --- | --- | --- |
@@ -151,7 +153,7 @@ _2 test file(s). Name-based, not execution coverage: a node counts as referenced
 | `ApiClientModule` | client | `sample_src/frontend/api_client.ts` |
 | `EventService` | service | `sample_src/services/orders_go/event_service.go:4` |
 | `EventStore` | repository | `sample_src/services/orders_go/event_store.go:4` |
-| `FlatRate` | unknown | `sample_src/services/orders_java/PricingRule.java:11` |
+| `FlatRate` | service | `sample_src/services/orders_java/PricingRule.java:11` |
 | `InvoiceController` | controller | `sample_src/services/orders_cs/InvoiceController.cs:4` |
 | `InvoiceService` | service | `sample_src/services/orders_cs/InvoiceService.cs:4` |
 | `InvoiceStore` | repository | `sample_src/services/orders_cs/InvoiceStore.cs:6` |

@@ -23,6 +23,8 @@ const { spawnSync } = require("child_process");
 const PKG_ROOT = path.resolve(__dirname, "..");
 const SKILL_SRC = path.join(PKG_ROOT, ".agents", "skills", "code-archaeologist");
 const SAMPLE_SRC = path.join(PKG_ROOT, "sample_src");
+const EXPLORER_SKILL = "code-archaeologist-explorer";
+const EXPLORER_SRC = path.join(PKG_ROOT, ".agents", "skills", EXPLORER_SKILL);
 
 // Known agent harnesses -> where the skill folder lives, relative to a project.
 // Add your own with --dir <path>.
@@ -165,8 +167,8 @@ function copyDir(src, dest) {
 // every command in the agent's instructions is copy-pasteable.
 const SKILL_MD_DEFAULT_DIR = ".agents/skills/code-archaeologist";
 
-function writeSkillMd(dest, relPosix) {
-  const src = fs.readFileSync(path.join(SKILL_SRC, "SKILL.md"), "utf8");
+function writeSkillMd(srcDir, dest, relPosix) {
+  const src = fs.readFileSync(path.join(srcDir, "SKILL.md"), "utf8");
   const out = relPosix === SKILL_MD_DEFAULT_DIR
     ? src
     : src.split(SKILL_MD_DEFAULT_DIR).join(relPosix);
@@ -184,7 +186,7 @@ function writeGitignore(dest) {
     return;
   }
   fs.writeFileSync(target, [
-    "vendor/",
+    "/vendor/",   // anchored: templates/vendor/ must stay committable
     "__pycache__/",
     "*.py[cod]",
     "data/cache/manifest.json",
@@ -239,10 +241,25 @@ async function main() {
   fs.mkdirSync(dest, { recursive: true });
   copyDir(path.join(SKILL_SRC, "scripts"), path.join(dest, "scripts"));
   copyDir(path.join(SKILL_SRC, "templates"), path.join(dest, "templates"));
-  writeSkillMd(dest, relPosix);
+  // The explorer inlines this file, and nothing else notices it is gone until a
+  // build is half done: npm used to drop it while packing (an unanchored `vendor/`
+  // in the skill's .gitignore), and the install still printed OK.
+  const graphLib = path.join(dest, "templates", "vendor", "force-graph.min.js");
+  if (!fs.existsSync(graphLib)) {
+    console.error(`ERROR: ${graphLib} was not installed; the explorer cannot be rendered without it.`);
+    return 1;
+  }
+  writeSkillMd(SKILL_SRC, dest, relPosix);
   writeGitignore(dest);
   seedDataDir(path.join(dest, "data"), opts.force);
-  console.log("OK   Skill installed.\n");
+  // A second, narrow skill beside the first: /code-archaeologist-explorer only builds
+  // and renders data/explorer.html. It holds nothing but a SKILL.md whose commands
+  // run the main skill's scripts, so it takes the same prefix rewrite.
+  const explorerDest = path.join(path.dirname(dest), EXPLORER_SKILL);
+  fs.mkdirSync(explorerDest, { recursive: true });
+  writeSkillMd(EXPLORER_SRC, explorerDest, relPosix);
+  console.log("OK   Skill installed.");
+  console.log(`OK   /${EXPLORER_SKILL} installed into ${explorerDest}\n`);
 
   if (opts.selfTest) {
     // The demo spans seven languages, and since phase 2 every one of them -- Python
@@ -301,6 +318,7 @@ async function main() {
   console.log(`  ${py.exe} ${relPosix}/scripts/archaeologist.py report --src ./src   # grade, risks, hotspots`);
   console.log(`  ${py.exe} ${relPosix}/scripts/archaeologist.py brief  --src ./src   # the whole thing in ~35 lines`);
   console.log(`  open ${relPosix}/data/explorer.html`);
+  console.log(`Or ask your agent for /${EXPLORER_SKILL}: it builds both maps and the report, then the page.`);
   console.log("\nEvery language, Python included, is one tree-sitter wheel, installed into the");
   console.log("skill folder rather than into your Python, at pinned versions:");
   console.log(`  ${py.exe} ${relPosix}/scripts/core/grammars.py --install              # every grammar`);

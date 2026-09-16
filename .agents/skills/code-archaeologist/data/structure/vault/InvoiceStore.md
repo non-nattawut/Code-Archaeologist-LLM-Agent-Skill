@@ -5,6 +5,7 @@ source: sample_src/services/orders_cs/InvoiceStore.cs:6
 end: 23
 kind: class
 lang: csharp
+entry: 
 ---
 # InvoiceStore
 
@@ -14,7 +15,7 @@ Where invoices are kept. Stands in for a database.
 ## Bases
 _None._
 
-## Decorators
+## Attributes
 _None._
 
 ## Methods

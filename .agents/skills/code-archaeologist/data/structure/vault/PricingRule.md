@@ -1,10 +1,11 @@
 ---
 entity: PricingRule
-layer: unknown
+layer: service
 source: sample_src/services/orders_java/PricingRule.java:4
 end: 8
-kind: class
+kind: interface
 lang: java
+entry: 
 ---
 # PricingRule
 
@@ -14,7 +15,7 @@ How an order's total is calculated.
 ## Bases
 _None._
 
-## Decorators
+## Annotations
 _None._
 
 ## Methods

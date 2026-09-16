@@ -23,6 +23,7 @@ from paths import DATA_DIR  # noqa: E402  (also puts sibling script dirs on sys.
 DEFAULT_GRAPH = os.path.join(DATA_DIR, "structure", "graph.json")
 
 import console      # noqa: E402  (stdout must survive a non-UTF-8 console)
+from taxonomy import call_direction  # noqa: E402  (an implements link is walked declaration -> implementation)
 
 
 def load_graph(path: str):
@@ -35,7 +36,7 @@ def load_graph(path: str):
     adj: dict[str, list[str]] = {n: [] for n in nodes}
     radj: dict[str, list[str]] = {n: [] for n in nodes}
     for e in data.get("edges", []):
-        s, t = e.get("source"), e.get("target")
+        s, t = call_direction(e.get("source"), e.get("target"), e.get("type", ""))
         if s in nodes and t in nodes:
             adj.setdefault(s, []).append(t)
             radj.setdefault(t, []).append(s)

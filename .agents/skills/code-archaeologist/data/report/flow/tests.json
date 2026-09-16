@@ -56,7 +56,7 @@
     {
       "id": "FlatRate.price",
       "source": "sample_src/services/orders_java/PricingRule.java:14",
-      "layer": "unknown",
+      "layer": "service",
       "kind": "method"
     },
     {
@@ -212,7 +212,7 @@
     {
       "id": "PricingRule.price",
       "source": "sample_src/services/orders_java/PricingRule.java:7",
-      "layer": "unknown",
+      "layer": "service",
       "kind": "method"
     },
     {
@@ -224,7 +224,7 @@
     {
       "id": "TieredRate.price",
       "source": "sample_src/services/orders_java/PricingRule.java:23",
-      "layer": "unknown",
+      "layer": "service",
       "kind": "method"
     },
     {

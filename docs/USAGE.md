@@ -30,6 +30,16 @@ python .agents/skills/code-archaeologist/scripts/archaeologist.py both --src ./s
 graph library embedded, so it opens straight from `file://` with the network off — commit it, or
 email it to someone who has no access to the repo.
 
+**Just the page?** Ask your agent for `/code-archaeologist-explorer` (optionally with the folders:
+`/code-archaeologist-explorer ./backend ./frontend`). It is a separate skill installed beside this
+one, and it runs exactly these two commands, which create the explorer or replace the existing one
+with both reports embedded:
+
+```bash
+python .agents/skills/code-archaeologist/scripts/archaeologist.py both   --src ./src
+python .agents/skills/code-archaeologist/scripts/archaeologist.py report --src ./src
+```
+
 ## Orient yourself
 
 One fixed-size digest of everything already built — counts, grade, staleness, entry points, the
@@ -67,7 +77,10 @@ python .agents/skills/code-archaeologist/scripts/query/search.py --file .tsx
 Nodes carry `precision` when a specific loss is known — `interface-dispatch`, `overloads` or
 `name-matched`. Every language is parsed with tree-sitter, so the declarations are exact; what is
 partial everywhere is **resolution** — a call is followed only through a declared
-type, and anything else is dropped rather than guessed, so their edges are a lower bound.
+type, and anything else is dropped rather than guessed, so their edges are a lower bound. A call
+through an interface stops at the declaration, and each implementation is joined to it by an
+`implements` link, which traces and `--impact-of` follow. Where the source settles which Spring
+bean is injected, the call links to that bean's method instead.
 `context.py` prints the caveat on the node itself, and the report opens with how many nodes it
 covers. To see what the extractor made of those files directly:
 
@@ -292,7 +305,7 @@ The same sample carries two deliberate markers, so the debt inventory has someth
 
 ```console
 $ debt.py --src ./sample_src --graph .../flow_graph.json
-Debt: 2 marker(s) (FIXME 1, TODO 1), 2 dead node(s), 1 dead file(s)
+Debt: 2 marker(s) (FIXME 1, TODO 1), 5 dead node(s), 1 dead file(s)
   FIXME  sample_src/backend/order_repository.py:14 [OrderRepository.get]  parameterize this query
   TODO   sample_src/backend/payment_client.py:13 [PaymentClient.charge]   retry once on a gateway timeout
 ```
@@ -306,7 +319,7 @@ It also ships a small suite — `backend/tests/test_orders.py` (one pytest funct
 
 ```console
 $ tests_map.py --src ./sample_src
-Tests: 2 test file(s), 4/21 node(s) named by a test (19.0%)
+Tests: 2 test file(s), 4/49 node(s) named by a test (8.2%)
   untested  OrderCard                    sample_src/frontend/OrderCard.tsx:11
   ...
 
@@ -316,7 +329,7 @@ $ context.py --node OrderService.place_order
 ```
 
 Those two test nodes carry `layer: test`: they are never counted as dead code, their calls never
-count as coupling, and the explorer's **Tests** checkbox hides them (25 nodes -> 23).
+count as coupling, and the explorer's **Tests** checkbox, unchecked by default, hides them (25 nodes -> 23).
 
 The generated `data/report/`, `data/structure/` and `data/flow/` folders in this repo are that
 demo output, committed so you can read a real example before running anything.

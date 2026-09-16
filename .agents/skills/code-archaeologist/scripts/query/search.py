@@ -32,6 +32,7 @@ from paths import DATA_DIR  # noqa: E402  (also puts sibling script dirs on sys.
 DEFAULT_GRAPH = os.path.join(DATA_DIR, "flow", "flow_graph.json")
 
 import console     # noqa: E402  (stdout must survive a non-UTF-8 console)
+from taxonomy import call_direction  # noqa: E402  (an implements link is walked declaration -> implementation)
 
 DOC_CHARS = 90
 
@@ -57,7 +58,7 @@ def search(graph_path: str, **f) -> list[dict]:
     calls: dict[str, set[str]] = {}
     callers: dict[str, set[str]] = {}
     for e in graph.get("edges", []):
-        s, t = e.get("source"), e.get("target")
+        s, t = call_direction(e.get("source"), e.get("target"), e.get("type", ""))
         calls.setdefault(s, set()).add(t)
         callers.setdefault(t, set()).add(s)
 

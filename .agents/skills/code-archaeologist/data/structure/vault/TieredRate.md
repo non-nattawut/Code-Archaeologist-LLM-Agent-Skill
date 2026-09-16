@@ -1,10 +1,11 @@
 ---
 entity: TieredRate
-layer: unknown
+layer: service
 source: sample_src/services/orders_java/PricingRule.java:20
 end: 26
 kind: class
 lang: java
+entry: 
 ---
 # TieredRate
 
@@ -14,7 +15,7 @@ Bulk orders get a discount.
 ## Bases
 - [[PricingRule]]
 
-## Decorators
+## Annotations
 _None._
 
 ## Methods

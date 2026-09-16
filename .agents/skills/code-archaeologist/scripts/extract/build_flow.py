@@ -62,19 +62,19 @@ def _save_json(path: str, obj) -> None:
         json.dump(obj, fh, indent=2)
         fh.write("\n")
 
-from taxonomy import infer_layer, is_test_path, precision_of, ROUTE_DECORATOR_RE  # noqa: E402
+from taxonomy import INHERITANCE_LINKS, infer_layer, is_test_path, precision_of, ROUTE_DECORATOR_RE  # noqa: E402
 import py_extract as px  # noqa: E402  (Python, via tree-sitter)
 from ids import SharedNames as FlowIds, bare  # noqa: E402  (one id rule for both maps)
 from js_ts_extract import find_js_files, extract_js_files, frontend_degraded   # noqa: E402
-from langs_extract import find_lang_files, extract_lang_files  # noqa: E402  (14 languages, via tree-sitter)
+from langs_extract import class_locator, find_lang_files, extract_lang_files  # noqa: E402  (14 languages, via tree-sitter)
 import route_tables  # noqa: E402  (Django / Rails / Laravel / Phoenix route tables)
 
-from taxonomy import SKIP_DIRS  # noqa: E402  (one definition of "not source")
+from taxonomy import source_dirs  # noqa: E402  (one definition of "not source")
 
 
 def iter_py_files(src: str):
     for root, dirs, files in os.walk(src):
-        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+        dirs[:] = source_dirs(root, dirs)
         for fn in files:
             if fn.endswith(".py"):
                 yield os.path.join(root, fn)
@@ -383,12 +383,27 @@ def _pick_overload(cands: list, args: list[str], rel: str) -> str | None:
     Argument count first, then every argument whose type the source states; an
     unstated argument, or a parameter whose type is not a plain name, rules nothing
     out. Two survivors is an ambiguous call, and it is dropped rather than guessed.
+    A varargs overload (`...T` last) is considered only when no fixed-arity one fits,
+    which is Java's own order.
     """
     if len({r for _, _, r in cands}) > 1:
         cands = [c for c in cands if c[2] == rel]    # as with a shared name: the caller's file
-    fits = {pid for pid, kinds, _ in cands if len(kinds) == len(args) and all(
-        p == "*" or not a or a == p or (a == "#int" and p == "#float") for a, p in zip(args, kinds))}
-    return fits.pop() if len(fits) == 1 else None
+
+    def fit(kinds: list[str]) -> bool:
+        if kinds and kinds[-1].startswith("..."):
+            fixed = kinds[:-1]
+            if len(args) < len(fixed):
+                return False
+            kinds = fixed + [kinds[-1][3:]] * (len(args) - len(fixed))
+        return len(kinds) == len(args) and all(
+            p == "*" or not a or a == p or (a == "#int" and p == "#float") for a, p in zip(args, kinds))
+
+    for varargs in (False, True):
+        fits = {pid for pid, kinds, _ in cands
+                if bool(kinds and kinds[-1].startswith("...")) == varargs and fit(kinds)}
+        if fits:
+            return fits.pop() if len(fits) == 1 else None
+    return None
 
 
 def _extracted_defs(files):
@@ -400,6 +415,9 @@ def _extracted_defs(files):
         for cls in res.get("classes", []):
             for local in _local_names(cls.get("methods", [])):
                 yield f'{cls["name"]}.{local}', rel
+        for obj in res.get("objects", []):               # JS/TS: `api.approve` in an object literal
+            for m in obj["members"]:
+                yield f'{obj["name"]}.{m["name"]}', rel
         for r in res.get("routes", []):
             if not r.get("handler"):                     # an inline handler is its own node
                 yield f'{r["method"]} {r["path"]}', rel
@@ -414,6 +432,8 @@ def analyze(roots: list[str]):
     func_nodes: dict[str, str] = {}         # module function name -> its name (ids via `ids`)
     # Deferred call sites, resolved in pass 2:  (caller_id, class_ctx, ctx, node)
     pending: list[tuple[str, str | None, dict, object]] = []
+    classes: list[tuple[str, str, str, list[str]]] = []   # (producer, class, file, bases): `implements`
+    abstract_py: set[str] = set()      # Python `@abstractmethod`s: a body that is a declaration
 
     # Read every source once, then decide every id before building any node.
     py_files = _py_files(roots)
@@ -423,6 +443,7 @@ def analyze(roots: list[str]):
                   for root in roots for res in extract_lang_files(find_lang_files(root))]
     ids = FlowIds(itertools.chain(_py_defs(py_files), _extracted_defs(js_files),
                                   _extracted_defs(lang_files)))
+    py_globals = _py_module_types(py_files)
 
     for rel, root_node in py_files:
         for cls_decos_nodes, cls in px.defs_in(root_node, ("class_definition",)):
@@ -430,7 +451,8 @@ def analyze(roots: list[str]):
             cls_decos = [px.name_of(d.named_children[0]) if d.named_children else ""
                          for d in cls_decos_nodes]
             cls_bases = [px.name_of(b) for b in _base_nodes(cls)]
-            layer = infer_layer(cls_name, cls_decos, cls_bases)
+            classes.append(("py", cls_name, rel, cls_bases))
+            layer = infer_layer(cls_name, cls_decos, cls_bases, rel)
             attr_types = _self_attr_types(cls)
             class_methods.setdefault(cls_name, set())
 
@@ -440,6 +462,8 @@ def analyze(roots: list[str]):
                 class_methods[cls_name].add(m_name)
                 decos = [px.name_of(d.named_children[0]) if d.named_children else ""
                          for d in m_decos]
+                if any(d.split(".")[-1] == "abstractmethod" for d in decos):
+                    abstract_py.add(node_id)
                 routes = _route_of(m_decos)
                 is_endpoint = bool(routes) or layer == "controller" or any(ROUTE_DECORATOR_RE.search(d) for d in decos)
                 doc = px.docstring_of(m)
@@ -459,7 +483,7 @@ def analyze(roots: list[str]):
                     "calls": [], "callers": [],
                     "hash": _hash(code), "code": code, "routes": routes,
                 })
-                local_types = _local_types(outer, attr_types, decl=m)
+                local_types = _local_types(outer, attr_types, decl=m, module=py_globals[rel])
                 pending.append((node_id, cls_name, {"attr_types": attr_types, "local_types": local_types,
                                                     "rel": rel}, outer))
 
@@ -483,26 +507,44 @@ def analyze(roots: list[str]):
                 "calls": [], "callers": [],
                 "hash": _hash(code), "code": code, "routes": routes,
             })
-            local_types = _local_types(outer, {}, decl=fn)
+            local_types = _local_types(outer, {}, decl=fn, module=py_globals[rel])
             pending.append((node_id, None, {"attr_types": {}, "local_types": local_types,
                                             "rel": rel}, outer))
 
     # --- Pass 2: resolve Python call edges ---  (edges carry a type)
     edges: set[tuple[str, str, str]] = set()
     for caller_id, cls_ctx, ctx, fn in pending:
-        targets, dropped = _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes, ids)
-        _record_dropped(methods[caller_id], dropped)
+        targets, dropped, untyped = _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes, ids)
+        _record_dropped(methods[caller_id], dropped, untyped)
         for target in targets:
             if target != caller_id:
                 edges.add((caller_id, target, "calls"))
 
+    # A module's top-level code runs when it is imported -- `app = create_app()`, the
+    # `if __name__ == "__main__": raise SystemExit(main())` guard -- and has no node to
+    # draw an edge from, so what it calls looked dead. Named instead, as in JS/TS.
+    for rel, root_node in py_files:
+        for call in px.load_time_calls(root_node):
+            func = px.field(call, "function")
+            if func is None or func.type != "identifier" or px.text(func) not in func_nodes:
+                continue
+            target = ids.target(func_nodes[px.text(func)], rel)   # a shared `main`: this file's
+            if target in methods and not methods[target].get("entry"):
+                methods[target]["entry"] = "module"
+
     # --- Frontend (JS/TS): merge nodes + call edges into the same graph ---
-    js_methods, js_edges = _analyze_js(js_files, ids)
+    js_methods, js_edges, js_renders, js_passes = _analyze_js(js_files, ids)
     for nid, node in js_methods.items():
         _claim(methods, nid, node)
     for s, t in js_edges:
         if s in methods and t in methods and s != t:
             edges.add((s, t, "calls"))
+    for s, t in js_renders:                    # `<Dashboard />`: the component tree, not a call
+        if s in methods and t in methods and s != t:
+            edges.add((s, t, "renders"))
+    for s, t in js_passes:                     # `onClick={run}`: handed over, not called here
+        if s in methods and t in methods and s != t:
+            edges.add((s, t, "passes"))
 
     # --- Java / Go / C#: same graph, same shape ---
     lang_methods, lang_edges = _analyze_lang(lang_files, ids)
@@ -511,6 +553,18 @@ def analyze(roots: list[str]):
     for s, t in lang_edges:
         if s in methods and t in methods and s != t:
             edges.add((s, t, "calls"))
+
+    # --- Implementations: a method joined to the one its class's base defines ---
+    for producer, files in (("js", js_files), ("lang", lang_files)):
+        for rel, res in files:
+            classes.extend((producer, c["name"], rel, c.get("bases") or []) for c in res.get("classes", []))
+    locate = class_locator(lang_files)
+    for s, t in _implements_links(methods, classes, locate):
+        # Filling in a declaration -- no body of its own to run -- is `implements`; replacing
+        # a method that has a body is `overrides`. Both are walked the same way.
+        edges.add((s, t, "implements" if methods[t].get("declaration") or t in abstract_py else "overrides"))
+    for nid in _overridden_everywhere(methods, classes, locate) - abstract_py:
+        methods[nid]["overridden"] = True
 
     # --- Route tables (Django, Rails, Laravel, Phoenix): a route declared away from
     # its handler, attached exactly as a decorator route is -- before the cross-stack
@@ -533,6 +587,8 @@ def analyze(roots: list[str]):
     ids.report("flow id")
     _report_collisions()
     for src_id, dst_id, _type in edges:
+        if _type in ("renders", "passes") or _type in INHERITANCE_LINKS:
+            continue        # none is a call: never "Delegates to", never precision
         methods[src_id]["calls"].append(dst_id)
         methods[dst_id]["callers"].append(src_id)
     for info in methods.values():
@@ -545,6 +601,118 @@ def analyze(roots: list[str]):
             info["precision"] = reasons
 
     return methods, sorted(edges)
+
+
+def _base_name(text: str) -> str:
+    """`com.shop.PricingRule<T>`, `abc.ABC`, `Generic[T]` -> the bare class name."""
+    for bracket in "<[(":
+        text = text.split(bracket)[0]
+    return text.split(".")[-1].split("::")[-1].strip()
+
+
+def _base_resolver(classes: list, locate=None):
+    """(resolve, bases_of) for a list of (producer, class, file, bases).
+
+    `resolve(producer, base, file)` is the (class, file) a base names -- found by name
+    within one producer, in the naming class's own file first, else only when exactly
+    one file defines it, else (Java-family languages) the file the naming file's package
+    and imports settle (`langs_extract.class_locator`) -- or None.
+    `bases_of[(class, file)]` is (producer, bases).
+    """
+    files_of: dict[tuple[str, str], list[str]] = {}
+    bases_of: dict[tuple[str, str], tuple[str, list[str]]] = {}
+    for producer, name, rel, bases in classes:
+        files_of.setdefault((producer, name), []).append(rel)
+        bases_of[(name, rel)] = (producer, bases)
+
+    def resolve(producer: str, base: str, rel: str):
+        name = _base_name(base)
+        rels = files_of.get((producer, name), [])
+        pick = rel if rel in rels else (rels[0] if len(rels) == 1 else None)
+        if pick is None and locate is not None and producer == "lang":
+            found = locate(name, rel)
+            pick = found if found in rels else None
+        return (name, pick) if pick else None
+    return resolve, bases_of
+
+
+def _implements_links(methods: dict, classes: list, locate=None) -> set[tuple[str, str]]:
+    """(implementation, declaration) for every method a base of its class also defines.
+
+    A call through an interface stops at its declaration (`PricingRule.price`), and
+    which class runs is decided outside the source -- a constructor argument, a
+    Spring bean. What the source *does* state is `class FlatRate implements
+    PricingRule`, so each method a class defines is linked to the same-named method
+    of its nearest base, walking past a base that defines none (an abstract class in
+    between). A base is found by name within one producer: the class's own file
+    first, else only when exactly one file defines it. Overloads pair by parameter
+    types. Nothing here says which implementation runs.
+    """
+    members: dict[tuple[str, str], dict[str, list[str]]] = {}
+    for nid, info in methods.items():
+        if info.get("cls"):
+            members.setdefault((info["cls"], _file_of(info)), {}).setdefault(info["name"], []).append(nid)
+    resolve, bases_of = _base_resolver(classes, locate)
+
+    links: set[tuple[str, str]] = set()
+    for key, (producer, _bases) in sorted(bases_of.items()):
+        for name, impls in sorted(members.get(key, {}).items()):
+            seen, queue = {key}, [key]
+            while queue:
+                cur = queue.pop(0)
+                for base in bases_of.get(cur, (producer, []))[1]:
+                    ancestor = resolve(producer, base, cur[1])
+                    if ancestor is None or ancestor in seen:
+                        continue
+                    seen.add(ancestor)
+                    declared = members.get(ancestor, {}).get(name)
+                    if declared:
+                        links |= _pair_overloads(impls, declared)
+                    else:
+                        queue.append(ancestor)
+    return links
+
+
+def _overridden_everywhere(methods: dict, classes: list, locate=None) -> set[str]:
+    """Methods with a body that every subclass in the graph replaces.
+
+    An abstract class's default `saveDetails()` whose only subclass overrides it never runs,
+    yet it is not dead code in the usual sense: a new subclass would inherit it. So it is
+    named `overridden` and listed apart from orphans. A class with no subclass in the graph
+    replaces nothing, and one subclass that keeps the body is enough for it to run.
+    """
+    members: dict[tuple[str, str], set[str]] = {}
+    for info in methods.values():
+        if info.get("cls"):
+            members.setdefault((info["cls"], _file_of(info)), set()).add(info["name"])
+    resolve, bases_of = _base_resolver(classes, locate)
+    children: dict[tuple[str, str], set[tuple[str, str]]] = {}
+    for key, (producer, bases) in bases_of.items():
+        for base in bases:
+            parent = resolve(producer, base, key[1])
+            if parent is not None and parent != key:
+                children.setdefault(parent, set()).add(key)
+
+    def replaced(key: tuple[str, str], name: str, seen: frozenset) -> bool:
+        kids = children.get(key)
+        return bool(kids) and all(name in members.get(k, ()) or (k not in seen and replaced(k, name, seen | {k}))
+                                  for k in kids)
+
+    out = set()
+    for nid, info in methods.items():
+        key = (info.get("cls"), _file_of(info))
+        if info.get("cls") and not info.get("declaration") and replaced(key, info["name"], frozenset({key})):
+            out.add(nid)
+    return out
+
+
+def _pair_overloads(impls: list[str], declared: list[str]) -> set[tuple[str, str]]:
+    """One of each: that pair. Several: only the ids whose parameter types agree."""
+    if len(impls) == 1 and len(declared) == 1:
+        return {(impls[0], declared[0])}
+    params = {nid[nid.index("("):]: nid for nid in declared if "(" in nid}
+    return {(nid, params[nid[nid.index("("):]]) for nid in impls
+            if "(" in nid and nid[nid.index("("):] in params}
 
 
 def _js_node(nid: str, name: str, cls, layer: str, kind: str, data: dict, rel: str) -> dict:
@@ -567,6 +735,7 @@ def _js_node(nid: str, name: str, cls, layer: str, kind: str, data: dict, rel: s
         "calls": [], "callers": [],
         "hash": _hash(content), "code": code, "http": http, "lang": "js",
         "routes": _dedupe_routes(data.get("routes") or []),
+        **({"entry": data["entry"]} if data.get("entry") else {}),   # next:page, next:route
     }
 
 
@@ -650,6 +819,12 @@ def _analyze_js(js_files: list, ids: "FlowIds"):
     func_nodes: set[str] = set()
     class_methods: dict[str, set[str]] = {}
     raw_calls: list[tuple[str, list[dict], str]] = []
+    raw_renders: list[tuple[str, list[str], str]] = []
+    raw_constructs: list[tuple[str, list[str], str]] = []   # `new ApiError(...)`: the classes built
+    raw_passes: list[tuple[str, list[str], str]] = []       # `rows.map(formatDate)`: handed over
+    returns_by_id: dict[str, str] = {}                  # node -> the class its `(): X` names
+    members_by_id: dict[str, set[str]] = {}             # node -> the functions its returned object names
+    typed_by_id: dict[str, tuple[str, str]] = {}        # node -> (its result's type, or the context it returns)
 
     for rel, res in js_files:
         if True:
@@ -660,15 +835,25 @@ def _analyze_js(js_files: list, ids: "FlowIds"):
                 # one meaning, one kind, whichever map you are reading.
                 component = bool(fn.get("jsx"))
                 _claim(methods, nid, _js_node(nid, fn["name"], None,
-                                              "ui" if component else infer_layer(f'{fn["name"]} {stem}'),
+                                              "ui" if component else infer_layer(f'{fn["name"]} {stem}',
+                                                                                 path=rel),
                                               "component" if component else "function", fn, rel))
                 func_nodes.add(fn["name"])
                 raw_calls.append((nid, fn.get("calls", []), rel))
+                raw_renders.append((nid, fn.get("components", []), rel))
+                raw_constructs.append((nid, fn.get("constructs", []), rel))
+                raw_passes.append((nid, fn.get("passes", []), rel))
+                if fn.get("returns"):
+                    returns_by_id[nid] = fn["returns"]
+                if fn.get("returns_members"):
+                    members_by_id[nid] = set(fn["returns_members"])
+                if fn.get("returns_type") or fn.get("returns_context"):
+                    typed_by_id[nid] = (fn.get("returns_type", ""), fn.get("returns_context", ""))
             for cls in res.get("classes", []):
                 # Nest hands us real decorator names (@Controller, @Injectable), which
                 # is better evidence of a layer than the class name and file stem that
                 # were all a JS class used to offer.
-                layer = infer_layer(f'{cls["name"]} {stem}', cls.get("decorators", []))
+                layer = infer_layer(f'{cls["name"]} {stem}', cls.get("decorators", []), path=rel)
                 class_methods.setdefault(cls["name"], set())
                 for m in cls.get("methods", []):
                     nid = ids.id(f'{cls["name"]}.{m["name"]}', rel)
@@ -678,33 +863,255 @@ def _analyze_js(js_files: list, ids: "FlowIds"):
                                                   "controller" if routed else layer,
                                                   "endpoint" if routed else "method", m, rel))
                     raw_calls.append((nid, m.get("calls", []), rel))
+                    raw_constructs.append((nid, m.get("constructs", []), rel))
+                    raw_passes.append((nid, m.get("passes", []), rel))
+                    if m.get("returns"):
+                        returns_by_id[nid] = m["returns"]
+            for obj in res.get("objects", []):
+                # `export const api = { approve: async () => ... }`: each inline member is
+                # a method of `api`, so `api.approve()` from any importer has a node to reach.
+                layer = infer_layer(f'{obj["name"]} {stem}', path=rel)
+                for m in obj["members"]:
+                    nid = ids.id(f'{obj["name"]}.{m["name"]}', rel)
+                    _claim(methods, nid, _js_node(nid, m["name"], obj["name"], layer, "method", m, rel))
+                    raw_calls.append((nid, m.get("calls", []), rel))
+                    raw_constructs.append((nid, m.get("constructs", []), rel))
+                    raw_passes.append((nid, m.get("passes", []), rel))
+                    if m.get("returns"):
+                        returns_by_id[nid] = m["returns"]
 
             _attach_routes(res.get("routes", []), methods, raw_calls,
                            lambda nid, data, rel=rel: _js_node(nid, nid, None, "controller",
                                                                "endpoint", data, rel),
                            rel, ids)
 
+    # What each file's imports bind, followed to the file they name: `label()` imported
+    # from `@/lib/labels` is that file's `label` even when another file defines one too
+    # (name matching drops it), and `errors.toMessage()` through `import * as errors` is
+    # the imported file's `toMessage` (its receiver has no type, so it was dropped).
+    # Only a binding under the exported name itself: `import { label as tag }` would make
+    # an edge to a name the caller never spells, which is what check_graph's c07 forbids.
+    rel_of = {res["file"]: rel for rel, res in js_files}
+    defaults = {rel: res.get("default", "") for rel, res in js_files}
+    reexports = {rel: [(rel_of[e["path"]], e) for e in res.get("reexports", []) if e.get("path") in rel_of]
+                 for rel, res in js_files}
+    objects = {rel: {o["name"]: o["aliases"] for o in res.get("objects", [])} for rel, res in js_files}
+    type_decls = {rel: res.get("types", {}) for rel, res in js_files}
+    contexts = {rel: res.get("contexts", {}) for rel, res in js_files}
+    # local name -> (file, the exported name it binds, or "*" for a namespace)
+    bound: dict[str, dict[str, tuple[str, str]]] = {}
+    # `import api from "./setdatService"` / `import { ngApi as api }`: the local name differs from
+    # the exported one, so a bare `api()` would be an edge to a name never spelled -- but in
+    # `api.fetchList()` the caller spells the member, which is all an edge to it needs.
+    renamed: dict[str, dict[str, tuple[str, str]]] = {}
+    for rel, res in js_files:
+        for imp in res.get("imports", []):
+            src_rel = rel_of.get(imp.get("path"))
+            for local, imported in (imp.get("bindings") or []) if src_rel else ():
+                name = defaults[src_rel] if imported == "default" else imported
+                if name == local or imported == "*":
+                    bound.setdefault(rel, {})[local] = (src_rel, "*" if imported == "*" else name)
+                elif name:
+                    renamed.setdefault(rel, {})[local] = (src_rel, name)
+
+    def exported_node(rel: str, name: str, depth: int = 0) -> str | None:
+        """The function file `rel` exports as `name`: its own, or the one a re-export
+        (`export * from "./project"`, `export { name } from ...`) reaches -- only when
+        exactly one file does, and never through a rename."""
+        nid = ids.id(name, rel)
+        node = methods.get(nid)
+        if node and node["cls"] is None and node["source"].startswith(f"{rel}:"):
+            return nid
+        if depth >= 5:
+            return None
+        hits = {hit for src, e in reexports.get(rel, ())
+                if e["names"].get(name) == name or e.get("star")
+                for hit in [exported_node(src, name, depth + 1)] if hit}
+        return hits.pop() if len(hits) == 1 else None
+
+    def exported_member(rel: str, obj: str, member: str, depth: int = 0) -> str | None:
+        """`obj.member` as file `rel` exports it: an object literal's inline member, a
+        member naming the function of the same name, or a namespace re-export."""
+        nid = ids.id(f"{obj}.{member}", rel)
+        node = methods.get(nid)
+        if node and node["cls"] == obj and node["source"].startswith(f"{rel}:"):
+            return nid
+        if objects.get(rel, {}).get(obj, {}).get(member) == member:
+            return exported_node(rel, member)
+        if depth >= 5:
+            return None
+        hits = set()
+        for src, e in reexports.get(rel, ()):
+            if e.get("namespace") == obj:
+                hit = exported_node(src, member, depth + 1)
+            elif e["names"].get(obj) == obj or e.get("star"):
+                hit = exported_member(src, obj, member, depth + 1)
+            else:
+                continue
+            if hit:
+                hits.add(hit)
+        return hits.pop() if len(hits) == 1 else None
+
+    def through_import(rel: str, local: str, member: str | None = None) -> str | None:
+        src_rel, name = bound.get(rel, {}).get(local, (None, None))
+        if src_rel is None and member is not None:
+            src_rel, name = renamed.get(rel, {}).get(local, (None, None))
+        if src_rel is None:
+            return None
+        if name == "*":
+            return exported_node(src_rel, member) if member is not None else None
+        return exported_node(src_rel, name) if member is None else exported_member(src_rel, name, member)
+
+    def declared_in(table: dict, rel: str, name: str, depth: int = 0) -> tuple:
+        """(file, entry) for a type or context `name` as file `rel` sees it -- declared there, or
+        where its import or a single re-export leads -- else (None, None)."""
+        if name in table.get(rel, {}):
+            return rel, table[rel][name]
+        if depth >= 5:
+            return None, None
+        src_rel, bound_name = bound.get(rel, {}).get(name, (None, None))
+        if src_rel and bound_name != "*":
+            return declared_in(table, src_rel, bound_name, depth + 1)
+        hits = {hit[0]: hit for src, e in reexports.get(rel, ())
+                if e["names"].get(name) == name or e.get("star")
+                for hit in [declared_in(table, src, name, depth + 1)] if hit[0]}
+        return next(iter(hits.values())) if len(hits) == 1 else (None, None)
+
+    def field_of(rel: str, ref: str, field: str, depth: int = 0) -> tuple:
+        """(file, type) of `field` on type `ref` as file `rel` names it: `interface V { api: SetdatApi }`."""
+        drel, entry = declared_in(type_decls, rel, ref)
+        if not entry or depth >= 5:
+            return None, None
+        if "props" in entry:
+            return (drel, entry["props"][field]) if field in entry["props"] else (None, None)
+        return (None, None) if entry["is"].startswith("typeof ") else field_of(drel, entry["is"], field, depth + 1)
+
+    def typed_member(rel: str, ref: str, name: str, depth: int = 0) -> str | None:
+        """`name` on a value of type `ref` as file `rel` writes it: on `typeof setdatService` it is
+        that object's or namespace's member; a type alias is followed; a class is its method."""
+        if ref.startswith("typeof "):
+            obj = ref[len("typeof "):]
+            return (through_import(rel, obj, name)
+                    or (exported_member(rel, obj, name) if obj in objects.get(rel, {}) else None))
+        drel, entry = declared_in(type_decls, rel, ref)
+        if entry and entry.get("is") and depth < 5:
+            return typed_member(drel, entry["is"], name, depth + 1)
+        if entry is None and name in class_methods.get(ref, ()):
+            return resolve({"name": name, "type": ref}, rel)
+        return None
+
+    def resolve(call: dict, rel: str) -> str | None:
+        name, declared = call["name"], call["type"]
+        if call.get("via", {}).get("field"):
+            # `const { api } = useSetdatVariant(); api.fetchX()`: the hook's return type -- or the
+            # `createContext<T>` it returns -- then that type's `api` field, then `fetchX` on it.
+            hop_id = resolve({"name": call["via"]["names"][0], "type": ""}, rel)
+            ref, ctx = typed_by_id.get(hop_id, ("", ""))
+            hop_rel = methods[hop_id]["source"].rpartition(":")[0] if hop_id in methods else None
+            if hop_rel and ctx:
+                hop_rel, ref = declared_in(contexts, hop_rel, ctx)
+            frel, fref = field_of(hop_rel, ref, call["via"]["field"]) if hop_rel and ref else (None, None)
+            return typed_member(frel, fref, name) if frel else None
+        if call.get("via"):
+            # `getApi().approve()`: each call's node, then the class its `(): X` names.
+            declared = call["via"]["type"]
+            hops = call["via"]["names"]
+            for i, hop in enumerate(hops):
+                if declared == "?":
+                    break
+                hop_id = resolve({"name": hop, "type": declared}, rel)
+                if i == len(hops) - 1 and name in members_by_id.get(hop_id, ()):
+                    # `const api = useSetdatApi(); api.fetchList()`: the function returns an object
+                    # naming `fetchList`, so it is that function as the returning file sees it.
+                    hop_rel = methods[hop_id]["source"].rpartition(":")[0]
+                    return through_import(hop_rel, name) or exported_node(hop_rel, name)
+                declared = returns_by_id.get(hop_id, "") or "?"
+            if declared == "?":
+                return None
+        if declared == "?":                      # receiver present, type unreadable
+            obj = call.get("obj", "")
+            return (through_import(rel, obj, name)
+                    or (exported_member(rel, obj, name) if obj in objects.get(rel, {}) else None))
+        if declared:
+            if name not in class_methods.get(declared, ()):
+                return None
+            nid = ids.target(f"{declared}.{name}", rel)
+            if nid in methods:
+                return nid
+            # A class two files define: the file the caller imports the class -- or the
+            # instance it calls through -- from, under its own name.
+            for local in (declared, call.get("obj", "")):
+                src_rel, bound_name = bound.get(rel, {}).get(local, (None, None))
+                if src_rel and bound_name != "*":
+                    nid = ids.id(f"{declared}.{name}", src_rel)
+                    if nid in methods and methods[nid]["source"].startswith(f"{src_rel}:"):
+                        return nid
+            return None
+        # A bare call is a module function -- never the enclosing class, which is what
+        # `this.` is for, and unlike Java a bare name inside a JS class body does not
+        # reach its own methods.
+        return through_import(rel, name) or (ids.target(name, rel) if name in func_nodes else None)
+
+    def passed_node(rel: str, name: str) -> str | None:
+        """The function a passed name is: imported, or a module function of the passing file.
+        Never a name any other file defines -- a local `row` is not someone else's `row()`."""
+        return through_import(rel, name) or exported_node(rel, name)
+
+    # Top-level code runs when its module loads (`const api = createApiInstance()`) and has
+    # no node to draw an edge from, so what it calls looked dead. It is named instead.
+    for rel, res in js_files:
+        for call in res.get("module_calls", []):
+            target = resolve(call, rel)
+            if target in methods and not methods[target].get("entry"):
+                methods[target]["entry"] = "module"
+        # `export const api = createApiInstance(getUserApiBaseUrl)`: handed to a call as the
+        # module loads -- used from outside any node, exactly as a module-load call is.
+        for name in res.get("module_passes", []):
+            target = passed_node(rel, name)
+            if target in methods and not methods[target].get("entry"):
+                methods[target]["entry"] = "module"
+
     edges: set[tuple[str, str]] = set()
     for owner, calls, rel in raw_calls:
         dropped: list[str] = []
+        untyped: list[str] = []
         for call in calls:
-            name, declared = call["name"], call["type"]
-            if declared == "?":                  # receiver present, type unreadable
-                target = None
-            elif declared:
-                target = (ids.target(f"{declared}.{name}", rel)
-                          if name in class_methods.get(declared, ()) else None)
-            else:
-                # A bare call is a module function -- never the enclosing class, which
-                # is what `this.` is for, and unlike Java a bare name inside a JS class
-                # body does not reach its own methods.
-                target = ids.target(name, rel) if name in func_nodes else None
+            name = call["name"]
+            target = resolve(call, rel)
             if target is None or target not in methods:
                 dropped.append(name)        # library, or a name several files define
+                if call["type"] == "?":
+                    untyped.append(name)    # through a receiver whose type is not stated
             elif target != owner:
                 edges.add((owner, target))
-        _record_dropped(methods[owner], dropped)
-    return methods, edges
+        _record_dropped(methods[owner], dropped, untyped)
+
+    # `new ApiError(...)` runs `ApiError`'s constructor: a call the source states as plainly
+    # as `ApiError.create(...)`, so a class used only by `throw new ApiError()` is not dead.
+    for owner, built, rel in raw_constructs:
+        for cls_name in built:
+            target = resolve({"name": "constructor", "type": cls_name}, rel)
+            if target in methods and target != owner:
+                edges.add((owner, target))
+
+    # `<Dashboard />` names a component exactly as `Dashboard()` would name a function,
+    # so it resolves the same way -- imports first, then a name one file defines.
+    renders: set[tuple[str, str]] = set()
+    for owner, names, rel in raw_renders:
+        for name in names:
+            target = resolve({"name": name, "type": ""}, rel)
+            if target in methods and target != owner:
+                renders.add((owner, target))
+
+    # `rows.map(formatDate)`, `onClick={run}`, `t.rich(key, { b: tag })`: the function is handed
+    # to code that calls it -- a use, not a call from here. Its own link, `passes`.
+    passes: set[tuple[str, str]] = set()
+    for owner, names, rel in raw_passes:
+        for name in names:
+            target = passed_node(rel, name)
+            if target in methods and target != owner and (owner, target) not in edges | renders:
+                passes.add((owner, target))
+    return methods, edges, renders, passes
 
 
 def _lang_node(nid: str, name: str, cls, layer: str, kind: str, data: dict,
@@ -735,6 +1142,8 @@ def _lang_node(nid: str, name: str, cls, layer: str, kind: str, data: dict,
         # A signature with no body: it exists so calls through the declared type
         # resolve, but there is no code in it to measure, clone or call dead.
         node["declaration"] = True
+    if data.get("entry"):
+        node["entry"] = data["entry"]    # a framework calls it: never dead code
     return node
 
 
@@ -752,6 +1161,16 @@ def _analyze_lang(lang_files: list, ids: "FlowIds"):
     raw_calls: list[tuple[str, list[dict], str]] = []
     # "Class.name" / "name" -> its overloads: (provisional id, parameter kinds, file)
     overloads: dict[str, list[tuple[str, list[str], str]]] = {}
+    # Declared return types, to type a call made on another call's result: every
+    # definition of a name must agree, else the return type is unknown and the call drops.
+    class_returns: dict[str, dict[str, set[str]]] = {}
+    class_getters: dict[str, dict[str, str]] = {}        # Lombok: generated, typed by a field
+    func_returns: dict[str, set[str]] = {}
+    class_fields: dict[str, dict[str, str]] = {}         # `Registry.STORE.save()`: the field's type
+    raw_inits: list[tuple[str | None, list[dict], str]] = []   # calls made outside any method
+    classes: list[tuple[str, str, str, list[str]]] = []
+    beans: list[dict] = []                               # Spring: the beans the source declares
+    managed: set[str] = set()                            # classes Spring creates and injects into
 
     for rel, res in lang_files:
         if True:
@@ -760,12 +1179,24 @@ def _analyze_lang(lang_files: list, ids: "FlowIds"):
 
             for cls in res.get("classes", []):
                 layer = infer_layer(f'{cls["name"]} {stem}', cls.get("decorators", []),
-                                    cls.get("bases", []))
+                                    cls.get("bases", []), rel)
                 class_methods.setdefault(cls["name"], set())
+                class_getters.setdefault(cls["name"], {}).update(cls.get("getters") or {})
+                class_fields.setdefault(cls["name"], {}).update(cls.get("fields") or {})
+                classes.append(("lang", cls["name"], rel, cls.get("bases") or []))
+                raw_inits.append((cls["name"], cls.get("init_calls") or [], rel))
+                if cls.get("bean"):
+                    managed.add(cls["name"])
+                    beans.append({**cls["bean"], "cls": cls["name"], "rel": rel})
                 members = cls.get("methods", [])
                 for m, local in zip(members, _local_names(members)):
                     nid = ids.id(f'{cls["name"]}.{local}', rel)
                     class_methods[cls["name"]].add(m["name"])
+                    if m.get("bean"):            # `@Bean Mailer mailer() { return new SmtpMailer(); }`
+                        beans.append({**m["bean"], "cls": m["bean"]["builds"], "rel": None,
+                                      "returns": m.get("returns", "")})
+                    class_returns.setdefault(cls["name"], {}).setdefault(m["name"], set()).add(
+                        m.get("returns", ""))
                     if local != m["name"]:
                         overloads.setdefault(f'{cls["name"]}.{m["name"]}', []).append(
                             (f'{cls["name"]}.{local}', m.get("kinds") or [], rel))
@@ -789,12 +1220,14 @@ def _analyze_lang(lang_files: list, ids: "FlowIds"):
             for fn, local in zip(functions, _local_names(functions)):
                 nid = ids.id(local, rel)
                 func_nodes[fn["name"]] = fn["name"]
+                func_returns.setdefault(fn["name"], set()).add(fn.get("returns", ""))
                 if local != fn["name"]:
                     overloads.setdefault(fn["name"], []).append((local, fn.get("kinds") or [], rel))
                 _claim(methods, nid, _lang_node(nid, fn["name"], None,
-                                                infer_layer(f'{fn["name"]} {stem}'),
+                                                infer_layer(f'{fn["name"]} {stem}', path=rel),
                                                 "function", fn, rel, lang))
                 raw_calls.append((nid, fn.get("calls", []), rel))
+            raw_inits.append((None, res.get("init_calls") or [], rel))
 
             _attach_routes(res.get("routes", []), methods, raw_calls,
                            lambda nid, data, rel=rel, lang=lang:
@@ -802,54 +1235,190 @@ def _analyze_lang(lang_files: list, ids: "FlowIds"):
                                           data, rel, lang),
                            rel, ids)
 
+    def returns_of(cls_ctx: str | None, typ: str, name: str) -> str:
+        """The one class `typ.name(...)` returns ("" = the enclosing class, then a module
+        function), or "" when it is unknown or its definitions disagree."""
+        if typ:
+            found = class_returns.get(typ, {}).get(name) or (
+                {class_getters[typ][name]} if name in class_getters.get(typ, {}) else set())
+        elif cls_ctx and name in class_returns.get(cls_ctx, {}):
+            found = class_returns[cls_ctx][name]
+        else:
+            found = func_returns.get(name, set())
+        return next(iter(found)) if len(found) == 1 else ""
+
+    # Spring: which bean each type is satisfied by -- a class Spring creates satisfies itself
+    # and every base it names; a `@Bean` method's built class satisfies its return type too.
+    locate = class_locator(lang_files)       # a class name two files define: which one a file means
+    resolve_base, bases_of = _base_resolver(classes, locate)
+    candidates: dict[str, list[dict]] = {}
+    for bean in beans:
+        rels = [r for name, r in bases_of if name == bean["cls"]]
+        rel = bean["rel"] or (rels[0] if len(rels) == 1 else None)
+        if rel is None:
+            continue
+        bean = {**bean, "rel": rel}
+        seen, queue, types = {(bean["cls"], rel)}, [(bean["cls"], rel)], {bean["cls"], bean.get("returns", "")}
+        while queue:
+            cur = queue.pop(0)
+            for base in bases_of.get(cur, ("lang", []))[1]:
+                ancestor = resolve_base("lang", base, cur[1])
+                if ancestor is not None and ancestor not in seen:
+                    seen.add(ancestor)
+                    queue.append(ancestor)
+                    types.add(ancestor[0])
+        for typ in sorted(types - {""}):
+            candidates.setdefault(typ, []).append(bean)
+
+    def injected(declared: str, target: str, call: dict, cls_ctx) -> str:
+        """The method the injected bean runs, when the source settles which bean Spring
+        injects into a class it manages: the one a `@Qualifier` names, the one `@Primary`
+        bean, or the only bean -- never a conditional one alone. Otherwise `target`."""
+        found = candidates.get(declared) if cls_ctx in managed else None
+        if not found:
+            return target
+        if call.get("qualifier"):
+            pick = [b for b in found if call["qualifier"] in b["names"]]
+        else:
+            primary = [b for b in found if b["primary"]]
+            pick = primary if len(primary) == 1 else (
+                [b for b in found if not b["conditional"]] if len(found) == 1 else [])
+        if len(pick) != 1 or pick[0]["cls"] == declared:
+            return target
+        local = target.rpartition(f"{declared}.")[2]
+        nid = ids.target(f'{pick[0]["cls"]}.{local}', pick[0]["rel"])
+        return nid if nid in methods else target
+
+    def defines(cls: str, name: str, crel: str) -> bool:
+        """Does class `cls` in file `crel` define `name` (one method, or an overload set)?"""
+        return (ids.id(f"{cls}.{name}", crel) in methods
+                or any(r == crel for _, _, r in overloads.get(f"{cls}.{name}", ())))
+
+    def ancestor_defining(cls: str, crel: str | None, name: str):
+        """(class, file) of the nearest base of `cls` that defines `name`, or None: a helper
+        a subclass calls with no receiver, `this.` or its own type -- `nz(...)` in an upload
+        handler, defined once in the base class every handler extends."""
+        if crel is None:
+            return None
+        seen, queue = {(cls, crel)}, [(cls, crel)]
+        while queue:
+            cur = queue.pop(0)
+            for base in bases_of.get(cur, ("lang", []))[1]:
+                anc = resolve_base("lang", base, cur[1])
+                if anc is None or anc in seen:
+                    continue
+                if defines(anc[0], name, anc[1]):
+                    return anc
+                seen.add(anc)
+                queue.append(anc)
+        return None
+
+    def node_id(provisional: str, trel: str, rel: str) -> str | None:
+        """The node a provisional `Class.name` means in file `trel`, else the old rule: the
+        caller's own file's definition of a shared name."""
+        nid = ids.id(provisional, trel)
+        if nid not in methods:
+            nid = ids.target(provisional, rel)
+        return nid if nid in methods else None
+
+    def targets_of(call: dict, cls_ctx, rel: str):
+        """(nodes the call reaches, the overload set it could not pick from, untyped receiver?)."""
+        name, declared = call["name"], call["type"]
+        via = call.get("via")
+        if via:
+            # `resolveHandler(t).downloadFile()`: walk the declared return types from the
+            # innermost call outward, after any static field (`Registry.STORE.save()`);
+            # any unknown step leaves the receiver "?".
+            declared = via["type"]
+            for field in via.get("fields", ()):
+                declared = class_fields.get(declared, {}).get(field) or "?"
+            for hop in via["names"]:
+                if declared == "?":
+                    break
+                declared = returns_of(cls_ctx, declared, hop) or "?"
+        if declared == "?":                      # receiver could not be typed
+            return [], None, True
+        # `trel`: the file of the class the call lands in. A class name two applications
+        # both define is settled by the caller's package and imports, not by its own file.
+        trel, inherited = rel, False
+        if declared:
+            crel = locate(declared, rel)
+            if name in class_methods.get(declared, ()) and defines(declared, name, crel or rel):
+                target, trel = f"{declared}.{name}", crel or rel
+            else:
+                found = ancestor_defining(declared, crel, name)
+                target, trel, inherited = (f"{found[0]}.{name}", found[1], True) if found else (None, rel, False)
+        elif cls_ctx and defines(cls_ctx, name, rel):
+            target = f"{cls_ctx}.{name}"         # bare call: same class first,
+        elif cls_ctx and (found := ancestor_defining(cls_ctx, rel, name)):
+            target, trel, inherited = f"{found[0]}.{name}", found[1], True   # then what it inherits,
+        else:
+            target = func_nodes.get(name)        # then a module function
+
+        def settle(nid: str) -> str:
+            return nid if inherited else injected(declared, nid, call, cls_ctx)
+
+        if target in overloads:
+            # One call name, possibly several call sites: each argument list picks its
+            # own overload, or is dropped as ambiguous.
+            picks, missed = [], False
+            for args in call.get("args") or [None]:
+                picked = _pick_overload(overloads[target], args, trel) if args is not None else None
+                picked = node_id(picked, trel, rel) if picked else None
+                if picked is None:
+                    missed = True
+                else:
+                    picks.append(settle(picked))
+            return picks, (target if missed else None), False
+        nid = node_id(target, trel, rel) if target else None
+        return ([settle(nid)] if nid else []), None, False
+
     edges: set[tuple[str, str]] = set()
     for owner, calls, rel in raw_calls:
         dropped: list[str] = []
+        untyped: list[str] = []
         ambiguous: set[str] = set()
         cls_ctx = methods[owner]["cls"]
         for call in calls:
-            name, declared = call["name"], call["type"]
-            if declared == "?":                  # receiver could not be typed
-                target = None
-            elif declared:
-                target = f"{declared}.{name}" if name in class_methods.get(declared, ()) else None
-            elif cls_ctx and name in class_methods.get(cls_ctx, ()):
-                target = f"{cls_ctx}.{name}"     # bare call: same class first,
-            else:
-                target = func_nodes.get(name)    # then a module function
-            if target in overloads:
-                # One call name, possibly several call sites: each argument list
-                # picks its own overload, or is dropped as ambiguous.
-                for args in call.get("args") or [None]:
-                    picked = _pick_overload(overloads[target], args, rel) if args is not None else None
-                    picked = ids.target(picked, rel) if picked else None
-                    if picked is None or picked not in methods:
-                        ambiguous.add(target)
-                    elif picked != owner:
-                        edges.add((owner, picked))
-                continue
-            if target:
-                target = ids.target(target, rel)  # a shared name: the caller's own file only
-            if target and target in methods:
-                if target != owner:
-                    edges.add((owner, target))
-            else:
-                dropped.append(name)
-        _record_dropped(methods[owner], dropped)
+            hits, unpicked, untyped_call = targets_of(call, cls_ctx, rel)
+            if unpicked:
+                ambiguous.add(unpicked)
+            edges.update((owner, t) for t in hits if t != owner)
+            if not hits and not unpicked:
+                dropped.append(call["name"])
+                if untyped_call:
+                    untyped.append(call["name"])
+        _record_dropped(methods[owner], dropped, untyped)
         if ambiguous:
             methods[owner]["ambiguous"] = sorted(ambiguous)
+
+    # A call made outside any method -- a field initializer, a static or init block, a
+    # constructor, a Go package `var` -- has no node to draw a link from, so its callee
+    # looked dead with no trace of why (finding #28). Named instead, as module-load code is.
+    for cls_ctx, calls, rel in raw_inits:
+        for call in calls:
+            for target in targets_of(call, cls_ctx, rel)[0]:
+                if not methods[target].get("entry"):
+                    methods[target]["entry"] = "init"
     return methods, edges
 
 
-def _local_types(fn, seed: dict[str, str], decl=None) -> dict[str, str]:
+def _local_types(fn, seed: dict[str, str], decl=None, module: dict[str, str] | None = None) -> dict[str, str]:
     """Local variable -> ClassName from param annotations and `x = SomeClass()`.
 
     `fn` is the node to walk and `decl` the definition whose parameters to read.
     They differ for a decorated function: `ast` folded decorators into the node it
     walked, so the walk has to start at the wrapper to count the same call sites,
-    while the parameters only exist on the definition inside it.
+    while the parameters only exist on the definition inside it. `module` is the
+    file's typed globals; a parameter or assignment of the same name hides one.
     """
     types = dict(seed)
+    if module:
+        params = px.params_of(decl if decl is not None else fn)
+        hidden = {px.text(n) for n in px.walk(params) if n.type == "identifier"} if params is not None else set()
+        hidden |= {px.text(t) for targets, _value, _ann in px.assignments(fn)
+                   for t in targets if t.type == "identifier"}
+        types = {**{k: v for k, v in module.items() if k not in hidden}, **types}
     types.update({k: v for k, v in px.param_annotations(decl if decl is not None else fn).items() if v})
     for targets, value, _annotation in px.assignments(fn):
         if value is None or value.type != "call":
@@ -862,7 +1431,48 @@ def _local_types(fn, seed: dict[str, str], decl=None) -> dict[str, str]:
     return types
 
 
-def _record_dropped(node: dict, dropped: list[str]) -> None:
+def _py_module_types(py_files) -> dict[str, dict[str, str]]:
+    """file -> {global name: class} for every Python file (finding #27).
+
+    A file's own top-level `store = Store()` / `store: Store = ...`, plus each unaliased
+    `from m import store` whose module is exactly one graphed file typing `store` that way.
+    The file's own assignment wins over an import of the same name.
+    """
+    own: dict[str, dict[str, str]] = {}
+    for rel, root in py_files:
+        types: dict[str, str] = {}
+        for stmt in root.named_children:
+            if stmt.type != "expression_statement":
+                continue
+            for targets, value, annotation in px.assignments(stmt):
+                cls = px.annotation_type(annotation) if annotation is not None else ""
+                if not cls and value is not None and value.type == "call":
+                    ctor = px.name_of(px.field(value, "function"))
+                    cls = ctor if ctor[:1].isupper() else ""
+                for tgt in targets:
+                    if cls and tgt.type == "identifier":
+                        types[px.text(tgt)] = cls
+        own[rel] = types
+    modules = {rel[:-3].replace("/", "."): rel for rel in own if rel.endswith(".py")}
+    out: dict[str, dict[str, str]] = {}
+    for rel, root in py_files:
+        imported: dict[str, str] = {}
+        for node in px.walk(root):
+            if node.type != "import_from_statement":
+                continue
+            mod = px.field(node, "module_name")
+            name = px.text(mod).lstrip(".") if mod is not None else ""
+            hits = [r for m, r in modules.items() if name and (m == name or m.endswith("." + name))]
+            if len(hits) != 1:
+                continue
+            for child in node.named_children:
+                if child.type == "dotted_name" and child != mod and px.text(child) in own[hits[0]]:
+                    imported[px.text(child)] = own[hits[0]][px.text(child)]
+        out[rel] = {**imported, **own[rel]}
+    return out
+
+
+def _record_dropped(node: dict, dropped: list[str], untyped=()) -> None:
     """Keep the names of the calls that did not become edges, not only how many.
 
     `ext` alone cannot tell two very different things apart: `print(...)` -- nothing
@@ -873,6 +1483,7 @@ def _record_dropped(node: dict, dropped: list[str]) -> None:
     """
     node["ext"] = len(dropped)
     node["_dropped"] = dropped
+    node["_untyped"] = list(untyped)      # of those, the calls through a receiver of unknown type
 
 
 def _split_dropped(methods: dict) -> None:
@@ -881,6 +1492,8 @@ def _split_dropped(methods: dict) -> None:
     Name-based on purpose, and an over-count on purpose: `save` here may well be a
     library's `save`. It answers "where might an edge be missing", which is the
     question `ext` silently refused to answer, and never invents an edge for it.
+    `untyped` is the part of it dropped because the receiver's type was not stated --
+    what earns `precision: name-matched` (finding #25).
     """
     known = {bare(nid) for nid in methods}
     for info in methods.values():
@@ -888,14 +1501,19 @@ def _split_dropped(methods: dict) -> None:
         hits = sorted({n for n in names if n in known})
         if hits:
             info["unresolved"] = hits
+        untyped = sorted({n for n in info.pop("_untyped", []) if n in known})
+        if untyped:
+            info["untyped"] = untyped
 
 
 def _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes,
-                   ids: "FlowIds") -> tuple[set[str], list[str]]:
-    """Returns (in-graph call targets, the names of the call sites that did not resolve)."""
+                   ids: "FlowIds") -> tuple[set[str], list[str], list[str]]:
+    """Returns (in-graph call targets, the names of the call sites that did not resolve,
+    and of those, the ones made through a receiver whose type is not stated)."""
     attr_types, local_types = ctx["attr_types"], ctx["local_types"]
     found: set[str] = set()
     dropped: list[str] = []
+    untyped: list[str] = []
 
     def exists(cls_name, method):
         return cls_name in class_methods and method in class_methods[cls_name]
@@ -903,6 +1521,7 @@ def _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes,
     for node in px.calls_in(fn):
         target = None
         called = ""
+        typed = True
         func = px.field(node, "function")
         if func is None:
             continue
@@ -913,17 +1532,24 @@ def _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes,
             # self.attr.method()
             if px.is_self_attr(base):
                 cls_name = attr_types.get(px.self_attr_name(base))
+                typed = bool(cls_name)
                 if cls_name and exists(cls_name, method):
                     target = f"{cls_name}.{method}"
             # self.method()
             elif base_name == "self" and cls_ctx:
                 if exists(cls_ctx, method):
                     target = f"{cls_ctx}.{method}"
-            # <var>.method()  where var is a typed param/local
+            # <var>.method()  where var is a typed param/local, or a typed global of this file
             elif base_name in local_types:
                 cls_name = local_types[base_name]
                 if exists(cls_name, method):
                     target = f"{cls_name}.{method}"
+            # ClassName.method(): a static or class method, named through its class
+            elif base_name in class_methods:
+                if exists(base_name, method):
+                    target = f"{base_name}.{method}"
+            else:
+                typed = False
         elif func.type == "identifier":
             # bare function call to a known module function
             called = px.text(func)
@@ -935,7 +1561,9 @@ def _resolve_calls(fn, cls_ctx, ctx, methods, class_methods, func_nodes,
             found.add(target)
         elif called:
             dropped.append(called)     # library / stdlib / unresolvable: named, not an edge
-    return found, dropped
+            if not typed:
+                untyped.append(called)
+    return found, dropped, untyped
 
 
 def _auto_summary(info: dict) -> str:
@@ -1026,6 +1654,10 @@ def write_graph(methods: dict, edges, graph_path: str) -> None:
             # Of those `ext` sites, the names this graph defines somewhere: where an
             # edge may be missing because the receiver's class was not readable.
             node["unresolved"] = i["unresolved"]
+        if i.get("untyped"):
+            # Of those, the ones dropped because the receiver's type was not stated:
+            # what earns `precision: name-matched`.
+            node["untyped"] = i["untyped"]
         if i.get("http"):
             node["http"] = i["http"]
         if i.get("routes"):
@@ -1036,6 +1668,10 @@ def write_graph(methods: dict, edges, graph_path: str) -> None:
             node["precision"] = i["precision"]
         if i.get("declaration"):
             node["declaration"] = True   # signature only; no body to measure or run
+        if i.get("entry"):
+            node["entry"] = i["entry"]   # a framework (or module load) calls it: never dead code
+        if i.get("overridden"):
+            node["overridden"] = True    # every subclass replaces this body: it never runs
         if i.get("signatures"):
             node["signatures"] = i["signatures"]   # overloads folded into one id
         if i.get("ambiguous"):
@@ -1087,7 +1723,7 @@ def build(src, flow_dir: str, graph_path: str) -> int:
     from_doc = sum(1 for m in methods.values() if m["desc_source"] == "docstring")
     from_ai = sum(1 for m in methods.values() if m["desc_source"] == "ai")
     scope = " (BACKEND ONLY - frontend skipped)" if frontend_degraded() else ""
-    print(f"Flow: {len(methods)} node(s), {len(edges)} call edge(s), {len(endpoints)} endpoint(s){scope}")
+    print(f"Flow: {len(methods)} node(s), {len(edges)} edge(s), {len(endpoints)} endpoint(s){scope}")
     print(f"  descriptions: {from_doc} docstring, {from_ai} cached-AI, {len(pending)} pending")
     print(f"  graph -> {graph_path}")
     print(f"  notes -> {flow_dir}")

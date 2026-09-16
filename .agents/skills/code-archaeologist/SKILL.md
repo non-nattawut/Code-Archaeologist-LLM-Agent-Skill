@@ -1,7 +1,6 @@
 ---
 name: code-archaeologist
-description: Zero-RAG codebase navigation with two maps — a project-structure graph (which classes reference which) and a method-level flow graph (which method calls which, i.e. request/execution flow), plus a review pass (health grade, risk scan, git hotspots). Use to explain architecture, trace how a request flows through methods, find what breaks if a class/method changes, or review a codebase for smells, risky code and change hotspots.
----
+description: Zero-RAG codebase navigation with two maps — a project-structure graph (which classes reference which) and a method-level flow graph (which method calls which, i.e. request/execution flow), plus a review pass (health grade, risk scan, git hotspots). Use to explain architecture, trace how a request flows through methods, find what breaks if a class/method changes, or review a codebase for smells, risky code and change hotspots.---
 
 # Skill: Code Archaeologist & Living Wiki Navigator
 
@@ -17,6 +16,10 @@ Zero-RAG codebase navigation from local graphs and Markdown notes. **Two maps:**
 `data/` is grouped by map: `structure/`, `flow/`, `report/<map>/` (the review pass), `cache/`
 (AI-summary + freshness state; you rarely touch it). Both maps share one viewer,
 `data/explorer.html`, switched from its header.
+
+**Paths.** Every command below names the skill folder as `.agents/skills/code-archaeologist`. The
+installer rewrites that to wherever it installs the skill; if the folder was copied by hand (for
+example to `.claude/skills/code-archaeologist`), use that folder in every command instead.
 
 ## Setup — preflight before the first build
 
@@ -102,11 +105,15 @@ above puts it back on the pin.
      calls X" only ever means "nothing the extractor could resolve calls X".
    - A node names its own loss in `precision`: `interface-dispatch` (the call stops at an
      interface), `overloads` (the arguments did not say which overload was meant, so that call was
-     dropped; every overload is its own node), `name-matched` (JS/TS, Ruby, PHP, Elixir, Groovy — a
-     call through an object with no declared type, dropped).
+     dropped; every overload is its own node), `name-matched` (a call through an object with no
+     declared type was dropped, and the graph defines that name — listed in `untyped`).
    - A call through an interface lands on the interface's own node (`declaration: true`) and stops
-     there: the trace does **not** continue into the implementations, so "what actually runs" is
-     still unanswered.
+     there. Each implementation is joined to that node by an `implements` link, so traces and
+     `--impact-of` reach every implementation -- but *which* one runs is still unanswered, unless
+     the scanned source settles which Spring bean is injected (a `@Qualifier`, one `@Primary`, the
+     only bean, a `@Bean` method): then the call links straight to that bean's method. A bean
+     registered outside the scanned source (a library's auto-configuration) is invisible to that
+     rule.
    - `context.py` and the report print the caveat for you and name the node's loss — pass it on,
      and say it plainly when a whole answer (dead code, blast radius, "who calls this") rests on it.
 
@@ -134,8 +141,7 @@ answer costs a command, not a source read.
 | "what changes most / who owns this?" | **12** `git_insights.py` | either |
 | "how big / complex is X?" | **13** `metrics.py` | either |
 | "any cycles / layering problems?" | **10** `analyze.py` | either |
-| "show me the architecture" (for a human) | **8** `build_html.py` → `explorer.html` | both |
-| "is the map still accurate?" | **9** `check` | both |
+| "show me the architecture" (for a human) | **8** `build_html.py` → `explorer.html` | both || "is the map still accurate?" | **9** `check` | both |
 | anything, and the map is stale or missing | **2 / 3** `project` / `flow` / `both` | — |
 
 Two rules that decide the **Map** column when it says "either":
@@ -169,7 +175,8 @@ python .agents/skills/code-archaeologist/scripts/archaeologist.py project --src 
 ```
 Nodes are classes, React components and one `<Name>Module` page per file of module-level
 functions, from Python and JS/TS alike. A JS/TS function that returns JSX gets `kind: component`
-and `layer: ui`, and an `import ... from "./x"` becomes an edge to whatever that file defines.
+and `layer: ui`, and an `import ... from "./x"` -- or `"@/x"` through the tsconfig/jsconfig
+`paths` alias -- becomes an edge to whatever that file defines.
 
 ### 3. Build the Flow / Request-Flow map
 ```bash
@@ -258,15 +265,17 @@ call the node, the pack lists them under **Covered by** — real call edges, so 
 tests should I run for this change".
 
 ### 8. Regenerate the HTML explorer
-`archaeologist.py` refreshes `data/explorer.html` on every build; this rebuilds it alone:
+`archaeologist.py` refreshes `data/explorer.html` on every build; this rebuilds it alone. When the
+user only wants the page created or replaced, the separate `/code-archaeologist-explorer` skill
+does that end to end (both maps, report, render).
 ```bash
 python .agents/skills/code-archaeologist/scripts/query/build_html.py
 ```
 One page holds both maps (header switch): grade, tiles and file tree on the left; seven views
-(Graph, Treemap, Matrix, Tree, Flow, Cluster, Bundle) in the middle; FILE / PATTERNS / SECURITY
+(Graph, Treemap, Matrix, Tree, Flowchart, Cluster, Bundle) in the middle; FILE / PATTERNS / SECURITY
 tabs on the right. A map with no report still renders, minus the grade and review tabs. A
-**Tests** checkbox appears when the map has test nodes and hides them, for when you want the
-architecture without the suite hanging off it.
+**Tests** checkbox appears when the map has test nodes. It starts **unchecked**, so the page opens
+on the architecture without the suite hanging off it; tick it to draw the test nodes.
 
 It is one self-contained file — data *and* the graph library are inlined, so it opens from
 `file://` with the network off and can be emailed to someone with no repo access. Hand it to a
@@ -274,15 +283,18 @@ It is one self-contained file — data *and* the graph library are inlined, so i
 them it does:
 
 - **Left rail** — health ring, a colour-by selector (layer / folder / churn / risk), stat tiles,
-  language mix, and a file tree that filters the canvas. Each section folds from its own heading
+  language mix, a node search (by name or path), and a file tree that filters the canvas to a file's nodes and whatever they link to directly. Each section folds from its own heading
   to give the tree room, and both rails drag to resize from their inner border.
 - **Centre** — the seven views, folder hulls, and a **blast radius** toggle that shades everything
-  reachable from the selected node. The `⋯` overflow menu holds zoom in/out, fit and PNG export.
+  reachable from the selected node. **Freeze** holds the current view: clicking another node
+  still opens its details but no longer re-narrows the Flowchart or moves the canvas. The `⋯`
+  overflow menu holds zoom in/out, fit and PNG export.
 - **Right** — the three tabs click through into each other (a risk opens its file, a pattern opens
   its node).
 
 Dragging a node **pins** it where it is dropped, so a messy layout is fixed with the toolbar
 **reset**, which throws away the layout, the selection and the filter and re-runs it from scratch.
+Clicking empty canvas keeps the selection; reset is the way to clear it.
 
 ### 9. Check freshness (are the maps stale?)
 Returns `{stale, changed, added, deleted}`. Rebuild if `stale`.
@@ -296,7 +308,56 @@ you get `source root(s) not found from here` rather than a false "everything was
 ### 10. Architectural smells & health grade
 Cycles, orphans/dead nodes, backwards layer violations, high-coupling hubs, god objects,
 name-based idioms, and a 0-100 / A-F health score (`--security <security.json>` folds risk
-findings into the grade).
+findings into the grade). A method whose body every subclass replaces is listed under
+**overridden**, not as an orphan: say "never runs today", not "dead" -- removing it changes what a
+new subclass inherits. Code a framework calls is never an orphan: a node carrying `entry`
+(`@Scheduled`, `@Bean`, `@Override`, `main`, a Next.js `next:page` / `next:route`, `module` for
+a function a JS/TS or Python module calls as it loads, or `init` for one a field initializer,
+initializer block, constructor or Go package var calls) is called from outside the graph, like a route. A JS/TS function that is only *passed* (`onClick={fn}`,
+`rows.map(fn)`, `t.rich(key, { b: fn })`) is reached by a **`passes`** link -- or is `entry: module`
+when top-level code hands it over (`createApiInstance(fn)`) -- whenever the name resolves through an
+import or to a function in the same file; `--impact-of` follows it, and it is never counted as a
+call. A field of a hook's result (`const { api } = useSetdatVariant(); api.fetchX()`) resolves when
+the types on the way are written: the hook's return type or the `createContext<T>` it returns, `T`'s
+field, and a `typeof someService` it names. A function reaching its user through a prop or a
+variable of unknown origin still has no caller -- check for that before calling it dead. A `const` choosing a function
+(`const save = id ? updateUser : createUser; save(x)`) links to every branch as a call. Nor is any overload of
+a set some node lists in `ambiguous` (`this::values`, or a call whose arguments did not say
+which overload): one of them is called, and the graph cannot say which, so none is called dead. In the flow map a
+component's `<Child />` is a `renders` edge, so `--impact-of` on a component reaches the pages that
+render it. A method that implements an interface (or overrides a base class in the graph) is
+reached through its `implements` link, so it is not an orphan, and `--impact-of` on it reaches the
+interface's callers.
+
+A node's **layer** is declared by an annotation (`@Service`, `@RestController`) where there is one,
+else read from its name, else from its folder (`service/pnodata/` -> service, `response/` -> model,
+`properties/` -> config) -- and a folder that names no layer leaves it `unknown` rather than
+guessing. Say which of the three answered when a layer decides an answer.
+
+In the **structure** map a class is referenced by every type its users' source names -- a field,
+parameter or return type, any generic argument inside it, a local's declared type, `X.class`, an
+import, a name the same file defines (a component calling a function of its own module group), and
+the class a static constant is read from -- and a base class is used by the class that extends it. A class a framework builds and calls into (`@SpringBootApplication`, `@Configuration`,
+`@Aspect`, `@ControllerAdvice`, or one whose own method carries an `entry` such as `@Scheduled`)
+carries `entry` and is not an orphan. `@Component` / `@Service` / `@Repository` alone do **not**
+spare a class: Spring builds it, but one nothing injects runs nothing.
+
+**An orphan means "nothing in the source calls this", never "this cannot run".** The graph states
+only what the code states -- the same standard an IDE's *unused* hint uses. So a function a
+framework finds by **matching a name held in data** is reported as an orphan, and that report is
+**correct by this rule, not a miss**: a next-intl `t.rich` tag function (`const TAGS = { bold: ...,
+code1: ... }`) whose name appears only inside a translation string in `en.json`; a bean or handler
+resolved from a string key; anything reached by reflection. Two independent reasons the graph
+cannot say otherwise -- the link is written in a `.json` (or config) file, which no parser of the
+code can see; and an object handed over whole (`t.rich(key, { ...TAGS })`) passes **the object**,
+so its members get no `passes` link of their own. Both are deliberate: guessing which member a data
+file names would invent links.
+
+Report it that way, and do not "correct" it: say **"nothing in the code calls it; a framework may
+still reach it by name at runtime -- check the message/config files before deleting"**. If a user
+or another agent calls such an orphan wrong because the string does appear in a JSON file, the
+answer is that both are true: it runs, and no code references it. This skill deliberately answers
+the second question.
 ```bash
 python .agents/skills/code-archaeologist/scripts/review/analyze.py                    # structure (default)
 python .agents/skills/code-archaeologist/scripts/review/analyze.py --format text      # no JSON envelope
@@ -307,7 +368,8 @@ python .agents/skills/code-archaeologist/scripts/review/analyze.py \
 ### 11. Risk / security scan
 Line scan for hardcoded secrets, interpolated SQL, `eval`/`innerHTML` sinks and leftover debug
 statements. Each finding names the node owning the line, so it can be traced and blast-radiused
-(tests/fixtures/docs skipped, secrets redacted).
+(tests/fixtures/docs skipped, secrets redacted). A credential-named key whose value is only its
+own name, a path or prose (`ACCESS_TOKEN: "accessToken"`) is not reported.
 ```bash
 python .agents/skills/code-archaeologist/scripts/review/scan_security.py --src ./src
 ```
@@ -440,13 +502,16 @@ keeps the cache intact — those nodes are missing, not gone). **0 pending** mea
   sets) live in `scripts/core/taxonomy.py` and `scripts/review/scan_security.py` — see `templates/TAXONOMY.md`
   for the allowed values, and edit those rather than individual pages.
 - **Dependency and build directories are never scanned**, so they are absent from the graph by
-  design, not by omission: `.git`, `__pycache__`, `venv`, `.venv`, `node_modules`, `.idea`, `data`,
+  design, not by omission: `.git`, `__pycache__`, `venv`, `.venv`, `node_modules`, `.idea`,
   `dist`, `build`, `.next`, `.nuxt`, `.svelte-kit`, `.angular`, `.turbo`, `.parcel-cache`,
   `.gradle`, `.dart_tool`. If asked why a library or a generated file is missing, that is the
-  reason. Note `target`, `out`, `coverage` and `vendor` are *not* skipped — each is a real source
-  directory in some ecosystem — so those may appear.
+  reason. Note `target`, `out`, `coverage`, `vendor` and `data` are *not* skipped — each is a real
+  source directory in some ecosystem (`data` is a Next.js route segment) — so those may appear.
 - Call resolution is heuristic, not type inference: `self.<dep>.m()` via `__init__` hints or
-  assignments, typed params/locals, and same-class `self.m()`. Unresolved calls (libraries,
+  assignments, typed params/locals, same-class `self.m()`, a cast receiver
+  (`((UserSecurity) u).getPlantIds()`), a pattern variable (`u instanceof UserSecurity us`,
+  `case UserSecurity us ->`, C# `u is Session s`), and the Java inside a MapStruct
+  `@Mapping(expression = "java(...)")`. Unresolved calls (libraries,
   stdlib) become no edge and are counted per node as `ext` ("N ext" in the explorer).
 - `resolve_descriptions()` in `build_flow.py` is where a description is chosen — the hook for
   richer summaries.

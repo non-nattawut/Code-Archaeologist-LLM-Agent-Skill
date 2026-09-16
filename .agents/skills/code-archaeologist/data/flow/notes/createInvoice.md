@@ -5,7 +5,6 @@ layer: client
 class: 
 source: sample_src/frontend/api_client.ts:16
 lang: js
-precision: name-matched
 desc_source: docstring
 ---
 # createInvoice

@@ -59,7 +59,8 @@ import trace_path  # noqa: E402
 
 MAPS = {"flow": os.path.join(DATA_DIR, "flow", "flow_graph.json"),
         "structure": os.path.join(DATA_DIR, "structure", "graph.json")}
-EDGE_TYPES = {"flow": {"calls", "http"}, "structure": {"references"}}
+EDGE_TYPES = {"flow": {"calls", "http", "renders", "passes", "implements", "overrides"},
+              "structure": {"references", "implements", "extends"}}
 VERBS = {"GET", "POST", "PUT", "PATCH", "DELETE"}
 LANGS = set(taxonomy.LANG_BY_EXT.values())
 
@@ -199,6 +200,9 @@ def c07_name_at_source(c):
             body = c.body(n) or ""
             want = ([r["path"] for r in n.get("routes") or []] if synthetic(n["id"])
                     else [short(n["id"])])
+            if (short(n["id"]) == os.path.splitext(os.path.basename(path))[0]
+                    and body.lstrip().startswith("export default")):
+                continue                                 # `export default function () {}` is named by its file
             where = f"{path}:{line}-{n.get('end')}"
         elif c.kind == "flow":
             continue                                     # C05 reports a flow node with no line
@@ -210,8 +214,17 @@ def c07_name_at_source(c):
 
 
 def c08_declaration_calls(c):
-    return [f"{e['source']}: a declaration (signature, no body) has a call edge to {e['target']}"
-            for e in c.edges if e.get("type") == "calls" and c.by_id.get(e.get("source"), {}).get("declaration")]
+    """A declaration has no body, so it calls nothing -- except the Java a MapStruct
+    `@Mapping(expression = "java(...)")` on it spells, which the generated mapper runs."""
+    out = []
+    for e in c.edges:
+        caller = c.by_id.get(e.get("source"), {})
+        if e.get("type") != "calls" or not caller.get("declaration"):
+            continue
+        if re.search(rf'java\([^"]*\b{re.escape(short(e["target"]))}\b', c.body(caller) or ""):
+            continue
+        out.append(f"{e['source']}: a declaration (signature, no body) has a call edge to {e['target']}")
+    return out
 
 
 def c09_precision(c):
@@ -219,7 +232,8 @@ def c09_precision(c):
         return [f"{n['id']}: a structure node carries `precision`" for n in c.nodes if n.get("precision")]
     out, targets = [], {}
     for e in c.edges:
-        targets.setdefault(e["source"], []).append(e["target"])
+        if e.get("type") in ("calls", "http"):      # what build_flow counts as a node's calls
+            targets.setdefault(e["source"], []).append(e["target"])
     for n in c.nodes:
         got = n.get("precision") or []
         unknown = [r for r in got if r not in taxonomy.PRECISION_REASONS]
@@ -279,6 +293,13 @@ def c13_call_text(c):
             continue
         caller = c.by_id.get(e.get("source"))
         body = c.body(caller) if caller else None
+        callee = c.by_id.get(e["target"]) or {}
+        if short(e["target"]) == "constructor" and callee.get("cls"):
+            # `new ApiError(...)` runs `ApiError.constructor`: the source spells the class.
+            if body is not None and not re.search(rf"\bnew\s+{re.escape(callee['cls'])}\b", body):
+                out.append(f"call edge {e['source']} -> {e['target']}: `new {callee['cls']}` is never"
+                           f" written in {caller.get('source')}-{caller.get('end')}")
+            continue
         if body is not None and short(e["target"]) not in body:
             out.append(f"call edge {e['source']} -> {e['target']}: {short(e['target'])!r}"
                        f" is never named in {caller.get('source')}-{caller.get('end')}")
@@ -302,6 +323,7 @@ def c15_report_counts(c):
         "nodes": len(nodes), "edges": len(edges),
         "cycles": len(analyze.find_cycles(nodes, edges)),
         "orphans": len(analyze.find_orphans(nodes, edges)),
+        "overridden": len(analyze.find_overridden(nodes, edges)),
         "layer_violations": len(analyze.find_layer_violations(nodes, edges)),
         "hubs": len(analyze.find_hubs(nodes, edges)),
         "god_objects": len(analyze.find_god_objects(nodes, edges)),
@@ -381,6 +403,9 @@ def c19_unresolved(c):
                        " dropped call site(s)")
         if sorted(set(names)) != list(names):
             out.append(f"{n['id']}: unresolved is not sorted and unique: {names}")
+        extra = [x for x in (n.get("untyped") or []) if x not in names]
+        if extra:
+            out.append(f"{n['id']}: untyped names {extra} are not among its unresolved names")
     return out
 
 
@@ -403,11 +428,126 @@ def c18_ambiguous(c):
     return out
 
 
+def c20_render_text(c):
+    """Every render edge is real: the caller's range holds `<Name` for what it renders."""
+    out = []
+    for e in c.edges:
+        if e.get("type") != "renders":
+            continue
+        caller = c.by_id.get(e.get("source"))
+        body = c.body(caller) if caller else None
+        if body is not None and f"<{short(e['target'])}" not in body:
+            out.append(f"renders edge {e['source']} -> {e['target']}: `<{short(e['target'])}` is never"
+                       f" written in {caller.get('source')}-{caller.get('end')}")
+    return out
+
+
+def c23_passes_text(c):
+    """Every passes link is real: the caller's range names the function it hands over."""
+    out = []
+    for e in c.edges:
+        if e.get("type") != "passes":
+            continue
+        caller = c.by_id.get(e.get("source"))
+        body = c.body(caller) if caller else None
+        name = short(e["target"])
+        if body is not None and not re.search(rf"(?<![\w$.]){re.escape(name)}(?![\w$])", body):
+            out.append(f"passes edge {e['source']} -> {e['target']}: {name!r} is never named in"
+                       f" {caller.get('source')}-{caller.get('end')}")
+    return out
+
+
+def c21_implements(c):
+    """Every implements link joins one method name on two classes, and the target's class is
+    named in the source class's file -- or, within three hops, in the file of a class named
+    there (an abstract class in between). Word-level: it can pass a wrong link between classes
+    that happen to mention each other; it cannot pass one between classes that never do.
+    In the structure map a link is a stated base, so its name must be written in the class."""
+    if c.kind != "flow":
+        out = []
+        for e in c.edges:
+            if e.get("type") not in taxonomy.INHERITANCE_LINKS:
+                continue
+            s, t = c.by_id.get(e.get("source")), c.by_id.get(e.get("target"))
+            body = c.body(s) if s is not None else None
+            base = e["target"].split(".")[-1]
+            if body is not None and not re.search(rf"\b{re.escape(base)}\b", body):
+                out.append(f"{e['type']} link {e['source']} -> {e['target']}: {base} is never named in"
+                           f" {s.get('source')}-{s.get('end')}")
+            if s is not None and t is not None:
+                # A class filling in an interface implements it; anything else extends.
+                want = ("implements" if t.get("kind") == "interface" and s.get("kind") != "interface"
+                        else "extends")
+                if e["type"] != want:
+                    out.append(f"{e['type']} link {s['id']} ({s.get('kind')}) -> {t['id']} ({t.get('kind')}):"
+                               f" should be {want}")
+        return out
+    files_of: dict[str, set[str]] = {}
+    for n in c.nodes:
+        if n.get("cls"):
+            files_of.setdefault(n["cls"], set()).add(split_source(n.get("source"))[0])
+    mentions: dict[str, set[str] | None] = {}
+
+    def named_in(cls):
+        if cls not in mentions:
+            texts = [c.lines(f) for f in sorted(files_of.get(cls, ()))]
+            if not texts or any(t is None for t in texts):
+                mentions[cls] = None
+            else:
+                words = set(re.findall(r"\w+", "\n".join("\n".join(t) for t in texts)))
+                mentions[cls] = (words & set(files_of)) - {cls}
+        return mentions[cls]
+
+    out = []
+    for e in c.edges:
+        if e.get("type") not in taxonomy.INHERITANCE_LINKS:
+            continue
+        s, t = c.by_id.get(e.get("source")), c.by_id.get(e.get("target"))
+        if s is None or t is None:
+            continue                                  # c01 reports it
+        # Filling in a declaration implements it; replacing a body overrides it. A Python
+        # `@abstractmethod` has a body, so a py implements link may point at one.
+        if e["type"] == "overrides" and t.get("declaration"):
+            out.append(f"overrides link {s['id']} -> {t['id']}: the target is a declaration -- implements")
+        elif e["type"] == "implements" and not t.get("declaration") and t.get("lang") != "py":
+            out.append(f"implements link {s['id']} -> {t['id']}: the target has a body -- overrides")
+        elif e["type"] == "extends":
+            out.append(f"extends link {s['id']} -> {t['id']}: a flow map joins methods, never classes")
+        if short(s["id"]) != short(t["id"]) or not s.get("cls") or s.get("cls") == t.get("cls"):
+            out.append(f"implements link {s['id']} -> {t['id']}: not one method name on two classes")
+            continue
+        seen, frontier, unreadable = {s["cls"]}, [s["cls"]], False
+        for _ in range(3):
+            nxt = []
+            for cls in frontier:
+                names = named_in(cls)
+                if names is None:
+                    unreadable = True
+                    continue
+                nxt += sorted(x for x in names if x not in seen)
+                seen.update(names)
+            frontier = nxt
+        if t["cls"] not in seen and not unreadable:
+            out.append(f"implements link {s['id']} -> {t['id']}: {t['cls']} is never named by"
+                       f" {s['cls']} or by a class it names")
+    return out
+
+
+def c22_overridden(c):
+    """`overridden` means every subclass replaces the body, so at least one `overrides` link
+    must point at the node, and a declaration has no body to replace."""
+    overridden_into = {e["target"] for e in c.edges if e.get("type") == "overrides"}
+    return [f"{n['id']}: marked overridden, but " + ("it is a declaration" if n.get("declaration")
+                                                      else "no overrides link points at it")
+            for n in c.nodes if n.get("overridden")
+            and (n.get("declaration") or n["id"] not in overridden_into)]
+
+
 STRUCTURAL = [c01_dangling, c02_duplicate_ids, c03_edge_types, c04_taxonomy, c05_source,
               c06_end_range, c07_name_at_source, c08_declaration_calls, c09_precision,
               c10_signatures, c11_routes, c12_http_edges, c13_call_text, c14_ext,
               c15_report_counts, c16_security_owner, c17_note_names, c18_ambiguous,
-              c19_unresolved]
+              c19_unresolved, c20_render_text, c21_implements, c22_overridden, c23_passes_text]
 
 
 # --- D: derived features, tested by injecting a known defect -------------------
@@ -440,8 +580,11 @@ def d02_orphans(c):
     probe["probe_orphan"] = {"id": "probe_orphan", "kind": "function", "layer": "function"}
     probe["probe_declaration"] = {"id": "probe_declaration", "kind": "method", "layer": "service", "declaration": True}
     probe["probe_test"] = {"id": "probe_test", "kind": "function", "layer": "test"}
-    found = set(analyze.find_orphans(probe, edges))
+    probe["probe_impl"] = {"id": "probe_impl", "kind": "method", "layer": "service"}
+    found = set(analyze.find_orphans(probe, edges + [("probe_impl", "probe_declaration", "implements")]))
     out = []
+    if "probe_impl" in found:
+        out.append("an implementation was reported as dead code -- its implements link reaches it")
     if "probe_orphan" not in found:
         out.append("an injected uncalled function was not reported as an orphan")
     if "probe_declaration" in found:
@@ -663,6 +806,30 @@ def _mutations():
         ("c19_unresolved", "flow", "more unresolved names than dropped call sites",
          lambda g, r: (g["nodes"][0].__setitem__("unresolved", [short(g["nodes"][1]["id"])]),
                        g["nodes"][0].__setitem__("ext", 0))),
+        ("c20_render_text", "flow", "a renders edge from code that renders no such tag",
+         lambda g, r: g["edges"].append({"source": "EventStore.List", "target": "OrderCard",
+                                         "type": "renders"})),
+        ("c23_passes_text", "flow", "a passes edge from code that never names the function",
+         lambda g, r: g["edges"].append({"source": "EventStore.List", "target": "OrderCard",
+                                         "type": "passes"})),
+        ("c21_implements", "flow", "an implements link between two different method names",
+         lambda g, r: g["edges"].append({"source": "OrderWorkflow.place", "target": "PricingRule.price",
+                                         "type": "implements"})),
+        ("c19_unresolved", "flow", "an untyped name that is not unresolved",
+         lambda g, r: g["nodes"][0].__setitem__("untyped", ["nothing_is_called_this"])),
+        ("c21_implements", "flow", "an overrides link into a declaration",
+         lambda g, r: next(e for e in g["edges"] if e["type"] == "implements").__setitem__("type", "overrides")),
+        ("c21_implements", "structure", "a class extending the interface it implements",
+         lambda g, r: next(e for e in g["edges"] if e["type"] == "implements").__setitem__("type", "extends")),
+        ("c22_overridden", "flow", "overridden on a method nothing overrides",
+         lambda g, r: _node(g, lambda n: not n.get("declaration")).__setitem__("overridden", True)),
+        ("c21_implements", "structure", "an implements link to a class the source never names",
+         lambda g, r: g["edges"].append({"source": "InvoiceStore", "target": "OrderCard", "type": "implements"})),
+        ("c21_implements", "flow", "an implements link to a class nothing names",
+         lambda g, r: (g["nodes"].append(dict(_node(g, lambda n: n["id"] == "PricingRule.price"),
+                                              id="Nowhere.price", cls="Nowhere")),
+                       g["edges"].append({"source": "FlatRate.price", "target": "Nowhere.price",
+                                          "type": "implements"}))),
     ]
 
 
@@ -681,6 +848,9 @@ def _sabotage():
          (analyze, "find_orphans"), lambda n, e: []),
         ("d02_orphans", "flow", "find_orphans that calls everything dead",
          (analyze, "find_orphans"), lambda n, e: sorted(n)),
+        ("d02_orphans", "flow", "find_orphans that ignores implements links",
+         (analyze, "find_orphans"),
+         lambda n, e, real=analyze.find_orphans: real(n, [x for x in e if x[2] != "implements"])),
         ("d03_hubs", "flow", "find_hubs that finds none", (analyze, "find_hubs"), lambda n, e: []),
         ("d03_hubs", "flow", "app_edges that keeps test edges", (analyze, "app_edges"), lambda n, e: e),
         ("d04_god_objects", "flow", "find_god_objects that finds none",

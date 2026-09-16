@@ -4,6 +4,12 @@ You are the **skill creator** of the **Code Archaeologist LLM Agent Skill** — 
 lives in `.agents/skills/code-archaeologist/`. Your job in this repo is to build and maintain that
 skill, **not** to use it on this repo.
 
+A second skill sits beside it, `.agents/skills/code-archaeologist-explorer/`: a `SKILL.md` and
+nothing else, so a user can ask for `/code-archaeologist-explorer` when all they want is
+`data/explorer.html` (it runs the main skill's `both` then `report`). It owns no script. `bin/cli.js`
+installs it next to the main folder with the same path-prefix rewrite, and `tools/check_docs.py`
+checks the paths it quotes. When a command it runs changes form, it changes in the same commit.
+
 ## What the skill is
 
 A deterministic, Zero-RAG codebase documentation engine. It builds two maps of a target codebase,
@@ -23,8 +29,10 @@ There is one parser in the build, and **seventeen languages have a graph**.
 edges are a lower bound -- a call is drawn only when the receiver's type can be read from the
 source -- and that caveat lives in `taxonomy.PRECISION_CAVEAT`, printed by `brief` and the report
 header. What a node carries is `precision`: a list of *named* losses
-(`interface-dispatch`, `overloads`, `name-matched`), computed by `taxonomy.precision_of()` from
-what the node calls, never from its language alone. It replaced a per-node `approx: true` on
+(`interface-dispatch`, `overloads`, `name-matched`), computed by `taxonomy.precision_of()`
+from what the node calls and drops, never from its language alone: `name-matched` is earned by
+`untyped`, the dropped calls through a receiver of unknown type whose names the graph defines. It
+was on every JS/TS/Ruby/PHP/Elixir/Groovy node until finding #25 (r51). It replaced a per-node `approx: true` on
 Java/Go/C#, which was honest while those three were read textually and became arbitrary once every
 language moved to tree-sitter. Adding a producer means adding an `extract_*_entities` in
 `build_wiki.py` and an `_analyze_*` in `build_flow.py`, nothing else.
@@ -64,6 +72,64 @@ leaves ambiguous is dropped, and the caller records the set in `ambiguous` and c
 `precision: overloads`. Until finding #8 an overload set was one node holding every overload's
 calls but one overload's range; `signatures` now appears only when two definitions still cannot
 be told apart. Anything that looks a node's name up in source asks `ids.bare(id)`.
+
+**An implementation is linked to the method it implements.** A call through an interface stops at
+the declaration, and which class runs is decided outside the source (a constructor argument, a
+Spring bean). What the source *does* state is `class FlatRate implements PricingRule`, so
+`build_flow._implements_links` joins each method to the same-named method of its class's nearest
+base in the graph -- walking past a base that defines none, pairing overloads by parameter types --
+as an `implements` link stored `FlatRate.price -> PricingRule.price`. Every walker reads it
+backwards through `taxonomy.call_direction` (traces, `--impact-of`, orphans, `search.py`,
+`context.py`, the explorer's blast radius), and nothing counts it as a call: not `calls` /
+`callers`, not `precision`, not coupling, cycles or layer violations. It says which classes *can*
+run a call, never which one does (r50, `check_graph` c21). Go states no bases, so its interfaces
+get none. In the structure map a stated base is an `implements` link too, walked the same way, so
+a class implementing a referenced interface is not an orphan (finding #29, r55).
+
+**The object model is stated, and named** (r61). A class node's `kind` is `interface`, `abstract`
+or `class` -- an interface/trait/protocol node, Kotlin's `interface` keyword, an `abstract`
+modifier token (`langs_extract._class_kind`), TypeScript's `abstract_class_declaration` (which was
+not read at all before), a Python `Protocol` / `ABC` / `@abstractmethod`, a Go `interface` type.
+The explorer draws it as a shape, never a colour: an interface hollow, an abstract class ringed
+dashed. Inheritance is three links, all in `taxonomy.INHERITANCE_LINKS` (= `REVERSED_LINKS`):
+`implements` (a class fills in an interface; a method fills in a declaration), `extends` (a class
+inherits a class, an interface an interface -- structure map, decided in `build_graph` once both
+ends' kinds are known) and `overrides` (a method replaces a base method that has a body -- flow
+map). Every walker, check and exclusion that named `implements` reads the set instead. A method
+with a body that **every** subclass in the graph replaces carries `overridden: true`
+(`build_flow._overridden_everywhere`); uncalled, it is listed by `analyze.find_overridden` in its
+own report section and **not** as an orphan -- its body never runs today, but deleting it changes
+what a new subclass inherits, which dead code never does. It is not graded.
+
+**A class name two files define is settled by the source** (r57). Two applications in one
+repository each with a `ConfigService` used to resolve only from the caller's own file, so every
+call from anywhere else was dropped. `langs_extract.class_locator` picks the file: the caller's
+own, the only one, the one an exact `import` names, one a wildcard `import` or C# `using` covers,
+or the one in the caller's package (Java, Groovy, C#, Kotlin record `package` and `imports`).
+`build_flow._analyze_lang` and `build_wiki` both ask it, and so does `_base_resolver`. A call with
+no receiver, `this.` or a typed receiver whose class does not define the name walks to the nearest
+base that does (`ancestor_defining`, r58), and a local's type is read from its declaration --
+`R3RequestDto request = mapper.read()`, a for-each variable -- not only from `= new X(` (r59).
+
+**What the source settles, the resolver follows** (findings #27 and #28, and Spring injection):
+
+- A call through a **global** resolves: a Python module-level `store = Store()`, or one imported
+  with an unaliased `from m import store` (`build_flow._py_module_types`); a Kotlin top-level
+  `val`; a Go package `var`; and `Registry.STORE.save()` through the static field's declared type
+  (`via.fields`). A parameter or local of the same name hides the global. Python's
+  `ClassName.method()` resolves as every other language's does (r52).
+- A call made **outside any method node** -- a Java/C# field initializer, `static {}` / `{}` block
+  or constructor, a Kotlin property initializer, `init {}`, secondary constructor or top-level
+  property, a Go package `var` -- is collected as `init_calls`, and each callee carries
+  `entry: init`, as module-load code carries `module`; a Go `func init()` does too. No link is
+  drawn from anything (r53).
+- **Spring**: a call through a type Spring injects into a class it manages (a stereotype
+  annotation) links straight to the bean's method when the scanned source settles which bean --
+  a `@Qualifier` naming one, one `@Primary`, the only bean (never a lone `@Profile` /
+  `@Conditional*` one), or a `@Bean` method that builds exactly one class -- and otherwise stays at
+  the declaration. Java, Groovy and Kotlin: a Kotlin `@Qualifier` on a constructor property or a
+  `lateinit` field, and a `@Bean` function that builds one class (`= SmtpMailer()`), are read into
+  the same `bean` / `qualifier` data (r54, r56 -- finding #30).
 
 An agent answers architecture questions by **querying the graph, then reading only the notes on the
 returned path** — never by scanning source.
@@ -128,16 +194,56 @@ and re-deriving the skill root inside `core/` is exactly the duplication `paths`
 delete. Nothing else in `core/` may import a skill module.
 
 - `taxonomy.py` owns every `kind`/`layer` value (mirrored in `templates/TAXONOMY.md`). Add values
-  there, never inline. It also owns **`SKIP_DIRS`** -- the one definition of which directories are
+  there, never inline. It also owns **which way a link is walked** (`REVERSED_LINKS` /
+  `call_direction()`): an `implements` link is stored implementation -> declaration and every
+  walker reads it backwards. It also owns **`SKIP_DIRS`** -- the one definition of which directories are
   not source (dependencies, build output, framework caches such as `.next/`); five hand-kept copies
   had drifted, and a Next.js dev server's output became 9% of a real repository's flow graph
-  (phase 9). `target`, `out`, `coverage` and `vendor` are deliberately absent: each is a real
-  source directory somewhere. It also owns `LANG_BY_EXT` / `lang_of()` -- one answer to "what language is
+  (phase 9). `target`, `out`, `coverage`, `vendor` and `data` are deliberately absent: each is a real
+  source directory somewhere (`data` was listed for this skill's own output and hid a Next.js route
+  segment on a real repository, r69; an installed skill copy is skipped by `source_dirs()` instead). It also owns `LANG_BY_EXT` / `lang_of()` -- one answer to "what language is
   this file", read by `metrics.py` and `langs_extract.py`. And it owns **what counts as a test
   file** (`is_test_path` / `is_test_file`): path and filename conventions plus framework markers
   (`@Test`, `@SpringBootTest`, `[Fact]`, `#[test]`, `func TestX(t *testing.T)`). Nodes in test
   files get `layer: test`, which is why `analyze.py` never calls them dead code and
   `scan_security.py` skips them. Every pass must ask taxonomy, never re-implement the check.
+  When neither an annotation nor the name says anything, the **folder** does
+  (`PATH_LAYERS` / `layer_from_path`, r79): an exact folder name, nearest first --
+  `service/pnodata/` is a service, `response/` and `request/` hold models, `properties/` holds
+  config. A fallback only, never an override, and matched exactly rather than as a substring:
+  `api/` is a folder half a repository lives under, not six hundred clients. Words that name no
+  layer here (`util`, `exception`, `constant`) are absent on purpose -- `unknown` is the honest
+  answer, and on a real repository it stayed that for ~90 of 189.
+  A layer word must end where the word ends (`(?![a-z])`, r78): `repo` matched
+  `PnoDataReportMail` and `store` matched `StoredFileDto`, putting 7 classes of a real repository
+  in `repository` -- and since that rule runs before `model`, a `*Dto` lost its layer, which
+  fabricated the report's only layer violation. `repository` / `mapper` / `client` and the other
+  long words still match anywhere, because no longer word contains them.
+  It also owns **which annotation declares a layer** (`ANNOTATION_LAYERS` -- `@RestController`,
+  `@Service`, `@Repository`, `@Entity`, `@Configuration` -- checked before any name rule, with
+  `@Component` counting for nothing; `handler` is no longer a controller word, which on a real
+  Spring repository made 24 service-to-handler calls "layer violations"), **what a framework
+  calls** (`FRAMEWORK_ENTRY` / `framework_entry()`, and the Next.js file conventions in
+  `next_entry()`: a matching node carries `entry` -- `@Scheduled`, `@Override`, `override`, `main`,
+  `next:page`, `next:route`, `module` for a JS/TS function top-level code calls, or `init` for
+  one a field initializer, initializer block, constructor or Go package `var` calls -- and
+  `analyze.find_orphans` never calls it dead; `build_flow.write_graph` must copy it, and for one
+  retest it did not, while r40/r41 passed on the in-memory dicts: assert on the written file).
+  A **class** gets one too, through `container_entry` (`CLASS_ENTRY_ANNOTATIONS`:
+  `@SpringBootApplication`, `@Configuration`, `@Aspect`, `@ControllerAdvice`, else the first
+  `entry` one of its own methods carries) -- written by `build_wiki` into the page's front matter
+  and read back by `build_graph`, since structure nodes carried no `entry` at all while
+  `find_orphans` was already checking for one (r75). `@Component` / `@Service` / `@Repository`
+  are deliberately **not** in that set: Spring builds them too, and sparing them all would end
+  dead-class detection for a whole application. And
+  **what a language calls a decoration** (`DECORATION_TERMS` / `decoration_term()`): the graph
+  field is one list (`decorators`) because every producer reads the same thing, but a vault note's
+  heading is the language's own word -- `Annotations` for Java/Kotlin/Groovy/Scala/Dart,
+  `Attributes` for C#/Rust/Swift/PHP/Elixir, `Decorators` otherwise; Lombok's `@Data` under a
+  `## Decorators` heading named it in a language that has no decorators. And
+  **`source_dirs()`**, the one walk filter every walker calls: `SKIP_DIRS` plus any installed copy
+  of this skill (a child directory holding `SKILL.md` and `scripts/archaeologist.py`), which a
+  project that installed it under `.claude/skills/` used to graph as its own code.
 - `grammars.py` owns "can this machine parse language X" -- the wheel table, lazy cached parsers,
   the exact `pip install` for anything missing, and the installed versions for the manifest. It
   owns the **pins** too (`PINS`: exact per grammar, a range for the runtime, since phase 6c), and is
@@ -165,7 +271,10 @@ delete. Nothing else in `core/` may import a skill module.
   checkout hashes every node differently and silently misses the description cache. `ast` is **not**
   gone: it is the oracle, and `tools/check_py_oracle.py` parses every file both ways and fails on
   any disagreement about what was declared. That is the one reason to keep a stdlib parser around,
-  and the only thing in the repo that still imports `ast`.
+  and the only thing in the repo that still imports `ast`. `load_time_calls()` collects what a
+  module calls as it is imported -- top-level statements and the `if __name__ == "__main__":` guard,
+  never a def, class or lambda body -- and `build_flow` marks each callee `entry: module`, as it
+  does for JS/TS; a shared `main` resolves to the caller's own file (r48).
 - `js_ts_extract.py` reads JS/JSX/TS/TSX from a tree-sitter parse: classes, functions, imports,
   Express and Nest routes, `fetch`/axios calls (including an axios instance *imported* from the
   one file that creates it, directly or through a factory function -- `extract_js_files` parses
@@ -183,6 +292,60 @@ delete. Nothing else in `core/` may import a skill module.
   `js_extract.js`, `@babel/parser` 7.29.8) and the diff tool were deleted at step 4, so the
   comparison cannot be re-run -- `fd9c7d8` is its record. Four extensions, three grammars: `.tsx`
   will not parse under the TypeScript language and needs `tsx`.
+  Imports carry `bindings`, and once every file is parsed, the `path` they resolve to --
+  relative, through the nearest tsconfig/jsconfig `paths` (`@/utils/x`), else the one suffix
+  match; when two apps in one repository both have that suffix, the one inside the importer's
+  nearest package.json/tsconfig/jsconfig folder (`_package_root`, r62) -- so `build_flow` follows `label()` or `errors.toMessage()` to the *imported* file's
+  definition even when another file defines the same name. Only a binding under the exported
+  name itself: `import { a as b }` would draw an edge to a name the caller never spells
+  (`check_graph` c13). An anonymous `export default function () {}` is a node named by its file
+  stem, and inside a Next.js app (`next.config.*`, or a package.json depending on `next`) each
+  exported function the framework calls carries `entry`. `tests/fixtures/ts_imports/` pins all of
+  it (`check_regressions.py` r42). Top-level code is read too: what a module calls as it loads
+  (`export const api = createApiInstance()`, never a function body passed at top level) goes in
+  `module_calls`, resolved like any call, and the callee gets `entry: module` (r45). `new X()` is
+  kept as `constructs`, which the structure map counts as a use of `X`. In the structure map a
+  resolved import also records the file it named (`import_sources`), so `render_entity` links to
+  that file's definition with `SharedNames.id` even when two files define the name. A name the
+  file defines **itself** is a reference too (`build_wiki._provided_names`, r77): JS/TS and Python
+  resolved references from the import list alone, so a component calling a function of its own
+  file's module group pointed at nothing -- not one of 385 references into a module node on a real
+  repository was same-file. A module group *is* its functions, so a use of one names the group; a
+  node never references itself. The Java family already resolved this through `class_locator`.
+  A call through a variable resolves in every shape the source states exactly (r47): a
+  module-level or imported `new ProjectApi()` instance types the receiver (`_module_instances` /
+  `_imported_types`, the axios-instance idea generalised); `export * from`, `export { x } from`
+  and `export * as ns from` are `reexports`, followed by `build_flow`'s `exported_node` /
+  `exported_member` when exactly one re-exported file has the name and never through a rename;
+  and an object literal's inline members (`export const api = { approve: async () => ... }`) are
+  flow nodes `api.approve` (kind `method`, `cls: api`, with their own HTTP calls), while a member
+  that only names a function of the same name is an alias for it. A hook's untyped return value
+  stays dropped. A call on another call's result carries `via` (below), typed from `(): X` return
+  annotations. And `<Name />` in a component is a flow edge of its own type, **`renders`**,
+  resolved like a call -- `<Ctx.Item />` names an object's member and draws nothing (r49). It is
+  followed by traces and `--impact-of`, excluded from `node["calls"]` / `callers`, `precision`
+  and `analyze.app_edges` (coupling), and drawn lavender and dotted in the explorer.
+  Three shapes of indirection resolve, all from what one function's source states
+  (`_scope_bindings`): a `const` holding a name or a `?:` / `||` / `??` of names is a call to every
+  branch (`const save = id ? updateUser : createUser`, r66); a function handed over -- call argument,
+  object value inside one, JSX attribute -- is a **`passes`** link, handled exactly like `renders`
+  and resolved only through an import or to the passing file's own function, never a parameter or
+  local (`passed_node`, r67; at top level it sets `entry: module`); and a call on an object resolves
+  when the object is a renamed or default import (member calls only), a `const` choosing between
+  objects, or the result of a function whose every `return` is one object literal naming the
+  functions (`returns_members`, r68). A field of a hook's result -- `const { api } = useSetdatVariant();
+  api.fetchX()` -- follows only written types (r72): the hook's `(): T` or the `createContext<T>` every
+  `return useContext(Ctx)` reads (`returns_type` / `returns_context`, file-level `contexts`), then
+  `interface T { api: X }` / `type T = {...}` (`types`, found through imports by
+  `build_flow.declared_in`), then `type X = typeof service`, then `service`'s member as r68 does. A
+  prop is still untyped. `const Button = forwardRef(...)` / `memo(...)` is the function it wraps
+  (`_wrapped_function`, r70), so it is a node and a component.
+  **An object handed over whole is not unpacked** -- `t.rich(key, { ...TAGS })` passes `TAGS`, and
+  its members keep no `passes` link. That is deliberate, and the rule behind it is stated in
+  SKILL.md's Command 10: an orphan means "no code references this", the standard an IDE's *unused*
+  hint uses, so a function a framework finds by a name held in **data** (a next-intl tag named only
+  inside `en.json`, a string-keyed bean, reflection) is an orphan and correctly so. Following the
+  spread, or reading message files for tag names, would invent links; do not add either.
 - `langs_extract.py` reads Java/Go/C# from a real parse tree, and keeps the same
   `find_lang_files` / `extract_lang_files` contract the textual extractor before it had -- which is
   what let the port be verified by diffing the graph instead of by reading code. That extractor
@@ -202,7 +365,33 @@ delete. Nothing else in `core/` may import a skill module.
   name sits inside nested declarators, an Elixir `def` is a macro call). Groovy's tree is Java's,
   so it takes Java's branch (`JAVA_LIKE`). The walker adds one resolution rule these languages
   lean on: a receiver that is itself a type name (`WidgetStore.save` in Elixir, `Widget::new` in
-  Rust) resolves to that type. Java, Go and C# keep their own branches untouched -- the sample's
+  Rust) resolves to that type. Java, C# and Groovy use the same rule (`_type_name`, so
+  `DateUtil.now()` resolves), and so does JS/TS; Go does not, because a capitalised Go head is as
+  often an exported value as a type. `build_flow` still requires the class to be in the graph and
+  to define the method, so `Math.max()` drops as before. Java-family method references
+  (`this::clearBin`, `Store::save`, `store::flush`) are read as calls the same way; they carry no
+  argument list, so an overloaded target is dropped as ambiguous rather than picked (r44).
+  A Java `String... parts` is read as a parameter (`_param_pairs`; its id segment is `String[]`)
+  and its kind as `...String`, which `_pick_overload` tries only when no fixed-arity overload
+  fits -- Java's own order (r63). A cast receiver, `((UserSecurity) u).getPlantIds()`, is typed
+  by the cast in Java, Groovy and C# (r65), and so is a pattern variable -- `instanceof T t`,
+  `case T t ->`, C#'s `is T t` (`_tree_locals`, r71). And the Java inside MapStruct's
+  `@Mapping(expression | defaultExpression | conditionExpression = "java(...)")` is parsed as Java
+  and read like a body, with the method's parameters in scope (`_expression_calls`, r64) -- so a
+  body-less mapper declaration carries call links, the one exception `check_graph` c08 allows.
+  A call whose receiver is itself a call -- `resolveHandler(type).downloadFile(x)` -- is read from
+  the receiver *node*, never its text (`resolve(a.b)` holds a dot inside its parentheses), and
+  carries `via`: the innermost call's receiver type and the calls outward. Methods record
+  `returns` (Java/Groovy `type`, C# `returns`, Kotlin's unnamed type after the parameters), a
+  Java class with Lombok `@Data` / `@Getter` / `@Value` (or a field's `@Getter`) records
+  `getters` typed by their fields, and `build_flow._analyze_lang` walks `via` through them. A
+  step whose type is unknown, or whose definitions disagree on a return type, drops the call (r46).
+  For the **structure** map it also records `refs` -- every type name a class or method's own
+  source states: return types, *every* generic argument (`_base_type` keeps only the head, so
+  `GlobalResponse<PaginationResponse<UserResponse>>` used to yield one name of three), local
+  declarations, `X.class`, and the class a static constant is read from (capitalised, and never in
+  Go). That is what an IDE counts as a usage; it draws references, never call edges
+  (`_type_refs`, r73). Java, Go and C# keep their own branches untouched -- the sample's
   graphs were byte-identical before and after.
 - `route_tables.py` reads routes declared **away from their handlers** (phase 8): Django
   `urlpatterns` (with `include()` prefixes, regex paths and class-based views -> one route per HTTP
@@ -213,16 +402,30 @@ delete. Nothing else in `core/` may import a skill module.
   pinned to the file its import points at -- before the cross-stack pass. A reference naming no
   node, or two, is dropped and counted in one stderr line, never guessed.
 - `trace_path.py` is the query tool: `--from/--to` (BFS path), `--impact-of` (blast radius),
-  `--impact-of-diff` (map a git diff to nodes, union their impact). Works on either graph.
+  `--impact-of-diff` (map a git diff to nodes, union their impact). Works on either graph. An
+  `implements` link is walked declaration -> implementation, so a trace through an interface
+  reaches every implementation and `--impact-of` on one reaches the interface's callers.
 - `analyze.py` is graph-only: cycles, orphans, layer violations, hubs, god objects, name-based
   idioms, and the 0–100 / A–F `health()` score (accepts security counts). Degree-based checks run
   on `app_edges()`, which drops edges touching a `layer: test` node — test calls are coverage, not
-  coupling.
+  coupling — and `renders` / `passes` / `implements` links. Cycles and layer violations ignore `implements`
+  too: a decorator delegating to its own interface is not a cycle. `find_orphans` never lists an
+  overload of a set some node names in `ambiguous` (`this::values`): one of them is called, the
+  graph cannot say which, so the whole set is spared rather than one member guessed (r63). Nor a
+  base: `implements` / `extends` mark **both** ends used, because `class Audited extends Auditable`
+  names the base in its own source -- the backwards walk alone only ever marked the child, so a
+  base with twelve subclasses was dead (r74). Not `overrides`: replacing a method does not
+  reference the base body, which is `find_overridden`'s case.
 - `scan_security.py` is line-regex over source; every finding is attributed to the innermost node
   whose `source`..`end` range **contains** that line, or to none (`owner_of`, shared with
   `debt.py`). It used to take "the last node starting at or before the line" and never looked at
   `end`, which pinned module-level findings on the preceding function — 99 of 152 on the skill's
-  own code. `git_insights.py` is one `git log --numstat` pass → churn, owners, hotspot risk.
+  own code. A credential-named key is not reported when its value only *names* a credential -- the
+  key's own name (`ACCESS_TOKEN: "accessToken"`), a path, prose, or lowercase words joined by
+  `-`/`:` (`space-y-4`, `auth:token-refreshed`; a UUID mixes letters and digits in a segment and
+  is still reported) (`_names_not_holds`); all ten
+  "hardcoded secrets" on a real repository were one of those, at 10 grade points each.
+  `git_insights.py` is one `git log --numstat` pass → churn, owners, hotspot risk.
 - `metrics.py` is line counts per file plus LOC / cyclomatic complexity / nesting depth /
   parameter count per node **in every graphed language**, measured on the graph's own nodes: a
   node's `source` + `end` pick its definition out of the file's parse (`locate`), and one
@@ -262,17 +465,40 @@ delete. Nothing else in `core/` may import a skill module.
   report from the other map must never be embedded (`build_html.report_for()` enforces this).
 - `build_html.py` is thin: it loads `templates/viewer.html`, substitutes `__TITLE__` and
   `__MAPS_DATA__`, and writes **one** `data/explorer.html` holding both maps (header switch).
+  `archaeologist.py` renders it **once**, after every map and the manifest, and a missing
+  `templates/vendor/force-graph.min.js` is one named error and a non-zero exit -- never a lost
+  map. On a real install it stopped `both` before the flow map: npm packs the repo for `npx` and
+  reads the skill's `.gitignore`, whose unanchored `vendor/` (meant for the pip wheels) also
+  dropped `templates/vendor/`. The rule is `/vendor/`, and `bin/cli.js` checks the file is there.
 
 ### Where the front-end lives
 
-The explorer filters test nodes at load (`loadMap` -> `HAS_TESTS` / `EDGES`), so the **Tests**
+The explorer filters test nodes at load (`loadMap` -> `HAS_TESTS` / `EDGES`) and starts with them
+hidden (`#showTests` has no `checked`), so the **Tests**
 checkbox re-renders through `applyMap`; anything reading edges must use `EDGES`, not `GRAPH.edges`.
 
 `templates/viewer.html` is a normal HTML/CSS/JS file (three-pane explorer: health ring + tiles +
-LOC/language mix + file tree | seven views: Graph/Treemap/Matrix/Tree/Flow/Cluster/Bundle |
+LOC/language mix + file tree | seven views: Graph/Treemap/Matrix/Tree/Flowchart/Cluster/Bundle |
 FILE/PATTERNS/SECURITY tabs). Edit it directly; don't move markup back into Python. Its per-map
 state is rebuilt by `loadMap()` / `applyMap()` — anything derived from a graph belongs in there,
 not in a top-level `const`.
+
+A node is drawn and listed by `labelOf(n)` -- its id without the file qualifier `ids.py` adds
+to a shared name -- and its path lives in the right panel, never on the canvas. A file/folder
+filter and a Flowchart selection **hide** what they leave out (`visibleIds`, through
+force-graph's `nodeVisibility` / `linkVisibility`) rather than dimming it: a file keeps its own
+nodes plus their direct links, a Flowchart selection its whole flow -- every caller back to the
+start and every callee to the end, whatever **Blast radius** says (it only picks the highlighted
+links). The flow kept is the **focus**'s (`focus`), which is the selection unless **Freeze** is
+ticked: then a click still selects (panel, highlight) but neither re-narrows the Flowchart nor
+flies the other views, and unticking catches the view up with the selection. Clicking empty canvas
+clears nothing -- only the toolbar **reset** (or Escape) drops the selection and focus. On a
+1,500-node repository a faded node was still in the way. The Flowchart replaced the old `Flow`
+view (a `dagMode("lr")` force layout) and keeps its id `flow`: `layoutFlowchart()` gives each
+node the column of its longest call path, orders rows by folder and then by neighbours'
+rows, puts unlinked nodes in a grid underneath, and pins the result like Cluster and Bundle;
+`drawFlowBox` / `drawFlowLink` draw boxes and elbow links from the same colour and dash
+accessors as every other view.
 
 ### Colour rules
 
@@ -286,7 +512,9 @@ One meaning, one colour, everywhere — a reader learns the scheme once, from an
   everything after it, and pink stopped meaning the same folder from one screenshot to the next.
 - **A new `layer` / `kind` value needs its colour in `LAYER_COLORS` in the same commit** that adds
   it to `taxonomy.py`. The legend, the node painter and every view read from there; nothing
-  hard-codes a colour at a call site.
+  hard-codes a colour at a call site. The one exception is a **class kind** (`interface`,
+  `abstract`): a node's colour already means its layer, so a class kind is a *shape* in
+  `drawNode` (hollow / dashed ring) and in the legend (`.kind-interface` / `.kind-abstract`).
 - **Languages are coloured by family** (`LANG_COLORS`, the rail's language-mix bar): JVM
   (Java/Kotlin/Scala/Groovy), .NET, native (C/C++/Rust/Swift), dynamic (Ruby/PHP/Elixir), Go,
   Dart, plus the original five for Python and JS/TS. Seventeen distinguishable hues on this ground
@@ -301,6 +529,13 @@ One meaning, one colour, everywhere — a reader learns the scheme once, from an
   `#f0883e`, test green `#57ab5a`, unknown grey `#8b98ad`. Pick something distinguishable from all
   of them on the dark background — and if two must be close (the two greens are), keep them in
   different channels: node dots vs folder areas.
+- Edges are a channel of their own: `calls` grey, `http` pink dashed, `renders` lavender
+  `rgba(167,139,250,.45)` dotted (matrix cell `#a78bfa`), `passes` sky `rgba(125,211,252,.45)`
+  dash-dot (matrix cell `#7dd3fc`), `implements` light grey
+  `rgba(201,209,217,.4)` long-dashed (matrix cell `#c9d1d9`), `extends` sand
+  `rgba(214,190,140,.45)` long-dashed and `overrides` the same sand short-dashed (matrix cell
+  `#d6be8c`) -- one relation at two levels, one hue. Config purple and model amber live on node
+  dots, so none of them shares a channel.
 
 ### Layout rules
 
@@ -310,6 +545,9 @@ scrolls.
 - **One scroll region per pane, never two nested.** The left rail scrolls in the file tree only;
   the right panel scrolls in its body only. If something does not fit, fold it or shrink it —
   never add a second scrollbar.
+- **The node search lists, it never scrolls.** `#results` is `position: fixed` under `#search`,
+  because the rail's `overflow: hidden` would clip it, and shows up to 12 matches (fewer when the box sits low in a short window) plus a count -- a
+  scrolling dropdown would be a second scroll region in the rail.
 - **A pane is a flex column**: `overflow: hidden` on the pane, `flex: none` on the fixed blocks,
   `flex: 1; min-height: 0` on the one region that grows, and `min-height: 0` again on the scroller
   inside it (without it the scroller inherits its content's height and the pane scrolls instead).
@@ -328,14 +566,18 @@ scrolls.
 - **A rail may never eat the toolbar.** `setRail` caps a drag at what the centre still needs,
   measured by summing the toolbar's children — `clientWidth` would report "exactly what it already
   has" and let a drag ratchet controls off the right edge a pixel at a time. The cap counts only
-  what the **compact** row needs (~527px): the toggles are left out of `stageMin()` because they
-  can move. With both rails at their minimum the toolbar never clips above about **987px** wide
-  -- measured in phase 5, and the supported floor (it was ~1270px, and ~1360px before that).
+  what the **compact** row needs (~560px): the toggles are left out of `stageMin()` because they
+  can move. With both rails at their minimum the toolbar never clips above about **1020px** wide
+  -- the supported floor (987px when measured in phase 5; the `Flowchart` label added 33px) (it was ~1270px, and ~1360px before that).
 - **The toolbar compacts rather than clipping.** When the toolbar is narrower than the full row
-  (~770px), `fitToolbar()` re-parents `#toggles` (Folders, Blast radius, Tests) into
+  (~884px since `Freeze` joined the row; ~803px before), `fitToolbar()` re-parents `#toggles`
+  (Folders, Blast radius, Freeze, Tests) into
   `#menuToggles` at the top of the `⋯` menu, and moves it back as soon as there is room. It moves
   the *same* elements, so ids, checked state and handlers travel with them; a `ResizeObserver` on
   the toolbar drives it. Clicking a toggle inside the menu leaves the menu open.
+- **A toggle is shown only where it does something.** Folders draws areas in Graph and Cluster
+  only (`drawHulls`), so `setView` hides `#hullsToggle` in the other five views and re-runs
+  `fitToolbar()` -- showing it again widens the row, which no resize reports.
 - **The toolbar row holds only what is used constantly.** Zoom in/out, fit and PNG export live in
   the `⋯` overflow menu (`#more` / `#moreMenu`), which took the full row from ~897px to ~770px.
   A new control goes in that menu unless it is used on
@@ -408,18 +650,28 @@ SQL, an innerHTML sink -- plus a pytest/unittest file, a `.test.ts`, a `.tsx` wi
 components, four API frameworks, and Java/Go/C# with two deliberate hard cases, so the review path, the test path, the component path, every route shape and the
 "drop rather than guess" rule all have something to find):
 
-- structure graph: **25 nodes / 22 edges** -- 7 Python, 6 JS/TS, 12 from Java/Go/C# (6 Java,
+- structure graph: **25 nodes / 23 edges** -- 7 Python, 6 JS/TS, 12 from Java/Go/C# (6 Java,
   3 Go, 3 C#), of which `OrderCard` and `StatusBadge` are `kind: component` / `layer: ui`.
-  Structure nodes carry **no** `precision`: their edges are references, and a reference from a
-  declared field is resolved
-- flow graph: **53 nodes / 33 edges, 16 endpoints, 0 pending** descriptions; **4 nodes carry
+  Structure nodes carry **no** `precision`: their edges are 21 references and 2 stated bases
+  (`implements`: `FlatRate` and `TieredRate` -> `PricingRule`), and a reference from a declared
+  field is resolved. No node is `layer: unknown` -- the three pricing classes take `service` from
+  their `services/` folder (r79), which is the only thing that rule changes here. Exactly one node
+  is not `kind: class` among the classes: `PricingRule` is
+  `kind: interface`; no `extends` link, no `overrides` link and no `overridden` node exist in the
+  sample, so r61 asserts those
+- flow graph: **53 nodes / 36 edges** (29 `calls`, 4 `http`, 1 `renders`: `OrderCard -> StatusBadge`,
+  2 `implements`: `FlatRate.price` and `TieredRate.price` -> `PricingRule.price`),
+  **16 endpoints, 0 pending** descriptions; **4 nodes carry
   `unresolved`** (all four name `get`, and all four are the honest over-count -- axios's `api.get`,
   a Java `Map.get` -- which is why the field is a place to look, never an edge); one node
-  `declaration: true` (`PricingRule.price`); **16 nodes carry `precision`** -- 15 `name-matched`
-  (every JS/TS node), plus exactly one earned by an edge: `OrderWorkflow.place` ->
+  `declaration: true` (`PricingRule.price`); **3 nodes carry `precision`** -- 2 `name-matched`
+  (`getOrderEvents` and `getOrderStatus`: each drops axios's `get` through an untyped receiver, so
+  each carries `untyped: [get]`), plus exactly one earned by an edge: `OrderWorkflow.place` ->
   `interface-dispatch` (it calls the declaration). If it moves, a named marker has stopped
   working. `overloads` marks no node in the sample -- both calls to `Total` pick their overload
-  -- so `tools/check_regressions.py` r33 is where that marker is asserted
+  -- so `tools/check_regressions.py` r33 is where that marker is asserted; likewise no node
+  carries `entry: init` and no Spring injection is settled (neither rate is a bean), so r53 and
+  r54 assert those
 - routes, one per framework shape: FastAPI `OrderController.create_order`; Flask `orders` with
   **two** entries (`GET` + `POST /legacy/orders`) and `order_detail` (`<int:order_id>`); Express
   `createOrderHandler` (named handler) and the endpoint node `GET /orders/:id/status` (inline
@@ -443,9 +695,10 @@ components, four API frameworks, and Java/Go/C# with two deliberate hard cases, 
     `pricing.price()` through the `PricingRule` interface, and the edge
     `OrderWorkflow.place -> PricingRule.price` now exists, because a declaration-only member is
     extracted as a node (`declaration: true`, empty body, `end` at the end of the signature).
-    The edge stops at the interface: **no edge is emitted to `FlatRate.price` or
-    `TieredRate.price`**, which is why those two stay orphans. Picking one impl would be a guess
-    and emitting both would trade the precision guarantee for recall.
+    The call edge stops at the interface: **no call edge is emitted to `FlatRate.price` or
+    `TieredRate.price`** -- picking one impl would be a guess and emitting both would trade the
+    precision guarantee for recall. Each carries an `implements` link to `PricingRule.price`
+    instead, so neither is an orphan and a trace from `OrderApiController.create` reaches both.
   - **overloads — every overload is its own node** (finding #8).
     `InvoiceService.Total(InvoiceRequest)` and `InvoiceService.Total(int,int)` each have their own
     range; `Issue`'s `Total(request)` picks the first by argument count, and the first's
@@ -457,10 +710,13 @@ components, four API frameworks, and Java/Go/C# with two deliberate hard cases, 
   shape) and `analyze.py` never calls it dead code (there is nothing in it to delete). Both guards
   are load-bearing, not decorative -- an uncalled declaration has no caller and would otherwise be
   reported as an orphan.
-- grades: structure **D (69)**, flow **D (68)**; 4 risk findings each; 2 debt markers. Structure
-  fell from C(71) when the interface impls were added -- that is the hard case being honest, not a
-  regression. Flow fell from D(69) when the planted clone below was added: nothing calls it, so it
-  is one more orphan.
+- grades: structure **C (73)**, flow **C (70)**; 4 risk findings each; 2 debt markers. Structure
+  fell from C(71) to D(69) when the interface impls were added -- the hard case being honest, not
+  a regression -- and rose to C(73) when their bases became `implements` links, leaving one
+  structure orphan, `OrderPageModule`. Flow fell from
+  D(69) to D(68) when the planted clone below was added -- nothing calls it, so it is one more
+  orphan -- and rose to C(70) when `implements` links took `FlatRate.price` and `TieredRate.price`
+  off the orphan list, leaving 5 flow orphans, all JS/TS.
 - duplicates: **1 cluster, 2 nodes, 4 duplicated lines, 0 copied blocks** (the planted pair is a
   whole-body clone, so it is a cluster and never repeated as a block) -- `createInvoice` is `createOrder` with
   every identifier renamed, planted in `frontend/api_client.ts` so the clone pass has something to
@@ -513,7 +769,12 @@ edge lands on a node, ids are unique, each node's range really contains its own 
 edge's callee is really named inside its caller, `precision` is what the edges imply, the report's
 counts are the graph's, and every security finding lies inside the node it is attributed to, and no two nodes'
 notes are one file on a case-insensitive filesystem (c17), and every call dropped as ambiguous
-names a real overload set (c18). Its
+names a real overload set (c18), and no declaration has a call link unless its own range spells the
+callee inside a MapStruct `java(` (c08), and every `renders` edge's `<Name` is written in its caller (c20), and every `passes` link's function is named in its caller (c23), and every `implements` link
+joins one method name on two classes whose files name each other, directly or within three hops,
+or in the structure map is a base its class names, and whose type matches its ends --
+`implements` into a declaration or an interface, `overrides` into a body, `extends` otherwise
+(c21), and every `overridden` node has an `overrides` link into it and a body (c22). Its
 `D` checks test the analysis *metamorphically* — inject a cycle, an orphan, a hub, a god object or
 a layer violation into a copy of the real graph and require it to be reported — because a detector
 that returns nothing looks exactly like a clean codebase. `--self-test` breaks the input (or swaps
@@ -530,7 +791,9 @@ were recorded in the first place, and will just as happily bless a regression �
 
 Fixtures live outside `sample_src/` on purpose: that directory ships to users and its numbers are
 pinned by the prose block above, so every language added there means rewriting all of it by hand.
-A fixture costs one directory and one row. Current expectations, all asserted:
+A fixture costs one directory and one row. `tests/fixtures/ts_imports/` is not a language row:
+it is a minimal Next.js app pinning import resolution and file conventions, asserted by
+`check_regressions.py` r42. Current expectations, all asserted:
 
 | Language | Nodes | Edges | Routes | Test node |
 | --- | --- | --- | --- | --- |
@@ -572,8 +835,8 @@ only against the recorder (phase 6a).
 TypeScript's 3 edges used to be **0**: JS/TS matched calls by name only, so JavaScript's bare
 function calls linked and TypeScript's `new WidgetStore().save()` did not. The receiver is kept
 now, so a call resolves wherever the source states the class. What still drops is a receiver with
-no stated type -- `other.save()` on an untyped parameter -- which is why JS/TS keeps
-`name-matched`, and why `tools/check_regressions.py` r34 asserts both halves: the four shapes that
+no stated type -- `other.save()` on an untyped parameter -- which is why a JS/TS node that drops
+one earns `name-matched`, and why `tools/check_regressions.py` r34 asserts both halves: the four shapes that
 resolve, and the untyped one that must not.
 
 For `templates/viewer.html`, extract the inline `<script>` and parse it as a **classic script**
@@ -704,6 +967,13 @@ house rules, both from `docs/PRESENTATION.html`: **every technical identifier st
 SCC*, CLI flags — Thai is the connective prose around them), and **fonts are system-only**
 (`IBM Plex Sans Thai`, `Noto Sans Thai`, `Leelawadee UI`, `Sarabun`, Tahoma) at
 `line-height: 1.85`, because the page must open offline. Nothing may add a webfont `@import`.
+
+The one deliberate difference: the Thai file ends with a **judge Q&A bank** (`#judge-qa`, after
+the script cards) that the English file does not have. It is rehearsal material for the Thai
+presentation, not part of the guide's structure, so it uses only `qa-*` classes and the `fc-*`
+counts above still match. Its answers quote numbers and finding statuses by hand — when the
+expected-numbers block, a check count or a ROADMAP finding changes, grep the `QA.push` blocks for
+the old value in the same commit.
 
 **Append, never revise** — these are records of what was actually done and thought at the time;
 editing them to match the present is the one way to make them worthless:

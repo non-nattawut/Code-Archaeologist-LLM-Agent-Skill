@@ -5,6 +5,7 @@ source: {{source}}
 end: {{end}}
 kind: {{kind}}
 lang: {{lang}}
+entry: {{entry}}
 ---
 # {{name}}
 
@@ -14,7 +15,7 @@ lang: {{lang}}
 ## Bases
 {{bases}}
 
-## Decorators
+## {{decorators_label}}
 {{decorators}}
 
 ## Methods

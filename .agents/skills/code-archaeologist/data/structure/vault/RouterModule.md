@@ -5,6 +5,7 @@ source: sample_src/services/orders_go/router.go
 end: 
 kind: module
 lang: go
+entry: 
 ---
 # RouterModule
 
@@ -24,3 +25,4 @@ _None._
 
 ## References
 - [[EventService]]
+- [[EventStore]]

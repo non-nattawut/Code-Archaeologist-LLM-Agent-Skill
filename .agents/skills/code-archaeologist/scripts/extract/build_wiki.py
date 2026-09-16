@@ -29,14 +29,14 @@ from paths import DATA_DIR, TEMPLATES_DIR  # noqa: E402  (also puts sibling scri
 DEFAULT_VAULT = os.path.join(DATA_DIR, "structure", "vault")
 TEMPLATE_PATH = os.path.join(TEMPLATES_DIR, "wiki_page_template.md")
 
-from taxonomy import infer_layer, is_test_path  # noqa: E402
+from taxonomy import container_entry, decoration_term, infer_layer, is_test_path  # noqa: E402
 import console  # noqa: E402  (stdout must survive a non-UTF-8 console)
-from js_ts_extract import find_js_files, extract_js_files, frontend_degraded  # noqa: E402  (frontend, degrades to a no-op)
+from js_ts_extract import alias_targets, find_js_files, extract_js_files, frontend_degraded  # noqa: E402  (frontend, degrades to a no-op)
 import py_extract as px  # noqa: E402  (Python, via tree-sitter)
 from ids import SharedNames  # noqa: E402  (one id rule for both maps)
-from langs_extract import find_lang_files, extract_lang_files  # noqa: E402  (14 languages, via tree-sitter)
+from langs_extract import class_locator, find_lang_files, extract_lang_files  # noqa: E402  (14 languages, via tree-sitter)
 
-from taxonomy import SKIP_DIRS  # noqa: E402  (one definition of "not source")
+from taxonomy import source_dirs  # noqa: E402  (one definition of "not source")
 
 
 # ---------------------------------------------------------------------------
@@ -61,7 +61,7 @@ def _name_of(node) -> str:
 
 def iter_py_files(src: str):
     for root, dirs, files in os.walk(src):
-        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+        dirs[:] = source_dirs(root, dirs)
         for fn in files:
             if fn.endswith(".py"):
                 yield os.path.join(root, fn)
@@ -148,19 +148,26 @@ def _extract_from_tree(root, source, rel, entities):
     # Module-level imported names (for reference resolution).
     imports = _imported_names(root)
 
+    here: list[dict] = []
+    # (entity, one node whose calls belong to it) -- a module group is its functions, so it
+    # gets one pair per function.
+    owners: list[tuple[dict, object]] = []
     module_funcs: list[dict] = []
     for decorators, node in px.defs_in(root, ("class_definition", "function_definition")):
         if node.type == "class_definition":
-            entities.append(_class_entity(node, decorators, rel, imports, source))
+            ent = _class_entity(node, decorators, rel, imports, source)
+            here.append(ent)
+            owners.append((ent, node))
         else:
             module_funcs.append({
                 "name": px.def_name(node),
                 "doc": px.docstring_of(node).strip().splitlines()[0:1],
+                "node": node,
             })
 
     if module_funcs:
         mod_name = os.path.splitext(os.path.basename(rel))[0]
-        entities.append({
+        mod = {
             "name": _module_entity_name(mod_name),
             "kind": "module",
             "source": rel,
@@ -171,7 +178,38 @@ def _extract_from_tree(root, source, rel, entities):
                         for f in module_funcs],
             "imports": sorted(imports),
             "lang": "py",
-        })
+        }
+        here.append(mod)
+        owners += [(mod, f["node"]) for f in module_funcs]
+
+    _add_same_file_refs(here, owners)
+    entities.extend(here)
+
+
+def _called_names(node) -> set[str]:
+    """Bare names this subtree calls -- `helper()`, `Page()`. A method call states its
+    receiver, which is the flow map's question, not this one's."""
+    names: set[str] = set()
+    for n in px.walk(node):
+        if n.type != "call":
+            continue
+        fn = px.field(n, "function")
+        if fn is not None and fn.type == "identifier":
+            names.add(px.text(fn))
+    return names
+
+
+def _add_same_file_refs(ents: list[dict], owners: list[tuple[dict, object]]) -> None:
+    """A name this file defines is a reference too: a class calling a function of its own
+    module group, or a module function building a class beside it. Python resolved references
+    from the import list alone, so nothing in a file ever pointed at anything else in it
+    (r77). A node never references itself."""
+    provides = _provided_names(ents)
+    for ent, node in owners:
+        found = {owner for name in _called_names(node)
+                 for owner in [provides.get(name)] if owner and owner != ent["name"]}
+        if found:
+            ent["imports"] = sorted(set(ent["imports"]) | found)
 
 
 def _base_nodes(cls):
@@ -193,13 +231,19 @@ def _class_entity(node, decorator_nodes, rel: str, imports: set[str], source: st
     bases = [_name_of(b) for b in _base_nodes(node) if _name_of(b)]
     decorators = [_name_of(d) for d in decorator_nodes if _name_of(d)]
     methods = []
+    abstract = False
     for _decs, item in px.defs_in(px.body_of(node)):
         doc = px.docstring_of(item)
         first = doc.strip().splitlines()[0] if doc.strip() else ""
         methods.append({"name": px.def_name(item), "doc": first})
+        abstract = abstract or any(_name_of(d).split(".")[-1] == "abstractmethod" for d in _decs)
+    base_names = {b.split(".")[-1] for b in bases}
+    # Python states it by convention: a `Protocol` is an interface, an `ABC` or a class with
+    # an `@abstractmethod` is abstract.
+    kind = "interface" if "Protocol" in base_names else "abstract" if abstract or "ABC" in base_names else "class"
     return {
         "name": px.def_name(node),
-        "kind": "class",
+        "kind": kind,
         "source": rel,
         # From the first decorator, like every node in both maps (finding #6).
         "line": px.line(node.parent if decorator_nodes else node), "end": px.end_line(node),
@@ -226,6 +270,9 @@ def _names_used(funcs: list[dict]) -> set[str]:
     used: set[str] = set()
     for fn in funcs:
         used.update(c["name"] for c in fn.get("calls", []))
+        used.update(c["obj"] for c in fn.get("calls", [])
+                    if c.get("obj") and c["type"] == "?")             # `errors.x()`: import * as errors
+        used.update(fn.get("constructs", []))                                 # `new ApiError(...)`
         used.update(fn.get("components", []))
     return used
 
@@ -237,7 +284,7 @@ def _js_file_entities(res: dict, rel: str) -> list[dict]:
 
     for cls in res.get("classes", []):
         ents.append({
-            "name": cls["name"], "kind": "class", "source": rel, "lang": "js",
+            "name": cls["name"], "kind": cls.get("kind") or "class", "source": rel, "lang": "js",
             "line": cls.get("line", 0), "end": cls.get("endLine", 0),
             "bases": cls.get("bases", []), "decorators": [],
             "doc": cls.get("doc", ""),
@@ -270,22 +317,61 @@ def _js_file_entities(res: dict, rel: str) -> list[dict]:
             "methods": [{"name": f["name"], "doc": f.get("doc", "")} for f in module_funcs],
             "uses": _names_used(module_funcs),
             "renders": [],
+            # Next.js calls a page/layout/route export itself, as it does in the flow map.
+            **({"entry": next((f["entry"] for f in module_funcs if f.get("entry")), "")}
+               if any(f.get("entry") for f in module_funcs) else {}),
         })
+    types = _type_names(res)
+    if types:
+        # A file's type declarations belong to its module -- or, when the file defines none,
+        # to the entities it does define. A type position is a use: `type Api = typeof
+        # setdatService` is why an IDE does not grey that import out (r76).
+        for ent in [e for e in ents if e["kind"] == "module"] or ents:
+            ent["uses"] |= types
     return ents
 
 
-def _resolve_specifier(spec: str, from_file: str, defs: dict[str, list[str]]) -> list[str]:
-    """Entity names defined by the file a relative import points at."""
-    if not spec.startswith("."):
-        return []                       # bare package: fall back to name matching
-    base = os.path.normpath(os.path.join(os.path.dirname(from_file), spec))
-    candidates = [base]
-    candidates += [base + ext for ext in JS_RESOLVE_EXTS]
-    candidates += [os.path.join(base, "index" + ext) for ext in JS_RESOLVE_EXTS]
-    for cand in candidates:
-        names = defs.get(os.path.normcase(cand))
-        if names is not None:
-            return names
+def _type_names(res: dict) -> set[str]:
+    """The names a file's type declarations state: the object behind `typeof setdatService`,
+    a property's type, and the type a `createContext<T>` carries."""
+    names: set[str] = set()
+    for entry in res.get("types", {}).values():
+        refs = [entry["is"]] if entry.get("is") else list(entry.get("props", {}).values())
+        names.update(r[len("typeof "):] if r.startswith("typeof ") else r for r in refs)
+    names.update(res.get("contexts", {}).values())
+    return {n for n in names if n}
+
+
+def _provided_names(ents: list[dict]) -> dict[str, str]:
+    """Name -> the entity of this file a reader reaches by writing it: an entity's own name,
+    and every function a module group holds (a module group *is* its functions)."""
+    provides: dict[str, str] = {}
+    for ent in ents:
+        provides[ent["name"]] = ent["name"]
+        if ent["kind"] == "module":
+            for m in ent["methods"]:
+                provides.setdefault(m["name"], ent["name"])
+    return provides
+
+
+def _resolve_specifier(spec: str, from_file: str,
+                       defs: dict[str, list[tuple[str, str]]]) -> list[tuple[str, str]]:
+    """(entity name, its file) for each entity the file a relative or tsconfig-aliased
+    import points at defines."""
+    if spec.startswith("."):
+        bases = [os.path.normpath(os.path.join(os.path.dirname(from_file), spec))]
+    else:
+        # `@/utils/x` through the nearest tsconfig/jsconfig `paths`; a bare package
+        # matches none and falls back to name matching.
+        bases = [os.path.normpath(t) for t in alias_targets(spec, from_file)]
+    for base in bases:
+        candidates = [base]
+        candidates += [base + ext for ext in JS_RESOLVE_EXTS]
+        candidates += [os.path.join(base, "index" + ext) for ext in JS_RESOLVE_EXTS]
+        for cand in candidates:
+            names = defs.get(os.path.normcase(cand))
+            if names is not None:
+                return names
     return []
 
 
@@ -302,12 +388,12 @@ def extract_js_entities(roots: list[str]) -> list[dict]:
     the one warning -- the Python vault still builds (hard constraint 1).
     """
     files: list[tuple[str, list[dict], dict]] = []
-    defs: dict[str, list[str]] = {}
+    defs: dict[str, list[tuple[str, str]]] = {}
     for root in roots:
         for res in extract_js_files(find_js_files(root)):
             ents = _js_file_entities(res, _rel_source(res["file"], root))
             files.append((res["file"], ents, res))
-            defs[os.path.normcase(os.path.abspath(res["file"]))] = [e["name"] for e in ents]
+            defs[os.path.normcase(os.path.abspath(res["file"]))] = [(e["name"], e["source"]) for e in ents]
 
     entities: list[dict] = []
     for path, ents, res in files:
@@ -316,16 +402,31 @@ def extract_js_entities(roots: list[str]) -> list[dict]:
         # every entity would give a component that renders one badge an edge to
         # every API the file touches -- an edge the reader then has to disprove.
         resolved = [(set(imp.get("names", [])),
-                     _resolve_specifier(imp.get("from", ""), path, defs) or imp.get("names", []))
+                     _resolve_specifier(imp.get("from", ""), path, defs)
+                     or [(n, "") for n in imp.get("names", [])])
                     for imp in res.get("imports", [])]
+        provides = _provided_names(ents)
         for ent in ents:
             used = ent.pop("uses")
             refs = set(ent.pop("renders"))
+            # A name this file defines itself is a reference too: `AdminLayout` calls
+            # `getMainContentMargin`, which lives in its own file's module group. Only
+            # imports were followed, so no module node ever had a same-file referrer (r77).
+            refs |= {owner for name in used
+                     for owner in [provides.get(name)] if owner and owner != ent["name"]}
+            sources: dict[str, str] = {}
             for names, targets in resolved:
                 if names & used:
-                    refs.update(targets)
+                    for name, rel in targets:
+                        refs.add(name)
+                        if rel:
+                            sources[name] = rel
             # Only names that turn out to be entities become edges (`render_entity`).
             ent["imports"] = sorted(refs)
+            if sources:
+                # The file each import named: the exact definition, even when another
+                # file defines the same name (the normal/AAS copies of a real frontend).
+                ent["import_sources"] = sources
             entities.append(ent)
     return entities
 
@@ -337,24 +438,40 @@ def extract_lang_entities(roots: list[str]) -> list[dict]:
     """Classes, structs and modules -- plus a module function-group per file -- for every
     `langs_extract` language (Java, Go, C# and, since phase 7, eleven more).
 
-    References come from *declared types* -- bases, field types, parameter types
-    and resolved call receivers -- not from the import list. That is a better
-    source than Python's name matching and it is the only one available for Go,
-    where files in the same package import each other not at all.
+    References come from what the source *states* -- bases, field types, parameter types,
+    resolved call receivers, and `refs`: every other type a signature or body names (return
+    types, generic arguments, locals, `X.class`, a static constant's class; `langs_extract.
+    _type_refs`, r73). Never from the import list: that is a better source than Python's name
+    matching and the only one available for Go, where files in the same package import each
+    other not at all. `class_locator` settles which file a name means, including this one, so
+    a reference between two classes of the same file resolves here without a special case.
     """
+    files = [(_rel_source(res["file"], root), res)
+             for root in roots for res in extract_lang_files(find_lang_files(root))]
+    locate = class_locator(files)       # a class name two files define: which one this file means
     entities: list[dict] = []
-    for root in roots:
-        for res in extract_lang_files(find_lang_files(root)):
-            rel = _rel_source(res["file"], root)
+    for rel, res in files:
+        if True:
             stem = os.path.splitext(os.path.basename(res["file"]))[0]
 
             for cls in res.get("classes", []):
-                refs = set(cls.get("bases", [])) | set(cls.get("fields", {}).values())
+                # `refs` is every type the class's own source names -- return types, generic
+                # arguments, locals, `X.class`, a static constant's class -- which is what an
+                # IDE counts as a usage and what the declared-type list below missed (r73).
+                refs = set(cls.get("bases", [])) | set(cls.get("fields", {}).values()) \
+                    | set(cls.get("refs", []))
                 for m in cls.get("methods", []):
                     refs.update(m.get("params", {}).values())
+                    refs.update(m.get("refs", []))
                     refs.update(c["type"] for c in m.get("calls", []) if c["type"] not in ("", "?"))
+                # A framework builds this class and calls into it: `@Configuration`, or a method
+                # of its own that a framework calls (`@Scheduled`). `find_orphans` reads `entry`
+                # on flow nodes already; structure nodes carried none at all (r75).
+                entry = container_entry(cls.get("decorators", []),
+                                        [m.get("entry") for m in cls.get("methods", [])])
                 entities.append({
-                    "name": cls["name"], "kind": "class", "source": rel,
+                    **({"entry": entry} if entry else {}),
+                    "name": cls["name"], "kind": cls.get("kind") or "class", "source": rel,
                     "lang": res["lang"],
                     "line": cls.get("line", 0), "end": cls.get("endLine", 0),
                     "bases": cls.get("bases", []), "decorators": cls.get("decorators", []),
@@ -362,6 +479,7 @@ def extract_lang_entities(roots: list[str]) -> list[dict]:
                     "methods": [{"name": m["name"], "doc": m.get("doc", "")}
                                 for m in cls.get("methods", [])],
                     "imports": sorted(refs),
+                    "import_sources": {r: f for r in sorted(refs) for f in [locate(r, rel)] if f},
                 })
 
             funcs = res.get("functions", [])
@@ -369,6 +487,7 @@ def extract_lang_entities(roots: list[str]) -> list[dict]:
                 refs = set()
                 for fn in funcs:
                     refs.update(fn.get("params", {}).values())
+                    refs.update(fn.get("refs", []))
                     refs.update(c["type"] for c in fn.get("calls", []) if c["type"] not in ("", "?"))
                 entities.append({
                     "name": _module_entity_name(stem), "kind": "module", "source": rel,
@@ -404,11 +523,21 @@ def render_entity(ent: dict, known: set[str], template: str, names=None) -> str:
         target = resolve(name)
         return f"[[{target}]]" if target else f"`{name}`"
 
+    def resolve_ref(name: str) -> str | None:
+        """Like `resolve`, but a name whose file the source settled (an import specifier, a
+        Java package or import) links to that file's definition even when two files share it."""
+        src = ent.get("import_sources", {}).get(name)
+        if src and names is not None:
+            target = names.id(name, src)
+            return target if target in known else None
+        return resolve(name)
+
     bases_md = []
     for b in ent["bases"]:
-        bases_md.append(f"- {link(b)}")
-        if resolve(b):
-            references.add(resolve(b))
+        target = resolve_ref(b)
+        bases_md.append(f"- [[{target}]]" if target else f"- `{b}`")
+        if target:
+            references.add(target)
     decorators_md = []
     for d in ent["decorators"]:
         decorators_md.append(f"- {link(d)}")
@@ -417,7 +546,7 @@ def render_entity(ent: dict, known: set[str], template: str, names=None) -> str:
 
     # Imports that match known entities become references too.
     for imp in ent.get("imports", []):
-        target = resolve(imp)
+        target = resolve_ref(imp)   # the specifier named the file: a shared name is not ambiguous here
         if target and target != ent["name"]:
             references.add(target)
 
@@ -437,7 +566,8 @@ def render_entity(ent: dict, known: set[str], template: str, names=None) -> str:
     # letting the name rules override.
     layer = ("test" if is_test_path(ent["source"])
              else "ui" if ent["kind"] == "component"
-             else infer_layer(ent.get("bare", ent["name"]), ent["decorators"], ent["bases"]))
+             else infer_layer(ent.get("bare", ent["name"]), ent["decorators"], ent["bases"],
+                              ent["source"]))
     out = out.replace("{{layer}}", layer)
     # A class or component has a range, so its page says `file:line` and `end`, like
     # a flow node (phase 6a): metrics, security attribution and clones can then find
@@ -448,8 +578,12 @@ def render_entity(ent: dict, known: set[str], template: str, names=None) -> str:
     out = out.replace("{{end}}", str(ent["end"]) if ent.get("end") else "")
     out = out.replace("{{kind}}", ent["kind"])
     out = out.replace("{{lang}}", ent.get("lang", "py"))
+    out = out.replace("{{entry}}", ent.get("entry", ""))
     out = out.replace("{{summary}}", summary)
     out = out.replace("{{bases}}", "\n".join(bases_md) if bases_md else "_None._")
+    # The heading is the word this language actually uses -- Java's annotations are
+    # not decorators, and C#'s attributes are neither (taxonomy.decoration_term).
+    out = out.replace("{{decorators_label}}", decoration_term(ent.get("lang", "py")))
     out = out.replace("{{decorators}}", "\n".join(decorators_md) if decorators_md else "_None._")
     out = out.replace("{{methods}}", "\n".join(methods_md) if methods_md else "_None._")
     out = out.replace("{{references}}", "\n".join(refs_md) if refs_md else "_None._")

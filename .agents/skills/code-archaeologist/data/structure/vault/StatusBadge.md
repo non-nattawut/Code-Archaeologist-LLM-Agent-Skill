@@ -5,6 +5,7 @@ source: sample_src/frontend/OrderCard.tsx:6
 end: 8
 kind: component
 lang: js
+entry: 
 ---
 # StatusBadge
 

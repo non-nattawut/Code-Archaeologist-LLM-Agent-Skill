@@ -5,6 +5,7 @@ source: sample_src/services/orders_cs/InvoiceService.cs:4
 end: 39
 kind: class
 lang: csharp
+entry: 
 ---
 # InvoiceService
 
@@ -14,7 +15,7 @@ Invoice rules: work out the total, then store it.
 ## Bases
 _None._
 
-## Decorators
+## Attributes
 _None._
 
 ## Methods

@@ -191,6 +191,9 @@ def to_markdown(data: dict) -> str:
                      for v in smells["layer_violations"]])
     lines += [f"### Orphans (no callers, not an entry point) — {len(smells['orphans'])}", ""]
     lines += _table(["Node"], [[f"`{n}`"] for n in smells["orphans"][:TOP_ORPHANS]])
+    overridden = smells.get("overridden") or []
+    lines += [f"### Overridden everywhere (a body every subclass replaces, so it never runs) — {len(overridden)}", ""]
+    lines += _table(["Node"], [[f"`{n}`"] for n in overridden[:TOP_ORPHANS]])
 
     lines += ["## Anti-patterns & idioms", "", "### High coupling (hubs)", ""]
     lines += _table(["Node", "Fan-in", "Fan-out"],

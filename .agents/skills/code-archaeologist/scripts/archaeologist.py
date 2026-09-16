@@ -73,18 +73,12 @@ def run_project(src) -> int:
     rc = build_wiki.build(src, os.path.join(STRUCTURE_DIR, "vault"))
     if rc:
         return rc
-    rc = build_graph.build(os.path.join(STRUCTURE_DIR, "vault"), STRUCTURE_DIR)
-    if rc:
-        return rc
-    return render_explorer()
+    return build_graph.build(os.path.join(STRUCTURE_DIR, "vault"), STRUCTURE_DIR)
 
 
 def run_flow(src) -> int:
     print("== Flow (call / request) map ==")
-    rc = build_flow.build(src, os.path.join(FLOW_DIR, "notes"), os.path.join(FLOW_DIR, "flow_graph.json"))
-    if rc:
-        return rc
-    return render_explorer()
+    return build_flow.build(src, os.path.join(FLOW_DIR, "notes"), os.path.join(FLOW_DIR, "flow_graph.json"))
 
 
 def run_report(src) -> int:
@@ -131,10 +125,13 @@ def main(argv=None) -> int:
         rc = run_flow(src)
     else:
         rc = run_project(src) or run_flow(src)
+    if rc:
+        return rc
 
-    if not rc:
-        manifest.write(src)  # record the roots + source hashes so `check` can detect drift
-    return rc
+    manifest.write(src)  # record the roots + source hashes so `check` can detect drift
+    # Rendered once, after every map and the manifest: the page is a view of the maps,
+    # so a failure to draw it must never cost a map (it used to stop `both` before flow).
+    return render_explorer()
 
 
 if __name__ == "__main__":

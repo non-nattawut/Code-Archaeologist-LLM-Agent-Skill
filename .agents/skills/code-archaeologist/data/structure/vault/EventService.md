@@ -5,6 +5,7 @@ source: sample_src/services/orders_go/event_service.go:4
 end: 6
 kind: class
 lang: go
+entry: 
 ---
 # EventService
 

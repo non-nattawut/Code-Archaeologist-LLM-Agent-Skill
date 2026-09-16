@@ -1952,6 +1952,604 @@ cheap to name precisely — `viewer.html`'s `function x(` declarations parse wit
 the one whose drift nobody notices. What (b) cannot catch is a name that exists but is quoted for
 the wrong script; that stays a reading job.
 
+### 13. `data` and `build` are skipped at any depth — found 2026-09-14, on a Spring + Next.js repository
+
+**What.** `taxonomy.SKIP_DIRS` holds `data` and `build`, and `source_dirs()` matches a name at
+every level. A top-level `build/` is output, but `src/main/java/com/acme/data/` is a Java package,
+and every file in it is silently absent from both maps -- a smaller graph that looks like a smaller
+codebase, which is exactly what constraint 1 exists to prevent.
+
+**Why it is not just a fix.** Changing it changes which files every user's map contains, and
+`data/` is also this skill's own output folder. Options: (a) skip `data`/`build` only directly under
+a `--src` root; (b) skip them only when they contain no source file of a graphed language; (c) keep
+the rule and have `brief` name every skipped directory that held source.
+
+**Recommendation: (a)**, measured first on a Spring layout and on this repository's own tree (the
+skill's `data/` sits well below the repo root, so it would need `source_dirs()` to keep skipping
+the skill copy -- which it now does).
+
+### 14. A Java static import called bare is still dropped — found 2026-09-14
+
+**What.** `import static com.acme.DateUtil.now;` then `now()` is a bare call with no receiver.
+`build_flow` tries the enclosing class, then a module function -- Java has none -- and drops it.
+`langs_extract._imports` already reads the import and strips `static`; nothing uses it.
+
+**Why it is not just a fix.** It needs the import's class bound to a graph class, and a wildcard
+`import static X.*` makes that a guess. **Recommendation:** bind only single-member static imports
+whose class is in the graph, and leave wildcards dropped.
+
+### 15. "Named by a test" is name-only and not transitive — found 2026-09-14
+
+**What.** `tests_map.py` counts a node as tested when a test file spells its name. A helper reached
+only through a tested service never counts, and a MockMvc test that names URLs covers no endpoint.
+On the Spring + Next.js repository it read 12%, and the reporting agent blamed missing call edges --
+wrongly, because this pass never reads an edge.
+
+**Why it is not just a fix.** Making it transitive turns "a test names this" into "a test reaches
+this", which is a different claim with a different number. **Recommendation:** keep the current
+figure under its current name and add a second, edge-based `reached_by_tests` figure beside it.
+
+### 16. Three high findings take the whole security budget — found 2026-09-14
+
+**What.** `analyze.health()` charges 10 per high finding, capped at 30. On the Spring + Next.js
+repository ten false positives cost the full 30, and the grade fell two letters on a regex. The
+filters now remove that shape, but any three line-regex hits still decide a third of the grade.
+
+**Recommendation:** leave the weights, since they are documented and graded repos compare against them,
+but show the security deduction beside the grade in `brief` so a reader can see what drove it.
+
+### 17. SKILL.md asks the agent to describe every pending node — found 2026-09-14
+
+**What.** A first build of a 56k-line repository left 1,374 pending descriptions, and SKILL.md
+says "0 pending means done". Followed literally, that is an agent writing 1,374 summaries.
+
+**Recommendation:** say in SKILL.md that descriptions are optional and incremental: describe the
+nodes on the path an answer uses, or the top N by fan-in, never the whole queue at once.
+
+### 18. Next.js file routes are not endpoint nodes — found 2026-09-14
+
+**What.** `app/api/orders/[id]/route.ts` exporting `GET` serves `GET /api/orders/:id`, but no route
+is recorded, so a frontend `fetch("/api/orders/1")` gets no cross-stack edge. Since this session the
+handler carries `entry: next:route` and is no longer called dead; it still serves nothing in the graph.
+
+**Why it is not just a fix.** It is a new route shape (dynamic segments, route groups, `pages/api`)
+and a feature rather than a correction. **Recommendation:** add it the way phase 8 added route
+tables, with a fixture row per shape.
+
+### 19. A function passed rather than called has no caller — found 2026-09-14
+
+**What.** `onClick={handleSave}`, `<form action={saveAction}>`, `arr.map(format)` and every callback
+reference is not a call, so the function looks dead. `tests/fixtures/ts_imports` shows it: both
+functions in `lib/actions.ts` stay orphans.
+
+**Why it is not just a fix.** Making a reference an edge changes what a `calls` edge means, and
+`check_graph` c13 and every trace rely on it meaning a call. **Options:** (a) a new `references` edge
+type in the flow map; (b) an `entry`-like flag, `referenced: true`, that only exempts the node from
+dead code; (c) leave it and let SKILL.md warn (done).
+
+**Recommendation: (b)**: it is exactly the information dead-code needs, and nothing else changes.
+
+### 20. Renamed imports, and a structure-map import of a shared name — found 2026-09-14
+
+**What.** The flow map follows an import only under the exported name: `import { label as tag }`
+and a default export imported under another name still resolve by name matching, or drop. And
+in the structure map, `import { label } from "@/lib/labels"` resolves the specifier to
+`LabelsModule`, but two files define that module name, so `SharedNames.target` drops it from a
+file that defines neither.
+
+**Why it is not just a fix.** The first would draw an edge to a name the caller never spells, which
+breaks `check_graph` c13's promise that every callee is named in its caller. The second needs the
+structure map's `imports` to carry a file, not a bare name -- a format change. **Recommendation:**
+teach c13 to accept a callee named through an import binding, then follow renames; carry
+`(name, file)` in structure imports in the same change.
+
+*Update, same day, after the retest:* the structure-map half is done without changing the `imports`
+format -- a resolved import records its file in a side field, `import_sources`, and
+`render_entity` links with `SharedNames.id`. Renamed imports remain open.
+
+### 21. A call on another call's result is dropped — found 2026-09-14, on the retest
+
+**What.** `resolveHandler(type).downloadFile(...)` (26 upload-handler methods on the Spring
+repository) and `batchProperties.getPnoData().getCron()` have a receiver that is a call, whose
+type is the callee's *return* type. Nothing records return types, so every such call is `?`.
+
+**Why it is not just a fix.** It needs each method's declared return type and a second resolution
+pass, and the getter chain is usually Lombok-generated -- no source, so no return type to read.
+**Recommendation:** record declared return types in `langs_extract` and resolve one level of
+`call().method()` when the inner call resolved to a node; leave generated getters dropped and let
+`unresolved` name them.
+
+### 22. The flow map draws no edge for a JSX render — found 2026-09-14, on the retest
+
+**What.** `page.tsx` renders `<Dashboard />`; the structure map links them, the flow map does not.
+A component is never dead (it is an entry kind), so this costs traces, not the dead-code list.
+
+**Why it is not just a fix.** A render is not a call, and `calls` edges feed every trace and
+blast radius. **Options:** a `renders` edge type in the flow map, or leave it to the structure
+map. **Recommendation:** a `renders` edge type, included in `--impact-of` but not in coupling.
+
+### 23. A call through an untyped variable — found 2026-09-14, on the retest
+
+**What.** `api.approveSetdatProject(...)` inside an `onClick` was reported unresolved. The shape of
+`api` is not known here: an imported instance (`export const api = new ProjectApi()`), an object
+literal of arrow functions (which are not nodes at all), or a hook's return value each needs a
+different rule.
+
+**Recommendation:** get the real declaration of `api` from the repository before choosing; the
+first shape is exact (bind the import, read the `new`), the second needs object-literal members
+as nodes, the third should stay dropped.
+
+### 24. Python has the module-load gap JS/TS just closed — found 2026-09-14
+
+**What.** `app = create_app()` at module level and `if __name__ == "__main__": main()` call functions
+from outside any node, so `create_app` and `main` look dead -- the same shape as
+`const api = createApiInstance()`, which JS/TS now marks `entry: module`.
+
+**Recommendation:** the same rule in `py_extract` (top-level statements, never a `def` body),
+checked against the skill's own scripts, where every `main()` should stop being an orphan.
+
+### 25. `name-matched` is decided by language, not by a dropped call — found 2026-09-14
+
+**What.** `taxonomy.precision_of` adds `name-matched` to every node whose `lang` is in
+`NAME_MATCHED_LANGS`, whatever the node calls. A TS function that calls nothing, or whose every call
+resolved, still carries it -- all 15 JS/TS nodes in the sample do. The other two reasons are earned
+by an edge or an `ambiguous` set. CLAUDE.md said all three came "from what the node calls, never
+from its language alone"; that sentence was corrected to match the code.
+
+**Why not fixed.** Earning it per node needs a fact the graph does not keep: `_record_dropped`
+stores dropped *names*, not *why* (a `"?"` receiver vs. a name the graph does not define). Changing
+it also changes the sample's pinned count (16 nodes with `precision`) and a user-visible field.
+
+**Recommendation:** have the extractors' `"?"` survive into the node (a count, like `ext`), and set
+`name-matched` only when it is non-zero -- in every language, so it stops being a language label.
+
+### Update on #21-#24 — implemented 2026-09-14, at the user's request
+
+All four were built as recommended, each behind a regression case written first:
+
+- **#21 (r46).** Receivers are read as nodes; a call on a call carries `via`; methods record
+  `returns` (Java/Groovy/C#/Kotlin, and TS `(): X`), Lombok classes record `getters`. The walk
+  drops on any unknown step or disagreeing overload return types. Still open: a chain ending in a
+  Lombok getter has no node to land on (correctly), and a generic return (`Optional<Handler>`)
+  reduces to its container and drops.
+- **#22 (r49).** A `renders` edge type, resolved like a call, excluded from coupling and from
+  `calls`/`callers`; `check_graph` c20 asserts its `<Name`. `<Ctx.Item />` now draws nothing in
+  either map (the structure map used to keep the last segment). The sample gained one edge,
+  `OrderCard -> StatusBadge` (flow 33 -> 34).
+- **#23 (r47), every exact shape, as the user chose.** Imported and module-level `new X()`
+  instances, barrel re-exports (never through a rename, exactly one file), object-literal members
+  as `api.member` nodes, and same-name aliases. A hook's untyped return value still drops.
+- **#24 (r48).** `py_extract.load_time_calls`, `entry: module`.
+
+Found while doing it: `_FUNCTION_NODES` lacked `method_definition`, so a call inside an object
+literal's `refresh() {}` was taken for module-load code and could mark its callee `entry: module`
+-- fixed in the same change.
+
+### 26. A stale comment in the shipped sample says the interface call is dropped — found 2026-09-14
+
+**What.** `sample_src/services/orders_java/OrderWorkflow.java`, above `pricing.price(request)`: "The extractor drops
+this call rather than picking one of them". It no longer drops it -- the call links to the declaration node
+`PricingRule.price` (`declaration: true`), and only the links to `FlatRate.price` / `TieredRate.price` are absent.
+The sample ships to users as the worked example, so a reader is told the opposite of what the graph shows.
+
+**Why not fixed on sight.** The fix is one comment, but `sample_src` is pinned: every edit changes node hashes and
+requires regenerating both maps and both reports in the same commit, and the working tree currently holds other
+uncommitted changes to that data.
+
+**Recommendation:** reword it to "links to the `PricingRule.price` declaration and stops there, rather than picking
+one of them", keeping the line count so no range moves; rebuild, confirm only hashes/descriptions change, commit
+with the data.
+
+### 27. Calls through a global, and Python's `ClassName.method()`, drop in some languages — found 2026-09-14
+
+**What.** Probed with `build_flow.analyze()` in memory (writes nothing) on a scratch tree, one method per shape:
+
+| Shape | Java | C# | TS | Kotlin | Python | Go |
+| --- | --- | --- | --- | --- | --- | --- |
+| `ClassName.method()` (static / `object`) | linked | linked | linked | linked | **dropped** | n/a |
+| global in the same file (static field, module/top-level variable) | linked | linked | linked | **dropped** | **dropped** | **dropped** |
+| global imported from another file | -- | -- | linked | -- | **dropped** | -- |
+| another class's static field, `Registry.STORE.save()` | **dropped** | **dropped** | -- | -- | -- | -- |
+
+Python's `PyStore.make()` is the odd one out: every other language has the type-name receiver rule
+(`langs_extract._type_name`), and `build_flow._resolve_calls` only handles `self.m()`, `self.attr.m()` and typed
+locals/params. TS's module-level and imported instances work since r47; Python, Kotlin and Go have no equivalent.
+`Registry.STORE.save()` has a two-part receiver whose head is a type, and `_calls` only reads `this.field` there.
+
+**Why not fixed on sight.** Each one adds links to the graph (output changes, sample numbers may move), and the
+user has been choosing which resolution rules to build (#21-#24 were built "at the user's request").
+
+**Recommendation:** in order of value and safety -- (1) Python type-name receiver, the same rule every other
+language has; (2) module/top-level `x = ClassName()` / `val x = X()` / `var x = &X{}` typing a same-file global in
+Python, Kotlin and Go, mirroring TS's `_module_instances`; (3) Python `from m import x` binding an instance, mirroring
+`_imported_types`; (4) `Type.FIELD.m()` through the field's declared type in Java/C#. A shadowing local or parameter
+must still win, and a regression case per shape, written first.
+
+### 28. A call in a field initializer, static block or package `var` is invisible — found 2026-09-14
+
+**What.** Probed with `build_flow.analyze()` in memory on a scratch tree where each `save()` is called *only* from
+outside any method:
+
+| Shape | Callee gets |
+| --- | --- |
+| Python module level `x = py_save()` | `entry: module` (r48) |
+| TS module level `export const x = tsSave()` | `entry: module` (r45) |
+| Java field `int x = JStore.save();` | nothing |
+| Java `static { JStore.load(); }` | nothing |
+| C# field `int x = CStore.Save();` | nothing |
+| Kotlin property `val x = KStore.save()` | nothing |
+| Go package `var x = goSave()` | nothing |
+
+"Nothing" is worse than a drop: the call is not collected, so it is not in `ext` or `unresolved` either, and the
+callee is reported as dead code with no trace of why. The variable `x` is never a node in any language (fields are
+not nodes), which is correct.
+
+**Why not fixed on sight.** It changes the orphan list and grades on any Java/C#/Kotlin/Go codebase, and it needs a
+choice of *where* the call lives: mark the callee `entry: module` (what JS/TS and Python do -- no link, not dead),
+or attribute it to a node (the class, or its constructor, for an instance field; nothing natural exists for a
+static block or a Go package var).
+
+**Recommendation:** the JS/TS/Python rule, for consistency -- collect calls from field/property initializers,
+`static {}` / `init {}` blocks and Go package-level `var` values, resolve them like any call, and mark each callee
+`entry: module`. No link is invented. A regression case per language, written first, asserting on the written
+`flow_graph.json` (the r40/r41 lesson).
+
+### Update on phase 1b's `implements` link and #26 — implemented 2026-09-14, at the user's request
+
+The optional `implements` link from phase 1b was built, after the user chose it over drawing call links to every
+implementation. `build_flow._implements_links` joins a method to the same-named method of its class's nearest base in
+the graph (past a base that defines none; overloads by parameter types), stored implementation -> declaration and
+walked backwards by every walker through `taxonomy.call_direction`; cycles, layer violations, coupling, `calls` /
+`callers` and `precision` ignore it. r50 was written first and failed on the old code ("implements links []");
+`check_graph` gained c21 (two mutations) and a d02 probe with its own sabotage. Sample: flow 34 -> 36 links,
+7 -> 5 orphans, D (68) -> C (70). #26's comment was reworded in the same change, keeping its line count.
+
+### 29. The structure map still calls `FlatRate` and `TieredRate` orphans — found 2026-09-14
+
+**What.** The flow map's implementations are no longer dead, but the structure map's classes are: the structure
+report lists `FlatRate`, `TieredRate` and `OrderPageModule`. Its edges are references, and `FlatRate -> PricingRule`
+points *from* the implementation, so nothing points *at* it.
+
+**Why not fixed on sight.** It is the same question at class level, but a different map with different consumers
+(its orphan count moves its grade, D (69)), and "a class implementing a referenced interface is used" is a rule the
+user has not chosen for that map.
+
+**Recommendation:** mirror the flow rule -- `analyze.find_orphans` on the structure map treats a class whose
+`references` include a base that is itself referenced as not dead -- or leave it, and say so in the report.
+
+### Update on #25, #27, #28, #29 and Spring injection — implemented 2026-09-14, at the user's request
+
+Each was built behind a regression case written first and seen to fail on the old code (r51-r55).
+
+- **#25 (r51), refined.** Counting every `"?"` drop, as recommended, would have marked nearly every Java node
+  (`System.out.println` has an untyped receiver). `name-matched` is earned by `untyped` instead: the `"?"` drops whose
+  names the graph defines -- the filter `unresolved` already uses -- in every language, written to the node.
+  `NAME_MATCHED_LANGS` is gone. Sample: 16 -> 3 nodes with `precision`. The first draft of r51 was itself wrong:
+  `helper().save()` is *typed* (helper declares `Object`), so the test used `thing.inner.save()`.
+- **#27 (r52), all four.** A parameter or local of the same name hides a global (Python: params and assignments; Kotlin:
+  params and local properties; Go: params, `:=`, `var`, `range`). `Type.FIELD.m()` travels as `via.fields`.
+- **#28 (r53), as `entry: init` rather than `module`**, and constructors were added: they are not nodes either, and had
+  the same silent gap. A Go `func init()` is `entry: init`. A C# property's accessor body counts as field code (a
+  `property_declaration` is a field in SPEC), so a getter's callee is labelled `init` -- the right outcome, not dead,
+  under a slightly wide name.
+- **Spring (r54), Java and Groovy.** Only inside a class Spring manages; a `@Qualifier` naming a bean, one `@Primary`,
+  the only non-conditional bean, or a `@Bean` method building exactly one class; the call link replaces the one to the
+  declaration. Sample unchanged: neither rate is a bean.
+- **#29 (r55).** A structure map base is an `implements` link; structure D (69) -> C (73), one orphan left.
+
+### 30. Spring injection is resolved for Java and Groovy only — found 2026-09-14
+
+**What.** A Kotlin Spring service (`@Service class X(@Qualifier("a") val rule: Rule)`) keeps its call at the
+declaration: `_gclass` reads annotation names, but not bean names, qualifiers on constructor properties, or `@Bean`
+functions.
+
+**Why not fixed on sight.** A second extractor path with its own tree shapes, and nobody asked for Kotlin.
+
+**Recommendation:** the same `bean` / `qualifier` data from `_gannos` and `class_parameter`, reusing build_flow's rule
+unchanged; a Kotlin half for r54.
+
+### 31. "The only bean" means the only one in the scanned source — found 2026-09-14
+
+**What.** A bean a library auto-configures, or one from a jar, is invisible, so the single-bean rule can pick a class
+Spring would find ambiguous (or would not inject at all).
+
+**Why not fixed on sight.** The alternative -- never trusting a single bean -- gives up the most common case, and which
+trade is right is a judgement for the user.
+
+**Recommendation:** keep it, stated in SKILL.md (done), and revisit if a real repository shows a wrong pick.
+
+### Update on #30 — implemented 2026-09-14, at the user's request; #31 kept as is
+
+Built as recommended, behind r56 (the Kotlin half of r54, written first and seen to fail with all five injected links
+missing). `_gclass` now records `bean` through the same `_spring_bean`, `_kt_qualifiers` reads `@Qualifier` on
+constructor properties and body properties (`lateinit var`), `_gresolve` puts `qualifier` on a call through one, and
+`_kt_bean_function` reads a `@Bean` function that builds one class (`= SmtpMailer()` or `return SmtpMailer()`);
+Java's `_bean_method` now shares `_bean_of` with it. build_flow was not touched. The user chose to leave #31 as is:
+it cannot be fixed from source, since library beans live in dependency jars.
+
+### 32. The object model, and four gaps a Spring + Next.js retest left — implemented 2026-09-14, at the user's request
+
+The user asked whether the AAS upload handler's base methods -- default bodies its only subclass
+overrides -- could be fixed with abstract/interface node types and inheritance links. A node type
+alone could not: those bodies really never run. What was built, as the user chose ("split links +
+class kinds"): class `kind` `interface` / `abstract` / `class`; links `implements` / `extends` /
+`overrides`; and `overridden`, reported apart from orphans and not graded (r61). The same retest's
+bugs were fixed alongside: a class name two applications define, settled by package and imports
+(r57); inherited helpers called with no receiver (r58); locals typed by their declaration (r59);
+`new X()` as a call to `X.constructor` in JS/TS (r60). The sample moved by one field
+(`PricingRule` became `kind: interface`).
+
+Still open, each needing a decision or a real case:
+
+- **Python and JS/TS inherited calls.** `self.helper()` / `this.helper()` defined only in a base
+  class is still dropped; the ancestor walk (`ancestor_defining`) is Java-family only.
+  Recommendation: the same walk in `_resolve_calls` and `_analyze_js.resolve`, one case each.
+- **TypeScript interfaces are not nodes**, and a class's `implements IFoo` clause is not read as a
+  base, so a TS `implements` link can only point at an abstract class. Adding interface nodes changes
+  every TS repository's structure map. Recommendation: add them with the link, behind a fixture.
+- **`exportAllMasterData` with no callers is unexplained.** Four likely shapes (alias and relative
+  imports, same and distinct file names, no tsconfig) all resolve in a scratch reproduction. A class
+  two files define, called through an imported instance, did not, and now does. If the rerun still
+  shows it, the import line and the definition are needed to find the shape.
+- **`overridden` counts only subclasses in the scanned source.** A subclass in another module, or one
+  created by reflection, would make the default run. Same trade as #31; recommendation: keep it, and
+  say "in this graph" wherever it is reported (SKILL.md does).
+
+### 33. Four "wrong" orphans from the same retest — implemented 2026-09-14, at the user's request
+
+Of 51 flow orphans the user sorted, 14 were really used. Each shape was reproduced in a scratch tree
+first, and each failed there before it was fixed:
+
+- **`exportAllMasterData` and friends (answers #32's open bullet).** The missing shape was two
+  apps, each importing `@/services/masterDataService` with no tsconfig `paths`: the suffix match
+  found both files and gave up. #32's reproduction had only one file with that suffix. An alias is
+  now the importer's own package's -- the hit inside its nearest package.json/tsconfig/jsconfig
+  folder (`js_ts_extract._package_root`, r62). Still dropped if neither app has its own.
+- **`this::values` and `values(String...)`.** Two causes. `String... parts` was not read as a
+  parameter at all (id `values(_)`, kind `*`), and a varargs overload never matched another
+  argument count. It is now `values(String[])`, kind `...String`, tried only when no fixed-arity
+  overload fits (r63). A method reference still cannot pick an overload -- that needs the target
+  functional interface's arity, i.e. library knowledge -- so instead `analyze.find_orphans` spares
+  every overload of a set some node names in `ambiguous`. That spares a set, not a member: if only
+  one overload is really referenced, the others are not reported either. Chosen because the
+  alternative is calling code dead when a call to it is in the source.
+  **Id change on real repositories:** a varargs overload's id moves from `name(_)` to
+  `name(T[])`, so its cached description is re-requested once.
+- **MapStruct `expression = "java(toDisplayName(...))"`.** The Java in `expression` /
+  `defaultExpression` / `conditionExpression` is parsed with the Java grammar and read like a body
+  (`langs_extract._expression_calls`, r64). The calls hang off the body-less mapper declaration,
+  which `check_graph` c08 used to forbid outright; it now allows exactly a callee spelled inside
+  `java(` in the declaration's own range, and its self-test still fails on a planted edge.
+- **`((UserSecurity) userDetails).getPlantIds()`.** A parenthesised cast types the receiver in Java,
+  Groovy and C# (r65). `getUserId` resolves in the reproduction through the same cast; if it is
+  still an orphan on the rerun, it is called some other way.
+
+The sample did not move (it has none of the four shapes); 65/65 regressions, `check_graph` OK with
+42/42 self-tests, `check_langs` 21/21, oracle 0 disagreements.
+
+### 34. The frontend limits that remain are three shapes — found 2026-09-14, needs a decision
+
+All 28 "expected limit" orphans in that retest are JS/TS. None is fixable without either a new link
+type or a new inference rule, so none was changed:
+
+1. **A call through an untyped object** (`api.fetchSetdatProjectList()`, 19 nodes). Where `api`
+   comes from decides the fix, and the retest did not show it. If it is a hook or factory whose
+   every `return` is one object literal naming functions (`return { fetchSetdatProjectList, ... }`),
+   type the local by that literal -- the rule r47 already applies to a module-level object, moved
+   through one function return. If it is a prop typed by a TS interface, it needs #32's interface
+   nodes first. **Recommendation:** get one `const api = ...` line, then implement the matching rule
+   behind a fixture.
+2. **A function chosen into a variable** (`const save = id ? updateUser : createUser; save(x)`).
+   Both branches are written in the source and one of them runs, exactly as `if (id) updateUser()
+   else createUser()` would -- which already draws both links. **Recommendation:** resolve a
+   `const` bound to a function name, or a `?:` / `||` / `??` of function names, to every branch as
+   ordinary `calls`. No guarantee changes.
+3. **A function passed as a value** (`createApiInstance(getUserApiBaseUrl)`, `t.rich(key, { b: tag })`,
+   `onClick={fn}`). The caller does not call it; code outside the graph does. **Recommendation:** a
+   new flow link, `passes` (not `references`, which is the structure map's link), drawn from the
+   function that hands it over: followed by `--impact-of` and traces, excluded from `calls` /
+   `callers`, coupling, `precision` and cycles like `renders`, and counted as a use by
+   `find_orphans`. It needs a colour, a taxonomy entry and a `check_graph` text check (the name is
+   written in the caller as an identifier, not followed by `(`). The same rule exists in Java
+   (`schedule(this::job)` is already a call, r44) and Python (`Thread(target=fn)`), so it should be
+   built for all three at once.
+
+### Update on #34 — implemented 2026-09-14, at the user's request
+
+The user asked for all three, as general rules rather than anything tied to one repository. Built
+for JS/TS only (Python's `Thread(target=fn)` is still open; Java's method references were already
+calls):
+
+- **Chosen into a variable** (r66): `js_ts_extract._scope_bindings` reads a function's own `const`
+  bound to a name or a `?:` / `||` / `??` of names, and a call through it is a call to each branch
+  -- skipping any branch that is a parameter or local there (a prop `onDone` is not another file's
+  `onDone()`). First run failed exactly that: the parameters sit beside the body, not in it.
+- **Passed as a value** (r67): a `passes` link, as recommended -- argument, object value inside an
+  argument, JSX attribute; resolved only through an import or to the passing file's own module
+  function (`build_flow._analyze_js.passed_node`), never by a name another file defines. At top
+  level it sets `entry: module` instead. Treated like `renders` everywhere: out of `calls` /
+  `callers` / `precision` and `app_edges`, counted by orphans, followed by walkers. `check_graph`
+  c23 requires the name in the caller's range; explorer sky `rgba(125,211,252,.45)` dash-dot,
+  matrix `#7dd3fc`.
+- **Untyped object** (r68), three shapes the source settles: a renamed or default import of an
+  object, for member calls only (`import api from` where the file does `export default setdatApi`);
+  a `const` choosing between objects; a local holding a call's result, when every `return` of that
+  function is one object literal naming the functions (`return { fetchX }`, a local object, or
+  `useMemo(() => ({ ... }))`) -- `returns_members`, resolved in the returning function's file. A
+  member named differently from the function it holds (`{ fetch: fetchX }`) still drops, as the
+  object rule always has.
+
+Not covered, and the next thing to ask for if the 19 remain: `api` as a **prop** typed by a TS
+interface, or read from **React context** (`useContext(ApiContext)`) -- neither states which object
+arrives. The sample did not move.
+
+### 35. Four more misses from the second retest — implemented 2026-09-14, at the user's request
+
+Each was reproduced as a regression case, and each case was shown to fail with its fix patched out:
+
+- **`data/` was never read** (r69). `taxonomy.SKIP_DIRS` has listed `data` since the first commit,
+  for this skill's own output folder -- which `_is_skill_copy` already skips. It hid a Next.js route
+  segment (`[projectId]/data/[maintenanceMasterDataType]/`, six files) and made four service
+  functions dead. Removed, on the rule the list already stated: skipping source is the worse
+  mistake. A repository with a large hand-written-looking `data/` of generated `.py`/`.ts` will now
+  graph it; `--src` narrower than the repository is the answer there.
+- **`forwardRef` / `memo` components** (r70). Only a function written as a function was a node, so
+  `const Button = forwardRef((props, ref) => ...)` was in neither map and 172 `<Button />` uses drew
+  nothing. `js_ts_extract._wrapped_function` unwraps `forwardRef`, `memo`, their `React.` forms and
+  any nesting, also for `export default memo(X)`. Other higher-order components (`observer`,
+  `withRouter`) are not unwrapped: they are libraries' names, and the list would never end.
+- **Java/C# pattern variables** (r71): `instanceof T t`, `case T t ->` and C#'s `is T t` are typed
+  locals (`langs_extract._tree_locals`).
+- **A field of a typed hook's result** (r72): `const { api } = useSetdatVariant(); api.fetchX()`.
+  Followed only through what is written: the hook's `(): T` annotation, or every `return` being
+  `useContext(Ctx)` with `const Ctx = createContext<T | null>(...)`; then `interface T { api: X }`
+  or `type T = { ... }` (own file, import, or a single re-export); then `type X = typeof service`
+  (or `api: typeof service` inline); then `service`'s member through the import, as r68 does. A
+  type reference is only a name or `typeof <name>`: a generic, intersection, `Pick<>` or
+  `extends` chain stays unread, and a plain `const ctx = useVariant(); ctx.api.fetchX()` is not
+  followed. Still open: a **prop** typed this way (`function Page({ api }: Props)`) -- the same
+  field walk would settle it and is the next step if those remain.
+
+The sample did not move; 72/72 regressions, `check_graph` OK with 43/43 self-tests, `check_langs`
+21/21, oracle 0 disagreements.
+
+### 36. Six proposed structure-map orphan fixes, checked — 2026-09-16, needs a decision on #2
+
+A retest listed six fixes for structure-map orphans on a real repository. Every claim was checked
+against the code and all six describe today's behaviour correctly (their line numbers are right).
+Verdicts:
+
+1. **Collect return types, generic type arguments, local variable types, static-constant
+   qualifiers and `X.class`** (22 orphans). **Do it.** `extract_lang_entities` collects bases,
+   field types, parameter types and resolved call receiver types only. Every listed shape is
+   written in the source and an IDE counts each as a usage. Cheapest first: `returns` is already on
+   every method entry; generic arguments need a reader that yields *every* name in an annotation
+   (`_base_type` keeps only the head, so `GlobalResponse<PaginationResponse<UserResponse>>` loses
+   two); locals are already computed by `_tree_locals` but not exported; `X.class` and
+   `SocketConstant.X` need a mention pass, restricted to capitalised names that resolve, as
+   `_type_name` already does for call receivers.
+2. **Carry `entry` onto structure nodes** (11). **Do it narrowly.** Structure nodes have no `entry`
+   field at all, though `find_orphans` checks for one, so the plumbing is real work (build_wiki ->
+   front matter -> build_graph). The judgement is *which* annotations: `@SpringBootApplication`,
+   `@Configuration`, `@Aspect`, `@ControllerAdvice`, plus **a class any of whose methods already
+   carries `entry`** -- that last rule is the principled one and covers the rest. **Not**
+   `@Component` / `@Service` / `@Repository` on their own: Spring instantiates them, but one
+   nothing injects still runs nothing, and blanket-sparing them ends dead-class detection for a
+   whole Spring app. Next.js `layout.tsx` should already be spared as `kind: component`; if it is
+   not, it is being read as a module group, which is the thing to check before adding a rule.
+3. **Count being extended as being used** (3). **Do it, structure map only.** `find_orphans` builds
+   `has_caller` through `call_direction`, which flips every inheritance link, so only the child end
+   is ever marked. `class X extends Auditable` names `Auditable` in X's own source. Both ends of a
+   structure `extends` / `implements` link should count. Do **not** do this for the flow map's
+   `overrides`: replacing a method does not reference the base body, and `overridden` already
+   reports that case.
+4. **Count a namespace import used in a type position** (1). **Do it.** `_names_used` reads call
+   names, untyped-call `obj`, `constructs` and `components` -- no type positions. The extractor now
+   emits `types` per file (r72), so `type X = typeof setdatService` is already parsed; feeding those
+   names into `uses` is small.
+5. **References inside the defining file** (2). **No separate fix -- it is #1**, and the count is
+   optimistic: a self-reference is already excluded by name in both `render_entity` and
+   `build_graph`, so a getter that returns its own class will not clear its own orphan, correctly.
+6. **`MMaintenanceMasterUpcFnaRepository`** (1, unverified). **Do not fix.** Two modules define the
+   name; nothing to change until it is known which node is which. `search.py --name` on the built
+   graph answers it.
+
+All five real fixes only *add* structure references, so they can lower orphan counts and can never
+add a call edge to the flow map. Each needs its own regression case.
+
+### Update on #36 — implemented 2026-09-16, at the user's request
+
+Four changes, four cases (r73-r76), each shown to fail before its fix:
+
+- **#1** `langs_extract._type_refs` walks a class or method and keeps every type name its source
+  states -- every `type_identifier` (so each generic argument, each local declaration, and the type
+  inside `X.class`), C#'s plain-identifier generic arguments, and the capitalised head of
+  `Constant.FIELD` (never in Go, where a capitalised head is as often a value). `build_wiki` unions
+  it into the entity's references. Structure references only; no call edge can come from it.
+- **#2** `taxonomy.container_entry` + `CLASS_ENTRY_ANNOTATIONS`, written by `build_wiki` into the
+  page's front matter, read back by `build_graph`. The narrow set as recommended, plus "a method of
+  this class already carries `entry`", plus a Next.js module group's own convention.
+  `@Component` / `@Service` / `@Repository` alone are not entries (r75 asserts a `@Service` nothing
+  uses is *still* an orphan).
+- **#3** `find_orphans` marks both ends of an `implements` / `extends` link used. Not `overrides`.
+- **#4** `build_wiki._type_names` reads the file's type declarations (r72's `types` / `contexts`)
+  into the module entity's `uses`, so a namespace import used only as `typeof x` is a reference.
+- **#5** needed nothing of its own, as predicted. **#6** is untouched: still unverified.
+
+Sample moved by exactly one link -- structure **22 -> 23 edges** (21 references, a Go module's
+reference to `EventStore` through a declared type), nodes, grades and the flow map unchanged.
+76/76 regressions, `check_graph` OK on both maps with 43/43 self-tests, `check_langs` 21/21, oracle
+0 disagreements, installer self-test OK. Every vault page now carries an `entry:` front-matter
+line, so the committed example data is regenerated in this commit.
+
+### 37. A second review of the same retest — 2026-09-16; items 4-7 need a decision
+
+The reviewer's first three items were real and are implemented; their re-plan of #36 was stale (it
+quoted a docstring, not the code, which is item 3 and the reason it happened).
+
+**Implemented:**
+
+1. **Same-file references** (r77). JS/TS and Python resolved references from the import list alone,
+   so a name a file defines itself pointed at nothing: `AdminLayout` calling
+   `getMainContentMargin` in its own `layout.tsx`, and not one of 385 references into a module node
+   was same-file. `build_wiki._provided_names` maps a file's own names -- an entity's name, and
+   every function a module group holds -- and a use of one is a reference to its owner. Python
+   needed its own call walk (`_called_names`), since it collected no uses at all. The Java family
+   already resolved it through `class_locator`, asserted so it stays that way. A node never
+   references itself.
+2. **Layer words end where the word ends** (r78): `repo(?![a-z])`, `dao`, `store`, `api`, `record`.
+   `repository` / `mapper` / `client` keep matching anywhere -- no longer word contains them.
+3. **The stale docstring** in `extract_lang_entities`, which still said references come from
+   declared types only. It cost a full review round and a plan to re-implement finished work.
+
+**Not implemented -- each needs a decision:**
+
+4. **Layer from the package path** (184/665 nodes `unknown`). Sound, and the safe shape is a
+   *fallback only*: when annotations and the name say nothing, read the folder names
+   (`service/pnodata/` -> service). It needs the path plumbed into `infer_layer` at every call
+   site, and it relabels nodes, which moves layer-violation counts and the grade.
+   **Recommendation:** do it as a fallback, never as an override.
+   **Implemented 2026-09-16** (r79) exactly that way: `taxonomy.PATH_LAYERS` / `layer_from_path`,
+   an exact folder name matched nearest-first, checked only after annotations and the name rules.
+   `api`, `util`, `exception`, `constant` and `integration` are deliberately absent -- `api/` is a
+   folder half a repository lives under, and the rest name no layer in this taxonomy, so `unknown`
+   stays the answer for roughly half of the 189. The path now reaches `infer_layer` from all seven
+   call sites, which r79 asserts end-to-end because plumbing is what would silently not arrive.
+5. **Grade calibration.** Their C(71) -> D(62) is a consequence of #36: richer references made 138
+   hubs and 45 god objects, and both deductions max at 12. The thresholds are absolute and were
+   set against a thinner edge set, so a *more accurate* map scores worse -- which is the wrong
+   direction for a number meant to track health. **Recommendation:** make the hub and god-object
+   thresholds relative to the graph (a percentile, or scaled by median degree) and re-pin the
+   sample. Every grade this tool has ever printed changes, which is why it is not a silent fix.
+   **The reviewer disagrees (2026-09-16)**: on their repository `dead_code` and `layer_violations`
+   now deduct 0, and the D is cycles -8 plus both of those maxed at -12, which they read as the
+   coupling being real rather than the thresholds being wrong. Both can be true -- 142 hubs and 45
+   god objects out of 665 nodes is either a very tangled repository or a threshold that stopped
+   discriminating. Still open, and still the user's call.
+6. **Duplicates' 30-token floor** admits one-line Java delegates that differ only in a string
+   literal (`isRefreshToken` / `isDownloadToken` / `isPlantSyncToken`) -- exactly what the floor is
+   documented to exclude. ~~**Recommendation:** a per-language floor, ~40 tokens for the Java
+   family, since its boilerplate is wordier per statement.~~
+   **Withdrawn by the reviewer 2026-09-16, and they are right:** 37 of 233 clusters on that
+   repository sit at 30-39 tokens, and that band holds the best findings -- the AAS/normal
+   parallel-family duplication (`downloadMasterFile` at 38, `rejectProject` at 37,
+   `searchMaster` at 36). Raising the floor would throw those away to suppress three one-line
+   delegates sitting at exactly 30. Two further reasons not to: `MIN_TOKENS` also fixes the
+   winnowing window (`W = MIN_TOKENS - K + 1`), which is what guarantees no shared run long enough
+   to report can slip through, so raising it is not a local change; and a per-language floor would
+   make "is this a clone" depend on the language, which nothing else in the pass does.
+   **Open, narrower proposal:** skip a body that is a single statement, which is what the pass
+   already claims to be about. Not implemented: `duplicates.py` deliberately never re-parses (it
+   reads ranges from the graph and tokenises), so "one statement" would have to be counted from
+   the token shape -- a `;` count for C-family, a newline rule for Python -- which is a
+   language-specific heuristic inside the one pass that has none. Wanted or not is the user's
+   call.
+7. **1,388 methods with no AI description.** Not correctness; `apply_descriptions.py` is where a
+   richer summariser would go.
+
+The sample did not move (25 nodes / 23 links, grades C(73) / C(70), same orphans): none of its
+files calls across entities within one file, and none of its names hits the shortened layer words.
+
 ---
 ---
 

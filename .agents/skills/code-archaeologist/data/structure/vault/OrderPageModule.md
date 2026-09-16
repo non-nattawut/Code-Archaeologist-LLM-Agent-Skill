@@ -5,6 +5,7 @@ source: sample_src/frontend/order_page.ts
 end: 
 kind: module
 lang: js
+entry: 
 ---
 # OrderPageModule
 

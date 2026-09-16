@@ -1,7 +1,7 @@
 ---
 entity: PricingRule.price
 kind: method
-layer: unknown
+layer: service
 class: PricingRule
 source: sample_src/services/orders_java/PricingRule.java:7
 lang: java

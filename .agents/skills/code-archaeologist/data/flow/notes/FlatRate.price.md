@@ -1,7 +1,7 @@
 ---
 entity: FlatRate.price
 kind: method
-layer: unknown
+layer: service
 class: FlatRate
 source: sample_src/services/orders_java/PricingRule.java:14
 lang: java

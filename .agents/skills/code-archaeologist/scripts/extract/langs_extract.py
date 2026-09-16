@@ -57,7 +57,7 @@ LANG_EXTS = {".java": "java", ".go": "go", ".cs": "csharp",
              ".rb": "ruby", ".php": "php", ".ex": "elixir", ".exs": "elixir"}
 # Languages whose tree is Java's: same node types, same fields, same branch.
 JAVA_LIKE = {"java", "groovy"}
-from taxonomy import SKIP_DIRS  # noqa: E402  (one definition of "not source")
+from taxonomy import framework_entry, source_dirs  # noqa: E402  (one definition of "not source")
 
 # Per language: which node types play which structural role. Everything else is
 # shared. `container` is anything that owns methods (a class, interface, struct);
@@ -338,6 +338,11 @@ def _param_pairs(params, src: bytes, lang: str):
             continue
         name = _field_text(p, "name", src)
         declared = _field_text(p, "type", src)
+        if p.type == "spread_parameter":
+            # Java's `String... parts` has no fields: a type, then a declarator.
+            kids = p.named_children
+            declared = _text(kids[0], src) + "..." if kids else ""
+            name = next((_field_text(k, "name", src) for k in kids if k.type == "variable_declarator"), "")
         if lang == "csharp" and not declared:
             # C# writes `Type name` with both as fields; older grammars label the
             # type only positionally, so fall back to the first named child.
@@ -428,6 +433,11 @@ def _locals(body_text: str, lang: str) -> dict[str, str]:
 def _receiver_and_name(call, src: bytes, lang: str) -> tuple[str, str]:
     """(receiver text, method name) for one call node, or ("", "") to skip it."""
     if lang in JAVA_LIKE:
+        if call.type == "method_reference":            # this::clear, Store::save, store::put
+            parts = call.named_children
+            if len(parts) < 2 or parts[-1].type != "identifier":
+                return "", ""                          # Store::new -- a constructor, not a node
+            return _text(parts[0], src), _text(parts[-1], src)
         name = _field_text(call, "name", src)
         obj = _field(call, "object")
         return (_text(obj, src) if obj is not None else ""), name
@@ -447,31 +457,127 @@ def _receiver_and_name(call, src: bytes, lang: str) -> tuple[str, str]:
     return "", ""
 
 
-def _calls(body, src: bytes, lang: str, types: dict[str, str], recv_name: str = "") -> list[dict]:
-    """Call sites in a body, with the receiver resolved to a declared type."""
+def _type_name(head: str) -> str:
+    """A receiver that is a type name is that type: `DateUtil.now()`, `Widget::new`.
+
+    Only a *candidate* -- build_flow still requires that the graph has the class and
+    that it defines the method, so `Math.max()` and `Console.WriteLine()` drop as before.
+    """
+    return head if re.fullmatch(r"[A-Z]\w*", head) else ""
+
+
+def _receiver_node(call, lang: str):
+    """The expression a call is made on, as a node -- what `_receiver_and_name` reads as text."""
+    if lang in JAVA_LIKE:
+        return _field(call, "object") if call.type != "method_reference" else None
+    fn = _field(call, "function")
+    if fn is None:
+        return None
+    if lang == "csharp" and fn.type == "member_access_expression":
+        return _field(fn, "expression")
+    if fn.type == "selector_expression":                      # go
+        return _field(fn, "operand")
+    return None
+
+
+def _typed_call(call, src: bytes, lang: str, types: dict[str, str], recv_name: str = ""):
+    """(receiver type, name, via) for one call site, or None to skip it.
+
+    `via` is set when the receiver is itself a call -- `resolveHandler(t).downloadFile()`:
+    {"type": the innermost call's receiver type, "names": the calls from there outward}.
+    The type is then "?" and build_flow walks the declared return types. Splitting the
+    receiver's text could not: `resolve(a.b)` holds a dot inside its parentheses.
+    """
+    recv, name = _receiver_and_name(call, src, lang)
+    if not name or not re.fullmatch(r"[A-Za-z_]\w*", name):
+        return None
+    inner = _receiver_node(call, lang)
+    if (inner is not None and inner.type == "parenthesized_expression" and inner.named_child_count == 1
+            and inner.named_children[0].type == "cast_expression"):
+        # `((UserSecurity) userDetails).getPlantIds()`: the cast states the receiver's type.
+        cast = _base_type(_field_text(inner.named_children[0], "type", src))
+        return (cast or "?"), name, None
+    if inner is not None and inner.type in SPEC[lang]["call"]:
+        got = _typed_call(inner, src, lang, types, recv_name)
+        if got is None:
+            return "?", name, None
+        itype, iname, ivia = got
+        via = ({**ivia, "names": ivia["names"] + [iname]} if ivia
+               else {"type": itype, "names": [iname]})
+        return "?", name, via
+    recv = recv.replace(" ", "")
+    parts = recv.split(".")
+    head = parts[0]
+    if not recv or (head in SELF_WORDS and len(parts) == 1):
+        return "", name, None                             # bare, or `this.m()`: same class
+    resolved = ""
+    if len(parts) == 1:
+        # Go is left out: a capitalised Go head is an exported package-level
+        # value as often as a type, and its packages are lowercase anyway.
+        resolved = types.get(head, "") or ("" if lang == "go" else _type_name(head))
+    elif len(parts) == 2 and (head in SELF_WORDS or head == recv_name):
+        resolved = types.get(parts[1], "")                # this.field.m() / r.field.m()
+    elif len(parts) == 2 and head not in types and lang != "go" and _type_name(head):
+        # `Registry.STORE.save()`: typed by the static field's declared type, in build_flow
+        return "?", name, {"type": head, "fields": [parts[1]], "names": []}
+    return resolved or "?", name, None
+
+
+def _calls(body, src: bytes, lang: str, types: dict[str, str], recv_name: str = "",
+           qualifiers: dict[str, str] | None = None) -> list[dict]:
+    """Call sites in a body, with the receiver resolved to a declared type.
+
+    `qualifiers` maps a field or parameter to its Spring `@Qualifier`; a call through one
+    carries it, so build_flow can tell which bean is injected there.
+    """
     out: list[dict] = []
     if body is None:
         return out
-    for call in _walk(body, SPEC[lang]["call"]):
-        recv, name = _receiver_and_name(call, src, lang)
-        if not name or not re.fullmatch(r"[A-Za-z_]\w*", name):
+    # A method reference hands a method to someone who calls it (`schedule(this::clearBin)`);
+    # its receiver is stated as plainly as a call's, so it resolves the same way.
+    kinds = SPEC[lang]["call"] | ({"method_reference"} if lang in JAVA_LIKE else set())
+    for call in _walk(body, kinds):
+        got = _typed_call(call, src, lang, types, recv_name)
+        if got is None:
             continue
-        recv = recv.replace(" ", "")
-        parts = recv.split(".")
-        head = parts[0]
-        if not recv or (head in SELF_WORDS and len(parts) == 1):
-            typ = ""                                      # bare, or `this.m()`: same class
-        else:
-            resolved = ""
-            if len(parts) == 1:
-                resolved = types.get(head, "")
-            elif len(parts) == 2 and (head in SELF_WORDS or head == recv_name):
-                resolved = types.get(parts[1], "")        # this.field.m() / r.field.m()
-            typ = resolved or "?"
+        typ, name, via = got
         entry = {"type": typ, "name": name}
-        if lang in OVERLOADING:
+        if via:
+            entry["via"] = via
+        if qualifiers:
+            parts = _receiver_and_name(call, src, lang)[0].replace(" ", "").split(".")
+            held = parts[1] if len(parts) == 2 and parts[0] in SELF_WORDS else parts[0] if len(parts) == 1 else ""
+            if held in qualifiers:
+                entry["qualifier"] = qualifiers[held]
+        if lang in OVERLOADING and call.type != "method_reference":
+            # A reference has no argument list, so an overloaded target stays ambiguous.
             entry["args"] = [_arg_kinds(call, src, lang, types)]
         out.append(entry)
+    return out
+
+
+MAPSTRUCT_EXPRESSIONS = {"expression", "defaultExpression", "conditionExpression"}
+JAVA_EXPRESSION_RE = re.compile(r"\s*java\((.*)\)\s*", re.S)
+
+
+def _expression_calls(node, src: bytes, types: dict[str, str], recv_name: str = "") -> list[dict]:
+    """Calls inside MapStruct's `@Mapping(expression = "java(toDisplayName(item.getName()))")`.
+
+    The generated mapper runs that Java, so a helper used only there looked dead. The string
+    is parsed as Java and read exactly like a body, with the method's parameters in scope.
+    """
+    mods = next((c for c in node.named_children if c.type == "modifiers"), None)
+    parser = grammars.parser_for("java") if mods is not None else None
+    out: list[dict] = []
+    for pair in _walk(mods, {"element_value_pair"}) if parser is not None else []:
+        value = _field(pair, "value")
+        if _field_text(pair, "key", src) not in MAPSTRUCT_EXPRESSIONS or value is None \
+                or value.type != "string_literal":
+            continue
+        m = JAVA_EXPRESSION_RE.fullmatch(_text(value, src)[1:-1].replace('\\"', '"').replace("\\\\", "\\"))
+        if m:
+            code = f"class M {{ Object m() {{ return {m.group(1)}; }} }}".encode()
+            out += _calls(parser.parse(code).root_node, code, "java", types, recv_name)
     return out
 
 
@@ -482,9 +588,16 @@ def _dedupe_calls(calls: list[dict]) -> list[dict]:
     always did. `args` only matters when the name is an overload set: `f(a)` and
     `f(a, b)` in one body are calls to two different nodes.
     """
-    merged: dict[tuple[str, str], dict] = {}
+    merged: dict[tuple, dict] = {}
     for c in calls:
-        entry = merged.setdefault((c["type"], c["name"]), {"type": c["type"], "name": c["name"]})
+        # A call on another call's result is keyed by its chain too: `a().run()` and
+        # `b().run()` walk different return types.
+        via = c.get("via")
+        key = (c["type"], c["name"],
+               (via["type"], tuple(via.get("fields", ())), tuple(via["names"])) if via else (),
+               c.get("qualifier", ""))
+        entry = merged.setdefault(key, {"type": c["type"], "name": c["name"], **({"via": via} if via else {}),
+                                        **({"qualifier": c["qualifier"]} if c.get("qualifier") else {})})
         for args in c.get("args", []):
             if args not in entry.setdefault("args", []):
                 entry["args"].append(args)
@@ -613,39 +726,311 @@ def _go_routes(root, src: bytes) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Declarations
 # ---------------------------------------------------------------------------
+def _return_type(node, src: bytes, lang: str) -> str:
+    """The class a method's declared return type names, or "" -- read so a call on its
+    result (`resolveHandler(t).downloadFile()`) can be typed. Java/Groovy say `type`,
+    C# `returns`, Kotlin puts it after the parameter list with no field name at all."""
+    declared = ""
+    if lang in JAVA_LIKE:
+        declared = _field_text(node, "type", src)
+    elif lang == "csharp":
+        declared = _field_text(node, "returns", src) or _field_text(node, "type", src)
+    elif lang == "kotlin":
+        after = False
+        for child in node.named_children:
+            if child.type == "function_value_parameters":
+                after = True
+            elif after and child.type in _KT_TYPES:
+                declared = _text(child, src).rstrip("?")
+                break
+            elif after and child.type == "function_body":
+                break
+    return _base_type(declared) if declared else ""
+
+
+LOMBOK_ALL_GETTERS = {"Data", "Getter", "Value"}
+
+
+def _lombok_getters(container, annos: list[dict], fields: dict[str, str], src: bytes, lang: str) -> dict[str, str]:
+    """Getter name -> the field's type, for accessors Lombok generates.
+
+    They have no source, so they are never nodes; they are only a step in a chain like
+    `props.getPnoData().validate()`, typed by the field they read.
+    """
+    everywhere = any(a["name"] in LOMBOK_ALL_GETTERS for a in annos)
+    body = _field(container, "body")
+    out: dict[str, str] = {}
+    for f in _walk(body, SPEC[lang]["field"], stop=SPEC[lang]["method"]) if body is not None else []:
+        if not everywhere and not any(a["name"] == "Getter" for a in _annotations(f, src, lang)):
+            continue
+        for d in f.named_children:
+            name = _field_text(d, "name", src) if d.type == "variable_declarator" else ""
+            if name in fields:
+                out["get" + name[:1].upper() + name[1:]] = fields[name]
+    return out
+
+
+def _override_modifier(node, src: bytes) -> bool:
+    """`override` said as a modifier (C#, Kotlin, Swift, Scala) rather than `@Override`."""
+    return any(child.type in ("modifier", "modifiers") and re.search(r"\boverride\b", _text(child, src))
+               for child in node.children)
+
+
 def _method(node, src: bytes, lang: str, fields: dict[str, str],
-            prefix: str, recv_name: str = "") -> dict:
-    """One method/function record, shaped exactly like the textual extractor's."""
+            prefix: str, recv_name: str = "", module: dict[str, str] | None = None,
+            qualifiers: dict[str, str] | None = None) -> dict:
+    """One method/function record, shaped exactly like the textual extractor's.
+
+    `module` is a Go file's typed package-level vars, hidden by a parameter or local of
+    the same name; `qualifiers` a Java class's `@Qualifier`-annotated fields.
+    """
     params = _params(node, src, lang)
-    types = dict(fields)
-    types.update(params)
     body = _field(node, "body")
+    hidden = _declared_names(node, body, src, lang) if module else set()
+    types = {k: v for k, v in (module or {}).items() if k not in hidden}
+    types.update(fields)
+    types.update(params)
     if body is not None:
+        types.update(_tree_locals(body, src, lang))
         types.update(_locals(_text(body, src), lang))
     annos = _annotations(node, src, lang)
+    if lang in JAVA_LIKE:
+        qualifiers = {**(qualifiers or {}), **_param_qualifiers(_field(node, "parameters"), src, lang)}
     entry = {
         "name": _field_text(node, "name", src),
         "doc": _doc_above(node, src, lang),
         "line": _decl_line(node),
         "endLine": _end_line(node),
         "params": params,
-        "calls": _dedupe_calls(_calls(body, src, lang, types, recv_name)),
+        "calls": _dedupe_calls(_calls(body, src, lang, types, recv_name, qualifiers)
+                               + (_expression_calls(node, src, types, recv_name) if lang in JAVA_LIKE else [])),
         "routes": _method_routes(annos, prefix, lang),
         "http": [],
     }
+    returns = _return_type(node, src, lang)
+    if returns:
+        entry["returns"] = returns
+    refs = _type_refs(node, src, lang)              # structure references, never call edges
+    if refs:
+        entry["refs"] = refs
     if body is None:
         # No `body` field at all: an interface member or an `abstract` method.
         # tree-sitter states this outright -- no pattern, no false positives.
         entry["declaration"] = True
+    why = framework_entry([a["name"] for a in annos], entry["name"], _override_modifier(node, src))
+    if not why and lang == "go" and entry["name"] == "init" and _field(node, "receiver") is None:
+        why = "init"                              # Go runs every package's `func init()` itself
+    if why:
+        entry["entry"] = why
+    bean = _bean_method(annos, body, entry["name"], src) if lang in JAVA_LIKE else None
+    if bean:
+        entry["bean"] = bean
     if lang in OVERLOADING:
         _overload_keys(entry, [d for _, d in _param_pairs(_field(node, "parameters"), src, lang)])
     return entry
 
 
+def _declared_names(node, body, src: bytes, lang: str) -> set[str]:
+    """Every name a function's parameters or body declare: what hides a package-level var."""
+    names = {n for n, _ in _param_pairs(_field(node, "parameters"), src, lang)}
+    for d in _walk(body, {"short_var_declaration", "var_spec", "range_clause"}) if body is not None else []:
+        target = d if d.type == "var_spec" else _field(d, "left")
+        names |= {_text(i, src) for i in (target.named_children if target is not None else [])
+                  if i.type == "identifier"}
+    return names
+
+
+GO_VALUE_RE = re.compile(r"^&?(?:\w+\.)?(\w+)\s*\{|^(?:\w+\.)?New(\w+)\s*\(")
+
+
+def _go_package_vars(root, src: bytes) -> dict[str, str]:
+    """A Go file's package-level `var x *Store` / `var x = &Store{}` / `var x = NewStore()`."""
+    out: dict[str, str] = {}
+    for decl in (c for c in root.named_children if c.type == "var_declaration"):
+        for spec in _walk(decl, {"var_spec"}):
+            m = GO_VALUE_RE.match(_field_text(spec, "value", src).strip())
+            declared = _base_type(_field_text(spec, "type", src)) or (m and (m.group(1) or m.group(2))) or ""
+            for ident in (c for c in spec.named_children if c.type == "identifier"):
+                if declared:
+                    out[_text(ident, src)] = declared
+    return out
+
+
+# --- Spring: what the source says about which bean is injected --------------------
+SPRING_STEREOTYPES = {"Component", "Service", "Repository", "Controller", "RestController", "Configuration"}
+INIT_BLOCKS = {"static_initializer", "block"}        # Java's `static { }` and `{ }` in a class body
+
+
+def _qualifier(annos: list[dict]) -> str:
+    return next((a["arg"] for a in annos if a["name"] == "Qualifier" and a["arg"]), "")
+
+
+def _bean_flags(annos: list[dict]) -> dict:
+    return {"primary": any(a["name"] == "Primary" for a in annos),
+            "conditional": any(a["name"] == "Profile" or a["name"].startswith("Conditional") for a in annos)}
+
+
+def _spring_bean(annos: list[dict], cls_name: str) -> dict | None:
+    """A class Spring creates: its bean names (`@Service("x")`, else the class name with a
+    lowercase first letter, plus a class `@Qualifier`), `@Primary`, and whether it is
+    conditional (`@Profile`, `@Conditional...`)."""
+    stereo = next((a for a in annos if a["name"] in SPRING_STEREOTYPES), None)
+    if stereo is None:
+        return None
+    default = cls_name if cls_name[:2].isupper() else cls_name[:1].lower() + cls_name[1:]
+    return {"names": sorted({stereo["arg"] or default} | ({_qualifier(annos)} - {""})), **_bean_flags(annos)}
+
+
+def _bean_of(annos: list[dict], name: str, built: set[str]) -> dict | None:
+    """The bean a `@Bean` method or function registers, when it builds exactly one class."""
+    bean = next((a for a in annos if a["name"] == "Bean"), None)
+    built = built - {""}
+    if bean is None or len(built) != 1:
+        return None
+    return {"builds": built.pop(), "names": sorted({bean["arg"] or name} | ({_qualifier(annos)} - {""})),
+            **_bean_flags(annos)}
+
+
+def _bean_method(annos: list[dict], body, name: str, src: bytes) -> dict | None:
+    """A `@Bean` method that builds exactly one class (`return new SmtpMailer();`)."""
+    if body is None or not any(a["name"] == "Bean" for a in annos):
+        return None
+    return _bean_of(annos, name, {_base_type(_field_text(n, "type", src))
+                                  for r in _walk(body, {"return_statement"})
+                                  for n in _walk(r, {"object_creation_expression"})})
+
+
+def _param_qualifiers(params, src: bytes, lang: str) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for p in params.named_children if params is not None else []:
+        if p.type in SPEC[lang]["param"]:
+            q = _qualifier(_annotations(p, src, lang))
+            if q:
+                out[_field_text(p, "name", src)] = q
+    return out
+
+
+def _field_qualifiers(container, src: bytes, lang: str) -> dict[str, str]:
+    """Field or constructor-parameter name -> its `@Qualifier`, for one class."""
+    out: dict[str, str] = {}
+    body = _field(container, "body")
+    for f in _walk(body, SPEC[lang]["field"], stop=SPEC[lang]["method"]) if body is not None else []:
+        q = _qualifier(_annotations(f, src, lang))
+        for d in f.named_children if q else []:
+            if d.type == "variable_declarator":
+                out[_field_text(d, "name", src)] = q
+    for ctor in _walk(body, {"constructor_declaration"}) if body is not None else []:
+        out.update(_param_qualifiers(_field(ctor, "parameters"), src, lang))
+    return out
+
+
 def _overload_keys(entry: dict, declared: list[str]) -> None:
     """`sig` (the id suffix, used only if the name repeats) and `kinds` (to match calls)."""
     entry["sig"] = ",".join(_sig_type(d) for d in declared)
-    entry["kinds"] = [_kind_of_type(d) for d in declared]
+    # A trailing `T...` is kept as `...T`: it takes any number of T (build_flow._pick_overload).
+    entry["kinds"] = [("..." + _kind_of_type(d[:-3])) if i == len(declared) - 1 and d.endswith("...")
+                      else _kind_of_type(d) for i, d in enumerate(declared)]
+
+
+_INTERFACE_NODES = {"interface_declaration", "protocol_declaration", "trait_item", "trait_definition"}
+_MODIFIER_NODES = {"modifiers", "modifier", "inheritance_modifier", "abstract_modifier", "class_modifier"}
+
+
+def _class_kind(node) -> str:
+    """`interface`, `abstract`, or "" for a plain class -- as the declaration states it: an
+    interface/trait/protocol node, Kotlin's `interface` keyword, or an `abstract` modifier
+    token (never the word inside an annotation's argument)."""
+    if node.type in _INTERFACE_NODES or any(c.type == "interface" for c in node.children):
+        return "interface"
+    stack = [c for c in node.children if c.type in _MODIFIER_NODES or c.type == "abstract"]
+    while stack:
+        n = stack.pop()
+        if n.type == "abstract":
+            return "abstract"
+        stack.extend(c for c in n.children if c.type not in ("annotation", "marker_annotation"))
+    return ""
+
+
+_TYPED_LOCALS = {"local_variable_declaration", "enhanced_for_statement",      # Java, Groovy
+                 "instanceof_expression", "type_pattern",                     # Java 16+ patterns
+                 "local_declaration_statement", "foreach_statement",          # C#
+                 "declaration_pattern"}                                       # C# `is T t`
+
+
+def _tree_locals(body, src: bytes, lang: str) -> dict[str, str]:
+    """Locals whose type is written on their declaration: `R3RequestDto request = mapper.read()`,
+    `for (Item it : items)`, and a pattern variable -- `x instanceof UserSecurity us`,
+    `case UserSecurity us ->`, C#'s `x is Session s`. The text rules only saw `= new X(`, so a
+    local assigned from a call had no type and every call on it was dropped. `var` states
+    nothing and is skipped."""
+    out: dict[str, str] = {}
+    if body is None or lang not in JAVA_LIKE | {"csharp"}:
+        return out
+    for n in _walk(body, _TYPED_LOCALS):
+        if n.type == "local_variable_declaration":
+            declared = _base_type(_field_text(n, "type", src))
+            names = [_field_text(d, "name", src) for d in n.named_children if d.type == "variable_declarator"]
+        elif n.type == "local_declaration_statement":
+            decl = next((c for c in n.named_children if c.type == "variable_declaration"), None)
+            declared = _base_type(_field_text(decl, "type", src)) if decl is not None else ""
+            names = [_field_text(d, "name", src) for d in (decl.named_children if decl is not None else [])
+                     if d.type == "variable_declarator"]
+        elif n.type == "enhanced_for_statement":
+            declared, names = _base_type(_field_text(n, "type", src)), [_field_text(n, "name", src)]
+        elif n.type == "instanceof_expression":                 # `u instanceof UserSecurity us`
+            declared, names = _base_type(_field_text(n, "right", src)), [_field_text(n, "name", src)]
+        elif n.type == "type_pattern":                          # `case UserSecurity us ->`
+            parts = n.named_children
+            declared = _base_type(_text(parts[0], src)) if len(parts) == 2 else ""
+            names = [_text(parts[-1], src)] if len(parts) == 2 and parts[-1].type == "identifier" else []
+        elif n.type == "declaration_pattern":                   # C# `u is Session s`
+            declared, names = _base_type(_field_text(n, "type", src)), [_field_text(n, "name", src)]
+        else:                                                   # C# foreach
+            declared, names = _base_type(_field_text(n, "type", src)), [_field_text(n, "left", src)]
+        for name in names:
+            if name and declared and declared != "var":
+                out[name] = declared
+    return out
+
+
+# Every type one container or method *names*, for the structure map's references.
+# The flow map only ever wants a receiver's class, so every declared type was reduced to
+# its head (`_base_type`) and everything else was dropped: a return type was never read at
+# all, and `GlobalResponse<PaginationResponse<UserResponse>>` yielded one name of three.
+# On a real repository that left 22 classes "referenced by nothing" while their names were
+# written in the signatures -- which is exactly what an IDE counts as a usage (r73).
+_TYPE_NODES = frozenset({"type_identifier", "scoped_type_identifier", "user_type", "generic_name"})
+# The two shapes that name a type outside a type position: `SocketConstant.MAX` reads a
+# constant off a class, and C# spells `X.class` this way too.
+_QUALIFIED = {"field_access": "object", "member_access_expression": "expression"}
+
+
+def _type_refs(node, src: bytes, lang: str) -> list[str]:
+    """Type names stated anywhere in `node`: fields, parameters, return types, generic
+    arguments, locals, `X.class`, and the class a static constant is read from."""
+    names: set[str] = set()
+
+    def add(text: str, capitalised: bool = False) -> None:
+        base = _base_type(text)
+        if base and (not capitalised or re.fullmatch(r"[A-Z]\w*", base)):
+            names.add(base)
+
+    def walk(n) -> None:
+        if n.type in _TYPE_NODES:
+            add(_text(n, src))                       # the head; arguments are nested nodes
+        elif n.type == "identifier" and n.parent is not None and n.parent.type == "type_argument_list":
+            add(_text(n, src))                       # C# states a generic argument as a plain identifier
+        elif n.type in _QUALIFIED and lang != "go":
+            # Capitalised only, as `_type_name` requires of a receiver -- and not in Go,
+            # where a capitalised head is as often an exported value as a type.
+            obj = _field(n, _QUALIFIED[n.type])
+            if obj is not None and obj.type == "identifier":
+                add(_text(obj, src), capitalised=True)
+        for child in n.named_children:
+            walk(child)
+
+    walk(node)
+    return sorted(names)
 
 
 def _bases(node, src: bytes, lang: str) -> list[str]:
@@ -659,8 +1044,8 @@ def _bases(node, src: bytes, lang: str) -> list[str]:
     return [b for b in out if b]
 
 
-def _containers(root, src: bytes, lang: str) -> tuple[list[dict], list[dict]]:
-    """(classes, functions) for one file."""
+def _containers(root, src: bytes, lang: str) -> tuple[list[dict], list[dict], list[dict]]:
+    """(classes, functions, calls made outside any class) for one file."""
     classes: list[dict] = []
     go_types: dict[str, dict] = {}
 
@@ -678,24 +1063,30 @@ def _containers(root, src: bytes, lang: str) -> tuple[list[dict], list[dict]]:
                     "doc": _doc_above(decl, src, lang),
                     "line": _decl_line(spec), "endLine": _end_line(decl),
                     "fields": _fields(shape, src, lang), "methods": [],
+                    **({"kind": "interface"} if shape.type == "interface_type" else {}),
                 }
+        # A package-level var types its name in every function (finding #27), and the calls
+        # in its value run when the package loads (finding #28).
+        package_vars = _go_package_vars(root, src)
+        inits = [c for decl in root.named_children if decl.type == "var_declaration"
+                 for c in _calls(decl, src, lang, package_vars)]
         functions = []
         for fn in _walk(root, {"method_declaration", "function_declaration"}):
             recv = _field(fn, "receiver")
             if recv is None:
-                functions.append(_method(fn, src, lang, {}, ""))
+                functions.append(_method(fn, src, lang, {}, "", module=package_vars))
                 continue
             recv_params = _params_of(recv, src, lang)
             owner = next(iter(recv_params.values()), "")
             recv_name = next(iter(recv_params), "")
             holder = go_types.get(owner)
             fields = holder["fields"] if holder else {}
-            entry = _method(fn, src, lang, fields, "", recv_name)
+            entry = _method(fn, src, lang, fields, "", recv_name, module=package_vars)
             if holder:
                 holder["methods"].append(entry)
             else:
                 functions.append(entry)
-        return [go_types[k] for k in sorted(go_types)], functions
+        return [go_types[k] for k in sorted(go_types)], functions, _dedupe_calls(inits)
 
     for node in _walk(root, SPEC[lang]["container"]):
         name = _field_text(node, "name", src)
@@ -704,27 +1095,43 @@ def _containers(root, src: bytes, lang: str) -> tuple[list[dict], list[dict]]:
         annos = _annotations(node, src, lang)
         prefix = _class_prefix(annos, lang, name)
         fields = _fields(node, src, lang)
+        qualifiers = _field_qualifiers(node, src, lang) if lang in JAVA_LIKE else {}
         body = _field(node, "body")
         methods = []
+        inits: list[dict] = []
         if body is not None:
             for m in body.named_children:
-                if m.type == "constructor_declaration":
-                    # Deliberate parity with the extractor this replaces: a
-                    # constructor is not a graph node there, and changing that
-                    # here would mix a behaviour change into a port. It is a
-                    # one-word change in SPEC when someone wants it.
+                if m.type == "constructor_declaration" or m.type in INIT_BLOCKS or m.type in SPEC[lang]["field"]:
+                    # Code that runs with no method node of its own: a constructor (not a
+                    # graph node -- parity with the extractor this replaced), an initializer
+                    # block, a field's initial value. Its calls mark their callees
+                    # `entry: init` in build_flow (finding #28).
+                    local = {**fields, **_params(m, src, lang), **_tree_locals(m, src, lang),
+                             **_locals(_text(m, src), lang)}
+                    inits += _calls(m, src, lang, local, "", qualifiers)
                     continue
                 if m.type in SPEC[lang]["method"] and _field_text(m, "name", src):
-                    methods.append(_method(m, src, lang, fields, prefix))
+                    methods.append(_method(m, src, lang, fields, prefix, qualifiers=qualifiers))
+        cls_refs = _type_refs(node, src, lang)
+        getters = _lombok_getters(node, annos, fields, src, lang) if lang in JAVA_LIKE else {}
+        bean = _spring_bean(annos, name) if lang in JAVA_LIKE else None
+        kind = _class_kind(node)
         classes.append({
             "name": name,
+            **({"kind": kind} if kind else {}),
             "bases": _bases(node, src, lang),
             "decorators": [a["name"] for a in annos],
             "doc": _doc_above(node, src, lang),
             "line": _decl_line(node), "endLine": _end_line(node),
             "fields": fields, "methods": methods,
+            # One walk of the whole class: its own signatures plus its methods' (each method
+            # repeats its own, which costs a traversal and keeps both readable alone).
+            **({"refs": cls_refs} if cls_refs else {}),
+            **({"getters": getters} if getters else {}),
+            **({"init_calls": _dedupe_calls(inits)} if inits else {}),
+            **({"bean": bean} if bean else {}),
         })
-    return classes, []
+    return classes, [], []
 
 
 IMPORT_TYPES = {"java": {"import_declaration"}, "csharp": {"using_directive"}, "go": set(),
@@ -1096,12 +1503,38 @@ def _rb_bare_calls(body, src: bytes) -> list[tuple[str, str]]:
     return out
 
 
-def _gresolve(pairs, types: dict[str, str]) -> list[dict]:
-    """`_calls`'s three-way answer, plus: a receiver that is a type name is that type."""
+def _gchain(call, src: bytes, lang: str, types: dict[str, str]) -> dict | None:
+    """`via` for a Kotlin call made on another call's result (`props.pnoData().validate()`),
+    in `_typed_call`'s shape; None for any other call."""
+    if lang != "kotlin" or not call.named_child_count:
+        return None
+    head = call.named_children[0]
+    if head.type != "navigation_expression" or not head.named_children:
+        return None
+    inner = head.named_children[0]
+    if inner.type != "call_expression":
+        return None
+    recv, name = _grecv(inner, src, lang)
+    if not name:
+        return {"type": "?", "names": []}
+    deeper = _gchain(inner, src, lang, types)
+    if deeper is not None:
+        return {**deeper, "names": deeper["names"] + [name]}
+    got = _gresolve([(recv, name)], types)
+    if got and got[0].get("via"):                     # `Registry.STORE.find().save()`
+        return {**got[0]["via"], "names": got[0]["via"]["names"] + [name]}
+    return {"type": got[0]["type"] if got else "?", "names": [name]}
+
+
+def _gresolve(pairs, types: dict[str, str], qualifiers: dict[str, str] | None = None) -> list[dict]:
+    """`_calls`'s three-way answer, plus: a receiver that is a type name is that type. A call
+    through a Kotlin property carrying `@Qualifier` names it, as `_calls` does for Java."""
     out = []
-    for recv, name, *args in pairs:                  # (receiver, name[, argument kinds])
+    for recv, name, *args in pairs:                  # (receiver, name[, argument kinds[, via]])
         if not name or not re.fullmatch(r"[A-Za-z_]\w*", name):
             continue
+        via = args[1] if len(args) > 1 else None
+        args = args[:1]
         recv = re.sub(r"\s+", "", recv).replace("?.", ".").replace("->", ".").replace("::", ".")
         recv = recv.replace("$", "").lstrip("@")
         parts = recv.split(".")
@@ -1111,13 +1544,21 @@ def _gresolve(pairs, types: dict[str, str]) -> list[dict]:
         else:
             resolved = ""
             if len(parts) == 1:
-                resolved = types.get(head, "") or (head if re.fullmatch(r"[A-Z]\w*", head) else "")
+                resolved = types.get(head, "") or _type_name(head)
             elif len(parts) == 2 and head in _G_SELF:
                 resolved = types.get(parts[1], "")
+            elif len(parts) == 2 and head not in types and via is None and _type_name(head):
+                via = {"type": head, "fields": [parts[1]], "names": []}   # `Registry.STORE.save()`
             typ = resolved or "?"
         entry = {"type": typ, "name": name}
+        if via is not None:
+            entry["type"], entry["via"] = "?", via       # typed by build_flow from return types
         if args:
             entry["args"] = [args[0]]
+        if qualifiers:
+            held = parts[1] if len(parts) == 2 and head in _G_SELF else (head if len(parts) == 1 else "")
+            if held in qualifiers:
+                entry["qualifier"] = qualifiers[held]
         out.append(entry)
     return out
 
@@ -1232,12 +1673,83 @@ def _gstart(node) -> int:
     return _line(first)
 
 
-def _gmethod(node, src: bytes, lang: str, fields: dict[str, str], prefix: str) -> dict:
-    """One method/function record, in `_method`'s shape."""
+def _gcall_entries(node, src: bytes, lang: str, types: dict[str, str],
+                   qualifiers: dict[str, str] | None = None) -> list[dict]:
+    """Every call under `node`, resolved: `_gresolve`'s entries."""
+    if lang in OVERLOADING and node is not None:
+        pairs = [(*_grecv(c, src, lang), _arg_kinds(c, src, lang, types), _gchain(c, src, lang, types))
+                 for c in _walk(node, _G_CALLS[lang])]
+    else:
+        pairs = _gcalls(node, src, lang)
+    return _gresolve(pairs, types, qualifiers)
+
+
+def _kt_bean_function(annos: list[dict], body, name: str, src: bytes) -> dict | None:
+    """A Kotlin `@Bean` function that builds exactly one class: `= SmtpMailer()` or `return SmtpMailer()`."""
+    if body is None or not any(a["name"] == "Bean" for a in annos):
+        return None
+    built = set()
+    for scope in list(_walk(body, {"jump_expression"})) or [body]:
+        for call in _walk(scope, _G_CALLS["kotlin"]):
+            recv, callee = _grecv(call, src, "kotlin")
+            if not recv and _type_name(callee):
+                built.add(callee)
+    return _bean_of(annos, name, built)
+
+
+def _kt_qualifiers(node, src: bytes) -> dict[str, str]:
+    """Constructor or body property name -> its `@Qualifier`, for one Kotlin class (finding #30)."""
+    out: dict[str, str] = {}
+    params = _child(_child(node, {"primary_constructor"}), {"class_parameters"})
+    for p in params.named_children if params is not None else []:
+        q = _qualifier([_kanno(a, a, src) for a in _walk(p, {"annotation"})]) if p.type == "class_parameter" else ""
+        if q:
+            out[_ktext(p, _KT_NAMES, src)] = q
+    body = _gbody(node, "kotlin")
+    for prop in _walk(body, {"property_declaration"}, SHAPES["kotlin"]["method"]) if body is not None else []:
+        q = _qualifier([_kanno(a, a, src) for a in _walk(prop, {"annotation"})])
+        if q:
+            out[_kt_property_name(prop, src)] = q
+    return out
+
+
+def _kt_property_name(prop, src: bytes) -> str:
+    var = _child(prop, {"variable_declaration"})
+    return _ktext(var, _KT_NAMES, src) if var is not None else ""
+
+
+def _kt_top_level_types(root, src: bytes) -> dict[str, str]:
+    """A Kotlin file's top-level `val x: Store = ...` / `val x = Store()`: name -> type."""
+    out: dict[str, str] = {}
+    for prop in (c for c in root.named_children if c.type == "property_declaration"):
+        name = _kt_property_name(prop, src)
+        var = _child(prop, {"variable_declaration"})
+        declared = _base_type(_ktext(var, _KT_TYPES, src)) if var is not None else ""
+        if not declared:
+            m = _G_LOCALS["kotlin"].search(_text(prop, src))
+            declared = m.group(2) if m and m.group(1) == name else ""
+        if name and declared:
+            out[name] = declared
+    return out
+
+
+_KT_INITS = {"property_declaration", "anonymous_initializer", "secondary_constructor"}
+
+
+def _gmethod(node, src: bytes, lang: str, fields: dict[str, str], prefix: str,
+             module: dict[str, str] | None = None, qualifiers: dict[str, str] | None = None) -> dict:
+    """One method/function record, in `_method`'s shape. `module` is a Kotlin file's typed
+    top-level properties, hidden by a parameter or local of the same name; `qualifiers` its
+    class's `@Qualifier`-annotated properties."""
     name_node = _gname_node(node, src, lang)
     params = _gparams(node, src, lang)
     body = _gmbody(node, lang)
-    types = dict(fields)
+    hidden = set()
+    if module:
+        hidden = {n for n, _ in _gparam_pairs(node, src, lang)} | {
+            _kt_property_name(p, src) for p in (_walk(body, {"property_declaration"}) if body is not None else [])}
+    types = {k: v for k, v in (module or {}).items() if k not in hidden}
+    types.update(fields)
     types.update(params)
     if body is not None:
         types.update(_glocals(_text(body, src), lang))
@@ -1245,29 +1757,36 @@ def _gmethod(node, src: bytes, lang: str, fields: dict[str, str], prefix: str) -
     routes = []
     if lang == "kotlin":
         routes = _method_routes(annos, prefix, "java")
-    if lang in OVERLOADING and body is not None:
-        pairs = [(*_grecv(c, src, lang), _arg_kinds(c, src, lang, types))
-                 for c in _walk(body, _G_CALLS[lang])]
-    else:
-        pairs = _gcalls(body, src, lang)
     entry = {
         "name": _text(name_node, src).split("::")[-1],
         "doc": _gdoc(node, src, lang),
         "line": _gstart(node),
         "endLine": _end_line(body if lang == "dart" and body is not None else node),
         "params": params,
-        "calls": _dedupe_calls(_gresolve(pairs, types)),
+        "calls": _dedupe_calls(_gcall_entries(body, src, lang, types, qualifiers)),
         "routes": routes,
         "http": [],
     }
+    returns = _return_type(node, src, lang)
+    if returns:
+        entry["returns"] = returns
+    refs = _type_refs(node, src, lang)              # structure references, never call edges
+    if refs:
+        entry["refs"] = refs
     if body is None and lang not in ("ruby", "elixir"):
         entry["declaration"] = True               # an interface / abstract / trait signature
+    why = framework_entry([a["name"] for a in annos], entry["name"], _override_modifier(node, src))
+    if why:
+        entry["entry"] = why
+    bean = _kt_bean_function(annos, body, entry["name"], src) if lang == "kotlin" else None
+    if bean:
+        entry["bean"] = bean
     if lang in OVERLOADING:
         _overload_keys(entry, [d for _, d in _gparam_pairs(node, src, lang)])
     return entry
 
 
-def _gclass(node, src: bytes, lang: str, is_method) -> dict | None:
+def _gclass(node, src: bytes, lang: str, is_method, module: dict[str, str] | None = None) -> dict | None:
     name_node = _gname_node(node, src, lang)
     if name_node is None:
         return None
@@ -1276,18 +1795,30 @@ def _gclass(node, src: bytes, lang: str, is_method) -> dict | None:
     prefix = _class_prefix(annos, "java", name) if lang == "kotlin" else ""
     fields = _gfields(node, src, lang)
     body = _gbody(node, lang)
-    methods = [_gmethod(m, src, lang, fields, prefix)
+    # Spring on Kotlin (finding #30): the same bean / qualifier data the Java branch records.
+    qualifiers = _kt_qualifiers(node, src) if lang == "kotlin" else {}
+    bean = _spring_bean(annos, name) if lang == "kotlin" else None
+    methods = [_gmethod(m, src, lang, fields, prefix, module, qualifiers)
                for m in (body.named_children if body is not None else [])
                if is_method(m) and _gname_node(m, src, lang) is not None]
-    return {"name": name, "bases": _gbases(node, src, lang),
+    # Kotlin code that runs with no method node: a property's initial value, `init { }`,
+    # a secondary constructor (finding #28).
+    inits = [c for child in (body.named_children if lang == "kotlin" and body is not None else [])
+             if child.type in _KT_INITS
+             for c in _gcall_entries(child, src, lang, {**(module or {}), **fields}, qualifiers)]
+    kind = _class_kind(node)
+    return {"name": name, **({"kind": kind} if kind else {}), "bases": _gbases(node, src, lang),
             "decorators": [a["name"] for a in annos if a["name"]],
             "doc": _gdoc(node, src, lang), "line": _gstart(node), "endLine": _end_line(node),
-            "fields": fields, "methods": methods}
+            "fields": fields, "methods": methods,
+            **({"init_calls": _dedupe_calls(inits)} if inits else {}),
+            **({"bean": bean} if bean else {})}
 
 
-def _generic(root, src: bytes, lang: str) -> tuple[list[dict], list[dict], list[dict]]:
-    """(classes, functions, routes) for one file of a SHAPES language."""
+def _generic(root, src: bytes, lang: str) -> tuple[list[dict], list[dict], list[dict], list[dict]]:
+    """(classes, functions, routes, calls made outside any class) for one file of a SHAPES language."""
     shape = SHAPES[lang]
+    module = _kt_top_level_types(root, src) if lang == "kotlin" else {}
 
     def is_container(n) -> bool:
         return _gkind(n, src, lang) in shape["container"]
@@ -1301,7 +1832,7 @@ def _generic(root, src: bytes, lang: str) -> tuple[list[dict], list[dict], list[
     def containers(node) -> None:
         for child in node.named_children:
             if is_container(child):
-                rec = _gclass(child, src, lang, is_method)
+                rec = _gclass(child, src, lang, is_method, module)
                 if rec is not None:
                     classes.append(rec)
                     by_name.setdefault(rec["name"], rec)
@@ -1316,7 +1847,7 @@ def _generic(root, src: bytes, lang: str) -> tuple[list[dict], list[dict], list[
 
     def attach(holder: str, m) -> None:
         rec = by_name.get(holder)
-        entry = _gmethod(m, src, lang, rec["fields"] if rec else {}, "")
+        entry = _gmethod(m, src, lang, rec["fields"] if rec else {}, "", module)
         (rec["methods"] if rec else functions).append(entry)
 
     def free(node) -> None:
@@ -1343,7 +1874,7 @@ def _generic(root, src: bytes, lang: str) -> tuple[list[dict], list[dict], list[
                 if lang == "cpp" and "::" in qualified:          # int Store::save() {...}
                     attach(qualified.split("::")[-2], child)
                     continue
-                entry = _gmethod(child, src, lang, {}, "")
+                entry = _gmethod(child, src, lang, {}, "", module)
                 annos = _gannos(child, src, lang) if lang == "rust" else []
                 for a in annos:                                  # #[post("/widgets")] async fn h
                     if a["name"] in RUST_VERBS and a["arg"]:
@@ -1356,7 +1887,10 @@ def _generic(root, src: bytes, lang: str) -> tuple[list[dict], list[dict], list[
 
     containers(root)
     free(root)
-    return classes, functions, routes
+    # A Kotlin top-level property's initial value runs when the file's class loads (#28).
+    inits = [c for prop in root.named_children if lang == "kotlin" and prop.type == "property_declaration"
+             for c in _gcall_entries(prop, src, lang, module)]
+    return classes, functions, routes, _dedupe_calls(inits)
 
 
 def _imports(root, src: bytes, lang: str) -> list[dict]:
@@ -1367,6 +1901,63 @@ def _imports(root, src: bytes, lang: str) -> list[dict]:
         if dotted:
             out.append({"from": dotted, "names": [dotted.split(".")[-1]]})
     return out
+
+
+def _kt_imports(root, src: bytes) -> list[dict]:
+    """Kotlin's `import com.shop.Store` / `import com.shop.*`, in `_imports`' shape."""
+    out = []
+    for node in _walk(root, {"import", "import_header"}, stop=_BODY_TYPES):
+        dotted = re.sub(r"^import\s+", "", _text(node, src).strip()).split(" as ")[0].strip()
+        if dotted and not dotted.startswith("import"):
+            out.append({"from": dotted, "names": [dotted.split(".")[-1]]})
+    return out
+
+
+def _package(root, src: bytes) -> str:
+    """The package or namespace a file declares: Java/Groovy `package`, Kotlin's header, C#'s
+    (file-scoped or first block) `namespace`. "" when it declares none."""
+    for child in root.named_children:
+        if child.type in ("package_declaration", "package_header"):
+            return re.sub(r"^package\s+|;$", "", _text(child, src).strip()).strip()
+        if child.type in ("namespace_declaration", "file_scoped_namespace_declaration"):
+            return _field_text(child, "name", src)
+    return ""
+
+
+def class_locator(files):
+    """`locate(name, from_rel)`: the one file whose class `name` a reference in `from_rel` means.
+
+    A class name two files define -- the same `ConfigService` in two applications of one
+    repository -- used to be resolved only from the caller's own file, so every call to it
+    from anywhere else was dropped. The source settles it: the caller's own file, else the only
+    file defining it, else the one its `import` names exactly, else one a wildcard `import` or
+    C# `using` covers, else the one in the caller's own package. Two survivors is None, never a guess.
+    `files` is (rel, extract_lang_files result) pairs.
+    """
+    defs: dict[str, list[tuple[str, str]]] = {}
+    scope: dict[str, tuple[str, set[str]]] = {}
+    for rel, res in files:
+        pkg = res.get("package", "")
+        scope[rel] = (pkg, {i["from"] for i in res.get("imports", [])})
+        for cls in res.get("classes", []):
+            defs.setdefault(cls["name"], []).append((rel, pkg))
+
+    def locate(name: str, from_rel: str) -> str | None:
+        cands = defs.get(name, [])
+        rels = sorted({r for r, _ in cands})
+        if from_rel in rels:
+            return from_rel
+        if len(rels) <= 1:
+            return rels[0] if rels else None
+        pkg, imports = scope.get(from_rel, ("", set()))
+        for rule in (lambda p: f"{p}.{name}" in imports,
+                     lambda p: f"{p}.*" in imports or p in imports,
+                     lambda p: p == pkg):
+            hits = sorted({r for r, p in cands if p and rule(p)})
+            if hits:
+                return hits[0] if len(hits) == 1 else None
+        return None
+    return locate
 
 
 # ---------------------------------------------------------------------------
@@ -1410,21 +2001,25 @@ def extract_file(path: str) -> dict | None:
 
     root = parser.parse(src).root_node
     if lang in SHAPES:
-        classes, functions, routes = _generic(root, src, lang)
-        imports: list[dict] = []        # the graphs resolve through declared types, not imports
+        classes, functions, routes, inits = _generic(root, src, lang)
+        # Calls resolve through declared types; imports only settle which of two files'
+        # classes of one name is meant (`class_locator`), which Kotlin needs as Java does.
+        imports: list[dict] = _kt_imports(root, src) if lang == "kotlin" else []
     else:
-        classes, functions = _containers(root, src, lang)
+        classes, functions, inits = _containers(root, src, lang)
         routes = _go_routes(root, src) if lang == "go" else []
         imports = _imports(root, src, lang)
-    return {"file": path, "lang": lang, "imports": imports,
-            "classes": classes, "functions": functions, "routes": routes}
+    package = _package(root, src)
+    return {"file": path, "lang": lang, "imports": imports, **({"package": package} if package else {}),
+            "classes": classes, "functions": functions, "routes": routes,
+            **({"init_calls": inits} if inits else {})}
 
 
 def find_lang_files(root: str) -> list[str]:
     """Every file under `root` in one of this module's languages, in a fixed order (constraint 2)."""
     out: list[str] = []
     for dirpath, dirs, names in os.walk(root):
-        dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS)
+        dirs[:] = sorted(source_dirs(dirpath, dirs))
         for fn in sorted(names):
             if os.path.splitext(fn)[1].lower() in LANG_EXTS:
                 out.append(os.path.join(dirpath, fn))

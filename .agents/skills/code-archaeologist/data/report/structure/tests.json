@@ -47,7 +47,7 @@
     {
       "id": "FlatRate",
       "source": "sample_src/services/orders_java/PricingRule.java:11",
-      "layer": "unknown",
+      "layer": "service",
       "kind": "class"
     },
     {
@@ -125,8 +125,8 @@
     {
       "id": "PricingRule",
       "source": "sample_src/services/orders_java/PricingRule.java:4",
-      "layer": "unknown",
-      "kind": "class"
+      "layer": "service",
+      "kind": "interface"
     },
     {
       "id": "RouterModule",
@@ -143,7 +143,7 @@
     {
       "id": "TieredRate",
       "source": "sample_src/services/orders_java/PricingRule.java:20",
-      "layer": "unknown",
+      "layer": "service",
       "kind": "class"
     }
   ]

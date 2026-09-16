@@ -6,8 +6,11 @@
 # Parser dependencies: `pip install --target vendor` puts the tree-sitter runtime
 # and grammar wheels here. Machine-local twice over -- the runtime wheel is built
 # for one interpreter version and every wheel for one OS -- so it must never be
-# committed, only rebuilt by re-running the install.
-vendor/
+# committed, only rebuilt by re-running the install. Anchored with a leading
+# slash: templates/vendor/ is the inlined graph library and must ship. npm reads
+# this file when it packs the repo for `npx`, so an unanchored `vendor/` dropped
+# templates/vendor/force-graph.min.js from every install.
+/vendor/
 
 # Python bytecode from running the scripts
 __pycache__/

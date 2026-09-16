@@ -70,7 +70,7 @@ def build(vault: str, out_dir: str) -> int:
     os.makedirs(out_dir, exist_ok=True)
 
     nodes: dict[str, dict] = {}
-    raw_edges: list[tuple[str, str]] = []
+    raw_edges: list[tuple[str, str, str]] = []
     registry: dict[str, str] = {}
 
     md_files = sorted(f for f in os.listdir(vault) if f.endswith(".md"))
@@ -97,6 +97,10 @@ def build(vault: str, out_dir: str) -> int:
         # group is a whole file and has none, so it gets no `end` rather than a fake one.
         if meta.get("end", "").isdigit():
             nodes[entity]["end"] = int(meta["end"])
+        # Why a framework builds this class (`@Configuration`, `next:page`): `find_orphans`
+        # reads it, exactly as it does on a flow node.
+        if meta.get("entry"):
+            nodes[entity]["entry"] = meta["entry"]
         try:
             where = os.path.relpath(path, DATA_DIR)
         except ValueError:
@@ -106,19 +110,30 @@ def build(vault: str, out_dir: str) -> int:
             where = os.path.abspath(path)
         registry[entity] = where.replace("\\", "/")
 
-        # Wikilinks in the body (exclude front-matter) become outgoing edges.
+        # Wikilinks in the body (exclude front-matter) become outgoing edges. A base is an
+        # inheritance link, as in the flow map: `FlatRate -> PricingRule` points from the
+        # implementation, so as a plain reference nothing pointed *at* FlatRate and a class
+        # implementing a used interface was reported dead (finding #29).
+        bases = {t.strip() for t in WIKILINK_RE.findall(extract_section(body, "Bases"))}
         for target in WIKILINK_RE.findall(body):
             target = target.strip()
             if target and target != entity:
-                raw_edges.append((entity, target))
+                raw_edges.append((entity, target, target in bases))
 
-    # Keep only edges whose target is a known node; dedupe.
+    # Keep only edges whose target is a known node; dedupe. Which inheritance link a base is
+    # needs both ends' kinds, so it is decided here, once every node is read: a class filling
+    # in an interface `implements` it; a class inheriting a class, or an interface an
+    # interface, `extends` it.
     seen: set[tuple[str, str]] = set()
     edges: list[dict] = []
-    for src, dst in raw_edges:
+    for src, dst, is_base in raw_edges:
         if dst in nodes and (src, dst) not in seen:
             seen.add((src, dst))
-            edges.append({"source": src, "target": dst, "type": "references"})
+            kind = "references"
+            if is_base:
+                kind = ("implements" if nodes[dst]["kind"] == "interface" and nodes[src]["kind"] != "interface"
+                        else "extends")
+            edges.append({"source": src, "target": dst, "type": kind})
 
     graph = {"nodes": sorted(nodes.values(), key=lambda n: n["id"]), "edges": edges}
 

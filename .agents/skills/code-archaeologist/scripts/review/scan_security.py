@@ -34,8 +34,8 @@ from paths import DATA_DIR  # noqa: E402  (also puts sibling script dirs on sys.
 DEFAULT_GRAPH = os.path.join(DATA_DIR, "flow", "flow_graph.json")
 DEFAULT_OUT = os.path.join(DATA_DIR, "report", "security.json")
 
-from manifest import SOURCE_EXTS, SKIP_DIRS, _rel_key  # noqa: E402
-from taxonomy import is_test_path  # noqa: E402
+from manifest import SOURCE_EXTS, _rel_key  # noqa: E402
+from taxonomy import is_test_path, source_dirs  # noqa: E402
 
 # Directories whose "secrets" and debug output are intentional. Test paths come
 # from taxonomy.is_test_path, so every script agrees on what a test is.
@@ -46,13 +46,18 @@ PLACEHOLDER_RE = re.compile(
     r"(os\.environ|os\.getenv|process\.env|getenv|config\[|settings\.|\{\{|\$\{|<[^>]+>|"
     r"changeme|your[_-]|placeholder|example|xxxx|\*\*\*|dummy)", re.I)
 
+# A credential-named key assigned a quoted literal. The key only has to *contain* a
+# credential word, so it also matches keys that merely name one -- the value is what
+# tells them apart (`_names_not_holds`).
+CREDENTIAL_RE = re.compile(
+    r"""(?i)\b(?P<key>\w*(api[_-]?key|secret|token|password|passwd|credential|access[_-]?key)\w*)"""
+    r"""\s*[:=]\s*["'](?P<value>[^"']{8,})["']""")
+
 # Each rule is a list of regexes that must ALL match the same line.
 RULES = [
     {"id": "hardcoded_secret", "severity": "high",
      "message": "Credential assigned to a literal value",
-     "patterns": [re.compile(
-         r"""(?i)\b\w*(api[_-]?key|secret|token|password|passwd|credential|access[_-]?key)\w*"""
-         r"""\s*[:=]\s*["'][^"']{8,}["']""")]},
+     "patterns": [CREDENTIAL_RE]},
     {"id": "hardcoded_secret", "severity": "high",
      "message": "AWS access key id in source",
      "patterns": [re.compile(r"\bAKIA[0-9A-Z]{16}\b")]},
@@ -81,6 +86,31 @@ COMMENT_RE = re.compile(r"^\s*(#|//|/\*|\*)")
 REDACT_RE = re.compile(r"""(["'])([^"']{8,})\1""")
 
 
+def _alnum(text: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", text.lower())
+
+
+def _names_not_holds(line: str) -> bool:
+    """True when every credential assignment on the line names a credential rather than
+    holding one: the value is the key's own name (`ACCESS_TOKEN: "accessToken"`, a
+    storage or header key), a path (`RESET_PASSWORD: "/reset-password"`, a route), or
+    prose (it contains whitespace). On a real Spring + Next.js repository all ten
+    "hardcoded secrets" were one of these three, and each cost the grade 10 points."""
+    matches = list(CREDENTIAL_RE.finditer(line))
+    return bool(matches) and all(
+        _alnum(m["value"]) in _alnum(m["key"]) or m["value"].startswith("/")
+        or re.search(r"\s", m["value"]) or _word_list(m["value"])
+        for m in matches)
+
+
+def _word_list(value: str) -> bool:
+    """`space-y-4`, `auth:token-refreshed`: lowercase words and small numbers joined by
+    `-` or `:` -- a design token's CSS class, an event name. A UUID or a real token has
+    segments that mix letters and digits, so it is still reported."""
+    parts = re.split(r"[-:]", value)
+    return len(parts) > 1 and all(re.fullmatch(r"[a-z]+|\d{1,3}", p) for p in parts)
+
+
 def _excluded(path: str) -> bool:
     parts = [p.lower() for p in path.replace("\\", "/").split("/")]
     return bool(EXCLUDE_DIRS.intersection(parts[:-1])) or is_test_path(path)
@@ -92,7 +122,7 @@ def iter_source_files(roots):
     for root in roots:
         root = os.path.abspath(root)
         for dirpath, dirs, names in os.walk(root):
-            dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+            dirs[:] = source_dirs(dirpath, dirs)
             for fn in sorted(names):
                 if fn.endswith(SOURCE_EXTS):
                     full = os.path.join(dirpath, fn)
@@ -173,7 +203,8 @@ def scan(roots, graph_path: str = DEFAULT_GRAPH) -> dict:
             for rule in RULES:
                 if not all(p.search(raw) for p in rule["patterns"]):
                     continue
-                if rule["id"] == "hardcoded_secret" and PLACEHOLDER_RE.search(raw):
+                if rule["id"] == "hardcoded_secret" and (PLACEHOLDER_RE.search(raw)
+                                                         or _names_not_holds(raw)):
                     continue
                 findings.append({
                     "rule": rule["id"], "severity": rule["severity"],

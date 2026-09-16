@@ -4373,3 +4373,1436 @@ no rebuild was needed.
 The README / architecture-guide change was already committed as `b171fdb` in turn [101]. `git fetch` showed `main`
 1 ahead of `origin/main` and 0 behind, with a clean tree, so nothing needed merging. Appended this entry, committed it,
 and pushed both commits to `origin/main`.
+
+## [103] 2026-09-14 — Fix what a Spring + Next.js run exposed
+
+**Prompt**
+> (the srs-eol-system session's report of running code-archaeologist, pasted: F grades mostly from tool errors -- 10
+> false "hardcoded secrets", 24 false layer violations from `*Handler`, dead code that is used (Java static calls,
+> `@/` imports, Spring-invoked code), the explorer not generated because `templates/vendor/force-graph.min.js` was
+> missing and `both` aborted, 1,374 pending descriptions)
+>
+> this is the claude of srs-eol-system project told when he use code-archaeologist skill
+>
+> list problem and plan to fix
+
+Plan-mode follow-ups: fixtures only (never touch the other repo); exempt annotated entry points **and** `@Override`;
+skip the skill's own folder automatically; record the `data`/`build` depth issue. The user corrected "React" to
+**Next.js**, which added the Next file conventions. Mid-implementation: "after finish dont commit yet I will copy
+skill from this directory and retest again" -- so **nothing is committed**.
+
+**Response**
+Three Explore agents traced every symptom to code before planning. Root causes that differed from the report:
+- The vendor file was lost by **npm**, not git: `npx github:` packs the repo and reads the skill's `.gitignore`, whose
+  unanchored `vendor/` matched `templates/vendor/` (`npm pack --dry-run` had no such file). The render raised
+  `FileNotFoundError` after the structure map, and `run_project(src) or run_flow(src)` never reached flow.
+- The "low test-mention figure" was **misdiagnosed** by the other session: `tests_map.py` matches names and never reads
+  edges. Recorded as #15 rather than "fixed".
+- A target repo's installed copy of the skill was being graphed (no walker skipped `.claude/skills/`).
+
+Fixed, each with a regression case written to fail first:
+- r36 `.gitignore` `/vendor/` (skill + `bin/cli.js` fallback), installer asserts the file, `archaeologist.py` builds
+  every map and the manifest then renders once; `build_html.build` returns 1 with a named line instead of raising.
+- r37 `scan_security._names_not_holds`: a credential key whose value is its own name, a path, or prose is not a secret.
+- r38 `taxonomy.ANNOTATION_LAYERS` checked first, `NEUTRAL_ANNOTATIONS = {Component}`, `handler` removed from the
+  controller rule (the sample's handlers stay controllers through their `router` stem -- checked before editing).
+- r39 `langs_extract._type_name` shared by Java/C#/Groovy `_calls` and the phase-7 walker (Go excluded: capitalised
+  heads are exported values); same rule in `js_ts_extract._receiver_type`.
+- r40/r41 `entry` on nodes: `taxonomy.framework_entry()` (Spring annotations, `@Override`, the `override` modifier --
+  probed: C# `modifier`, Kotlin `modifiers` -- and `main`) and `next_entry()` (App Router, Pages Router, middleware,
+  instrumentation; only inside a Next app found by `next.config.*` or a package.json depending on `next`).
+  `analyze.find_orphans` exempts it. r41 first failed on my own wrong assumption (a `route.ts` is already a controller by
+  stem outside Next), so the outside-Next half now asserts only that no `entry` is applied.
+- r42 `tests/fixtures/ts_imports/` (a minimal Next app). Measured before fixing: alias named import already linked;
+  namespace import, shared name and anonymous default export did not. Added: tsconfig/jsconfig `paths` reader
+  (`alias_targets`, comments + trailing commas, relative `extends`) used by `_resolve_import` and
+  `build_wiki._resolve_specifier`; import `bindings` + resolved `path`; `obj` kept on untyped receivers; `build_flow`
+  follows a binding only under the exported name (a rename would break `check_graph` c13); anonymous default export named
+  by its file stem, which needed a c07 exemption. Structure map: namespace import now links; a shared module name imported
+  from a third file still does not (#20).
+- r43 `taxonomy.source_dirs()` used by all seven walkers; three `SKIP_DIRS` imports it orphaned were removed.
+
+Recorded in ROADMAP_PLAN *Found while implementing* #13-#20: `data`/`build` at any depth, Java static imports,
+name-only test coverage, the security cap, SKILL.md's describe-everything instruction, Next file routes as endpoints,
+passed-not-called functions, renamed imports + structure shared-module imports.
+
+Docs: CLAUDE.md, SKILL.md, README.md, TAXONOMY.md (layer row + `entry` field), ARCHITECTURE_GUIDE .md/.html/.th.html
+(`SKIP_DIRS` -> `source_dirs()` call edges), PROJECT_HISTORY (new subsection). USAGE.md and PRESENTATION.html unchanged:
+no command form moved and no claim there became false.
+
+Verified: sample graphs and reports **byte-identical** (`git diff` on data empty; structure D 69, flow D 68, 4 risks,
+7 dead, 1 cluster); `check_regressions` 43/43; `check_langs` 21/21; `check_graph` OK both maps, self-test 33/33;
+`check_py_oracle` 0 disagreements (sample and scripts); `check_docs` OK; `stale: false`; `npm pack --dry-run` lists
+`force-graph.min.js`; `node bin/cli.js --harness claude --target <tmp> --self-test` rc 0 with the file installed and
+`/vendor/` in the installed `.gitignore`. Not verified: the real srs-eol-system repository -- the user will retest.
+
+## [104] 2026-09-14 — Retest on the Spring + Next.js repository: fix what is still wrong
+
+**Prompt**
+> (the retest result, pasted: explorer built, Java static calls linked -- `GlobalResponse.success` 109 callers --, layer
+> violations 24 -> 0; still wrong: 2 false secrets `token: "space-y-4"` and `TOKEN_REFRESHED: "auth:token-refreshed"`;
+> framework entry points still orphaned because `build_flow.write_graph` never copies `entry`; `@/` structure imports
+> of a name two files define dropped by `names.target`; remaining orphans used through method references, calls on a
+> call's result, top-level calls, calls through a variable, JSX renders, `new X()`; SKILL.md paths say `.agents/`
+> while the skill was copied to `.claude/`)
+>
+> I ran new one still have some issue fix it
+
+**Response**
+Their diagnosis of the headline miss was exactly right, and it was mine: `write_graph` copies a fixed list of fields
+and `entry` was not in it. r40/r41 passed because they asserted on `build_flow.analyze()`'s dicts, one step before the
+file every reader opens. Fixed the copy, and both cases now go through a `_written()` helper that writes and re-reads
+`flow_graph.json` (lesson recorded in CLAUDE.md next to the field).
+
+Fixed (each case written to fail first on the old code's shape):
+- r37 extended: `_word_list` -- lowercase words / small numbers joined by `-` or `:` is a CSS class or event name;
+  a UUID (segments mixing letters and digits) is asserted still reported. I considered "the key's words appear in the
+  value" and rejected it: `PASSWORD: "password123"` is a real hardcoded password.
+- r42 extended: structure imports keep the file they resolved to (`import_sources`), and `render_entity` uses
+  `SharedNames.id(name, file)` -- the fixture asserts the edge to `lib/labels.LabelsModule` and never to `legacy/`.
+  `new ApiError(...)` is collected as `constructs` and counts as a use in `_names_used`.
+- r44 Java-family `method_reference` read as a call through `_receiver_and_name` (probed: `this`/identifier, `::`,
+  identifier); `Store::new` skipped; no `args`, so an overloaded target is ambiguous rather than picked by arity 0.
+- r45 JS/TS top-level calls: `_collect_calls(load_time=True)` never descends into a function or class, collected from
+  top-level expression statements and non-function declarator values into `module_calls`; `build_flow` resolves them
+  with the same `resolve()` the call loop now uses (factored out, no behaviour change), and marks the callee
+  `entry: module`.
+- SKILL.md: a **Paths** note -- the installer rewrites the prefix, a hand copy must substitute its folder.
+
+Recorded, not fixed (ROADMAP #21-#24): calls on another call's result / Lombok getters (needs return types, and
+generated getters have none); flow-map JSX render edges (a render is not a call); `api.x()` through a variable (shape
+unknown -- asked for in the finding); Python's identical module-load gap. #20's structure half marked done.
+
+Docs: CLAUDE.md, SKILL.md, README.md, TAXONOMY.md (`entry: module`), PROJECT_HISTORY (retest paragraph), fixture README.
+
+Verified: sample data byte-identical (the sample has no framework entry or module-load call); `check_regressions`
+45/45; `check_langs` 21/21; `check_graph` OK, self-test 33/33; oracle 0 disagreements; `check_docs` OK; `stale: false`.
+Still not committed, at the user's request. Not verified: the real repository -- the orphan and grade numbers must
+come from their rerun.
+
+## [105] 2026-09-14 — Question: are only Python and JS/TS really parsed?
+
+**Prompt**
+> for now js/ts and py use real compiler to compile into graph right? other is just fixture that use regex, etc.
+
+**Response**
+Answered a misconception, no code changed. Checked with grep rather than from memory: `py_extract.py`,
+`js_ts_extract.py`, `langs_extract.py` and `route_tables.py` all import `grammars` and read tree-sitter trees, so all
+seventeen languages are parsed the same way, and none uses a compiler (tree-sitter gives syntax, never types or name
+resolution -- that is why every language's call edges are a lower bound). `tests/fixtures/langs/` are test *inputs*
+asserted by `check_langs.py`, not extractors. Where regex does appear: `langs_extract.py` has ~31 uses, mostly text
+clean-up on nodes the tree already found (type names, doc comments, `[controller]`), but a few do real inference work
+-- local-variable types (`NEW_LOCAL_RE`, `GO_LOCAL_RE`/`GO_CTOR_RE`/`GO_VAR_RE`, a per-language table for
+Kotlin/Scala/Swift/Dart/Rust/PHP/Ruby, `_CPP_LOCAL`) are matched over body text to decide a receiver's class. So the
+honest distinction is not "parsed vs regex" but "Python/JS/TS/Java/Go/C# have mature receiver rules; the eleven
+phase-7 languages have thinner ones", which the fixture table already shows (2 edges, 0 routes for most of them).
+`scan_security.py` is line-regex by design. Python's `ast` survives only as the oracle in `tools/check_py_oracle.py`.
+
+## [106] 2026-09-14 — Question: how does a script create a graph link?
+
+**Prompt**
+> so how script create a graph/link
+
+**Response**
+Explained, no code changed. Read the code rather than recalling it (CLAUDE.md warns that hand-named functions have
+been invented before): `langs_extract._calls` / `_receiver_and_name` / `_type_name` / `_locals`,
+`build_flow._analyze_lang` (lines 780-880), `build_flow._resolve_calls` (Python), `build_flow._api_edges`,
+`build_wiki.render_entity`, `build_graph.build`.
+
+What I told them, in two maps:
+- Flow map, two passes. Pass 1 walks every file's tree and registers each method/function as a node, recording
+  `class_methods` (class -> method names) and `func_nodes`, plus each body's raw calls as `{type, name}`, where the
+  extractor has already turned the receiver into a type: `""` (bare / `this.m()`), a class name (typed field, typed
+  param, `new X()` local, or a capitalised type name), or `"?"` (untyped). Pass 2 resolves: `"?"` drops; a type makes
+  `Type.name` only if that class is in the graph and defines that method; bare tries the caller's own class, then a
+  module function; overloads are picked by argument count/types or recorded as `ambiguous`; `ids.target` keeps a name
+  two files share inside the caller's file. Anything unresolved is kept by name (`ext` / `unresolved`), never guessed.
+- Cross-stack edges: `_api_edges` matches a frontend `http` call's (METHOD, normalised path) to a node's `routes` --
+  exact, then segment-aligned suffix either way, and only when exactly one route matches.
+- Structure map: `build_wiki.render_entity` writes a note per class/component whose References section is
+  `[[wikilinks]]` for bases, decorators and imports that resolve to known entities; `build_graph.build` turns every
+  wikilink whose target exists into a `references` edge. So structure edges go through markdown on disk.
+Example used: the sample's `OrderApiController.create -> OrderWorkflow.place -> OrderArchive.save`, and the interface
+case stopping at `PricingRule.price`.
+
+## [107] 2026-09-14 — Question: is an "approx" node/link caused by build_flow/build_wiki or by the parser?
+
+**Prompt**
+> oh and sometime we face approx node/link etc. is it because build_flow/build_wiki or parser
+
+**Response**
+Checked before answering. `approx` no longer exists in the skill: grep finds it only in comments recording its removal,
+inside the vendored force-graph library in `explorer.html` (`$o.approximately`, unrelated), and in a historical note in
+`PRESENTATION.html`. If the user sees `approx: true`, it is an old build. Its replacement is `precision`, computed in
+`build_flow` (line 543) by `taxonomy.precision_of`, and shown as chips by `viewer.html`.
+
+Answer given: neither the parser nor the builders is "approximate". tree-sitter's declarations and ranges are exact;
+the loss is in resolution, which is build_flow's rule applied to what the source does not state (untyped receiver,
+interface, overload the arguments cannot pick). build_flow drops rather than guessing, so the missing edges are the
+imprecision and `precision` names why. build_wiki/build_graph do not set `precision` at all (structure edges are
+references).
+
+Found while answering: CLAUDE.md claimed precision is "never from its language alone", but `name-matched` is exactly
+that (`NAME_MATCHED_LANGS`) -- every JS/TS node carries it even with no dropped call. Corrected the CLAUDE.md sentence
+(no decision needed), and recorded the behaviour change as ROADMAP_PLAN finding #25 (changes a user-visible field and
+the pinned sample count, needs data the graph does not keep). No code changed; nothing committed.
+
+## [108] 2026-09-14 — Question: does a precise graph need each language's compiler?
+
+**Prompt**
+> and if we want precise node/graph  we need to install specific compiler of that language and use it right?
+
+**Response**
+Conceptual answer, no files changed besides this log. Mostly yes, with four corrections:
+1. Nodes are already exact (tree-sitter declarations/ranges); only call edges would gain.
+2. What is needed is the compiler's *semantic front end* (type checker / name resolution), not code generation --
+   in practice a language server or a SCIP indexer (scip-java, scip-typescript, scip-python, scip-go, Roslyn,
+   rust-analyzer, clang with compile_commands.json).
+3. The cost is not installing it but *building the project*: dependencies resolved, classpath/tsconfig/compile flags,
+   the right SDK. tree-sitter reads a broken or half-cloned checkout; a type checker on an unbuildable project gives
+   nothing, or worse, a silently partial answer.
+4. Types do not remove every loss: interface/virtual dispatch, DI (Spring), reflection, callbacks and framework
+   routing still need whole-program analysis (CHA/RTA/points-to), which over-approximates -- trading this skill's
+   lower bound for an upper bound. Python/Ruby/PHP/Elixir/untyped JS have no declared types for a compiler to read
+   (pyright/Sorbet infer some, only where annotated).
+Also named the conflict with CLAUDE.md hard constraint 1 (one engine, no second parser, no Node, wheels only,
+degrade by name) -- so it is a design decision, not an install. Suggested the cheaper paths: more receiver rules in
+tree-sitter (imports, return types), and an *optional* import of a user-supplied SCIP index that upgrades edges it
+can prove, leaving tree-sitter as the engine. Offered to write that up in ROADMAP_PLAN; did not, since it is a new
+direction the user has not chosen.
+
+**Follow-up in the same turn (sent mid-turn)**
+> What gets lost is edges, not nodes
+>
+> is this only problem of our build_flow trough all lanugages?
+
+Answered: two kinds of loss, and only one is ours. (a) What the source does not state (untyped receiver, interface
+dispatch, ambiguous overload, reflection/DI) is lost by *every* tool without a type checker -- ctags, grep-based
+indexers, tree-sitter code navigation -- and some of it even by a compiler. (b) What the source does state but no
+rule reads yet is this skill's own, and differs per language: the extractors turn receivers into types
+(`langs_extract._calls`, `js_ts_extract`, `py_extract`) and `build_flow` decides. The open examples are ROADMAP_PLAN
+#19-24 (function passed not called, call on a call's result, JSX render, untyped variable, Python module-level
+calls) plus Ruby's `@store` and the thinner phase-7 receiver rules -- all fixable without a compiler. The structure
+map loses less because its edges are declared references (bases, decorators, imports, fields), not calls.
+
+## [109] 2026-09-14 — Fix ROADMAP #21-#24: chained calls, JSX renders, calls through a variable, Python module load
+
+**Prompt**
+> Not fixed (written down in the roadmap as findings #21–#24)
+> * Calls on another call's result: `resolveHandler(type).downloadFile(...)` and `getPnoData().getCron()`. ...
+> * JSX render edges in the flow map: `<Dashboard />` isn't a call. ...
+> * `api.approveSetdatProject(...)` through a variable: ...
+> * Python has the same module-load gap: ...
+>
+> then how to fix these
+
+Plan mode. Three Explore agents mapped each gap (return types absent everywhere, receivers split as text; ~15 consumers
+of a new edge type, no edge colour map; object-literal members not nodes, re-exports never read, and a load-time bug).
+Asked two questions: `api` shape -> "handle all exact shapes"; JSX -> the user asked for a concise explanation first,
+then chose to add `renders` edges. Plan approved; nothing committed (the user retests first, per [103]).
+
+**Response**
+Implemented all four, each with a regression case:
+- r46: `langs_extract._typed_call` reads the receiver node, emits `via`; `_return_type` (Java `type`, C# `returns`,
+  Kotlin positional after params with `?` stripped); `_lombok_getters`; `_gchain` for Kotlin; `_dedupe_calls` keys on
+  `via`. `build_flow._analyze_lang.returns_of` walks it; overloads disagreeing on return type -> unknown -> drop. TS:
+  `_returns`, `_call_via`, and `_analyze_js.resolve` walks `via` through `returns_by_id`.
+- r47: `_module_instances` / `_imported_types` feed `module_types` into every `_collect_calls`; `_reexport_entry`
+  (probed: `source` field, bare `*`, `namespace_export`, `export_clause`); `_object_entry` members become `api.member`
+  nodes (`_extracted_defs` pre-scans them) and same-name aliases; `exported_node` / `exported_member` follow
+  re-exports (depth 5, exactly one hit, never a rename -- c13). Found and fixed: `_FUNCTION_NODES` lacked
+  `method_definition`.
+- r48: `py_extract.load_time_calls`, marking `entry: module` after the Python pass.
+- r49: `renders` edges from `_collect_jsx` components via `resolve()`; dotted tags now draw nothing; merged in
+  `analyze()` but skipped in the calls/callers flattening; `analyze.app_edges` excludes them; `check_graph`
+  `EDGE_TYPES` + c20 + a mutant; viewer `linkColor` / `linkLineDash` / matrix colour; build message says "edge(s)".
+
+Docs: CLAUDE.md (four bullets, edge-colour rule, sample numbers 53/34, c20), TAXONOMY (`renders` row, Python
+`module`), SKILL.md, README, ARCHITECTURE_GUIDE .md/.html/.th.html (`load_time_calls()`), fixture README, ROADMAP
+(update after #25, which another session had added meanwhile), PROJECT_HISTORY. Prompt entries [106]-[108] had also
+appended concurrently; this entry follows them.
+
+Verified: sample data changed by exactly the predicted edge (flow_graph.json +1 `renders`, report/insights/explorer
+regenerated; grades D 69 / D 68 unchanged); `check_regressions` 49/49; `check_langs` 21/21; `check_graph` OK both maps,
+self-test 34/34; oracle 0 disagreements (sample and scripts); `check_docs` OK; viewer scripts parse as classic
+scripts; `stale: false`. Not verified: srs-eol-system -- the orphan count must come from the user's rerun.
+
+## [109] 2026-09-14 — Question: so nodes are exact and only the caller/callee linking is lossy?
+
+**Prompt**
+> Nodes are already exact -> so tree sitter can extract all class and function precisely
+> but problem is just linker of caller/callee in script right?
+>
+> I just want to know just this
+
+**Response**
+Short answer, as asked: yes. Two qualifiers only: "exact" means every declaration the skill chooses to make a node
+(anonymous functions such as arrow functions inside an object literal are not nodes, ROADMAP_PLAN #23); and the
+linking is split between the extractor, which reads each call's receiver type, and `build_flow`, which matches it to
+a node -- both are our scripts, neither is tree-sitter. No files changed.
+
+## [110] 2026-09-14 — Question: what did `approx` mean before?
+
+**Prompt**
+> ok then what is approx mean previously, answer me consie
+
+**Response**
+Checked `docs/PROJECT_HISTORY.md` (lines 211-223, 276) rather than recalling. Told them: `approx: true` was added in
+commit `10e0309` to every Java/Go/C# node, because those three were then read with regex/text matching
+(`lang_extract.py`) instead of a parser, so their nodes *and* edges could be wrong, not just missing -- unlike
+Python/JS/TS at the time. Once phase 2 moved them to tree-sitter the label no longer marked a real difference, and
+`fd67e49` replaced it with the global lower-bound caveat plus per-node `precision`. No files changed.
+
+## [111] 2026-09-14 — Question: so no approx problem left, just test real projects for missing edges?
+
+**Prompt**
+> so now we dont have approx node or approx linker problem now? just need to test on real project that might have some edge node missing
+
+**Response**
+Mostly yes, with one correction: "drop rather than guess" makes missing edges the main risk but does not make wrong
+edges impossible. Named the heuristics that can still draw a false edge: a bare call matched by name to the one
+graph function with that name (`_analyze_lang`'s `func_nodes.get(name)` -- a same-named library function would
+link), the regex local-type inference, a capitalised receiver read as a type (`_type_name`), and the route
+suffix fallbacks in `_api_edges` (only when exactly one route matches). Nodes can also be missing without being
+wrong: anonymous functions are not nodes, and `SKIP_DIRS` can skip real source (ROADMAP_PLAN #13). Suggested what to
+look at on a real project: `unresolved` names and orphans for missing edges, `tools/check_graph.py` on the built
+graph (c-checks catch a callee name absent from its caller), and a spot-check of a few traces. No files changed.
+
+## [112] 2026-09-14 — Judge Q&A bank appended to the Thai architecture guide
+
+**Prompt**
+> please edit ARCHITECTURE.th.html append part that have many questions as much as possible to answer technical question from judge. from my presentation
+>
+> AS MUCH AS POSSIBLE MEAN I DONT CARE IF ITS CONSIST OF 100-200-300 QUESTION GIVE ME ALL!!!
+
+**Response**
+Took "ARCHITECTURE.th.html" to mean `docs/ARCHITECTURE_GUIDE.th.html` (the only Thai architecture page). Gathered the
+facts first instead of recalling them: the presentation's text and embedded data (`docs/PRESENTATION.html`: feature
+cards, their follow-up questions, the LIMITS list), README, SKILL.md, PROJECT_HISTORY, ROADMAP_PLAN findings #13-#25
+and phase 6d timings, and the code for anything quoted as a number (`analyze.health()` weights/caps, `HUB_DEGREE` /
+`GOD_METHODS` / `GOD_FANOUT`, `PATTERN_RULES`, `find_orphans` exemptions, `find_cycles` self-loops, `SKIP_DIRS`,
+sha1 in `manifest.py`, TAXONOMY.md layer/rule values, whether the sample's `FlatRate.price` carries `@Override` -- it
+does not, so it is one of the 7 dead nodes).
+
+Built: a `#judge-qa` section after the script cards -- sticky search box, category chips with counts, open/close all,
+a random-question button for rehearsal, `#qa-N` deep links. Each entry is `[category, question, short answer,
+detail]`; the page shows the short answer as a highlighted line to say out loud and the detail under it. Data is in
+six `QA.push` script blocks rendered by one script. **315 questions** in 16 categories (concept 24, arch 23, parse 29,
+graph 30, route 17, review 19, passes 25, query 22, determ 15, ui 19, verify 20, install 18, perf 9, limits 21,
+compare 12, process 12). Thai prose, every identifier in English, system fonts only, only `qa-*` classes.
+
+Honesty choices, deliberately: where the answer is "not done" or "not measured" it says so -- no formal benchmark of
+agent answer quality, explorer render speed and memory never measured, nothing tested above ~1,100 files, eleven
+languages and the four route tables fixture-only, macOS/Linux designed-for but Windows-tested. The user's real
+repositories are not named (ROADMAP 6d asked for aggregates only). The comparisons with other tools (CodeQL, LSP,
+SonarQube, Aider's repo map, AI assistants' indexing) stay general and hedged rather than claiming specifics about
+those products.
+
+A miss, caught mid-turn: another session was changing the repo concurrently (entries [104]-[111]), implementing
+ROADMAP #21-#24 and recording #25. My first batches had been written against the older state, so they said flow
+33 edges, 43 regression cases, self-test 33, no `renders` edge, Python module-load still open, and that `precision`
+is "never from language alone" (#25 shows `name-matched` is exactly that). Fixed with one scripted pass of 21
+replacements that refused to write unless each old string matched exactly once; confirmed the counts from code, not
+the log (`check_regressions.py` defines r01-r49; `check_graph.py --self-test` printed 34/34).
+
+Docs: CLAUDE.md now states the one deliberate structural difference between the Thai and English guides (the Q&A
+bank, Thai-only, `qa-*` classes so the `fc-*` counts still match) and asks that numbers quoted in `QA.push` blocks be
+grepped when the expected-numbers block, a check count or a finding changes. Not mirrored into
+`ARCHITECTURE_GUIDE.html`: the user asked for the Thai page, and it is presentation rehearsal, not guide structure.
+
+Verified: all 9 inline scripts parse as classic scripts (`vm.Script`); in the browser 315 rendered, 0 duplicate
+questions, every row 4 fields, search "overload" -> 12, limits filter -> 21, no CSS `@import` rule on the page (the
+two grep hits are the words inside answers); `fc-box` 28/28, `fc-cmd-chip` 7/7, `fc-phase` 2/2 against the English
+file; `check_docs` OK; the diff of the Thai file is my one contiguous block plus the other session's hunks outside it.
+First render put the section flush left (the page's sections have no side padding); gave `.qa-section` its own
+padding and max-width, and removed two speculative overflow rules once measurement showed nothing overflowed.
+Nothing committed.
+
+## [112] 2026-09-14 — Question: does the linker grep by method/class name?
+
+**Prompt**
+> our script grep linker by method/class name right?
+
+**Response**
+Answered from the code already read this session (`langs_extract._calls`, `build_flow._analyze_lang`): not grep. Call
+sites come from tree-sitter call nodes, each read as (receiver, method name); the receiver becomes a type; then
+`build_flow` does a dictionary lookup -- `class_methods[type]` must contain the name. So it is a name match, but
+scoped to one class. Only a bare call with no class context falls back to a global name lookup (`func_nodes`),
+which is the weakest rule. The only text matching in linking is the regex local-variable type inference. No files
+changed.
+
+## [113] 2026-09-14 — Question: missing edges because tree-sitter outputs languages differently?
+
+**Prompt**
+> ok then it loop the name matched to create link, and tree sitter might output some lang differently so that why missing edge problem occur
+
+**Response**
+Half right. Yes to the loop (every call site, looked up by name in the receiver's class). Tree shapes do differ per
+language, and that is one cause: the extractor must know each grammar's node types (`SPEC` / `SHAPES` in
+`langs_extract`), so a shape it does not read -- a method reference before r44, a call on a call's result
+(ROADMAP #21), a JSX render (#22) -- yields no call and no edge. That cause is our code and fixable. The larger
+cause is not tree-sitter at all: the call is read fine but the source never states the receiver's type (untyped
+variable, Ruby `@store`, interface, DI), so there is no class to look the name up in. No files changed.
+
+## [114] 2026-09-14 — Question: when Java calls OrderStore.save(), is the save() node missing?
+
+**Prompt**
+> the problem is like
+>
+> Java call OrderStore.save() and then what is inner save() (pretend that we implement save ourself)
+>
+> so what missing is save() method node right? it treat method that call OrderStore.save() as last node
+>
+> so how we solve this problem before
+
+**Response**
+Checked the sample's committed `flow_graph.json` with `python -c` rather than asserting. Correction given: the node is
+never what is missing when `save` is our own code -- tree-sitter extracts every declared method, so
+`OrderArchive.save` is a node (`OrderArchive.java:13`), and `OrderWorkflow.place -> OrderArchive.save` exists; `save`
+has no outgoing edge only because its body calls nothing in the graph. A trace can only look like it "ends at the
+caller" in three cases: (1) the receiver type is not stated, so the *edge* is dropped and `save` sits as an orphan;
+(2) the receiver is an interface -- `PricingRule.price` is a `declaration: true` node, the edge stops there, and
+`FlatRate.price` / `TieredRate.price` are nodes with 0 callers; (3) `save` is library code, no node, correctly.
+How each was handled before: interface -> extract declaration-only members as nodes and stop at them, never pick an
+impl (deliberate, CLAUDE.md hard case; `precision: interface-dispatch`); receiver type -> declared field / typed param
+/ `new X()` local / type-name receiver, plus method references (r44) and `via` through return types and Lombok
+getters (r46); overloads -> one node each, picked by arguments (finding #8). Noted that `prompt.md` now has two
+`[112]` entries (one from a parallel session); left as is since the log is append-only. No other files changed.
+
+## [115] 2026-09-14 — Question: will FlatRate.price / TieredRate.price be missing?
+
+**Prompt**
+> FlatRate.price, TieredRate.price these will missing? you mean?
+
+**Response**
+Checked `sample_src/services/orders_java/PricingRule.java`, the committed flow graph and the flow report. Told them:
+the nodes are not missing -- both are in the graph with their own ranges; what is missing is any edge *into* them,
+because the only call is `pricing.price()` through `PricingRule`, which stops at the declaration. So they show as
+orphans with 0 callers, and the flow report does list both as orphans (dead-code candidates), which is a false
+"unused" for real implementations. They carry no `entry`: the sample's impls have no `@Override`, which would have
+exempted them. This is already recorded in ROADMAP_PLAN (lines ~254-295: an optional `implements` edge
+`FlatRate.price -> PricingRule.price` that would stop them being orphans), so no new finding was written. No files
+changed besides this log.
+
+## [116] 2026-09-14 — Question: what is an "edge"? (user read it as the last node of the call tree)
+
+**Prompt**
+> so what do you mean edge, in my understanding edge is a last node of the calling tree
+
+**Response**
+Terminology clarification, no files changed. Node = one method/function (a dot); edge = the arrow between two nodes,
+caller -> callee, one per resolved call (`{"source", "target"}` in `flow_graph.json`). The last node of a call tree
+is a *leaf* (a node with no outgoing edge). Re-stated the sample with this vocabulary: `OrderArchive.save` and
+`PricingRule.price` are leaves; `FlatRate.price` / `TieredRate.price` are nodes with no incoming edge (orphans) --
+so "missing edge" means a missing arrow, never a missing node. The misunderstanding explains the previous turns'
+confusion: "what gets lost is edges" was heard as "the last methods get lost".
+
+## [117] 2026-09-14 — Question: why call the link an "edge"?
+
+**Prompt**
+> oh so you mena what missing is linker (arrow) why you call edge? it make me confuse
+
+**Response**
+Confirmed their reading: yes, what is missing is the link (arrow). Explained why "edge" was used: it is the standard
+graph-theory word (a graph = nodes + edges), and the skill uses it everywhere in its own names -- the `edges` array in
+`flow_graph.json` / `graph.json`, `check_graph.py`, `analyze.app_edges()` -- so I carried the code's word into chat
+without defining it. Apologised for the confusion. Saved a feedback memory (`say-link-not-edge`) to say "link/arrow"
+in explanations from now on and quote `edges` only as a field name. No repo files changed besides this log.
+
+## [118] 2026-09-14 — Question: if FlatRate.price has no caller, why is the missing link a problem?
+
+**Prompt**
+> FlatRate.price     (node, no edge in: orphan)
+> TieredRate.price   (node, no edge in: orphan)
+>
+> so yes because it have no caller/caller so edge is missing is correct why its problem at first?
+
+(sent while the turn was running)
+> or it just my miss understanding?
+
+**Response**
+Read `sample_src/services/orders_java/OrderWorkflow.java` and grepped the sample: nothing ever names `FlatRate` or
+`TieredRate` -- `pricing` is a constructor-injected `PricingRule` field. Told them it is half a misunderstanding:
+the graph is right about what the *text* says (nobody writes `FlatRate.price`), but at runtime
+`pricing.price(request)` in `OrderWorkflow.place` always runs one of the two, so they do have a real caller. The
+missing links cost three things: the report lists both as orphans (false dead code), `--impact-of FlatRate.price`
+shows nothing upstream although changing it changes what `place` / `create` return, and a trace from `create` stops
+at the declaration. Not drawn because which one runs is decided by injection outside the source; linking both would
+be "possible callee", a different promise from "the source says so".
+
+Found while answering: the comment in `OrderWorkflow.java` still says the extractor *drops* this call, but it now
+links to `PricingRule.price`. Not fixed on sight -- `sample_src` is pinned and any edit forces regenerating the
+shipped data in a working tree with other uncommitted changes -- so recorded as ROADMAP_PLAN #26 (first Edit
+failed: a parallel session had appended "Update on #21-#24" after #25; re-read and inserted after it). Used
+"link" instead of "edge" per the new memory.
+
+## [119] 2026-09-14 — Question: is it an orphan because its caller is not a method?
+
+**Prompt**
+> so the one who call it is not a method so why it is orphange right?
+
+**Response**
+No files changed besides this log. Separated the two roles the user merged: the *caller* is a method --
+`OrderWorkflow.place`, whose body runs `pricing.price(request)` -- but the code names the interface
+(`PricingRule`), so the graph links `place` to `PricingRule.price` only. What is not a method in the source is the
+*chooser*: whoever puts a `FlatRate` or `TieredRate` into `pricing` (Spring injection / config, outside the
+scanned code). "Orphan" just means no incoming link in the graph, and that follows from the name in the call, not
+from the caller's kind. Used "link", per memory.
+
+## [120] 2026-09-14 — Question: so the fix is to draw the three lines?
+
+**Prompt**
+> so to fix is draw three line as in your example
+
+**Response**
+No files changed besides this log. Re-read ROADMAP_PLAN phase 1b (lines 264-296) and the phase 1 outcome (129-136)
+before answering, since this exact choice was made once already: "Do not emit edges to every implementation" (it
+trades "every link shown is real" for recall), with an optional `implements` link kind left unbuilt because nobody
+had asked for the traversal. The user now is asking.
+
+Told them: drawing the two extra lines as ordinary *calls* is the option rejected before -- a call through a widely
+implemented interface (a Spring `Repository`, `Runnable`) would get one call link per implementation, inflating
+hubs/coupling/cycles and showing traces that never run. Recommended the second shape: keep
+`place -> PricingRule.price` as the call, add `FlatRate.price -> PricingRule.price` and `TieredRate.price ->
+PricingRule.price` as a separate `implements` link type, drawn differently and kept out of coupling metrics like
+`renders` already is; traces and `--impact-of` walk it; orphans go away without claiming which one runs. Costs:
+taxonomy + TAXONOMY.md, link styling, trace/impact/analyze handling, check_graph + a regression case, and the
+sample's pinned numbers (flow link count, orphans, grade) re-derived. Asked whether to build it; not started.
+
+## [121] 2026-09-14 — Question: the real problem is Spring injecting the class?
+
+**Prompt**
+> and the real rpoblem is manipulate class name by injecting like spring boot
+
+**Response**
+No files changed besides this log. Grepped the scripts for `Qualifier|Primary|Autowired|Bean|Profile`: the only DI
+awareness is `Bean` in `taxonomy.FRAMEWORK_ENTRY` (a `@Bean` method is not called dead); nothing resolves which bean
+fills a field.
+
+Told them yes, that is the root cause: the field is typed by the interface and Spring picks the class at startup.
+Split what Spring decides from source the skill could read (only one bean implements the interface; `@Qualifier`
+on the field/parameter matched to `@Component("name")` or a `@Bean` method name; `@Primary`; a `@Bean` method whose
+body returns `new FlatRate()`) from what only exists at runtime (`@Profile`, `@ConditionalOnProperty`,
+`application.properties`, library auto-configuration). Proposed layering: a Spring-aware rule that draws the one
+real call link when the source settles it, and the `implements` links from [120] as the fallback when it does not.
+Noted the sample settles nothing (no `@Component` on `FlatRate`/`TieredRate`, no `@Qualifier`), so it would stay on
+the fallback. Asked which to build; not started.
+
+## [122] 2026-09-14 — Question: does a call through a global variable / `Class.method` link normally?
+
+**Prompt**
+> what about something like global variable call Class.method
+>
+> is it work normally?
+
+**Response**
+Tested rather than answered from memory. Wrote a scratch tree (scratchpad `globals/`: Java, C#, TS, Kotlin, Python,
+Go; one method per shape) and ran `build_flow.analyze()` in memory -- not `build()`, which writes
+`data/cache/descriptions.json` and `pending_descriptions.json` inside the skill install.
+
+Result:
+- `ClassName.method()`: linked in Java, C#, TS, Kotlin (`object`); **dropped in Python** (`PyStore.make()`).
+- A global in the same file: linked in Java/C# (static field) and TS (module `const x = new X()`); **dropped** in
+  Kotlin (top-level `val`), Python (module `store = PyStore()`) and Go (package `var goStore = &GoStore{}`).
+- An imported global: linked in TS (`import { tsStore }`), **dropped** in Python (`from py_globals import store`).
+- Another class's static field `Registry.STORE.save()`: **dropped** in Java and C#.
+Every drop is recorded in `unresolved`, and no wrong link was drawn.
+
+Recorded as ROADMAP_PLAN #27 (adds links / may move sample numbers, and the user has been choosing which
+resolution rules get built), with a recommended order: Python type-name receiver first (every other language already
+has it), then same-file globals in Python/Kotlin/Go, Python imported instances, then `Type.FIELD.m()`. Asked whether to
+build; not started.
+
+## [123] 2026-09-14 — Question: how does `int x = STORE.save();` outside any method show up?
+
+**Prompt**
+> I mena someone crate global var like
+>
+> Class xx
+>
+> int x = STORE.save();
+>
+> main(){
+>
+> }
+>
+> how node int x = STORE.save(); will show
+
+**Response**
+Tested, not answered from memory. Scratch tree (this session's scratchpad `init/`) where each `save()` is called only
+from outside a method -- Java field initializer and `static {}` block, C# field, Kotlin class property, Python module
+level, TS module `const` and class field, Go package `var` -- run through `build_flow.analyze()` in memory (not
+`build()`, which writes the description cache into the skill's data/).
+
+Result: `x` is never a node in any language (fields are not nodes), and no link is drawn in any language, since there
+is no caller node. Python and TS mark the callee `entry: module`, so it is not called dead. Java (both shapes), C#,
+Kotlin and Go collect nothing at all -- the callee has no caller, no `entry`, and the call is not even in
+`unresolved`, so it is reported as dead code silently. Recorded as ROADMAP_PLAN #28 with the recommendation to
+extend the existing module-load rule (`entry: module`) to field/property initializers, static/init blocks and Go
+package vars. Asked whether to build; not started. Side note from the run: three `main`s in different files were
+qualified by file, as designed.
+
+## [124] 2026-09-14 — Build Option B: the `implements` link
+
+**Prompt**
+> ok then I choose
+> Option B: a separate implements link (recommended)
+>
+> as fix those problem as we talked in this session
+
+(scope question answered: "why you mean from other session" + the Option B description pasted -- read as: Option B
+only, as described. #26's comment fix was done too, since the sample data had to be regenerated anyway.)
+
+**Response**
+Asked one scope question first; the user had read "other problems from this session" as "another session", and
+re-pasted Option B, so #25/#27/#28/Spring layer 1 were left unbuilt.
+
+Design decisions: store the link as the user's diagram reads, `FlatRate.price -> PricingRule.price`, type
+`implements`, and flip it for every walker through one helper, `taxonomy.call_direction` / `REVERSED_LINKS`, rather
+than store it declaration -> implementation (which would have made the JSON read backwards). Linked to the nearest
+base that defines the same name, walking past a base that defines none (abstract class in between), bases resolved by
+name within one producer (own file first, else unique), overloads paired by parameter types; any base, not only
+declarations, so an override of a concrete parent is linked too (said so in SKILL.md/TAXONOMY.md). Excluded from
+`calls`/`callers`, `precision`, `app_edges`, `find_cycles` (a decorator delegating to its interface would otherwise be
+a false cycle -- r50 asserts it) and layer violations.
+
+Test first: r50 (Java interface + abstract intermediate + decorator + unrelated same-name class, and a Python
+subclass) failed on the old code with "implements links []". After implementing it failed once more on my own
+assertion -- `CachedRate.price` really calls `PricingRule.price`, so it has both links; fixed the test, not the code.
+
+Files: build_flow.py (`_base_name`, `_implements_links`, `_pair_overloads`, class collection from all three
+producers), taxonomy.py, analyze.py, trace_path.py, context.py, search.py, viewer.html (light grey long dash
+`rgba(201,209,217,.4)` [6,3], matrix `#c9d1d9`, flipped outAdj/inAdj), check_graph.py (EDGE_TYPES, c21 + 2 mutations,
+d02 probe + sabotage, c09 now counts only calls/http targets as build_flow does), check_regressions.py (r50,
+`import trace_path`), sample_src OrderWorkflow.java comment (#26, same line count), regenerated sample data; docs:
+CLAUDE.md (new paragraph, taxonomy/trace/analyze bullets, colour rule, numbers block, c21), SKILL.md, README.md,
+USAGE.md, TAXONOMY.md, PRESENTATION.html, ARCHITECTURE_GUIDE.th.html (Q&A), ROADMAP_PLAN.md (update + #29),
+PROJECT_HISTORY.md.
+
+Found and fixed while there (no decision needed): USAGE.md's debt transcript said 2 dead nodes (real: 5) and its
+tests transcript 4/21 (real: 4/49, 8.2%); the Thai Q&A quoted check_regressions 49/49 and self-test 34/34. Found and
+recorded: #29, the structure map still lists `FlatRate` / `TieredRate` classes as orphans.
+
+Verified: check_regressions 50/50; check_graph OK on both maps (30 checks each), self-test 37/37; check_langs 21/21
+unchanged; check_docs OK; compileall OK; viewer scripts parse as classic scripts; explorer probed in the preview pane
+(2 implements links, inAdj of FlatRate.price = PricingRule.price, blast radius reaches OrderWorkflow.place and
+OrderApiController.create); guide fc counts 133/14/20 in both languages; two rebuilds byte-identical; `stale: false`.
+Sample now: flow 53 nodes / 36 links (29 calls, 4 http, 1 renders, 2 implements), 5 orphans, C (70); structure
+unchanged 25/22 D (69). Not run: check_py_oracle (no extractor touched). Noted four other code-archaeologist
+sessions working in the same tree (build_flow.py changed on disk mid-edit). Not committed.
+
+## [125] 2026-09-14 — Build #25, #27, #28, #29 and Spring injection
+
+**Prompt**
+> Not done: finding #27 (calls through global variables), #28 (calls outside any method), #25 (name-matched) and the Spring rule are still open in the roadmap. I added finding #29: the structure map still lists the FlatRate and TieredRate classes as orphans, which is the same problem at class level.
+>
+> do it
+
+**Response**
+Built all five, test first: r51-r55 written and seen to fail on the old code, each for its own reason.
+
+Decisions:
+- #25 refined, not as recommended: counting every `"?"` drop would mark nearly every Java node (`System.out.println`),
+  so `name-matched` is earned by a new written field `untyped` -- `"?"` drops whose names the graph defines, the
+  `unresolved` filter -- in every language. `NAME_MATCHED_LANGS` removed; c19 asserts untyped is within unresolved.
+- #27: Python `ClassName.method()`, Python module and imported globals (`_py_module_types`), Kotlin top-level vals,
+  Go package vars, `Type.FIELD.m()` via `via.fields` (Java/C# in `_typed_call`, the shared walker in `_gresolve`);
+  a parameter or local of the same name hides a global in every one.
+- #28: `entry: init` (not `module`), and constructors included -- same silent gap. Java/C# field initializers,
+  init blocks, constructors; Kotlin property initializers, `init {}`, secondary constructors, top-level properties;
+  Go package var values and `func init()`. `_analyze_lang`'s call loop was factored into `targets_of` so init calls
+  resolve exactly like body calls (behaviour parity checked: all other cases and fixtures unchanged).
+- Spring (Java/Groovy): extractor records `bean` (stereotype, names, primary, conditional), `@Bean` methods that
+  build one class, and `qualifier` on calls through `@Qualifier` fields/params; build_flow's `injected()` links to the
+  bean's method only inside a managed class when a qualifier, one primary, a single non-conditional bean, or a `@Bean`
+  settles it. Ancestry reuses a new `_base_resolver`, shared with `_implements_links`.
+- #29: build_graph types a `## Bases` wikilink as `implements`; c21 got a structure branch (the base must be named in
+  the class body) with its own mutation.
+
+Misses: two of my own tests were wrong first -- r52 flagged `goShadowed`'s legitimate call to `other()`, and r51
+assumed `helper().save()` was untyped when `helper` declares `Object`. Fixed the tests, not the code.
+
+Verified: check_regressions 55/55; check_graph OK both maps, self-test 39/39; check_langs 21/21 unchanged;
+check_py_oracle 0 disagreements (sample and scripts); check_docs OK; compileall OK; two rebuilds byte-identical;
+`stale: false`; guide fc counts 133/14/20 both languages. Sample: flow 53/36 unchanged, C (70), precision on 3 nodes
+(2 name-matched: getOrderEvents/getOrderStatus untyped `get`; 1 interface-dispatch); structure 25/22 = 20 references
++ 2 implements, D (69) -> C (73), 1 orphan (OrderPageModule).
+
+Docs: CLAUDE.md (precision paragraph, new "what the source settles" paragraph, entry list, numbers block, grades, TS
+note, c21), SKILL.md, README.md, USAGE.md, TAXONOMY.md (untyped row, init entry, name-matched row, structure
+implements), PRESENTATION.html (also fixed its interface row, stale since [124]: it still said traces stop at the
+interface), ARCHITECTURE_GUIDE.th.html Q&A (precision, entry init, grades, counts 55/55 and 39/39) and the JS
+extractor card in both guides, ROADMAP_PLAN (update block; new #30 Kotlin Spring not covered, #31 "only bean" means
+only in the scanned source), PROJECT_HISTORY. Not committed; other sessions still share the tree.
+
+## [126] 2026-09-14 — Question: #30 can be fixed but #31 cannot?
+
+**Prompt**
+> Limits, added to the roadmap:
+>
+> * #30: Spring resolution covers Java and Groovy only, not Kotlin.
+> * #31: "the only bean" means the only one in the scanned code. A bean registered by a library isn't visible, so the rule could pick one where Spring would see two. I've also noted this in
+>
+> so 30 can fix 31 cannot?
+
+**Response**
+Answered, no code changed. Yes: #30 is only unwritten extractor work (Kotlin annotations, constructor-property
+qualifiers, `@Bean` functions into the same `bean`/`qualifier` data build_flow already uses). #31 cannot be fully
+fixed from source: library beans are declared inside dependency jars (auto-configuration classes listed in their
+`AutoConfiguration.imports`), which the skill never scans, and which ones load depends on the classpath and
+properties at runtime. Noted why the risk is small in practice -- Boot auto-configurations are almost always
+`@ConditionalOnMissingBean`, so a bean the project defines replaces the library's -- and the three partial options:
+leave it (current), be stricter (drop the single-bean rule, keep only `@Qualifier` / `@Primary` / `@Bean`), or
+optionally read a real bean list from a running app (Actuator `/beans`) -- the last is a new input, a design decision.
+
+## [127] 2026-09-14 — Fix #30: Spring injection on Kotlin
+
+**Prompt**
+> ok then fix 30 only
+
+**Response**
+Built #30 only; #31 left as agreed. Test first: r56, the Kotlin twin of r54 (single bean, `@Qualifier` on a constructor
+property and on a `lateinit` field, `@Primary`, a `@Bean` function `= SmtpMailer()`, plus the ambiguous and
+`@Profile` cases that must stay at the declaration) failed on the old code with all five injected links missing.
+
+Implementation, extractor only (build_flow's rule was already language-neutral): `_gclass` records `bean` via the
+existing `_spring_bean`; new `_kt_qualifiers` reads `@Qualifier` on `class_parameter`s and body
+`property_declaration`s; `_gresolve` / `_gcall_entries` take `qualifiers` and tag a call through one; new
+`_kt_bean_function` reads a `@Bean` function's built class from its `return` expressions, or its whole body for an
+expression body; Java's `_bean_method` now shares the new `_bean_of` helper (r54 re-run: still passes).
+
+Verified: r54 and r56 pass; check_regressions 56/56; check_langs 21/21; check_graph OK both maps, self-test 39/39;
+check_docs OK; compileall OK; sample rebuilt with the committed-graph diffstat identical to the previous turn (the
+sample has no Kotlin, so nothing moved); `stale: false`. Docs: CLAUDE.md Spring bullet, ROADMAP_PLAN update on #30,
+PROJECT_HISTORY paragraph, Thai Q&A count 55/55 -> 56/56. Not committed.
+
+## [128] 2026-09-14 — Question: split langs_extract.py into one file per language?
+
+**Prompt**
+> I think script langs_extract is big now should we split each lang/framework to it own and make langs extract call it?
+>
+> and save it in like /extract/langs_extract/java_extract.py
+
+**Response**
+Measured before answering, no code changed. langs_extract.py is 1,842 lines and 83 functions (build_flow 1,519,
+js_ts_extract 1,240). Language-specific code is mostly not separable functions: only 57 lines are Kotlin-only and 57
+Go-only functions; the rest is 79 `lang == ...` branches spread across 30 shared functions (the phase-7 walker alone is
+~540 lines), because the design is one shared consumer plus SPEC/SHAPES tables -- "adding a language is a row".
+
+Told them: one file per language is a redesign, not a move -- each of those 30 functions would need a per-language
+interface, and a Java file would still import the shared walker. Two practical snags too: `extract/langs_extract/`
+beside `langs_extract.py` makes the import `langs_extract` ambiguous (a package directory wins over the module), and
+paths.py only puts the four category dirs on sys.path. Also every new script needs README tree, CLAUDE layout and
+both architecture guides (the "28 scripts" count) updated.
+
+Offered three options and recommended B: (A) leave it; (B) split along the file's existing section lines into ~3
+flat files -- the public contract plus Java/Go/C#, the phase-7 shared walker, and Spring (the one real "framework"
+unit, shared by Java and Kotlin) -- pure moves, proven by byte-identical graphs and the full check suite; (C) per-
+language files as asked. Asked which to do.
+
+## [129] 2026-09-14 — Rerun on the Spring + Next.js repository; the object model
+
+**Prompt**
+> (the srs-eol-system session's rerun report, pasted: fixed -- entry written, scheduled jobs linked, chained calls,
+> 63 implements links, 330 renders links, createApiInstance marked module, false secrets gone, ApiError 4 structure
+> links; still wrong -- calls to a name defined in two files dropped even when the import names the file
+> (ConfigService.getConfigInt, LogService.commonLog, the API's DateUtil.now: 42 call sites, 0 callers; the frontend
+> exportAllMasterData in two services); helpers inherited from a base class not linked (nz, detailSpecification,
+> stableOrder); R3RequestDto.describe / R4RequestDto.describe false orphans on a local `R3RequestDto request = ...`;
+> apiError.ts still a dead flow file (`throw new ApiError(...)`); limits -- the four AAS base methods overridden by
+> the only subclass, untyped `api.approveSetdatProject`, i18n tag functions passed to t.rich; DiffPreviewStep kept on
+> purpose; 1,383 methods without a description)
+>
+> ok I have rerun still have problem
+>
+> and about this one
+>
+> The four AAS base methods are arguably correctly flagged. MasterAASDataUploadHandler is an abstract class whose default saveDetails / searchMaster / columnSpecs / getDetailSheetPage are overridden by its only subclass, so those bodies never run today.
+>
+> can we fixed it by create the new node type abstract/interface then arrow it by inherit/extend
+> and also create other node/link type that support OOP
+
+**Response**
+Re-oriented first: other sessions had since added `implements` links, init entries, Spring injection and #25-#31
+(r50-r56), all uncommitted; baseline was green (56/56, self-test 39/39, C73/C70). Answered the design question
+before building, because it changes the graph format: a node type alone cannot un-flag bodies that really never run;
+what helps is telling `implements` (fills a declaration) from `overrides` (replaces a body) and reporting a body every
+subclass replaces as `overridden`. Asked; the user chose "split links + class kinds".
+
+Reproduced the TS shared-name case in four shapes (alias/relative imports, same/distinct file names, no tsconfig):
+all four already resolved, so its real shape is unknown. Fixed the one plausible remaining shape (a class two files
+define, called through an imported instance) and recorded the rest in ROADMAP #32.
+
+Built, each with a regression case written to fail first:
+- r57 `langs_extract.class_locator` (package + imports: own file, only file, exact import, wildcard/`using`, same
+  package); `_package`, Kotlin `_kt_imports`; used by `_analyze_lang.targets_of` (new `node_id`, overload pick in the
+  class's file), `_base_resolver(locate)` and `build_wiki` (`import_sources` on lang entities, bases resolved through
+  `resolve_ref`).
+- r58 `ancestor_defining`: a bare / `this.` / typed call whose class lacks the name walks to the nearest base.
+- r59 `_tree_locals`: Java `local_variable_declaration` / `enhanced_for_statement`, C# `local_declaration_statement` /
+  `foreach_statement`; `var` skipped.
+- r60 JS `constructs` resolve to `X.constructor` as a call; `resolve`'s typed branch also settles a shared class name
+  through the imported class or instance (`obj` now kept on typed receivers; `_names_used` still reads it only for
+  untyped ones, so the structure map is unchanged); `check_graph` c13 accepts `new X` for a constructor callee.
+- r61 the object model: `_class_kind` (interface/trait/protocol nodes, Kotlin `interface`, `abstract` modifier
+  tokens, never annotation text), Go interface types, TS `abstract_class_declaration` (was not extracted at all),
+  Python Protocol/ABC/@abstractmethod; `taxonomy.CLASS_KINDS`, `INHERITANCE_LINKS` (= `REVERSED_LINKS`);
+  `build_graph` decides `implements`/`extends` once both kinds are known; `build_flow` decides `implements`
+  (declaration or Python abstractmethod) / `overrides`, and `_overridden_everywhere` marks `overridden`;
+  `analyze.find_overridden` + orphan exemption + report/brief/text sections; every `"implements"` literal in
+  analyze/build_flow/viewer/check_graph now reads the set. r50 updated: `Square.area -> Shape.area` is `overrides`.
+- Explorer: `REVERSED_LINKS` set, sand `extends`/`overrides` link colours and matrix cell, interface hollow /
+  abstract dashed-ring node shapes and legend chips. `check_graph` c21 now checks link type against its ends, new c22
+  for `overridden`, three new mutants.
+
+Docs: CLAUDE.md (two new top-level paragraphs, colour rules, sample note, c21/c22), TAXONOMY (kinds, `overridden`,
+`extends`/`overrides` rows), SKILL.md, README, ROADMAP #32 (what stays open: Python/JS inherited calls, TS interfaces
+and `implements` clauses, the unexplained exportAllMasterData, `overridden` only sees scanned subclasses),
+PROJECT_HISTORY, Thai guide QA counts (61/61, 42/42) and c21/c22 sentence.
+
+Verified: sample graphs identical to the pre-change snapshot except `PricingRule.kind` class -> interface; grades
+C73 / C70; `check_regressions` 61/61; `check_langs` 21/21; `check_graph` 31 checks OK on both maps, self-test 42/42;
+oracle 0 disagreements (sample and scripts); compileall clean; viewer scripts parse as classic scripts; `stale:
+false`. Nothing committed. Not verified: srs-eol-system -- the rerun decides the orphan count.
+
+
+## [130] 2026-09-14 — Explorer readability: names not paths, Flowchart view, file focus, node search
+
+**Prompt**
+> [screenshot of the Flow map on a 1,514-node Spring + Next.js repository]
+> 1. suggest best way to fix this tangled edge/link all of graph type is tangled I want it eisier to read
+> 2. node show only name path show in sidebar instead
+
+Plan-mode revision (rejecting the first plan's "untangle links" half):
+> Untangle links: every canvas view (request 1), in order of impact
+>
+> revise this
+>
+> instead
+>
+> 1. add new tab to view it as literally flow chart
+> 2. when click folder/file show only file that link to that folder/file, now its only lower opacity
+> 3. add serach box to serachable node
+
+Answers to the three questions asked: flowchart = "whole map as default but can select which node to display then hide other"; replace the old Flow tab (recommended); file focus = direct links only (recommended).
+
+**Response**
+First plan (rejected in part): level-of-detail labels, fading unrelated links on selection, and a folder-grouping d3 force. The user kept the label half and swapped the rest for the three features above.
+
+All code is in `templates/viewer.html`, viewer-only, and was built on the uncommitted interface/abstract/extends/overrides edits already in that file (not reverted). Applied as one Python patch that required every replacement to match exactly once.
+- `labelOf(n)`: the id minus the file qualifier `ids.py` adds to a shared name (tries path, path-without-extension, stem, like `ids._qualifiers`). A method keeps its class, so an unqualified `Foo.bar` in Foo.java stays. The written graph has no `name` field, which is why the viewer derives the label. It is used on the canvas, matrix labels, panel lists, status bar, `<h2>`, doc links, Patterns and Security. The panel sub-line adds the full id when it differs. Hull labels show only the folder's last segment.
+- The Flowchart replaces Flow (id `flow` kept). `layoutFlowchart()`: iterative DFS from uncalled nodes cuts cycles at back-links; columns = longest path over `outAdj` (reverse post-order); rows in folder order, then 4 barycenter sweeps; unlinked nodes go in a grid underneath; positions are pinned. `drawFlowBox` draws the box: layer bar (hollow for an interface, dashed border for an abstract class), the selection/risk stroke, and a name truncated with `measureText` and cached per node. `drawFlowLink` draws elbow links (loops under the boxes for same- or earlier-column targets) with the same colour/dash accessors, via `linkCanvasObjectMode` "replace" in flow and "after" elsewhere. Box hit area comes from `nodePointerAreaPaint`.
+- `visibleIds` + `computeVisible()` / `refocus()`, through `nodeVisibility` / `linkVisibility`. A file/folder filter keeps its nodes plus their direct neighbours (every canvas view) and hides the rest instead of dimming it. A Flowchart selection keeps its chain (Blast radius decides how far) and re-lays out; clearing brings back the whole map. The status bar counts visible nodes.
+- Search: ranked live results (name starts with, name contains, id/path contains), a `position: fixed` dropdown (the rail's overflow would clip it), row count capped to what fits under the box, with a "+N more" line; arrows/Enter/click select.
+- Fixed after testing: `zoomToFit` on an empty visible set drove the zoom to its 0.01 floor (my own probe used a folder name without its `sample_src/` prefix), so fitting is now guarded. The dropdown ran past the bottom of a 900px window (the box sits low in the rail), so rows are now capped to the space below it.
+
+Docs: the view list says Flowchart in README, CLAUDE.md, SKILL.md, PRESENTATION.html and both architecture guides. SKILL/README describe the search and file focus. CLAUDE.md gained a front-end paragraph (labelOf, visibleIds hides, Flowchart layout) and a layout rule (search lists, never scrolls). The toolbar numbers moved because "Flowchart" is 33px wider: full row ~803px (was ~770), compact ~560px (was ~527), floor ~1020px (was ~987), updated in CLAUDE.md, the viewer CSS comment, PRESENTATION and the Thai guide. The "~897 -> ~770" history sentences were left as records.
+
+Verified: both scripts parse as classic scripts; the sample rebuilds with 25/22 structure and 53/36 flow, grade C both; `check_docs` OK; installer `--self-test` OK (explorer fully offline). In the Browser pane, probed in page scope:
+- labelOf on synthetic ids (path-, stem- and class-qualified, overload, endpoint) gives the expected names;
+- Flowchart pins 53 nodes in 5 columns; `OrderWorkflow.place` focus leaves 4 nodes (6 with Blast radius), clear gives null;
+- `sample_src/frontend` filter gives 10 in the folder + 4 neighbours = 14 visible, 39 hidden, status "14/53 nodes";
+- search `price` finds both implementations and the declaration; a real Enter key selects;
+- all seven views switch with no console errors; the capped dropdown ends at 867px of 900px.
+
+A miss in my own testing: a `Return` key name did not reach the page as Enter, which looked like a bug until a real `Enter` was sent.
+
+Not verified: graph byte-identity against the pre-turn state. `flow_graph.json` / `graph.json` already had uncommitted changes from the previous turn, and I did not hash them before rebuilding. No Python file was touched, so the build output should not have moved, but that is reasoning, not a diff. Not tried on the user's real repository (path not given). Nothing committed.
+
+## [131] 2026-09-14 — Flowchart focus shows the whole flow, not just neighbours
+
+**Prompt**
+> [screenshot: Flowchart focused on OrderController.get_order showing only getOrder -> get_order -> find_order]
+> when focus it show caller and calle only
+>
+> it must show whole flow at start till end
+
+**Response**
+Cause: the Flowchart focus used `highlightNodes`, which follows the Blast radius toggle. The toggle is off by default, so a focus showed direct callers and callees only.
+
+Change (`viewer.html` `computeVisible`): a Flowchart selection now keeps `selected` + `reach(selected, inAdj)` + `reach(selected, outAdj)`. That is every caller back to where the flow starts and every callee down to where it ends, whatever Blast radius says; the toggle now only picks which links are highlighted. I also dropped the intersection with an active file filter: a flow cut at the filter's edge would look finished when it is not, which is the same complaint. A filter still applies when nothing is selected. CLAUDE.md's front-end paragraph was updated to match. The explorer was rebuilt and both scripts parse.
+
+Verified in the Browser pane with Blast radius off:
+- `OrderController.get_order` shows OrderCard, loadOrder, getOrder, get_order, find_order, OrderRepository.get (was 3 nodes);
+- `OrderWorkflow.place` shows OrderApiController.create, place, OrderArchive.save, PricingRule.price and both implementations through the implements links;
+- `getOrder` under the `sample_src/frontend` filter shows its full 6-node flow, and clearing the selection returns to the filter's 14;
+- no console errors.
+
+Nothing committed.
+
+## [132] 2026-09-14 — README: mascot and a Flowchart screenshot
+
+**Prompt**
+> [two images attached: the mole mascot, and a screenshot of the explorer's Flowchart view with OrderRepository.save selected]
+> place this mastcot into README and also place this flowchart into README as example of use
+
+**Response**
+Pasted images are not written to disk, so both had to be found or rebuilt. The mascot was in
+Downloads as `Gemini_Generated_Image_u6esbku6esbku6es-removebg.png` (2048px, 3.5 MB, transparent);
+it was cropped to its bounding box and shrunk to 434x480 (289 KB) as `docs/images/mascot.png`.
+The flowchart screenshot was not on disk anywhere, so it was regenerated rather than guessed at:
+a scratch copy of `data/explorer.html` with one appended script (`setView('flow')`,
+`selectNode('OrderRepository.save')`, then a `zoomFit` click) screenshotted by headless Chrome at
+1920x914. The first shot was clipped on the left -- the fit ran before the Flowchart layout
+settled -- so zoom-to-fit was delayed 1.5s; the second matched the user's screenshot
+(`docs/images/explorer-flowchart.png`, 86 KB). Only a scratch copy was modified; the committed
+explorer is untouched. One unrelated recent screenshot in Pictures was opened while searching
+and not used.
+
+README: the mascot is centred above the title; the screenshot sits right under the opening
+"How does a request reach the database?" trace, since it is that exact chain drawn by the
+explorer. `docs/images/` is outside package.json `files`, so npm installs do not carry the images.
+
+## [133] 2026-09-14 — /code-archaeologist-explorer: a separate skill for the page
+
+**Prompt**
+> create another command that call like /code-archaeologist-explorer to creat/init/replace explorer.html since normal /code-archaeologist is widely use
+
+**Response**
+Made it a second skill rather than a Claude-only `.claude/commands/` file, so every harness the
+installer supports gets it: `.agents/skills/code-archaeologist-explorer/SKILL.md`, nothing else.
+It owns no script. Its steps: pick roots (the user's, else `roots` from the main skill's
+`data/cache/manifest.json`, else `./src`, else ask); first-build preflight (Python + grammars);
+always `both` then `report` (the report re-renders the page with both reports embedded, so the
+health ring and review tabs are there); `build_html.py` only when the user asks to re-render
+without rebuilding; report the path, counts, grades and any `skipped` warning verbatim; open the
+file only if asked.
+
+Considered and rejected: a new `archaeologist.py explorer` subcommand. `both` + `report` already
+does it, and a new subcommand would have to move ARCHITECTURE_GUIDE (English and Thai) and
+PRESENTATION too, for no new behaviour.
+
+`bin/cli.js` installs the sibling at `<parent of skill dir>/code-archaeologist-explorer` through
+the same SKILL.md prefix rewrite (`writeSkillMd` now takes the source dir). Docs: README
+(installation paragraph + structure tree), USAGE (build section), CLAUDE.md (intro), main SKILL.md
+Command 8 points at it; `tools/check_docs.py` now checks the paths the new SKILL.md quotes.
+
+Verified: `check_docs: OK`; `node --check bin/cli.js`; installs into scratch with `--harness claude`
+(both folders under `.claude/skills/`, 4 rewritten command paths, no `.agents/` left) and
+`--dir .foo/skills/ca` (sibling at `.foo/skills/code-archaeologist-explorer`, paths rewritten to
+`.foo/skills/ca/scripts/...`). Not verified: invoking the slash command in a live Claude Code
+session. Nothing committed.
+
+## [134] 2026-09-14 — Tests checkbox unchecked by default
+
+**Prompt**
+> make Tests check box uncheck by default
+
+**Response**
+`templates/viewer.html`: dropped `checked` from `#showTests`. Nothing else had to move: `loadMap`
+already reads `el("showTests").checked` to decide whether test nodes are kept, and nothing resets
+the box, so the default holds across map switches. Re-rendered `data/explorer.html` with
+`build_html.py` (graphs untouched: structure 25/22, flow 53/36).
+
+Docs that described the checkbox as something you tick to *hide* tests now say it starts unchecked:
+SKILL.md Command 8, docs/USAGE.md (the "25 nodes -> 23" note), CLAUDE.md's front-end paragraph.
+
+Verified in the Browser pane, probing by bare name in the page's own scope: on load the flow map
+has `showTests.checked === false`, the toggle is visible, 51 nodes and 0 of them `layer: test`;
+clicking it gives 53, clicking again 51. No console errors. Nothing committed.
+
+## [135] 2026-09-14 — Explorer: empty canvas keeps focus; Freeze toggle
+
+**Prompt**
+> 1. make click blank space will not reset focus must click the reset button
+> 2. make freeze checkbox that will freeze current vie focus, then when user click other node/flowchart box it will not reset view to that workflow of that /mothod /class
+
+**Response**
+`templates/viewer.html`:
+1. Removed force-graph's `.onBackgroundClick(() => clearSelection())`. Empty canvas now clears
+   nothing; the toolbar reset does. Escape still clears the selection (a key, not a click) -- left
+   as it was and said so.
+2. New `Freeze` checkbox in `#toggles` (so it moves into the `⋯` menu with the others when the
+   toolbar compacts). The view is now built around a separate `focus` id instead of `selected`:
+   `computeVisible` narrows the Flowchart to `focus`'s flow. `selectNode` sets `focus` only when
+   Freeze is off, and under Freeze skips both the Flowchart re-narrow/fit and the other views'
+   fly-to; the panel and highlight still follow the click. Unticking catches the view up with the
+   selection. Blast-radius toggling under Freeze no longer re-fits. `clearSelection` (reset) and
+   `applyMap` clear `focus`.
+   First draft set `focus` only inside the Flowchart branch, which would have made a selection
+   made in Graph view show the whole map on switching to Flowchart; fixed before testing.
+
+Docs: CLAUDE.md (front-end focus paragraph; toolbar rule now lists Freeze and ~884px full row, was
+~803px), README explorer section, SKILL.md Command 8, the explorer skill's SKILL.md. Rendered
+`data/explorer.html`; both inline scripts parse as classic scripts; `check_docs: OK`.
+
+Verified in the Browser pane, page scope: Flowchart select `OrderRepository.save` -> its 6-node
+flow; Freeze on, select `OrderController.get_order` -> selection and panel move, visible ids
+identical to save's flow; Freeze off -> get_order's own 6 ids. Graph view with Freeze on: selecting
+`submitOrder` moved neither centre nor zoom (the first attempt reported "moved" because it sampled
+before `setView`'s own zoom-to-fit -- a test flaw); unticking flies to it. `Graph.onBackgroundClick()`
+is null; a real click on empty canvas left selection and focus; reset cleared both. No console
+errors. `FULL_NEED` measured 884. Nothing committed.
+
+## [136] 2026-09-14 — Hide the Folders toggle where it does nothing
+
+**Prompt**
+> folder check box work only in graph mode right? or maybe some other mode too
+> so hide it in tab/mode that not work like flowChart
+
+**Response**
+Answered from the code, not memory: `drawHulls` returns unless `view === "graph" || view === "cluster"`,
+and nothing else reads `#hulls`. So Folders works in **Graph and Cluster**, and is dead in Treemap,
+Matrix, Tree, Flowchart and Bundle.
+
+Change (`templates/viewer.html`): the label got an id, `hullsToggle`, and `setView` sets its
+`style.display` from the same condition `drawHulls` uses (inline style, like `testsToggle`, because
+`.toolbar label` / `.menu label` set `display` and would override a `hidden` attribute). `setView`
+then calls `fitToolbar()`: showing the label widens the row, and the `ResizeObserver` only fires
+when the toolbar itself resizes, so without the call a Treemap -> Graph switch at a borderline width
+could leave the row clipped until the next resize. Checked that the first top-level `setView` call
+(line ~1799) runs after `const toolbar` and `let FULL_NEED` exist, so it cannot hit the TDZ.
+
+A miss worth recording: I also added a re-measure inside `fitToolbar` (`if (!want) fitToolbar()`)
+on the theory that FULL_NEED could be measured with the label hidden and then be too small after
+switching back. My first two browser probes "passed" but proved nothing -- the preview pane was
+narrow, the toolbar already compact, so FULL_NEED was never re-measured (both views reported 884).
+A constructed probe (measure in Treemap while it fits, shrink, switch to Graph, widen to the
+midpoint of the two needs) did not clip with or without the line, because FULL_NEED is re-measured
+on every non-compact call and the `setView` call covers the switch. So the line came out again.
+
+Verified: both page scripts parse as classic scripts (`vm.Script`); `both --src ./sample_src` still
+25/22 and 53/36 (the two graph JSON diffs were uncommitted before this turn); `check_docs` OK; in
+the preview, on the rebuilt `data/explorer.html`, Folders is shown in graph/cluster and hidden in the
+other five, a sweep of toolbar widths 600-1000px across three view-switch orders found no clipping,
+and the console has no errors.
+
+Docs: CLAUDE.md layout rules gained "A toggle is shown only where it does something." Not committed
+(not asked).
+
+## [136] 2026-09-14 — Retest: fix the four wrong orphans; how to fix the frontend limits
+
+**Prompt**
+> [the user's retest report of a real Spring + Next.js repository: structure C (71) 1,707 edges, flow C (73) 3,270 edges, 51 flow orphans sorted into 14 wrong, 28 expected limits, 9 genuinely unused]
+> Wrong: 14 are really used and the tool misses it -- two MasterDataPreview.tsx files importing exportAllMasterData / exportMasterData / searchMasterData from same-named service files (4); SetdatNgReportMail's three `values(...)` overloads passed as `this::values`, which call the fourth `values(String...)` (4); MapStruct `@Mapping(expression = "java(toDisplayName(...))")` (4 mappers); `((UserSecurity) userDetails).getPlantIds()` in JwtAuthFilter.java:108.
+> Expected limits: 28 -- 19 setdat functions through an untyped `api` object, createUser/updateUser through `const save = ... ? updateUser : createUser`, getUserApiBaseUrl passed to createApiInstance, 6 i18n tag functions passed to t.rich.
+> 1. fix the wrong
+> 2. suggest me way to fix that limitation, now problem is only frontend right?
+
+**Response**
+No access to the repository, so each shape was rebuilt in a scratch tree (two Next apps, a mail
+class with overloads, a MapStruct interface, a cast) and run through `build_flow.analyze` first.
+All four failed as reported, and the scratch run showed why:
+- alias: `app-a` (no tsconfig `paths`) dropped all three calls, `app-b` (with `paths`) linked
+  them -- `_resolve_import`'s suffix fallback found two files and returned None. ROADMAP #32 had
+  called this "unexplained" because its repro had one file per suffix.
+- `values(String...)` came out as `values(_)`: `spread_parameter` has no `name`/`type` fields, so
+  the parameter was never read, and a varargs overload never matched an argument count.
+- MapStruct: nothing read annotation strings.
+- cast: the receiver `((UserSecurity)userDetails)` was text, untyped.
+
+Fixes: `js_ts_extract._package_root` keeps the suffix hit inside the importer's nearest
+package.json/tsconfig/jsconfig folder; `langs_extract._param_pairs` reads a spread parameter and
+`_overload_keys` marks its kind `...T`; `build_flow._pick_overload` tries varargs only when no
+fixed-arity overload fits (Java's order); `analyze.find_orphans` spares every overload of a set a
+node lists in `ambiguous` (a method reference still cannot pick one); `langs_extract._expression_calls`
+parses `java(...)` from `expression`/`defaultExpression`/`conditionExpression` with the Java grammar
+and reads it like a body; `_typed_call` types a parenthesised `cast_expression` (Java, Groovy, C# --
+dumped both trees first, same fields). `check_graph` c08 forbade call links out of a declaration,
+which a MapStruct mapper method is; it now allows only a callee spelled inside `java(` in that
+declaration's range. r62-r65 added, one per shape.
+
+Decision recorded rather than silently made: sparing a whole ambiguous overload set may leave an
+unused sibling unreported (ROADMAP #33). Varargs ids change from `name(_)` to `name(T[])` on real
+repositories.
+
+Verified: repro now links all four (two orphans left, both real top-level methods); sample rebuilt
+at 25/22 and 53/36, C (73) / C (70) -- its graph diff against HEAD is only the earlier uncommitted
+implements/renders/interface work, none of these shapes are in the sample; `check_graph` OK both
+maps, self-test 42/42; `check_regressions` 65/65; `check_langs` 21 languages, no failure;
+`check_py_oracle` 0 disagreements twice; compileall; `check_docs` OK.
+
+Question 2, answered in chat and recorded as ROADMAP #34 (needs a decision): yes, all 28 limits
+are JS/TS, and they are three shapes -- an untyped object (need the `const api = ...` line; likely
+"type a local by a function's single returned object literal"), a function chosen into a variable
+(resolve every branch as ordinary calls, no guarantee lost), and a function passed as a value (a new
+`passes` link, like `renders`: traced, not a call, counts as a use). Docs: CLAUDE.md, SKILL.md.
+Nothing committed.
+
+## [137] 2026-09-14 — Fix the three frontend limits, as general rules
+
+**Prompt**
+> [quoting my previous answer: "For this repo, yes: all 28 expected limits are JS/TS. ... The 28 come down to three patterns:"]
+> ok then how to fix these, and the fix my be dynamic that tied to this repo only
+
+**Response**
+Read "dynamic" as general extractor rules, not settings tied to one repository, and said so up
+front with an offer to switch. No access to the repository, so the `api` object's definition was
+unknown; covered the shapes the source can settle and named the ones it cannot.
+
+`js_ts_extract.py`: `_scope_bindings` reads a function's own `const`s -- names or `?:` / `||` /
+`??` of names (aliases), a call's result (results), and every parameter/local (declared).
+`_collect_calls` uses them: a call through an alias is a call to each branch; a member call through
+an alias of objects resolves on each; a member call on a call's result carries `via` to that
+function; and names handed over (call argument, object value inside one, JSX attribute, `new`
+argument) go in `passes`. `_returned_members` records `returns_members` when every return is one
+object literal naming functions under their own names (a local object and `useMemo(() => ({}))`
+included). Module-level passes go in `module_passes`. `_finish` records `export default setdatApi`
+when that name is an object.
+
+`build_flow._analyze_js`: renamed/default imports bound for member calls only (`renamed`); a `via`
+whose last hop returns an object naming the member resolves in that function's file; `passes`
+links resolved only through an import or to the passing file's own module function
+(`passed_node`), skipped where a calls/renders link exists; module passes set `entry: module`. The
+new `passes` link is handled like `renders`: out of calls/callers/precision (`analyze`), out of
+`analyze.app_edges`; `check_graph` accepts it and c23 requires the name in the caller's range,
+with a self-test; explorer colour sky dash-dot and matrix `#7dd3fc`.
+
+Miss: r66 failed on first run -- a prop `onDone` held in a `const` linked to another file's
+`onDone()`, because `_scope_bindings` was handed the body and the parameters sit beside it. Fixed by
+walking the owning function's parameters; also fixed a destructuring rule that would have declared a
+default value's name (`{ fmt = formatDate }`) and missed a renamed binding (`{ onDone: cb }`), which
+used `is` on tree-sitter nodes.
+
+Verified: sample unchanged (53/36, 0 passes links, C 73 / C 70); `check_graph` 32 checks OK both
+maps, self-test 43/43; `check_regressions` 68/68 (r66 chosen function, r67 passes + module entry +
+a local `row` not linked, r68 default/renamed import, hook-returned object, const-chosen object);
+`check_langs` 21; oracle 0; compile; `check_docs` OK. The explorer template's large diff against HEAD
+was checked to hold every earlier edit (Freeze, Tests, passes) -- it is uncommitted earlier work.
+
+Docs: CLAUDE.md (js_ts paragraph, analyze, link colours, c23), SKILL.md Command 10, TAXONOMY.md
+(`passes` row, `entry: module`), README language notes, ROADMAP "Update on #34". Still open: `api`
+as a prop or React context value; Python's passed functions. Nothing committed.
+
+## [138] 2026-09-14 — One skill folder: explorer becomes `/code-archaeologist explorer`
+
+**Prompt**
+> dont forget to update install must install 2 of skill
+> [interrupted, then: screenshot of `.agents/skills/` showing `code-archaeologist` and `code-archaeologist-explorer`]
+> anyway to add explorer in 1 folder code-archaeologist but agent know the command
+
+**Response**
+Answered yes, with the trade stated: a slash command's name comes from its own skill folder, so one
+folder means one command -- the explorer becomes an argument, `/code-archaeologist explorer
+[folders]`, instead of `/code-archaeologist-explorer`. The first note (install both) was superseded
+by the second, so the installer went back to one folder.
+
+Done: the explorer steps moved into the main SKILL.md as *Explorer only* (above Setup: roots from
+the argument, else the manifest's `roots`, else `./src`, else ask; preflight on a first build;
+`both` then `report`; report path, counts, grades and `skipped` warnings), a row in the command
+table, and a sentence in the frontmatter `description` so an agent sees the mode before loading the
+body. Command 8 points at the section instead of the other skill. Removed
+`.agents/skills/code-archaeologist-explorer/` (checked first: one untracked SKILL.md written in
+turn [133]). Reverted `bin/cli.js` to installing one folder (`writeSkillMd` back to its original
+signature) and changed its closing hint to `/code-archaeologist explorer`. `tools/check_docs.py`
+no longer lists the removed file. README (installation paragraph, structure tree), USAGE and
+CLAUDE.md now describe a mode of one skill; CLAUDE.md keeps one sentence saying it was briefly a
+sibling folder.
+
+Verified: `check_docs: OK`; `node --check bin/cli.js`; a scratch `--harness claude` install has
+only `.claude/skills/code-archaeologist`, and the Explorer only section's paths are rewritten to
+`.claude/skills/code-archaeologist/...`. The only remaining `code-archaeologist-explorer` outside
+this log is that CLAUDE.md sentence. Not verified: typing `/code-archaeologist explorer` in a live
+session. Nothing committed.
+
+## [139] 2026-09-14 — Revert to two skill folders
+
+**Prompt**
+> nah revert it, ok I accept the other main skill directory
+
+**Response**
+Reverted turn [138] completely, back to the state after [135]:
+- Recreated `.agents/skills/code-archaeologist-explorer/SKILL.md` with the same text [133] wrote,
+  including the Freeze and reset wording [135] added. The earlier file was deleted in [138] and was
+  never committed, so it was rewritten from this session's record rather than restored from git.
+- Main SKILL.md: removed the *Explorer only* section, its command-table row and the frontmatter
+  sentence; Command 8 points at `/code-archaeologist-explorer` again.
+- `bin/cli.js` installs the sibling folder again (`EXPLORER_SKILL`, `writeSkillMd(srcDir, ...)`),
+  with its closing hint back to `/code-archaeologist-explorer`.
+- `tools/check_docs.py`, README (installation paragraph, structure tree), USAGE and CLAUDE.md are
+  back to the two-folder wording. CLAUDE.md's "briefly a sibling folder" sentence is gone.
+
+Verified: `check_docs: OK`; `node --check bin/cli.js`; a scratch `--harness claude` install
+creates `code-archaeologist` and `code-archaeologist-explorer`, with the explorer skill's six
+command paths rewritten to `.claude/skills/code-archaeologist/...`; no "Explorer only" or
+"/code-archaeologist explorer" is left anywhere outside this log. Nothing committed.
+
+## [140] 2026-09-14 — Confirm an install brings both skills
+
+**Prompt**
+> dont forget that when user install must install these 2 skill
+
+**Response**
+Already the case after [139]; nothing changed. The scratch `--harness claude` install in [139]
+created both `code-archaeologist` and `code-archaeologist-explorer`. What that test could not show
+was packaging: `npx` installs from the npm package, not this checkout. `npm pack --dry-run` lists
+both `.agents/skills/code-archaeologist/SKILL.md` and `.agents/skills/code-archaeologist-explorer/SKILL.md`
+(package.json `files` includes `.agents/`), plus `bin/cli.js`; 161 files. So `npx ... --harness <x>`
+and `--dir` both install the pair. Nothing committed.
+
+## [141] 2026-09-14 — Four more misses from the second retest
+
+**Prompt**
+> Still wrong
+>
+> #	Problem	Visible in the code	Effect
+> 1	Any folder named data is skipped (SKIP_DIRS in taxonomy.py:91)	The master-data preview pages live under .../[projectId]/data/[maintenanceMasterDataType]/	6 files are missing from both maps: both MasterDataPreview.tsx, both masterDataPreviewConfig.ts, both page.tsx. The 4 service functions they call show as dead: exportAllMasterData ×2, plus the AAS exportMasterData and searchMasterData.
+> 2	forwardRef components aren't recognised	const Button = forwardRef<...>((props, ref) => ...), and RenderText the same	Both are missing from both maps. 51 files render them (172 uses), and none of those render links exist.
+> 3	Java pattern variables aren't read as typed locals	instanceof UserSecurity userSecurity at UserService.java:244, then userSecurity.getUserId() on line 247	UserSecurity.getUserId shows as dead.
+> 4	Destructuring from a typed hook isn't followed	const { api } = useSetdatVariant(), where api: SetdatApi and SetdatApi = typeof setdatService (SetdatVariantContext.tsx:13,37)	19 setdat service functions show as dead. The skill documents this as a known limit, but the type is written out in the code and the IDE finds these usages.
+>
+> this is  what cluade from srs project still tell me wrong/incorrect
+
+**Response**
+All four fixed as general rules, each behind a regression case that was shown to fail with its fix
+patched out (a scratch script swapped each fix back one at a time: all four cases failed).
+
+1. `taxonomy.SKIP_DIRS` no longer lists `data` (r69). It had been there since the first commit for
+   the skill's own output folder, which `_is_skill_copy` already skips; the list's own comment says
+   skipping source is the worse mistake. SKILL.md's skip list and CLAUDE.md updated.
+2. `js_ts_extract._wrapped_function` unwraps `forwardRef` / `memo` (bare, `React.`, nested), for
+   `const X = ...` and `export default memo(X)` (r70). Other HOCs deliberately not.
+3. `langs_extract._tree_locals` reads `instanceof_expression` (`name` field), Java `type_pattern`
+   and C# `declaration_pattern` (r71). Probed the grammar first: all three are named nodes in the
+   pinned wheels.
+4. Typed hook fields (r72). Did not have the user's file, so built the chain from the two lines
+   quoted and covered both likely hook shapes: `(): T` annotation, or no annotation with every
+   return being `useContext(Ctx)` (directly or through a local) and `createContext<T | null>`.
+   Extractor emits `types` (interface / object type alias props, `type X = typeof y`), `contexts`,
+   and per function `returns_type` / `returns_context`; `_scope_bindings` gains `picked` for
+   `const { api, x: y } = hook()`, and such a member call carries `via.field`. `build_flow` adds
+   `declared_in` (own file, import, single re-export), `field_of` and `typed_member`, ending in
+   r68's import/object member lookup. Negative case: an untyped hook's `{ api }` stays dropped.
+   `_returned_members`' return walk was factored into `_return_values`, shared with the new code.
+
+Verified: compileall; 72/72 regressions; sample unchanged (structure 25/22, flow 53/36, both C;
+the graph diff against HEAD is still only the earlier uncommitted work); `check_graph` OK both
+maps, 43/43 self-tests; `check_langs` 21 languages (only the usual route-table warnings);
+oracle 0 disagreements; `check_docs` OK. Docs: CLAUDE.md, SKILL.md (Notes, Command 10), README
+language notes, ROADMAP #35 (with what stays open: a prop typed the same way, generics/`Pick<>`,
+`ctx.api.x()` without destructuring). Nothing committed.
+
+## [142] 2026-09-16 — State the orphan rule: same standard as the IDE
+
+**Prompt**
+> please remember this in skill.md or reference or something, to tell when user use other agent other agent will not mark these case as incorrect since our skill detect same as what IDE do so this same code1 orphage is correct
+
+(Context earlier in the turn: the six next-intl tag orphans. I first argued `code1` is really used
+because `en.json` / `th.json` contain `<code1>`; the user's answer was "I dont care I care this
+skill will match same as IDE or visible code do", and then that only `bold` looks used in the
+editor -- which turns out to be the IDE's word search matching `font-bold` class strings, not a
+reference to `UPLOAD_SPECS_TAGS.bold`.)
+
+**Response**
+No behaviour changed -- this turn only writes the rule down, in the docs another agent reads.
+
+- **SKILL.md Command 10**, a new paragraph after the orphan rules: an orphan means "nothing in the
+  source calls this", never "this cannot run"; the same standard an IDE's *unused* hint uses. A
+  function a framework finds by matching a name held in **data** (a next-intl `t.rich` tag named
+  inside a translation JSON, a string-keyed bean, reflection) is an orphan **correctly**, for two
+  independent reasons: the link is written in a `.json`, and `t.rich(key, { ...TAGS })` hands over
+  the object, not its members, so no member gets a `passes` link. Includes the sentence to report
+  it with, and says explicitly that if another agent calls such an orphan wrong, both are true --
+  it runs, and no code references it -- and this skill answers the second question.
+- **README**, one bullet in the same words for a human evaluating the tool.
+- **CLAUDE.md**, in the `js_ts_extract` paragraph: the spread is deliberately not unpacked, and
+  neither following it nor reading message files may be added -- both would invent links.
+- **docs/PRESENTATION.html**, a second entry in `LIMITS` (Thai, identifiers in English). First
+  write used escaped quotes and would have broken the page's only script; caught by extracting
+  every inline `<script>` and parsing it with `vm.Script` (1 script, parses).
+- Memory: `judge-by-visible-code.md` plus its MEMORY.md line, so the standard survives the session.
+
+Verified: `check_docs: OK`; the presentation's script parses. Nothing committed.
+
+## [143] 2026-09-16 — Check the six proposed orphan fixes
+
+**Prompt**
+> (screenshot: a six-row table of proposed fixes for structure-map orphans -- return types/generics/
+> locals/`X.class`; `entry` on structure nodes; `extends` counting as use; namespace import in a type
+> position; references inside the defining file; an unverified duplicate module name)
+> check what should fix what should not
+>
+> and list me what need to fix
+
+**Response**
+No code changed this turn: the ask was a verdict. Checked every claim against the source rather
+than taking the table's word for it, and all six describe today's behaviour correctly, line
+numbers included:
+
+- `build_wiki.extract_lang_entities` really does collect only bases, field types, param types and
+  resolved call receiver types (so return types, generic arguments, locals, `X.class` and static
+  qualifiers produce nothing) -- #1 and #5 confirmed, and #5 is the same gap as #1.
+- `analyze.find_orphans` builds `has_caller` as `{call_direction(s,t,kind)[1]}`, and
+  `call_direction` flips every link in `INHERITANCE_LINKS`, so a base class with twelve incoming
+  `extends` links is never marked used -- #3 confirmed.
+- Structure nodes carry no `entry` at all: `build_wiki` writes none and `build_graph` copies only
+  entity/layer/kind/lang/source/end from front matter, while `find_orphans` checks `entry` -- #2
+  confirmed, and it is more plumbing than the table suggests.
+- `_names_used` reads call names, untyped-call `obj`, `constructs` and `components`, so no type
+  position counts -- #4 confirmed; the `types` data added in r72 already has what it needs.
+
+Two things the table got optimistic or wrong, both found by reading rather than assuming: a
+self-reference is already dropped (`target != entity` in build_graph, `r != ent["name"]` in
+render_entity), so #5's "2 cleared" may be 0 if the getters sit inside the class they return; and
+#2 must not spare `@Component` / `@Service` / `@Repository` wholesale -- that would end dead-class
+detection for a Spring app -- so the rule proposed instead is the narrow annotation set plus "any
+method of this class already carries `entry`".
+
+Recorded as ROADMAP finding #36 with the per-item verdict (do / do narrowly / already covered / do
+not), since #2 is a judgement the user has to make. Told the user: fix #1, #3, #4 and the narrow
+half of #2; #5 needs nothing of its own; #6 needs verification first. Nothing committed.
+
+## [144] 2026-09-16 — Name a decoration in the language's own word
+
+**Prompt**
+> [screenshot of `MaintenanceMasterDataRequest.md` -- a Java class whose `## Decorators`
+> section lists `Data`, `AllArgsConstructor`, `NoArgsConstructor`]
+>
+> about taxonomy
+>
+> decorators and annotation should select correctly
+>
+> like Java -> annotation
+> nest -> decorator
+
+**Response**
+Correct: Lombok's `@Data` is an *annotation*, and the vault note called it a decorator because
+`templates/wiki_page_template.md` hard-coded `## Decorators` for every language.
+
+The graph field stays one list -- all three producers read the same thing, whatever is written
+above a declaration, and renaming the field would churn every consumer for a cosmetic reason. Only
+the *heading* is per-language, and since CLAUDE.md says taxonomy owns every field value, the word
+lives there too: `taxonomy.DECORATION_TERMS` / `decoration_term(lang)` -- `Annotations` for
+Java/Kotlin/Groovy/Scala/Dart, `Attributes` for C#/Rust/Swift/PHP/Elixir, `Decorators` otherwise.
+C# is the case the prompt did not name: `[ApiController]` is an attribute, not an annotation.
+
+Four files: the new table and function in `core/taxonomy.py`; `## {{decorators_label}}` in
+`wiki_page_template.md`; one `out.replace` in `build_wiki.render_entity` (`{{decorators}}` is not a
+substring of `{{decorators_label}}`, so the two replaces do not collide); the row in
+`templates/TAXONOMY.md`, and the taxonomy bullet in `CLAUDE.md`.
+
+Which languages can actually fill the list today: `_annotations` covers java/groovy/csharp,
+`_gannos` only kotlin and rust, plus Python and JS/TS from their own producers. The rest (Go, C,
+Ruby, ...) always print an empty section and take the default -- noted in the table's comment
+rather than given a word they do not have.
+
+Verified: rebuilt `both` + `report` on the sample (25/22 and 53/36, grades C/C, unchanged).
+`OrderApiController` (java) -> `## Annotations`, `InvoiceController` (csharp) -> `## Attributes`,
+`OrderController` (py) and `OrderCard` (js) -> `## Decorators`. Only the 9 Java/C# vault notes
+changed; no graph byte moved. `check_docs` OK, `check_graph` 32 checks OK on both maps,
+`check_regressions` 72/72, `check_langs` all rows OK, `compileall` clean.
+
+## [144] 2026-09-16 — Implement four of the six orphan fixes
+
+**Prompt**
+> ok do it
+
+**Response**
+Implemented #1, #3, #4 and the narrow half of #2 from [143]'s verdict, one regression case each
+(r73-r76), each shown to fail with its fix patched out before it was kept.
+
+- **#1 type references** (r73): `langs_extract._type_refs` walks a class or method and collects
+  every type name its source states. The Java tree made this simpler than expected -- a probe
+  showed generic arguments, local declarations and `X.class` are all plain `type_identifier` nodes,
+  so one walk covers them; C# needs its `type_argument_list` identifiers, and `Constant.FIELD`
+  needs the capitalised-head rule `_type_name` already uses (skipped in Go, per the same reasoning
+  already in the code). Attached as `refs` on class and method entries; `build_wiki` unions it in.
+- **#2 structure `entry`** (r75): `taxonomy.container_entry` + `CLASS_ENTRY_ANNOTATIONS`
+  (`@SpringBootApplication`, `@Configuration`, `@Aspect`, `@ControllerAdvice`), else the first
+  `entry` one of the class's own methods carries; plus a Next.js module group's own convention.
+  New `entry:` line in `wiki_page_template.md`, written by `render_entity`, read by `build_graph`.
+  First run failed r75 on the value only -- `framework_entry` spells it `@Scheduled`, mine said
+  `Scheduled`; fixed in taxonomy so both maps spell it the same way. `@Service` deliberately does
+  not spare a class, and r75 asserts that.
+- **#3 inheritance marks both ends** (r74): one line in `find_orphans`, `overrides` excluded.
+- **#4 type positions count** (r76): `build_wiki._type_names` reads the file's `types` / `contexts`
+  (added in r72) into the module entity's `uses`.
+
+Verified: compileall; 76/76 regressions; sample rebuilt -- structure **25 nodes / 23 edges** (one
+new link: `RouterModule -> EventStore`, a Go declared type), flow 53/36 unchanged, grades still
+C(73) / C(70), orphans unchanged (`OrderPageModule`, and the five JS/TS flow ones); `check_graph`
+OK both maps with 43/43 self-tests; `check_langs` 21/21; oracle 0 disagreements; `check_docs` OK;
+`node bin/cli.js --self-test` OK. Docs: CLAUDE.md (expected numbers, langs_extract `refs`, analyze,
+taxonomy `container_entry`), SKILL.md, README, TAXONOMY.md's `entry` row, ROADMAP "Update on #36".
+Also corrected a stale QA answer in `ARCHITECTURE_GUIDE.th.html` that still quoted 22 edges, flow
+34 edges and grades D(69)/D(68) -- wrong before this turn, and in the sentence my change touched.
+Committed example data (vault pages, both graphs, reports, explorer) regenerated. Nothing committed
+to git.
+
+## [145] 2026-09-16 — Same-file references, layer word ends, and a stale docstring
+
+**Prompt**
+> (relayed from the user's other agent, reviewing the real repo after [144]: items #1-#4 of the
+> previous round are already shipped and the pasted analysis was stale -- it quoted the docstring
+> at build_wiki.py:385-388, not the code ten lines below it. What is actually left: 1. same-file
+> references are not drawn (`LayoutModule` holds `getMainContentMargin`, called by `AdminLayout` in
+> the same file; 0 of 385 in-edges to module nodes are same-file); 2. taxonomy.py:28 matches `repo`
+> and `store` as unanchored substrings -- 7 nodes misclassified, fabricating the report's only
+> layer violation; 3. fix the stale docstring; 4. layer never reads the package path (184/665
+> unknown); lower priority: 5. grade calibration after the richer references, 6. duplicates'
+> 30-token floor, 7. 1,388 methods with no description.)
+> this is what user agent said
+
+**Response**
+Verified both claims in a scratch tree before touching anything, and found item 1 is worse than
+reported: it affects **Python too**, not only JS/TS (`Page` calling a module-level `helper()` drew
+nothing either). The Java family was fine -- `class_locator` already picks the caller's own file.
+
+- **r77 same-file references**: `build_wiki._provided_names` maps each file's own names (an
+  entity's name; every function a module group holds, because a module group *is* its functions)
+  and a use of one becomes a reference to its owner, skipping self. JS reads it off the `uses` it
+  already collects; Python collected none, so `_called_names` walks bare calls (`helper()`,
+  `Page()`) -- a method call states a receiver, which is the flow map's question, not this one's.
+  The case asserts all three languages and that no node references itself.
+- **r78 layer words**: `(?![a-z])` on `repo`, `dao`, `store`, `api`, `record`. Checked the guard
+  does not cost matches that were right: `EventStore`, `OrderRepository`, `order_repository`,
+  `UserDao`, `OrderMapper` all still resolve, and `Viewer`-style words were left alone on purpose
+  (`view` + a suffix is still UI, so guarding it would lose a true match).
+- **The docstring**: rewritten to say what the code does, including `refs` from r73 and that
+  `class_locator` covers same-file for the Java family.
+
+Both new cases were shown to fail with their fix patched out (`_provided_names` -> {}, and the old
+regexes restored). Verified: compileall; 78/78 regressions; sample unchanged -- 25 nodes / 23
+links, grades C(73) / C(70), same orphans (no sample file calls across entities within one file);
+`check_graph` OK both maps, 43/43 self-tests; `check_langs` 21/21; oracle 0 disagreements;
+`check_docs` OK.
+
+Items 4-7 are judgement calls and went to ROADMAP #37 with recommendations rather than being
+implemented: layer-from-path as a **fallback only**; grade calibration made relative (their
+C(71) -> D(62) is a direct consequence of [144] -- a more accurate map scored worse, which is the
+wrong direction, and fixing it changes every grade this tool has printed); a per-language duplicate
+floor (~40 tokens for Java); descriptions as a standing item. Docs updated: CLAUDE.md (js_ts
+references, taxonomy layer words), SKILL.md, README. Nothing committed.
+
+## [146] 2026-09-16 — Layer from the folder; the duplicates floor stays where it is
+
+**Prompt**
+> (round 9 results from the user's other agent: structure 665/2,410 (+22), flow 1,978/3,456, dead
+> 3 -> 2, layer violations 1 -> 0, grade D 62 -> D 66. All three [145] fixes verified on the real
+> repository -- 35 same-file links drawn and every one checked, 0 self-links, the fabricated
+> PnoDataReportMail violation gone, the real cycle still reported. They retract their own
+> duplicates-floor advice: 37 of 233 clusters sit at 30-39 tokens and that band holds the
+> AAS/normal parallel-family duplication; the narrow fix would be skipping single-statement
+> bodies. One defect left: layer never reads the package path, 189/665 unknown, ~60 of the 149
+> Java ones named by their folder. Grade calibration unchanged and "still not a bug".)
+> check it
+
+**Response**
+Checked both open items against the code before acting.
+
+- **Their retraction is well-founded, and there is a second reason they did not mention**:
+  `MIN_TOKENS` is not only the cluster floor, it also fixes the winnowing window
+  (`W = MIN_TOKENS - K + 1`), which is what guarantees a shared run long enough to report cannot
+  slip past the fingerprints. Raising it would have changed the block pass's guarantee too, not
+  just the cluster cut-off. ROADMAP #37 item 6 now records the withdrawal, their band data, and
+  why the narrower "skip single-statement bodies" is not free either: `duplicates.py` never
+  re-parses, so "one statement" has to be counted off the token shape, which is a
+  language-specific heuristic in the one pass that has none. Left for the user to decide.
+- **Layer from the folder implemented** (r79), as the fallback both of us recommended:
+  `taxonomy.PATH_LAYERS` + `layer_from_path`, exact folder name, nearest first, consulted only
+  after annotations and the name rules. `api` is deliberately not in the table -- half a repository
+  lives under `api/`, and matching it would repeat exactly the mistake r78 just fixed -- and
+  `util` / `exception` / `constant` / `integration` are absent so they stay `unknown`, which is
+  their own analysis of the remaining ~90. The path had to reach `infer_layer` from seven call
+  sites (six in build_flow, one in build_wiki); r79 asserts the unit rules *and* one end-to-end
+  build, because plumbing is what would silently not arrive.
+- Their item 5 dissent is recorded next to my recommendation rather than resolved: both readings
+  can be true, and 142 hubs / 45 god objects out of 665 is either a very tangled repository or a
+  threshold that has stopped discriminating.
+
+Verified: compileall; 79/79 regressions; sample rebuilt -- 25 / 23 and 53 / 36 unchanged, grades
+still C(73) / C(70), no new layer violations, and the only movement is the three pricing classes
+going `unknown` -> `service` from their `services/` folder, so the sample now has **no** `unknown`
+node; `check_graph` OK both maps with 43/43 self-tests; `check_langs` 21/21; oracle 0
+disagreements; `check_docs` OK. Docs: CLAUDE.md (taxonomy bullet + the expected-numbers line),
+SKILL.md, TAXONOMY.md's `{{layer}}` row, ROADMAP #37 items 4/5/6. Nothing committed.

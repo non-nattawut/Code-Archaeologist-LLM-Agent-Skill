@@ -50,7 +50,7 @@
     },
     {
       "id": "FlatRate.price",
-      "layer": "unknown",
+      "layer": "service",
       "kind": "method",
       "cls": "FlatRate",
       "signature": "price(request)",
@@ -94,9 +94,6 @@
           "method": "GET",
           "path": "/orders/:id/status"
         }
-      ],
-      "precision": [
-        "name-matched"
       ]
     },
     {
@@ -292,10 +289,7 @@
       "source": "sample_src/frontend/OrderCard.tsx:11",
       "end": 27,
       "lang": "js",
-      "ext": 3,
-      "precision": [
-        "name-matched"
-      ]
+      "ext": 3
     },
     {
       "id": "OrderController.__init__",
@@ -463,9 +457,6 @@
           "method": "POST",
           "path": "/nest/orders"
         }
-      ],
-      "precision": [
-        "name-matched"
       ]
     },
     {
@@ -484,9 +475,6 @@
           "method": "GET",
           "path": "/nest/orders/:id"
         }
-      ],
-      "precision": [
-        "name-matched"
       ]
     },
     {
@@ -503,7 +491,7 @@
     },
     {
       "id": "PricingRule.price",
-      "layer": "unknown",
+      "layer": "service",
       "kind": "method",
       "cls": "PricingRule",
       "signature": "price(request)",
@@ -524,14 +512,11 @@
       "source": "sample_src/frontend/OrderCard.tsx:6",
       "end": 8,
       "lang": "js",
-      "ext": 0,
-      "precision": [
-        "name-matched"
-      ]
+      "ext": 0
     },
     {
       "id": "TieredRate.price",
-      "layer": "unknown",
+      "layer": "service",
       "kind": "method",
       "cls": "TieredRate",
       "signature": "price(request)",
@@ -557,9 +542,6 @@
           "method": "POST",
           "url": "/invoices"
         }
-      ],
-      "precision": [
-        "name-matched"
       ]
     },
     {
@@ -578,9 +560,6 @@
           "method": "POST",
           "url": "/orders"
         }
-      ],
-      "precision": [
-        "name-matched"
       ]
     },
     {
@@ -600,9 +579,7 @@
           "path": "/api/orders"
         }
       ],
-      "precision": [
-        "name-matched"
-      ]
+      "entry": "module"
     },
     {
       "id": "getOrder",
@@ -620,9 +597,6 @@
           "method": "GET",
           "url": "/orders/:orderId"
         }
-      ],
-      "precision": [
-        "name-matched"
       ]
     },
     {
@@ -637,6 +611,9 @@
       "lang": "js",
       "ext": 1,
       "unresolved": [
+        "get"
+      ],
+      "untyped": [
         "get"
       ],
       "http": [
@@ -661,6 +638,9 @@
       "lang": "js",
       "ext": 1,
       "unresolved": [
+        "get"
+      ],
+      "untyped": [
         "get"
       ],
       "http": [
@@ -701,10 +681,7 @@
       "source": "sample_src/frontend/order_page.ts:8",
       "end": 13,
       "lang": "js",
-      "ext": 2,
-      "precision": [
-        "name-matched"
-      ]
+      "ext": 2
     },
     {
       "id": "loadOrderHistory",
@@ -716,10 +693,7 @@
       "source": "sample_src/frontend/order_page.ts:16",
       "end": 18,
       "lang": "js",
-      "ext": 0,
-      "precision": [
-        "name-matched"
-      ]
+      "ext": 0
     },
     {
       "id": "order_detail",
@@ -789,10 +763,7 @@
       "source": "sample_src/api_express/order_router.js:17",
       "end": 19,
       "lang": "js",
-      "ext": 0,
-      "precision": [
-        "name-matched"
-      ]
+      "ext": 0
     },
     {
       "id": "submitOrder",
@@ -804,10 +775,7 @@
       "source": "sample_src/frontend/order_page.ts:4",
       "end": 6,
       "lang": "js",
-      "ext": 0,
-      "precision": [
-        "name-matched"
-      ]
+      "ext": 0
     },
     {
       "id": "test_place_order_charges_and_saves",
@@ -832,6 +800,11 @@
       "source": "EventService.Record",
       "target": "EventStore.Append",
       "type": "calls"
+    },
+    {
+      "source": "FlatRate.price",
+      "target": "PricingRule.price",
+      "type": "implements"
     },
     {
       "source": "InvoiceController.Create",
@@ -872,6 +845,11 @@
       "source": "OrderApiController.findOne",
       "target": "OrderWorkflow.find",
       "type": "calls"
+    },
+    {
+      "source": "OrderCard",
+      "target": "StatusBadge",
+      "type": "renders"
     },
     {
       "source": "OrderCard",
@@ -922,6 +900,11 @@
       "source": "OrderWorkflow.place",
       "target": "PricingRule.price",
       "type": "calls"
+    },
+    {
+      "source": "TieredRate.price",
+      "target": "PricingRule.price",
+      "type": "implements"
     },
     {
       "source": "createOrder",

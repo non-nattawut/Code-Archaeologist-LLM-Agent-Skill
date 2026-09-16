@@ -15,8 +15,8 @@ public class OrderWorkflow {
     /** Price the order and store the result. */
     public Order place(OrderRequest request) {
         // `pricing` is an interface with two implementations, so which `price`
-        // runs here is a runtime fact. The extractor drops this call rather than
-        // picking one of them -- see PricingRule.java.
+        // runs here is a runtime fact. This call links to the declaration, and each
+        // implementation links to it with `implements` -- see PricingRule.java.
         int total = pricing.price(request);
         return archive.save(request, total);
     }

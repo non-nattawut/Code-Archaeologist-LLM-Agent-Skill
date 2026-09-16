@@ -5,6 +5,7 @@ source: sample_src/backend/tests/test_orders.py:19
 end: 25
 kind: class
 lang: py
+entry: 
 ---
 # OrderRepositoryTest
 

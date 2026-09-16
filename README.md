@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/images/mascot.png" alt="Code Archaeologist mascot: a mole in an explorer hat holding a tablet of code" width="240">
+</p>
+
 # Code Archaeologist
 
 **A codebase map your AI agent can query instead of reading your whole repo.**
@@ -15,6 +19,11 @@ is **named and skipped**, never silently dropped.
              > OrderService.place_order > OrderRepository.save
   read   ->  5 notes (~1,500 tokens)     instead of the whole repo
 ```
+
+The same question in the explorer: pick `OrderRepository.save` in the **Flowchart** view and it
+shows every path that reaches it, plus its blast radius (built from the bundled `sample_src/`):
+
+![Explorer Flowchart view: the call chain from submitOrder, orders and a test to OrderRepository.save, with its blast radius in the side panel](docs/images/explorer-flowchart.png)
 
 ---
 
@@ -164,9 +173,9 @@ it or email it.
 
 - **Left** — health ring (A–F), color-by (layer / folder / churn / risk), stat tiles, language
   mix, and a file tree that filters the canvas.
-- **Center** — seven views of the same graph: Graph, Treemap, Matrix, Tree, Flow, Cluster, Bundle.
-  Plus folder hulls, a blast-radius toggle, and an overflow menu (`⋯`) holding zoom, fit and
-  PNG export.
+- **Center** — seven views of the same graph: Graph, Treemap, Matrix, Tree, Flowchart, Cluster, Bundle. Nodes are labelled by name (the path is in the side panel); clicking a file or folder hides every node it does not link to directly, and the Flowchart narrows to a selected node's chain.
+  Plus folder hulls, a blast-radius toggle, a **Freeze** toggle that holds the current view while
+  you click through its nodes, and an overflow menu (`⋯`) holding zoom, fit and PNG export.
 - **Right** — **FILE** (what it does, blast radius, connections, git ownership, risks),
   **PATTERNS** (cycles, layer violations, hubs, god objects, dead code), **SECURITY** (findings by
   severity). All click through into each other.
@@ -175,7 +184,8 @@ Both side panels drag to resize from their inner border. In the tree, `+`/`–` 
 clicking its name filters the canvas — two separate controls. The explorer fills whatever the
 panels above it leave, so fold one from its heading to give the tree more room. Dragging a node
 pins it where you drop it, so the **reset** button in the toolbar throws the layout away and
-re-runs it from scratch — along with the current selection and filter.
+re-runs it from scratch — along with the current selection and filter. Clicking empty canvas
+does not clear a selection; reset does.
 
 ---
 
@@ -209,15 +219,52 @@ What that means for the edges:
 
 - **A call is drawn only when the receiver's type is in the source** — a field, a parameter,
   `new Foo()`, an annotation — so every call graph is a lower bound. Typed languages resolve like
-  Java; Ruby, PHP, Elixir, Groovy and untyped JS/TS calls are `name-matched`.
+  Java; a node that drops a call through an untyped receiver — common in Ruby, PHP, Elixir, Groovy
+  and JS/TS — is `name-matched`.
 - **What cannot be resolved is dropped, never guessed.** An interface call stops at the interface
-  (`OrderWorkflow.place → PricingRule.price`); each overload is its own node, and a call that still
+  (`OrderWorkflow.place → PricingRule.price`), and each implementation carries an `implements` link
+  to it, so traces reach every implementation without claiming which one runs — unless the source settles
+  which Spring bean is injected, and then the call links to that bean; each overload is its own node, and a call that still
   fits two is dropped (`overloads`); a name defined in several files is qualified by its file. The
   node names its loss, and the explorer shows it as a chip.
 - **A missing grammar is named, not silent**: its files are skipped with the exact `pip install`.
 - **Test files are recognized in every language** and tagged `layer: test`, so test code is never
   dead code and its calls never count as coupling.
-- **Proven on real repositories:** Python, JS/TS and Java. The other languages and the four route
+- **The object model is in the graph**: classes are `interface`, `abstract` or `class`; a class
+  `implements` an interface or `extends` a class; a method `implements` a declaration or
+  `overrides` a body; and a default body every subclass replaces is reported as **overridden**
+  (never runs today), not as dead code. A class name two applications share is settled by package
+  and imports, an inherited helper called with no receiver reaches its base class, and a local's
+  declared type (`Dto d = read()`) types its calls.
+- **Code a framework calls is never dead code**: Spring `@Scheduled` / `@Bean` / `@EventListener` /
+  aspect methods, `@Override` / `override` methods, `main`, and Next.js pages, layouts and route
+  handlers carry a named `entry`, and so does a function a module calls as it loads or a field
+  initializer, initializer block, constructor or Go package var calls. Java method
+  references (`this::clearBin`) are calls, a call on another call's result is typed from declared
+  return types (Lombok getters included), a call through a global resolves (a Python module-level
+  or imported instance, a Kotlin top-level `val`, a Go package `var`, `Registry.STORE.save()`),
+  `api.x()` resolves through an imported instance, a
+  barrel re-export, an object of functions (imported under any name, chosen by a `const`, or
+  returned by a hook: `const api = useApi()`), a typed hook field (`const { api } = useVariant()`
+  where the return type or `createContext<T>` says `api: typeof service`), and `<Child />` is a
+  `renders` edge in the flow map; `forwardRef` / `memo` components are components. A Java or C#
+  pattern variable (`x instanceof UserSecurity us`) types its calls.
+  A `const save = id ? update : create` call links to both, and a function handed over
+  (`onClick={fn}`, `rows.map(fn)`) gets a `passes` link. One reached through a prop still has no
+  caller.
+- **A class is referenced by every type its users name**: field, parameter and return types, each
+  generic argument inside them (`GlobalResponse<PaginationResponse<UserResponse>>` is three
+  references), local declarations, `X.class`, the class a static constant is read from, and a name
+  the same file defines (a component calling a helper beside it). A base
+  class is used by whatever extends it, and a class a framework builds and calls into
+  (`@SpringBootApplication`, `@Configuration`, `@Aspect`, or one with a `@Scheduled` method) is
+  never dead — but `@Component` / `@Service` alone does not spare one.
+- **Dead code means "no code references it"**, the standard an IDE's *unused* hint uses — not "it
+  never runs". A function a framework finds by a name held in data (a next-intl `t.rich` tag named
+  inside a translation JSON, a string-keyed bean, reflection) is listed as an orphan on purpose;
+  so is a member of an object passed whole (`t.rich(key, { ...TAGS })`), which hands over the
+  object, not its members. Check message and config files before deleting one.
+- **Proven on real repositories:** Python, JS/TS (Next.js included) and Java. The other languages and the four route
   tables pass hand-written fixtures only.
 
 ---
@@ -253,6 +300,13 @@ Use `--dir <path>` for anywhere else. Other flags: `--target <dir>`, `--force`, 
 
 The installer checks for Python 3.10+, copies the skill in, and creates an empty `data/` workspace.
 It has no npm dependencies of its own.
+
+It also installs a second, single-purpose skill beside the first, `code-archaeologist-explorer`
+(e.g. `.claude/skills/code-archaeologist-explorer`). Ask for **`/code-archaeologist-explorer`**
+when all you want is the page: it builds both maps and the review report, then creates or replaces
+`data/explorer.html`. Pass folders to map a different root:
+`/code-archaeologist-explorer ./backend ./frontend`. It has no scripts of its own; it runs the main
+skill's.
 
 ---
 
@@ -316,12 +370,16 @@ It has no npm dependencies of its own.
 └── data/
     ├── explorer.html     both maps, one page
     ├── structure/  flow/  report/  cache/
+
+.agents/skills/code-archaeologist-explorer/
+└── SKILL.md              /code-archaeologist-explorer: build, report, render explorer.html
 ```
 
 Alongside the skill, in the repo but never installed:
 
 ```
 tests/fixtures/langs/      one small fixture per graphed language + expected.json
+tests/fixtures/ts_imports/ a minimal Next.js app: tsconfig aliases, import bindings, file conventions
 tools/                     check_docs.py · check_langs.py · check_py_oracle.py
                            check_graph.py (the graph's invariants) · check_regressions.py
                            time_build.py (wall time per stage, corpora read-only)

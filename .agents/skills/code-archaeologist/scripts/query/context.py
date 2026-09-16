@@ -32,7 +32,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from paths import DATA_DIR, skill_rel  # noqa: E402  (also puts sibling script dirs on sys.path)
-from taxonomy import PRECISION_NOTES  # noqa: E402  (one definition of the precision vocabulary)
+from taxonomy import PRECISION_NOTES, call_direction  # noqa: E402  (precision vocabulary; link direction)
 REPORT_DIR = os.path.join(DATA_DIR, "report")
 DEFAULT_GRAPH = os.path.join(DATA_DIR, "flow", "flow_graph.json")
 
@@ -86,7 +86,7 @@ def build(graph_path: str, node_ids: list[str], depth: int = 1, cap: int = NEIGH
     out: dict[str, list[str]] = {}
     inc: dict[str, list[str]] = {}
     for e in graph.get("edges", []):
-        s, t = e.get("source"), e.get("target")
+        s, t = call_direction(e.get("source"), e.get("target"), e.get("type", ""))
         if s in nodes and t in nodes:
             out.setdefault(s, []).append(t)
             inc.setdefault(t, []).append(s)

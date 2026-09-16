@@ -1211,14 +1211,14 @@
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('build_wiki.py')">scripts/extract/build_wiki.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('taxonomy.py')">scripts/core/taxonomy.py</span></td>
-              <td><span class="matrix-fn">infer_layer(), is_test_path(), SKIP_DIRS</span></td>
+              <td><span class="matrix-fn">infer_layer(), is_test_path(), source_dirs()</span></td>
               <td>path ของไฟล์, kind, name</td>
               <td>การกำหนด architectural layer (<code>controller</code>, <code>model</code>, <code>test</code>, etc.)</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('py_extract.py')">scripts/extract/py_extract.py</span></td>
-              <td><span class="matrix-fn">parse(), read_source(), field(), defs_in()</span></td>
+              <td><span class="matrix-fn">parse(), read_source(), field(), defs_in(), load_time_calls()</span></td>
               <td>path ของไฟล์ Python / source bytes</td>
               <td>method definition, AST statement, call expression</td>
             </tr>
@@ -1345,6 +1345,1197 @@
       <!-- Generated Cards inserted here -->
     </div>
   </section>
+
+  <!-- ===================================================================
+       Judge Q&A bank (Thai only).
+       Not mirrored in ARCHITECTURE_GUIDE.html on purpose: it is rehearsal
+       material for a Thai presentation, not part of the architecture guide's
+       structure. Uses only qa-* classes, so the fc-* counts that must match
+       between the two files are untouched.
+       =================================================================== -->
+  <style>
+    .qa-section {
+      max-width: 1280px; margin: 0 auto; padding: 56px 32px 96px;
+      border-top: 1px solid var(--rule); box-sizing: border-box;
+    }
+    .qa-intro { color: var(--ink-2); max-width: 92ch; margin: 0 0 18px; }
+    .qa-intro strong { color: var(--ink); }
+    .qa-bar {
+      position: sticky; top: 0; z-index: 20; background: var(--ground);
+      border-bottom: 1px solid var(--rule); padding: 12px 0; margin-bottom: 18px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .qa-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .qa-row .search-input { min-width: 240px; }
+    .qa-btn {
+      background: var(--panel); border: 1px solid var(--rule); border-radius: 6px;
+      padding: 8px 12px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-2);
+      cursor: pointer; white-space: nowrap;
+    }
+    .qa-btn:hover { border-color: var(--accent); color: var(--ink); }
+    .qa-cats { display: flex; gap: 6px; flex-wrap: wrap; }
+    .qa-cat {
+      background: var(--panel); border: 1px solid var(--rule); border-radius: 14px;
+      padding: 4px 11px; font-size: 12px; color: var(--ink-2); cursor: pointer;
+      font-family: var(--sans); line-height: 1.6;
+    }
+    .qa-cat small { font-family: var(--mono); color: var(--ink-3); margin-left: 5px; font-size: 10.5px; }
+    .qa-cat:hover { border-color: var(--rule-lit); color: var(--ink); }
+    .qa-cat.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+    .qa-cat.active small { color: var(--accent); }
+    .qa-status { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+    .qa-group-head {
+      font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--accent); margin: 30px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--rule);
+      display: flex; justify-content: space-between; gap: 12px;
+    }
+    .qa-group-head span:last-child { color: var(--ink-3); letter-spacing: 0; }
+    .qa-list { display: flex; flex-direction: column; gap: 6px; }
+    .qa-item {
+      background: var(--panel); border: 1px solid var(--rule); border-radius: 6px;
+      transition: border-color .12s;
+    }
+    .qa-item:hover { border-color: var(--rule-lit); }
+    .qa-item[open] { border-color: var(--rule-lit); background: var(--raised); }
+    .qa-item.flash { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+    .qa-item summary {
+      list-style: none; cursor: pointer; padding: 10px 14px; display: flex; gap: 12px;
+      align-items: baseline;
+    }
+    .qa-item summary::-webkit-details-marker { display: none; }
+    .qa-num {
+      font-family: var(--mono); font-size: 11px; color: var(--ink-3); flex: none; min-width: 42px;
+    }
+    .qa-item[open] .qa-num { color: var(--accent); }
+    .qa-q { flex: 1; color: var(--ink); font-size: 14px; line-height: 1.65; }
+    .qa-q::after { content: "+"; float: right; font-family: var(--mono); color: var(--ink-3); margin-left: 10px; }
+    .qa-item[open] .qa-q::after { content: "\2212"; color: var(--accent); }
+    .qa-body { padding: 0 16px 14px 68px; display: flex; flex-direction: column; gap: 8px; }
+    .qa-short {
+      border-left: 2px solid var(--accent); background: var(--accent-dim);
+      padding: 6px 12px; border-radius: 0 4px 4px 0; color: var(--ink); font-size: 13.5px;
+    }
+    .qa-short::before {
+      content: "ตอบสั้น"; display: block; font-family: var(--mono); font-size: 9.5px;
+      letter-spacing: .1em; color: var(--accent); text-transform: uppercase;
+    }
+    .qa-detail { color: var(--ink-2); font-size: 13px; line-height: 1.8; }
+    .qa-body code, .qa-q code {
+      font-family: var(--mono); font-size: .88em; color: var(--accent);
+      background: var(--ground); border: 1px solid var(--rule); border-radius: 3px; padding: 0 4px;
+    }
+    .qa-empty { color: var(--ink-3); font-style: italic; padding: 24px 0; }
+    @media (max-width: 720px) { .qa-body { padding-left: 16px; } }
+  </style>
+
+  <section class="qa-section" id="judge-qa">
+    <div class="section-eyebrow">เตรียมตอบกรรมการ</div>
+    <h2>คลังคำถาม-คำตอบเชิงเทคนิค (<span id="qaTotal">0</span> ข้อ)</h2>
+    <p class="qa-intro">
+      รวมคำถามที่กรรมการน่าจะถามหลังการนำเสนอ ตั้งแต่แนวคิด Zero-RAG ไปจนถึงรายละเอียดของ algorithm
+      แต่ละข้อมี <strong>ตอบสั้น</strong> (ประโยคที่พูดได้ทันที) และ <strong>รายละเอียด</strong> (ตัวเลข เหตุผล และที่มาในโค้ด)
+      ทุกตัวเลขอ้างอิงจากผลที่วัดจริงใน repo นี้ &mdash; ถ้าคำตอบคือ "ยังทำไม่ได้" หรือ "ยังไม่ได้วัด" ก็เขียนไว้ตรง ๆ
+      เพราะวิธีที่เร็วที่สุดในการเสียความน่าเชื่อถือคือการขายเกินจริง
+    </p>
+
+    <div class="qa-bar">
+      <div class="qa-row">
+        <input type="text" id="qaSearch" class="search-input" placeholder="ค้นคำถามหรือคำตอบ (เช่น overload, Tarjan, deterministic, ความแม่น)..." oninput="qaApply()">
+        <button class="qa-btn" onclick="qaOpenAll(true)">เปิดทั้งหมด</button>
+        <button class="qa-btn" onclick="qaOpenAll(false)">ปิดทั้งหมด</button>
+        <button class="qa-btn" onclick="qaRandom()">สุ่มคำถาม (ซ้อมตอบ)</button>
+        <span class="qa-status" id="qaStatus"></span>
+      </div>
+      <div class="qa-cats" id="qaCats"></div>
+    </div>
+
+    <div id="qaList"></div>
+  </section>
+
+  <script>
+    // [category, question, short answer, detail]. HTML is allowed in all three text fields.
+    const QA_CATS = [
+      ["concept", "แนวคิด &amp; คุณค่า"],
+      ["arch", "สถาปัตยกรรม &amp; Pipeline"],
+      ["parse", "Parser &amp; ภาษา"],
+      ["graph", "การสร้างกราฟ &amp; Resolution"],
+      ["route", "Route &amp; Cross-stack"],
+      ["review", "Health grade &amp; การวิเคราะห์กราฟ"],
+      ["passes", "Security · Metrics · Duplicates · Debt · Tests · Git"],
+      ["query", "Query &amp; Agent workflow"],
+      ["determ", "Determinism · Freshness · AI descriptions"],
+      ["ui", "Explorer (viewer.html)"],
+      ["verify", "การทดสอบ &amp; ความน่าเชื่อถือ"],
+      ["install", "ติดตั้ง · Dependency · Windows"],
+      ["perf", "Performance &amp; Scale"],
+      ["limits", "ข้อจำกัด &amp; Roadmap"],
+      ["compare", "เทียบกับเครื่องมืออื่น"],
+      ["process", "กระบวนการพัฒนา"]
+    ];
+    const QA = [];
+  </script>
+
+  <script>
+  QA.push(
+    ["concept", "Code Archaeologist คืออะไร อธิบายในประโยคเดียว",
+     "เอนจินที่อ่าน source ด้วย parser จริง แล้วสร้างแผนที่กราฟสองชุด (Structure และ Flow) ให้ AI agent <em>query</em> แทนการอ่านทั้ง repo",
+     "ผลลัพธ์คือ graph JSON, โน้ต Markdown หนึ่งใบต่อหนึ่ง node, รายงานรีวิว และ <code>explorer.html</code> ไฟล์เดียว agent ตอบคำถามเชิงสถาปัตยกรรมด้วยการเดินกราฟ แล้วอ่านเฉพาะโน้ตของ node ที่อยู่บน path ที่ได้"],
+    ["concept", "“Zero-RAG” หมายความว่าอะไร",
+     "ไม่มี embedding, ไม่มี vector database, ไม่มี similarity search — การค้นคืนทั้งหมดคือการเดินกราฟที่ได้จากการ parse",
+     "RAG หั่นโค้ดเป็นก้อนละประมาณ 500 tokens แล้วค้นด้วยความคล้าย ซึ่งทำลายสองอย่างที่คำถามสถาปัตยกรรมต้องการพอดี: <strong>ขอบเขตของหน่วยโค้ด</strong> (รอยตัดตกกลางฟังก์ชันได้) และ <strong>ลำดับการเรียก</strong> (similarity ไม่รู้ว่าเมธอดไหนเรียกเมธอดไหน)"],
+    ["concept", "ปัญหาที่แก้คืออะไร และใครเจ็บปวดกับมัน",
+     "agent ที่ต้องตอบว่า “request ไหลอย่างไร” หรือ “แก้ X แล้วอะไรพัง” ต้องอ่านไฟล์จำนวนมาก — เปลือง token, ช้า และตอบไม่เหมือนเดิมทุกครั้ง",
+     "ผู้ใช้ปลายทางมีสามกลุ่ม: AI agent (Claude Code, Cursor, Windsurf, Zed ฯลฯ), นักพัฒนาที่เพิ่งเข้ามาใน repo ใหม่, และ reviewer ที่ต้องรู้ blast radius ของ PR ก่อนอนุมัติ"],
+    ["concept", "context window ของ LLM ใหญ่ขึ้นทุกปี ทำไมไม่ให้มันอ่านโค้ดทั้งหมดไปเลย",
+     "ต่อให้ใส่ได้ก็ยังแพง ช้า ไม่คงที่ และ LLM ไม่ได้ “คำนวณ” ผู้เรียกทางอ้อม — มันกวาดตาอ่าน ซึ่งพลาดได้",
+     "วัดบน repo จริงขนาด 13.6 MB: <code>brief</code> ที่ agent เปิดอ่านเป็นอย่างแรกมีขนาด 4.3 KB (เล็กกว่า source <strong>3,212 เท่า</strong>) ส่วน trace ตัวอย่างอ่านโน้ตแค่ 5 ใบ (~1,500 tokens) การหาผู้เรียกที่อยู่ห่างไปสามทอดด้วยการอ่านเป็นงานที่ผิดง่าย แต่ BFS บนกราฟไม่พลาดและได้คำตอบเดิมทุกครั้ง"],
+    ["concept", "ทำไมไม่ทำเป็น hybrid คือ RAG + graph",
+     "ส่วนที่ RAG เพิ่มเข้ามา (similarity) คือส่วนที่ไม่คงที่และตรวจย้อนหลังไม่ได้ ขณะที่คำถามเป้าหมายตอบได้ครบด้วยกราฟ + การค้นแบบ regex",
+     "“node ไหนเกี่ยวกับ refund” ตอบด้วย <code>search.py --doc refund</code> ซึ่งค้นบนชื่อและคำอธิบายของ node — ได้ id ที่ใช้ต่อกับ <code>trace_path.py</code> ได้ทันที ถ้าวันหนึ่งต้องการ semantic search จริง ๆ ก็วางชั้นนั้นไว้บนโน้ตได้ แต่มันอยู่นอกขอบเขตโดยตั้งใจ"],
+    ["concept", "มี AI อยู่ในระบบตรงไหนบ้าง",
+     "จุดเดียว: คำสรุปหนึ่งบรรทัดของเมธอดที่ไม่มี docstring และคำสรุปนั้นถูก cache ด้วย hash ของ source",
+     "โครงสร้าง, edge, route, metrics และ grade คำนวณแบบ deterministic ทั้งหมด ลำดับของคำอธิบายคือ docstring ก่อน → คำสรุปจาก AI ที่ cache ไว้ → fallback แบบ deterministic เป็นลำดับสุดท้าย โมเดลไม่มีอิทธิพลต่อกราฟแม้แต่ edge เดียว"],
+    ["concept", "ทำไมต้องมีแผนที่สองชุด ไม่ใช่กราฟเดียว",
+     "เพราะคำถามสองแบบต้องการความละเอียดต่างกัน: Structure (คลาส/component) ตอบ “จัดระเบียบอย่างไร ใครใช้ X”, Flow (เมธอด) ตอบ “request เดินทางอย่างไร อะไรเรียกอะไร”",
+     "ถ้ารวมเป็นกราฟเดียว คำถามระดับคลาสจะจมอยู่ในเมธอดนับพัน และ node id ของสองแผนที่ก็ไม่เหมือนกัน รายงานจึงแยกหนึ่งฉบับต่อหนึ่งแผนที่เสมอ"],
+    ["concept", "ผลลัพธ์ที่ได้จริงเป็นไฟล์อะไรบ้าง",
+     "<code>data/structure/{graph.json, registry.json, vault/*.md}</code>, <code>data/flow/{flow_graph.json, notes/*.md}</code>, <code>data/report/&lt;map&gt;/</code> และ <code>data/explorer.html</code>",
+     "โฟลเดอร์รายงานของแต่ละแผนที่มี <code>architecture_report.{md,json}</code>, <code>security.json</code>, <code>insights.json</code>, <code>metrics.json</code>, <code>debt.json</code>, <code>tests.json</code> และ <code>duplicates.json</code> ส่วน <code>data/cache/</code> เก็บคำสรุปจาก AI และสถานะความสด"],
+    ["concept", "คุณค่าเชิงธุรกิจคืออะไร",
+     "ลด token และเวลาต่อคำถาม, ผลลัพธ์ตรวจสอบย้อนหลังได้, ใช้ใน PR review และ onboarding, ทำงาน offline โดยไม่ส่งโค้ดออกนอกเครื่อง",
+     "เพราะผลลัพธ์ deterministic จึง commit กราฟลง git แล้ว diff ระหว่างสอง release ได้ — เห็นเป็นรูปธรรมว่าสถาปัตยกรรมเปลี่ยนไปอย่างไร ซึ่ง RAG index ทำไม่ได้"],
+    ["concept", "ผู้ใช้หลักคือคนหรือ agent",
+     "agent เป็นผู้ใช้หลัก — <code>SKILL.md</code> คือคู่มือของมัน ส่วนคนได้ <code>explorer.html</code> และรายงาน Markdown",
+     "<code>SKILL.md</code> กำหนดลำดับงานไว้: <code>check</code> ความสด → <code>brief</code> → <code>search.py</code> หา node → <code>trace_path.py</code> หาเส้นทาง → <code>context.py</code> ดึงข้อเท็จจริง → เปิดโน้ตรายตัวเฉพาะเมื่อยังไม่พอ"],
+    ["concept", "“Skill” ในที่นี้คืออะไร ต่างจาก plugin หรือ MCP server อย่างไร",
+     "เป็นโฟลเดอร์ที่มี <code>SKILL.md</code> (คำสั่งสำหรับ agent) กับสคริปต์ Python ที่ agent รันผ่าน shell — ไม่มี server ไม่มี process ค้าง",
+     "จึงใช้ได้กับ harness ใดก็ได้ที่ให้ agent รันคำสั่ง shell ตัวติดตั้งรองรับ <code>agents</code> (ค่าเริ่มต้น), <code>claude</code>, <code>cursor</code>, <code>windsurf</code>, <code>zed</code> หรือระบุโฟลเดอร์เองด้วย <code>--dir</code>"],
+    ["concept", "โน้ต Markdown มีไว้ทำไม ในเมื่อมีกราฟ JSON แล้ว",
+     "โน้ตคือหน่วยที่ agent “อ่าน”: หนึ่งคลาสหรือหนึ่งเมธอดเต็ม ๆ ต่อใบ พร้อม <code>[[wikilink]]</code> ไปยังเพื่อนบ้าน ส่วนกราฟคือสิ่งที่ agent “query”",
+     "มนุษย์เปิดโน้ตใน Obsidian ได้, diff ใน git ได้สวย และ agent อ่านเฉพาะใบที่อยู่บน path ที่ trace เจอ — ไม่ต้องมีฐานข้อมูลใด ๆ"],
+    ["concept", "ทำไมคำตอบของ agent ต้องคง <code>[[wikilink]]</code> ไว้",
+     "เพื่อให้คำตอบยัง “เดินต่อได้” — ผู้อ่านกดตามไปยังโน้ตของ node นั้นได้ แทนที่จะเป็นข้อความตาย",
+     "เป็นหนึ่งในกฎการทำงานที่ <code>SKILL.md</code> สั่ง agent ไว้ตรง ๆ"],
+    ["concept", "“Precision มากกว่า recall” หมายความว่าอะไรในทางปฏิบัติ",
+     "ทุก edge ที่เห็นคือสิ่งที่ source บอกจริง แต่ edge จริงบางเส้นหายไป — “ไม่มีใครเรียก X” จึงแปลว่า “ไม่มีการเรียกที่ resolve ได้ที่เรียก X”",
+     "เหตุผลคือ edge ปลอมทำให้ trace ผิดแบบดูน่าเชื่อ ส่วน edge ที่หายถูกประกาศเป็น caveat เดียวทั้งระบบ (<code>taxonomy.PRECISION_CAVEAT</code>) และถูกระบุชื่อความสูญเสียรายโหนดในฟิลด์ <code>precision</code>"],
+    ["concept", "ถ้ากราฟไม่ครบ แล้วจะเชื่อมันได้อย่างไร",
+     "เพราะระบบบอกได้ว่าไม่ครบ “ตรงไหน” และ “เพราะอะไร” — ไม่ใช่ไม่ครบแบบเงียบ ๆ",
+     "มีสี่ชั้น: caveat ทั่วระบบใน <code>brief</code> และหัวรายงาน, <code>precision</code> รายโหนด (<code>interface-dispatch</code> / <code>overloads</code> / <code>name-matched</code>), <code>unresolved</code> ที่เก็บชื่อการเรียกที่ถูกทิ้งแต่กราฟมีนิยาม, และบล็อก <code>SKIPPED</code> เมื่อ grammar ของภาษาใดขาดไป"],
+    ["concept", "trace ที่โชว์ในการนำเสนอเดินผ่านอะไรบ้าง",
+     "<code>submitOrder → createOrder → OrderController.create_order → OrderService.place_order → OrderRepository.save</code> — จากโค้ดหน้าเว็บ ข้าม HTTP เข้า FastAPI ไปถึง repository",
+     "อีกเส้นใน sample วิ่งข้ามเข้า Go: <code>loadOrderHistory → getOrderEvents → handleOrderEvents → EventService.Events → EventStore.List</code> และแต่ละภาษา Java/C#/Go มี trace ของตัวเอง เช่น <code>InvoiceController.Create → InvoiceService.Issue → InvoiceStore.Put</code>"],
+    ["concept", "<code>sample_src</code> คืออะไร ทำไมต้องใส่โค้ดแย่ ๆ ลงไปโดยตั้งใจ",
+     "เป็นตัวอย่างหลายภาษาที่ฝังจุดผิดไว้โดยเจตนา เพื่อให้ทุก pass มีของให้เจอ — ตัวตรวจจับที่คืนค่าว่างดูเหมือน codebase สะอาดเสมอ",
+     "มี hardcoded key, SQL ที่ต่อสตริง, <code>innerHTML</code> sink, ฟังก์ชันที่ก๊อปแล้วเปลี่ยนชื่อ, interface dispatch, overload, ไฟล์เทส และ route สี่เฟรมเวิร์ก ตัวเลขถูกตรึงไว้: structure <strong>25 nodes / 23 edges</strong>, flow <strong>53 nodes / 36 edges (29 calls, 4 http, 1 renders, 2 implements), 16 endpoints</strong>, เกรด structure C (73) และ flow C (70)"],
+    ["concept", "ใช้กับโค้ดที่ไม่มีเอกสารเลยได้ไหม",
+     "ได้ และนั่นคือกรณีหลัก — ทุกอย่างมาจากตัว source; ถ้ามี docstring ก็ถูกใช้เป็นคำอธิบายก่อนเสมอ",
+     ""],
+    ["concept", "ทำไมไม่ทำเป็น SaaS หรือ web service",
+     "เพื่อให้โค้ดไม่ต้องออกนอกเครื่อง ไม่ต้องมีบัญชี ไม่มี network ตอนรัน และผลลัพธ์ commit ลง repo ได้",
+     "ผลพลอยได้คือไม่มีค่าใช้จ่ายโครงสร้างพื้นฐานเลย: สิ่งที่ต้องมีคือ Python, wheel ของ tree-sitter และเบราว์เซอร์"],
+    ["concept", "โค้ดของผู้ใช้ถูกส่งออกไปที่ไหนหรือเปล่า",
+     "ตัว skill ไม่เรียก network เลยตอนรัน ส่วนเดียวที่เกี่ยวกับโมเดลคือคำสรุปที่ agent ของผู้ใช้เองเขียน — agent ตัวเดียวกับที่อ่านโค้ดอยู่แล้ว",
+     "<code>explorer.html</code> เปิดจาก <code>file://</code> โดยปิดเน็ตได้ (ไม่มี <code>&lt;script src&gt;</code> เลย) การต่อเน็ตเกิดขึ้นครั้งเดียวคือตอนติดตั้ง grammar ด้วย pip"],
+    ["concept", "ใช้ในเครือข่ายปิด (air-gapped) ได้ไหม",
+     "ได้ ถ้าเตรียม wheel ไว้ล่วงหน้า — ขั้น runtime ไม่ดาวน์โหลดอะไรเลย",
+     "เครื่องมือจับเวลาของ repo (<code>tools/time_build.py</code>) เองก็ติดตั้ง skill ลงโฟลเดอร์ชั่วคราวแล้ว copy <code>vendor/</code> ที่มีอยู่เข้าไป เพื่อรันแบบ offline ทั้งหมด"],
+    ["concept", "จุดต่างที่สำคัญที่สุดสามข้อคืออะไร",
+     "(1) deterministic ระดับไบต์ (2) trace ข้าม stack จากหน้าเว็บถึง repository ในกราฟเดียว (3) ความซื่อสัตย์ที่ตรวจได้ — ตัวตรวจทุกตัวมี self-test ที่บังคับว่าต้องล้มเหลวได้",
+     ""],
+    ["concept", "ใช้กับ legacy codebase ขนาดใหญ่ได้ไหม",
+     "ได้ในภาษาที่รองรับ 17 ภาษา — วัดจริงบน repo ~1,100 ไฟล์ (13.6 MB) ใช้เวลาทุกขั้นตอนรวม 27.7 วินาที",
+     "ภาษาที่ไม่มี grammar ในชุด (เช่น COBOL) ไม่รองรับ และจะถูกนับเฉพาะบรรทัดไม่ได้เป็น node"],
+    ["concept", "ทำไมชื่อว่า “Archaeologist”",
+     "เพราะงานคือขุดโครงสร้างที่มีอยู่จริงออกมาจากตัวโค้ด โดยเฉพาะ codebase ที่เอกสารไม่มีหรือเก่าไปแล้ว",
+     ""],
+
+    ["arch", "ภาพรวม pipeline เป็นอย่างไร",
+     "<code>archaeologist.py</code> คือทางเข้าเดียว: <code>project</code>/<code>flow</code>/<code>both</code> สร้างแผนที่, <code>report</code> รีวิว, <code>brief</code> สรุป, <code>check</code> ตรวจความสด แล้ว render explorer ครั้งเดียวตอนท้าย",
+     "<code>project → build_wiki → build_graph</code>, <code>flow → build_flow</code> ทั้งสองอ่านผ่าน <code>py_extract.py</code>, <code>js_ts_extract.py</code>, <code>langs_extract.py</code> และ flow อ่าน <code>route_tables.py</code> เพิ่ม; <code>report → report.py</code> ที่รวมเจ็ด pass; <code>check → manifest.py</code>; ปลายทางคือ <code>build_html.py → data/explorer.html</code>"],
+    ["arch", "ทำไมต้องมี entrypoint เดียว",
+     "เพื่อบังคับลำดับ build → manifest → render ไว้ที่เดียว และให้ agent จำคำสั่งน้อยที่สุด",
+     "explorer ถูก render ครั้งเดียวหลังทุกแผนที่และ manifest ถ้าไฟล์ <code>force-graph.min.js</code> หาย จะเป็น error ที่มีชื่อพร้อม exit code ไม่ใช่ศูนย์ — ไม่ใช่แผนที่หายไปแบบเงียบ ๆ (เคยเกิดจริงบนการติดตั้งผ่าน npx)"],
+    ["arch", "28 สคริปต์ถูกจัดกลุ่มอย่างไร",
+     "ราก 2 (<code>archaeologist.py</code>, <code>paths.py</code>), <code>core/</code> 5, <code>extract/</code> 8, <code>review/</code> 9, <code>query/</code> 4",
+     "<code>core/</code> = taxonomy, manifest, console, grammars, ids · <code>extract/</code> = build_wiki, build_graph, build_flow, py_extract, js_ts_extract, langs_extract, route_tables, apply_descriptions · <code>review/</code> = analyze, scan_security, git_insights, metrics, debt, tests_map, duplicates, report, brief · <code>query/</code> = trace_path, context, search, build_html"],
+    ["arch", "กฎทิศทางของ dependency คืออะไร",
+     "<code>core/</code> ไม่ import อะไรของ skill; ทุกกลุ่ม import <code>core/</code> ได้; และไม่มีสองกลุ่มไหน import วนกัน",
+     "สคริปต์ใหม่อยู่ในกลุ่มที่มัน <em>พึ่งพา</em> ไม่ใช่กลุ่มที่มันดูคล้าย ข้อยกเว้นเดียวคือ <code>grammars.py</code> import <code>paths</code> เพื่อเอา <code>VENDOR_DIR</code> — ซึ่งตั้งใจ เพราะ <code>paths</code> อยู่ใต้ทุกกลุ่มและไม่ import อะไรเลย"],
+    ["arch", "<code>paths.py</code> ทำหน้าที่อะไร",
+     "นิยามเดียวของ <code>SKILL_ROOT</code> / <code>DATA_DIR</code> / <code>TEMPLATES_DIR</code>, bootstrap <code>sys.path</code>, <code>long_path()</code> สำหรับ MAX_PATH ของ Windows และ <code>skill_rel()</code> สำหรับพาธข้ามไดรฟ์",
+     "ทุกสคริปต์เปิดด้วยสองบรรทัดเดียวกันแทนการคำนวณพาธเอง จึงรันได้จากทุก working directory (hard constraint ข้อ 3) และ sibling import เขียนเปล่า ๆ ได้ เช่น <code>import taxonomy</code>"],
+    ["arch", "ทำไมต้องใส่ <code>vendor/</code> ไว้หน้าสุดของ <code>sys.path</code>",
+     "เพื่อให้ <code>import tree_sitter</code> เจอสำเนาของ skill ก่อนของผู้ใช้ — ไม่มีทางชนเวอร์ชันกัน",
+     "เพราะลำดับ <code>sys.path</code> ตัดสินแบบเงียบ ๆ ว่าจะได้ตัวไหน <code>grammars.origins()</code> จึงบอกได้ว่าแต่ละตัว resolve มาจาก <code>vendor/</code> หรือจาก site-packages"],
+    ["arch", "<code>taxonomy.py</code> สำคัญอย่างไร ทำไมต้องรวมศูนย์",
+     "เป็นเจ้าของคำศัพท์กลางทั้งหมด: ค่า <code>kind</code>/<code>layer</code>, <code>SKIP_DIRS</code>, <code>LANG_BY_EXT</code>, นิยามไฟล์เทส, annotation → layer, framework entry และ precision",
+     "ถ้าตัวสแกนความปลอดภัยกับตัวหาโค้ดตายเห็นไม่ตรงกันว่าอะไรคือไฟล์เทส รายงานจะขัดแย้งกันเอง และรายงานที่ขัดแย้งกันเองจะถูกเพิกเฉย ก่อนรวมศูนย์ <code>SKIP_DIRS</code> เคยมีห้าสำเนาที่เขียนมือแล้วเลื่อนไหลไปคนละทาง จน output ของ Next.js dev server กลายเป็น 9% ของ flow graph บน repo จริง"],
+    ["arch", "<code>ids.py</code> ทำอะไร",
+     "กฎการตั้ง id เดียวของทั้งสองแผนที่ — <code>SharedNames</code> เห็นทุกนิยามก่อนสร้าง node แล้ว qualify เฉพาะชื่อที่ตั้งแต่สองไฟล์ขึ้นไปนิยาม",
+     "เป็น pure logic ไม่ import อะไรเลย จึงอยู่ใน <code>core/</code> ใต้ builder ทั้งสอง ก่อนหน้านี้ structure map เก็บ entity แรกของชื่อซ้ำแล้วทิ้งที่เหลือ ส่วน flow map รวมเป็น node เดียว — ตอนนี้ไม่มีทั้งสองอย่าง"],
+    ["arch", "Flow map ถูกสร้างอย่างไร ทีละขั้น",
+     "<code>build_flow.py</code>: (1) สแกนนิยามทุกตัวให้ <code>SharedNames</code> (2) สร้าง node (3) resolve จุดเรียกเป็น edge (4) แนบ route จากตาราง (5) จับคู่ HTTP ข้าม stack (6) เขียน <code>flow_graph.json</code> และโน้ต",
+     "ต้องแยกรอบรู้จัก node กับรอบ resolve เพราะเมธอดหนึ่งอาจเรียกสิ่งที่นิยามทีหลังในไฟล์เดียวกัน หรืออยู่ในไฟล์ที่ยังไม่ถูกอ่าน"],
+    ["arch", "Structure map ถูกสร้างอย่างไร",
+     "<code>build_wiki.py</code> สกัดคลาส, component และ module group แล้วเขียนหน้า vault ต่อ entity จากนั้น <code>build_graph.py</code> ประกอบเป็น <code>graph.json</code>",
+     "edge ของแผนที่นี้คือการอ้างอิงและการ import รวมถึง <code>new X()</code> ที่นับเป็นการใช้ <code>X</code> และ import ของ JS/TS ที่ resolve เป็นไฟล์ได้"],
+    ["arch", "เพิ่ม “producer” ของภาษาใหม่ต้องแตะอะไร",
+     "<code>extract_*_entities</code> ใน <code>build_wiki.py</code> กับ <code>_analyze_*</code> ใน <code>build_flow.py</code> — ไม่มีอย่างอื่น",
+     "แต่ในทางปฏิบัติภาษาใหม่แทบทุกภาษาไม่ต้องมี producer ใหม่ เพราะเข้าไปอยู่ใน <code>langs_extract.py</code> ได้ด้วยแถวในตาราง <code>SPEC</code>/<code>SHAPES</code> กับกฎการ resolve receiver"],
+    ["arch", "<code>report.py</code> รวมอะไรบ้าง",
+     "เจ็ด pass: <code>scan_security</code>, <code>git_insights</code>, <code>analyze</code>, <code>metrics</code>, <code>debt</code>, <code>tests_map</code>, <code>duplicates</code> → <code>data/report/&lt;map&gt;/</code>",
+     "และ re-render <code>explorer.html</code> ให้มีรายงานฝังอยู่ ซึ่งเปิดใช้ health ring, สี churn/risk, ownership และแท็บ Patterns/Security"],
+    ["arch", "ทำไมรายงานต้องแยกหนึ่งฉบับต่อหนึ่งแผนที่",
+     "เพราะ node id ของสองแผนที่ต่างกัน สตริงเดียวกันอาจหมายถึงคนละสิ่ง การผสมจะได้เรื่องไร้สาระที่ฟังดูมั่นใจ",
+     "โค้ดบังคับไว้ที่ <code>build_html.report_for()</code> ไม่ใช่แค่เขียนเป็นข้อตกลง"],
+    ["arch", "ทำไม <code>brief.py</code> ถึง “ไม่คำนวณอะไรเลย”",
+     "มันอ่าน artifact อย่างเดียว จึงเร็วเสมอ ขนาดคงที่ และสอดคล้องกับ build ล่าสุดเสมอ — อะไรที่แพงต้องอยู่ต้นน้ำ",
+     "ขนาดคงที่สำคัญเพราะ brief คือสิ่งที่ agent เปิดเซสชันด้วย ไดเจสต์ที่โตตามขนาด repo จะไร้ประโยชน์พอดีกับ codebase ใหญ่ ๆ ที่ต้องการมันมากที่สุด"],
+    ["arch", "<code>build_html.py</code> ทำงานอย่างไร",
+     "โหลด <code>templates/viewer.html</code> แทนค่า <code>__TITLE__</code>, <code>__MAPS_DATA__</code> และ <code>__VENDOR_JS__</code> แล้วเขียน <code>data/explorer.html</code> ไฟล์เดียวที่มีทั้งสองแผนที่",
+     "ตั้งใจให้บาง — markup, CSS และ JS อยู่ใน <code>viewer.html</code> ที่เป็นไฟล์ HTML ปกติ ไม่ได้ฝังอยู่ใน Python"],
+    ["arch", "<code>manifest.py</code> ทำอะไร",
+     "บันทึก hash (sha1) ของเนื้อหาไฟล์ source ทุกไฟล์, roots ที่ใช้ build และชุด grammar ที่ติดตั้ง ณ ตอน build แล้ว <code>check</code> เอาไปเทียบกับปัจจุบัน",
+     "ผลคือ <code>{stale, changed, added, deleted}</code> และการเปลี่ยนชุด grammar ก็นับเป็นความเก่า เพราะกราฟที่ build ตอนขาดภาษาหนึ่งไปไม่ใช่กราฟเดียวกัน"],
+    ["arch", "<code>console.py</code> มีไว้ทำไม ดูเหมือนเรื่องเล็ก",
+     "<code>safe_stdout()</code> ทำให้การพิมพ์ข้อความจาก repo (node id, path, ชื่อผู้เขียน git) ไม่ทำให้การรันตายบนคอนโซลที่ไม่ใช่ UTF-8",
+     "เครื่องที่พัฒนาใช้คอนโซล cp874 (ไทย) ชื่อผู้เขียนที่มีสระหรือวรรณยุกต์หนึ่งชื่อเคยพอที่จะจบการรันทั้งรอบ"],
+    ["arch", "<code>data/</code> ถูกจัดอย่างไร และ <code>cache/</code> ลบได้ไหม",
+     "<code>structure/</code>, <code>flow/</code>, <code>report/&lt;map&gt;/</code>, <code>cache/</code> — ลบ <code>cache/</code> ได้ ผลคือคำสรุปต้องสร้างใหม่เท่านั้น กราฟไม่เปลี่ยน",
+     ""],
+    ["arch", "ทำไมแบ่งเป็น BUILD กับ QUERY",
+     "เพราะเป็นทิศทางของข้อมูล: BUILD parse source แล้วเขียน artifact, QUERY อ่าน artifact และไม่เปิดไฟล์ source เลย โดยมี <code>check</code> เป็นบานพับระหว่างสองฝั่ง",
+     "นี่คือเหตุผลที่คำถามของ agent มีต้นทุนเป็น “หนึ่งคำสั่ง” ไม่ใช่ “การอ่าน source” และเป็นแผนภาพเดียวในคู่มือสถาปัตยกรรมหน้านี้"],
+    ["arch", "<code>apply_descriptions.py</code> อยู่ตรงไหนของ pipeline",
+     "หลัง <code>build_flow</code>: build เขียน <code>pending_descriptions.json</code> → agent เขียนคำสรุป → <code>apply_descriptions.py</code> merge ลง <code>descriptions.json</code> โดยคีย์ด้วย id + hash ของ source → build ครั้งถัดไปนำไปใช้",
+     "cache ตาย (invalidate) เองเมื่อ source ของเมธอดนั้นเปลี่ยน ไม่ต้องมีใครจำว่าต้องล้าง"],
+    ["arch", "<code>route_tables.py</code> ต่างจาก extractor ตัวอื่นอย่างไร",
+     "มัน “อ่าน” อย่างเดียว ไม่สร้าง node — <code>build_flow._attach_table_routes</code> เป็นคนแนบแต่ละ route ให้ node เดียวที่ <code>(class, method)</code> อ้างถึง",
+     "ถ้าอ้างถึงศูนย์ node หรือสอง node จะไม่แนบ และนับรวมไว้ใน stderr บรรทัดเดียว ไม่เดา"],
+    ["arch", "ทำไม <code>metrics.py</code> และ <code>duplicates.py</code> ใช้ช่วงบรรทัดจากกราฟ",
+     "เพื่อให้ผลลัพธ์คีย์ด้วย graph id โดยโครงสร้าง — <code>metrics</code> ใช้ <code>source</code> + <code>end</code> เลือกนิยามออกจาก parse ของไฟล์ ส่วน <code>duplicates</code> อ่านช่วงโดยไม่ parse ใหม่เลย",
+     "ก่อน phase 6a metrics คีย์ด้วยชื่อเปล่าแบบมาก่อนได้ก่อน ทำให้ 66 จาก 294 node บนโค้ดของ skill เองวัดไม่ได้ และ node ที่ไม่ใช่ Python ไม่มี metric เลย"],
+    ["arch", "ถ้าจะเพิ่ม pass รีวิวใหม่ ต้องทำอะไรบ้าง",
+     "สคริปต์ใน <code>review/</code> ที่อ่านกราฟหรือช่วงบรรทัด, ถาม <code>taxonomy</code> เรื่องไฟล์เทสและภาษา, ห้ามใส่เวลานาฬิกา, เรียกจาก <code>report.py</code> และอัปเดตเอกสารใน commit เดียวกัน",
+     "สคริปต์ใหม่ต้องมี docstring, บรรทัดใน README และ CLAUDE.md, คำสั่งใน SKILL.md ถ้า agent ควรเรียก และรูปแบบคำสั่งใน <code>docs/USAGE.md</code> — <code>tools/check_docs.py</code> ตรวจครึ่งที่ตรวจด้วยเครื่องได้"]
+  );
+  </script>
+
+  <script>
+  QA.push(
+    ["parse", "ใช้ parser อะไร",
+     "tree-sitter สำหรับทุกภาษา รวม Python ด้วย — เอนจินเดียวทั้งระบบ",
+     "หนึ่ง grammar wheel ต่อหนึ่งภาษา ติดตั้งเฉพาะภาษาที่ repo มีจริง กฎของโปรเจกต์คือ <strong>ห้ามเพิ่มเอนจินที่สอง</strong>: ภาษาใหม่ = grammar wheel + แถวในตาราง ไม่ใช่ parser ใหม่"],
+    ["parse", "ทำไมเลือก tree-sitter",
+     "เป็น wheel สำเร็จรูปที่ไม่ต้องคอมไพล์และมี grammar อยู่ในตัว, ทนต่อ syntax error, และมี API เดียวกันทุกภาษา",
+     "tree-sitter ให้ <em>field name</em> ที่ใช้ร่วมกันได้ (<code>name</code>, <code>body</code>, <code>parameters</code>, <code>type</code>) consumer ตัวเดียวจึงทำงานข้ามภาษาได้ มีแค่ตาราง <code>SPEC</code>/<code>SHAPES</code> ที่รู้ว่าแต่ละภาษาสะกดชนิด node อย่างไร"],
+    ["parse", "tree-sitter ให้อะไร และไม่ให้อะไร",
+     "ให้ declaration, body, ชนิดของ parameter และตำแหน่งของ doc comment — แต่ <strong>ไม่ให้</strong> name resolution หรือ type inference",
+     "ส่วนที่ไม่ได้ให้ skill ทำเองอย่างระมัดระวัง: receiver ของการเรียกถูกตอบเป็น <code>\"\"</code> (ไม่มี receiver), <code>\"Type\"</code> (รู้ชนิด) หรือ <code>\"?\"</code> (ไม่รู้) แล้ว <code>build_flow</code> ตัดสินต่อ"],
+    ["parse", "ทำไมไม่ใช้ <code>ast</code> ของ Python ซึ่งอยู่ใน standard library อยู่แล้ว",
+     "เคยใช้ แต่ย้ายมา tree-sitter เพื่อให้มีเอนจินเดียว — <code>ast</code> ยังอยู่ แต่ในฐานะ “ความเห็นที่สอง” ใน <code>tools/check_py_oracle.py</code>",
+     "oracle parse ไฟล์ Python ทุกไฟล์ด้วยทั้งสองวิธีแล้วล้มเหลวถ้าเห็นไม่ตรงกันว่ามีอะไรถูกประกาศ ผลปัจจุบัน: <strong>0 disagreements</strong> ทั้งบน sample และบนสคริปต์ของ skill เอง"],
+    ["parse", "การย้าย Python ไปใช้ tree-sitter แลกอะไรไป",
+     "คำสัญญา “Python ไม่มี dependency เลย” — repo ที่มี Python ต้องติดตั้ง <code>tree-sitter-python</code> ก่อน",
+     "เป็นการแลกอย่างรู้ตัว: ได้เอนจินเดียว (ตรรกะเดียว, ชุดทดสอบเดียว, พฤติกรรมการ degrade เดียว) ถ้าไม่ติดตั้งจะได้กราฟที่แทบว่างพร้อมคำเตือนที่บอกเหตุผลและคำสั่งติดตั้ง ไม่ใช่เงียบ"],
+    ["parse", "ทำไมไม่เขียน parser เอง หรือใช้ regex",
+     "เคยลองแล้ว: extractor แบบข้อความของ Java/Go/C# ยาวเกือบ 800 บรรทัดสำหรับสามภาษา และทุกภาษาใหม่ก็แพงเท่าเดิมอีกรอบ",
+     "tree-sitter ทำให้ภาษาหนึ่งเหลือตารางชนิด node เล็ก ๆ บวกกฎการ resolve receiver ต้นทุนจึงหยุดโตตามจำนวนภาษา — ซึ่งเป็นเหตุผลที่ไปถึง 17 ภาษาได้ extractor ตัวเก่าถูกลบหลังจาก diff กราฟแล้วสะอาด และยังอยู่ใน git history"],
+    ["parse", "ทำไมไม่ใช้ <code>tree-sitter-language-pack</code> ที่รวมทุกภาษาไว้แล้ว",
+     "เพราะมันดาวน์โหลด grammar ผ่านเครือข่ายตอนใช้ครั้งแรก — ขัดกับคำสัญญาว่าจะทำงาน offline และให้ผลคงที่",
+     "wheel รายภาษาฝัง grammar ไว้ในตัว (ประมาณ 9.4 MB สำหรับห้าภาษา) ไม่ต้องคอมไพล์ ไม่โหลดอะไรตอนรัน และแต่ละตัวถูกตรึงเวอร์ชันได้"],
+    ["parse", "ทำไมไม่ใช้ LSP หรือ language server ซึ่ง resolve ได้แม่นกว่า",
+     "เพราะต้องมี server ต่อภาษา มักต้องการ project ที่ build และ resolve dependency ได้ และผลขึ้นกับเครื่อง — ขัดกับ “รันบน source ดิบ, deterministic, offline”",
+     "ข้อแลกเปลี่ยนที่ยอมรับตรง ๆ: ในภาษาที่มี type ครบ LSP resolve dispatch ได้มากกว่า เราเลือกกราฟที่เป็น lower bound ที่ reproduce ได้ทุกเครื่อง และบอกชื่อความสูญเสียรายโหนดแทน"],
+    ["parse", "ทำไม Node.js ถึงไม่ถูกใช้แล้ว",
+     "เดิม JS/TS อ่านด้วย <code>@babel/parser</code> ผ่าน Node แต่ย้ายมา tree-sitter แล้ว Node ไม่ถูกใช้ ไม่ถูกตรวจ และไม่ถูกติดตั้ง — skill ไม่มี <code>package.json</code>",
+     "มีบทเรียนจริงจากยุค Node: การลบโฟลเดอร์ร้างที่มี <code>node_modules</code> ซึ่งบังเอิญเป็นสำเนาเดียวของ <code>@babel/parser</code> ในเครื่อง ทำให้ JS/TS parse ไม่ได้แบบเงียบ ๆ ตอนนี้ภาษาที่ขาด parser ถูกประกาศเสียงดังเสมอ"],
+    ["parse", "ย้ายจาก Babel มา tree-sitter แล้วรู้ได้อย่างไรว่าไม่มีอะไรพัง",
+     "extractor ใหม่ถูกสร้างให้มี output contract เดิมเป๊ะ แล้วพิสูจน์ด้วยการ diff JSON ไม่ใช่ด้วยการอ่านโค้ด — ผลคือ <strong>output เหมือนกันทั้งหกไฟล์ตัวอย่าง และกราฟเท่ากันระดับไบต์</strong>",
+     "การย้ายทั้งสามครั้ง (JS/TS, Python, metrics) พิสูจน์ด้วยวิธีเดียวกัน ตัว reference กับเครื่องมือ diff ถูกลบภายหลัง commit <code>fd9c7d8</code> เป็นบันทึก"],
+    ["parse", "รองรับภาษาอะไรบ้าง",
+     "17 ภาษา: Python, JavaScript, TypeScript (รวม JSX/TSX), Java, Go, C#, Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir",
+     "ทุกภาษาได้ความสามารถเต็ม: node, call edge, โครงสร้าง, metrics รายโหนด และการตรวจจับไฟล์เทส"],
+    ["parse", "<code>.tsx</code> ต่างจาก <code>.ts</code> อย่างไรในมุม parser",
+     "<code>.tsx</code> parse ด้วยภาษา TypeScript ไม่ผ่าน ต้องใช้ grammar <code>tsx</code> — สี่นามสกุล สาม grammar",
+     "wheel <code>tree-sitter-typescript</code> มีสอง grammar (<code>.ts</code> และ <code>.tsx</code>) ส่วน <code>tree-sitter-javascript</code> ครอบคลุมทั้ง <code>.js</code> และ <code>.jsx</code> ข้อนี้วัดจริง ไม่ได้สันนิษฐาน: <code>OrderCard.tsx</code> parse ด้วย grammar TypeScript แล้วได้ tree ที่ <code>has_error</code>"],
+    ["parse", "ถ้าไฟล์มี syntax error จะเกิดอะไร",
+     "tree-sitter ไม่ throw exception — ให้ tree ที่ <code>has_error</code> พร้อม <code>ERROR</code> node และส่วนที่ parse ได้ยังถูกอ่านต่อ",
+     "<code>py_extract.py</code> เขียนไว้ชัดว่า tree-sitter ไม่มี <code>SyntaxError</code> แบบ <code>ast</code> ผู้เรียกต้องถาม <code>tree.root_node.has_error</code> เอง"],
+    ["parse", "เพิ่มภาษาใหม่หนึ่งภาษาต้องทำอะไรบ้าง",
+     "grammar wheel ใน <code>grammars.PINS</code> + แถวใน <code>SPEC</code>/<code>SHAPES</code> ของ <code>langs_extract.py</code> + กฎ receiver + แถวใน <code>metrics.TABLES</code> + fixture ใน <code>tests/fixtures/langs/&lt;lang&gt;/</code> กับแถวใน <code>expected.json</code>",
+     "fixture ทุกภาษามีรูปเดียวกัน: store, service ที่เรียก store ผ่าน field ที่ประกาศชนิด, route (ถ้าภาษานั้นมีรูปแบบ route) และไฟล์เทส — edge คือสิ่งที่พิสูจน์ว่าการ resolve ได้ผล"],
+    ["parse", "<code>SPEC</code> กับ <code>SHAPES</code> ต่างกันอย่างไร",
+     "<code>SPEC</code> คือแถวของ Java/Go/C# (สาขาเดิม) ส่วน <code>SHAPES</code> คือ walker ร่วมของ 11 ภาษาที่เพิ่มใน phase 7 ซึ่งระบุชนิด node ของ container / method / comment",
+     "Java, Go และ C# คงสาขาของตัวเองไว้โดยตั้งใจ — กราฟของ sample เท่ากันระดับไบต์ทั้งก่อนและหลังเพิ่ม walker ใหม่"],
+    ["parse", "ภาษาที่ tree หน้าตาไม่เหมือนใครจัดการอย่างไร",
+     "มี reader เล็ก ๆ เฉพาะกิจไม่กี่ตัว: เมธอดของ Rust อยู่ใน <code>impl</code>, เมธอดของ Dart มี signature อยู่ <em>ข้าง</em> body, ชื่อฟังก์ชัน C ซ่อนอยู่ใน declarator ซ้อนกัน, <code>def</code> ของ Elixir เป็น macro call",
+     "Groovy ใช้ tree เดียวกับ Java จึงเดินสาขาเดียวกัน (<code>JAVA_LIKE</code>)"],
+    ["parse", "CRLF กับ LF มีผลอะไรไหม",
+     "มี และเป็นบั๊กเงียบที่ร้ายมาก — <code>py_extract.read_source()</code> จึง normalize newline ก่อนเสมอ",
+     "<code>ast</code> ได้ข้อความแบบ universal newline แต่ tree-sitter ได้ไบต์ดิบ ถ้าไม่ normalize การ checkout แบบ CRLF จะทำให้ hash ของทุก node เปลี่ยน แล้วพลาด cache คำอธิบายทั้งหมดโดยไม่มีอะไรเตือน"],
+    ["parse", "รองรับ Unicode และชื่อที่ไม่ใช่ ASCII ไหม",
+     "รองรับ และถูกทดสอบในทุกภาษา: ทุก fixture ฝัง UTF-8 ขนาด 2, 3 และ 4 ไบต์ไว้ก่อน node และมีชื่อ node ที่ไม่ใช่ ASCII หนึ่งตัว (<code>größe</code>)",
+     "tree-sitter คืนตำแหน่งเป็น byte offset ถ้าเผลอใช้ offset นั้นกับข้อความที่ decode แล้ว ชื่อจะเลื่อนไปแบบเงียบ ๆ — fixture นี้มีไว้ให้ความผิดพลาดแบบนั้นล้มทันที"],
+    ["parse", "ถ้า grammar ของภาษาหนึ่งไม่ได้ติดตั้ง จะเกิดอะไร",
+     "เตือนด้วยชื่อพร้อมคำสั่งติดตั้งตรงเป๊ะ, ข้ามไฟล์ของภาษานั้น, แล้ว build ส่วนที่เหลือต่อ — manifest บันทึกไว้ และ <code>brief</code> พิมพ์บล็อก <code>SKIPPED</code>",
+     "วัดจริงบน sample: เอา grammar JS/TS ออก → คำเตือน <code>frontend skipped</code> หนึ่งครั้งที่ระบุทั้งสอง wheel, structure เหลือ 19/19, flow เหลือ 37/23 · เอา Python ออก → <code>python skipped</code> หนึ่งครั้งต่อการรัน (ไม่ใช่ครั้งละแผนที่), structure 18/12, flow 39/21"],
+    ["parse", "ทำไมการข้ามภาษา “แบบเงียบ” ถึงเป็นเรื่องต้องห้าม",
+     "เพราะกราฟที่เล็กลงเพราะขาด parser หน้าตาเหมือนกราฟของ codebase ที่เล็กจริงทุกประการ — ไม่มีอะไรใน output ที่ทำให้มองเห็น",
+     "นี่คือเหตุผลที่ชุด grammar ถูกบันทึกลง manifest, <code>check</code> นับการเปลี่ยนชุดนี้เป็นความเก่า และ SKILL.md ห้าม agent ตอบคำถาม dead code หรือขนาด codebase ขณะที่มีภาษาถูกข้ามโดยไม่บอก"],
+    ["parse", "เวอร์ชันของ grammar ถูกตรึงอย่างไร และทำไม",
+     "<code>grammars.PINS</code>: เวอร์ชันตรงเป๊ะต่อ grammar และเป็นช่วงสำหรับ runtime; ถ้าเครื่องติดตั้งไม่ตรง <code>drift()</code> ทำให้ <code>brief</code> พิมพ์ <code>UNPINNED</code>",
+     "grammar ต่างเวอร์ชันอาจเปลี่ยนชื่อชนิด node แล้วกราฟเปลี่ยนตาม ซึ่งขัดกับ deterministic PINS อยู่ที่เดียว และทุกเอกสารชี้ไปที่ <code>grammars.py --install</code> แทนการเขียนชื่อ package ซ้ำ — รายการที่สองคือสาเหตุที่ pin เคยหายไป"],
+    ["parse", "JS/TS resolve การเรียกได้แม่นแค่ไหน",
+     "ทุกที่ที่ source บอกคลาสของ receiver: <code>new X()</code>, <code>this</code>, <code>this.&lt;field ที่ประกาศชนิด&gt;</code>, parameter หรือ local ที่ประกาศชนิด, instance ที่ import มา และ member ของ object literal; receiver ที่ไม่มีชนิดถูกทิ้ง",
+     "ก่อนหน้านี้ receiver ถูกทิ้งทั้งหมดและเมธอดของคลาสไม่ถูกลงทะเบียนเป็นเป้าหมาย การเรียกจึงลงเมธอดของคลาส JS/TS <strong>ไม่ได้เลย</strong> (fixture TypeScript: 0 edge จาก 3) ตอนนี้ได้ 3 จาก 3 และ <code>check_regressions.py</code> r34 ตรวจทั้งสี่รูปแบบที่ต้อง resolve และรูปแบบไม่มีชนิดที่ต้องไม่ resolve"],
+    ["parse", "ทำไม Kotlin หรือ Rust ได้ edge ครบกว่า Ruby หรือ PHP",
+     "ความแม่นเดินตามระบบชนิดข้อมูลของภาษา ไม่ใช่ตามไวยากรณ์: ภาษาที่ประกาศชนิดของ field/parameter ไว้ resolve ได้เหมือน Java",
+     "ตัวอย่างวัดจริง: fixture Ruby ทิ้ง <code>@store.save</code> เพราะ instance variable ไม่มีชนิด แต่เก็บการเรียก <code>validate</code> ในคลาสเดียวกันกับ <code>WidgetService.new(...)</code> ของเทสไว้ — ได้ 2 edge ซึ่งเป็นกรณีเบาบางที่ซื่อสัตย์"],
+    ["parse", "กฎ “receiver เป็นชื่อชนิด” คืออะไร",
+     "ถ้า receiver คือชื่อชนิด การเรียกจะ resolve ไปยังชนิดนั้น: <code>WidgetStore.save</code> (Elixir), <code>Widget::new</code> (Rust), <code>DateUtil.now()</code> (Java/C#/Groovy) และ JS/TS ก็ใช้กฎนี้",
+     "Go ไม่ใช้ เพราะหัวตัวพิมพ์ใหญ่ใน Go มักเป็นค่า exported พอ ๆ กับเป็นชนิด — เดาไม่ได้"],
+    ["parse", "<code>Math.max()</code> จะกลายเป็น edge ไหม",
+     "ไม่ — <code>build_flow</code> ต้องการให้คลาสนั้นอยู่ในกราฟ <em>และ</em> นิยามเมธอดนั้นจริง",
+     "การเรียกที่วิ่งออกไปไลบรารีภายนอกหรือ standard library ถูกนับใน <code>ext</code> แต่ไม่วาดเป็น edge เพราะเพิ่มสัญญาณรบกวนโดยไม่เพิ่มความหมายเชิงสถาปัตยกรรม"],
+    ["parse", "method reference ของ Java เช่น <code>this::clearBin</code> ถูกอ่านไหม",
+     "อ่านเป็นการเรียกด้วยกฎเดียวกัน (<code>this::clearBin</code>, <code>Store::save</code>, <code>store::flush</code>) แต่ไม่มี argument list ถ้าเป้าหมายมี overload จึงถูกทิ้งเป็น ambiguous",
+     "ตรวจไว้ใน <code>check_regressions.py</code> r44"],
+    ["parse", "React component ถูกตรวจจับอย่างไร",
+     "ฟังก์ชัน JS/TS ที่ return JSX ได้ <code>kind: component</code> และ <code>layer: ui</code>",
+     "ใน sample <code>OrderCard</code> กับ <code>StatusBadge</code> เป็น component และ structure map มี edge <code>OrderCard → {ApiClientModule, StatusBadge}</code> ส่วน flow map มี edge ชนิด <code>renders</code> <code>OrderCard → StatusBadge</code>"],
+    ["parse", "annotation ของ Java หรือ decorator ของ Python มีผลอะไรกับกราฟ",
+     "สองอย่าง: ช่วงบรรทัดของ node เริ่มที่ decorator แรก และ annotation บางตัวกำหนด layer ก่อนกฎชื่อใด ๆ (<code>ANNOTATION_LAYERS</code>)",
+     "<code>@RestController</code>/<code>@Controller</code> → controller, <code>@Service</code> → service, <code>@Repository</code>/<code>@Mapper</code> → repository, <code>@Entity</code>/<code>@Table</code>/<code>@Document</code> → model, <code>@Configuration</code> → config"],
+    ["parse", "ทำไม <code>@Component</code> ไม่ถูกนับเป็น layer ใด",
+     "เพราะเป็น annotation ทั่วไปเกินไป บอกบทบาทไม่ได้ จึงนับเป็นศูนย์",
+     "ในทำนองเดียวกันคำว่า <code>handler</code> ถูกเอาออกจากคำที่บ่งบอก controller: บน Spring repository จริง มันทำให้การเรียก service → handler 24 ครั้งกลายเป็น “layer violation” ปลอม"],
+
+    ["graph", "node id ถูกตั้งอย่างไร",
+     "เป็นชื่อเปล่า (<code>place_order</code>, <code>OrderService.place_order</code>) เว้นแต่ชื่อนั้นถูกนิยามในตั้งแต่สองไฟล์ขึ้นไป จึง qualify ด้วย file stem หรือถ้ายังชนก็ด้วย path",
+     "ตัวอย่างบนโค้ดของ skill เอง: <code>tests_map.build</code>, <code>report.build</code> id ที่ไม่ซ้ำสะกดเหมือนเดิม ใน sample ไม่มีชื่อซ้ำ id จึงไม่เปลี่ยนเลย"],
+    ["graph", "ก่อนมี <code>SharedNames</code> มีปัญหาอะไร",
+     "<code>main()</code> ทุกตัวในทุกสคริปต์กลายเป็น node เดียวที่แบกการเรียกของทุกนิยามรวมกัน — <strong>edge ปลอม 72 เส้น</strong> บนโค้ดของ skill เอง",
+     "<code>tools/check_graph.py</code> เป็นคนจับได้ ด้วยการตรวจว่า callee ของทุก call edge ต้องถูกเอ่ยชื่อในตัวผู้เรียกจริง"],
+    ["graph", "ทำไมการเทียบชื่อซ้ำต้องไม่สนตัวพิมพ์เล็ก-ใหญ่",
+     "เพราะโน้ตของแต่ละ node คือไฟล์ <code>&lt;id&gt;.md</code> และ <code>Widgets.X</code> กับ <code>widgets.X</code> คือไฟล์เดียวกันบน Windows และ macOS",
+     "เจอจริงบน Next.js repository: มี <code>login</code> ในไฟล์หนึ่งกับ <code>Login</code> ในอีกไฟล์ การจัดกลุ่มแบบตรงตัวมองไม่เห็นคู่นี้ แล้วโน้ตสองใบทับกันเป็นไฟล์เดียว ตอนนี้ <code>check_graph.py</code> c17 ตรวจว่าไม่มีโน้ตสองใบกลายเป็นไฟล์เดียว"],
+    ["graph", "การเรียกไปยังชื่อที่หลายไฟล์นิยาม resolve อย่างไร",
+     "ไปยังนิยามในไฟล์ของผู้เรียกเอง ถ้าไม่มีก็ทิ้ง (<code>FlowIds.target</code>) — ยกเว้น JS/TS ที่ตาม import ซึ่ง resolve เป็นไฟล์ได้",
+     "นี่คือราคาที่จ่ายอย่างซื่อสัตย์: การ resolve ด้วยชื่อบอกไม่ได้ว่า import หมายถึงนิยามไหน สำหรับภาษาที่ยังไม่ได้ตาม import"],
+    ["graph", "การเรียกหนึ่งครั้งถูกทิ้ง (ไม่เป็น edge) ในกรณีใดบ้าง",
+     "receiver ไม่มีชนิด, เป้าหมายอยู่นอกกราฟ, overload กำกวม, ชื่อซ้ำที่ไฟล์ผู้เรียกไม่ได้นิยาม, และ import ที่เปลี่ยนชื่อ (<code>import { a as b }</code>)",
+     "ทุกกรณีมีร่องรอย: นับใน <code>ext</code>, เก็บชื่อใน <code>unresolved</code> ถ้ากราฟมีนิยาม, หรือบันทึกชุด overload ใน <code>ambiguous</code>"],
+    ["graph", "<code>ext</code> กับ <code>unresolved</code> คืออะไร",
+     "<code>ext</code> นับจุดเรียกที่ไม่กลายเป็น edge; <code>unresolved</code> เก็บ <em>ชื่อ</em> ของจุดเหล่านั้นที่กราฟมีนิยามอยู่ — เป็น “ที่ที่ควรไปดู” ไม่ใช่ edge",
+     "เดิม <code>ext</code> ไม่เก็บอะไรนอกจากจำนวน ทำให้ <code>print(...)</code> (ทิ้งถูกต้อง) แยกไม่ออกจากการเรียกชื่อที่กราฟนิยาม (edge ที่หาย) มัน over-count โดยตั้งใจเพราะจับด้วยชื่อ: บนโค้ด skill มี 207 จาก 2,782 จุดที่ถูกทิ้ง ส่วน sample มี 4 node ที่มี <code>unresolved</code> และทั้งสี่ชื่อ <code>get</code> (axios <code>api.get</code>, <code>Map.get</code> ของ Java)"],
+    ["graph", "ทำไมไม่เปลี่ยน <code>unresolved</code> ให้เป็น edge อัตโนมัติ",
+     "เพราะมันจับด้วยชื่อ — <code>get()</code> ของไลบรารีหน้าตาเหมือน <code>get()</code> ของกราฟทุกประการ การแปลงเป็น edge คือการเดา",
+     "ตัวอย่างใน sample คือหลักฐาน: ทั้งสี่ <code>unresolved</code> เป็นการเรียกไลบรารีจริง ถ้าแปลงอัตโนมัติจะได้ edge ผิดสี่เส้น"],
+    ["graph", "ฟิลด์ <code>precision</code> มีค่าอะไรได้บ้าง คำนวณจากอะไร",
+     "<code>interface-dispatch</code>, <code>overloads</code>, <code>name-matched</code> — คำนวณโดย <code>taxonomy.precision_of()</code>: สองค่าแรกได้มาจาก edge หรือชุด overload ที่ node มีจริง ส่วน <code>name-matched</code> ได้มาจาก <code>untyped</code> — การเรียกผ่าน receiver ที่ไม่ระบุชนิดซึ่งถูกทิ้งและกราฟมีชื่อนั้น (finding #25, r51)",
+     "<code>interface-dispatch</code>: edge ขาออกลงบน node ที่ <code>declaration: true</code> · <code>overloads</code>: node มี <code>ambiguous</code> หรือเรียก node ที่ยังมี <code>signatures</code> หลายตัว · <code>name-matched</code>: node มี <code>untyped</code> ในภาษาใดก็ได้ (เคยติดทุก node ของ JS/TS, Ruby, PHP, Elixir, Groovy จนถึง #25) · ใน sample มี 3 node ที่มี precision: 2 name-matched (<code>getOrderEvents</code> และ <code>getOrderStatus</code> ที่ทิ้ง <code>get</code> ของ axios) และหนึ่งเดียวที่ได้มาจาก edge คือ <code>OrderWorkflow.place</code> → interface-dispatch"],
+    ["graph", "ทำไมยกเลิกแฟล็ก <code>approx: true</code> ที่เคยมี",
+     "มันเคยแปะบน Java/Go/C# ซึ่งซื่อสัตย์ตอนที่สามภาษานั้นอ่านแบบข้อความ แต่พอทุกภาษาใช้ tree-sitter เหมือนกัน การแบ่งแบบนั้นก็ไร้เหตุผลทันที",
+     "แทนที่ด้วย caveat ทั่วระบบหนึ่งประโยค + รายการความสูญเสียที่ <em>เรียกชื่อได้</em> รายโหนด ซึ่งให้ข้อมูลมากกว่าแฟล็กเดียว"],
+    ["graph", "interface dispatch จัดการอย่างไร",
+     "member ที่มีแค่ signature ถูกดึงเป็น node <code>declaration: true</code> แล้ว edge หยุดที่ interface: <code>OrderWorkflow.place → PricingRule.price</code> — edge <code>calls</code> ไม่แตกต่อไปยัง impl แต่ <code>FlatRate.price</code> และ <code>TieredRate.price</code> ต่อเข้ากับ declaration ด้วยลิงก์ <code>implements</code>",
+     "node ประกาศมีช่วงบรรทัดอ่านได้ (จบที่ท้าย signature) แต่ไม่มี body จึงถูก <code>duplicates.py</code> ข้ามและ <code>analyze.py</code> ไม่เรียกว่าโค้ดตาย"],
+    ["graph", "ทำไมไม่ลาก edge ไปยังทุก implementation ของ interface",
+     "ลากทุกตัว = แลก precision กับ recall (edge ที่อาจไม่เกิดจริง); เลือกหนึ่งตัว = เดา; “ตัวไหนรันจริง” เป็นคำถามของ runtime ที่แม้แต่ type checker ก็ตอบไม่ได้",
+     "จึงใช้ลิงก์ชนิดแยก <code>implements</code> (impl → declaration) แทน: trace, <code>--impact-of</code> และการหา orphan เดินจาก declaration ไปยังทุก impl ได้ แต่ cycle, layer violation และ coupling ไม่นับ — มันบอกว่า “เป็น implementation หนึ่ง” ไม่เคยบอกว่า “ตัวนี้รัน” (r50, <code>check_graph.py</code> c21) ใน sample <code>FlatRate.price</code> และ <code>TieredRate.price</code> จึงไม่ถูกนับเป็นโค้ดตายแล้ว ส่วน structure map ยังแสดง <code>OrderWorkflow → PricingRule</code> เพราะ field ที่ประกาศคือการอ้างอิงจริง"],
+    ["graph", "overload จัดการอย่างไร",
+     "ทุก overload เป็น node ของตัวเอง — เฉพาะชื่อที่คลาสนิยามซ้ำจะมีชนิด parameter ใน id: <code>InvoiceService.Total(InvoiceRequest)</code>, <code>InvoiceService.Total(int,int)</code>",
+     "ใช้กับภาษาที่มี overloading: Java, C#, Kotlin, Scala, Swift, C++ และ Groovy (ผ่าน tree ของ Java) — <code>langs_extract.OVERLOADING</code>"],
+    ["graph", "ตอนเรียก overload ระบบเลือกตัวไหนอย่างไร",
+     "<code>build_flow._pick_overload</code>: ตามจำนวน argument ก่อน แล้วตามชนิดของ argument ทุกตัวที่ source บอก (literal, <code>new X(...)</code>, ตัวแปรที่ประกาศชนิด); ถ้ายังกำกวม → ทิ้ง, บันทึก <code>ambiguous</code>, ติด <code>precision: overloads</code>",
+     "ใน sample: <code>Issue</code> เรียก <code>Total(request)</code> ได้ตัวแรกด้วยจำนวน argument และตัวแรกเรียก <code>Total(request.Units, request.UnitPrice)</code> ได้ตัวที่สอง จึงไม่มี node ไหนติด overloads — marker นี้จึงถูกตรวจใน <code>check_regressions.py</code> r33 แทน"],
+    ["graph", "ก่อนแก้ finding #8 overload เป็นอย่างไร",
+     "ชุด overload ทั้งชุดเป็น node เดียวที่แบกการเรียกของทุกตัว แต่ถือช่วงบรรทัดของตัวเดียว — metrics และข้อค้นพบที่ผูกกับช่วงนั้นจึงผิดตาม",
+     "หลังแก้ได้ edge เพิ่มหนึ่งเส้นใน sample และฟิลด์ <code>signatures</code> เหลือเฉพาะกรณีที่สองนิยามแยกกันไม่ได้จริง ๆ เช่น <code>impl</code> สองบล็อกของ Rust"],
+    ["graph", "<code>ids.bare(id)</code> มีไว้ทำไม",
+     "อะไรก็ตามที่ต้องหาชื่อของ node ใน source ต้องตัดส่วน qualify และ signature ออกก่อน ไม่งั้นจะหา <code>Total(int,int)</code> ในไฟล์ไม่เจอ",
+     ""],
+    ["graph", "ช่วงบรรทัด <code>source..end</code> ของ node สำคัญอย่างไร",
+     "ทุก pass ที่ระบุเจ้าของบรรทัด — security, debt, metrics, duplicates — ใช้ช่วงนี้; เริ่มผิดไปหนึ่งบรรทัด ข้อค้นพบก็ไปเกาะฟังก์ชันข้างเคียงแทน",
+     "<code>check_graph.py</code> ตรวจว่าช่วงของทุก node ครอบชื่อของตัวเองจริง และทุก security finding อยู่ในช่วงของ node ที่มันถูกผูกไว้"],
+    ["graph", "ทำไมช่วงของ node ต้องเริ่มที่ decorator หรือ annotation แรก",
+     "เพราะ <code>@PostMapping</code>, <code>[HttpPost]</code>, <code>#[post(...)]</code> และ <code>@app.route</code> คือส่วนหนึ่งของสิ่งที่ handler “เป็น” — finding บนบรรทัดนั้นต้องเป็นของ handler",
+     "เคยต่างกันระหว่างภาษา: บรรทัดชื่อใน Python/Java/C# แต่บรรทัด decorator ใน JS/TS ตอนนี้เหมือนกันทุกภาษาทั้งสองแผนที่ และคอลัมน์ <code>lines</code> ของ fixture ตรึงไว้ (finding #6)"],
+    ["graph", "structure node มีฟิลด์ <code>precision</code> ไหม",
+     "ไม่มี — edge ของแผนที่นี้คือการอ้างอิงและ import และการอ้างอิงจาก field ที่ประกาศชนิดไว้นั้น resolve ได้แน่นอน",
+     ""],
+    ["graph", "module group คืออะไร",
+     "ใน structure map ฟังก์ชันระดับโมดูลของไฟล์หนึ่งถูกรวมเป็น node เดียวชื่อ <code>&lt;Name&gt;Module</code>",
+     "เพราะเป็นทั้งไฟล์จึงไม่มีช่วงบรรทัดของตัวเอง metrics ของมันจึงถูกระบุใน <code>unmeasured_graph_ids</code> — ใน sample ทั้งหกกลุ่ม module คือส่วนที่วัดไม่ได้ของ structure map (19 จาก 25 วัดได้)"],
+    ["graph", "import ของ JS/TS ถูก resolve อย่างไร",
+     "relative path ก่อน, ต่อด้วย <code>paths</code> ของ tsconfig/jsconfig ที่ใกล้ที่สุด (<code>@/utils/x</code>), สุดท้ายคือ suffix match ที่เจอหนึ่งเดียว",
+     "import พก <code>bindings</code> และเมื่อทุกไฟล์ parse แล้วจึงได้ <code>path</code> ที่ resolve <code>build_flow</code> จึงตาม <code>label()</code> หรือ <code>errors.toMessage()</code> ไปยังนิยามของไฟล์ที่ import ได้ แม้อีกไฟล์จะนิยามชื่อเดียวกัน ตรวจด้วย Next.js app ขนาดเล็กใน <code>tests/fixtures/ts_imports/</code> (r42)"],
+    ["graph", "แล้ว <code>import { a as b }</code> ล่ะ",
+     "ยังไม่ตาม — ถ้าตามจะลาก edge ไปยังชื่อที่ผู้เรียกไม่ได้สะกด ซึ่งขัดกับคำสัญญาของ <code>check_graph.py</code> c13 ว่า callee ทุกตัวถูกเอ่ยชื่อในผู้เรียก",
+     "บันทึกไว้เป็น finding #20 พร้อมข้อเสนอ: สอน c13 ให้ยอมรับชื่อที่มาผ่าน import binding ก่อน แล้วค่อยตาม rename"],
+    ["graph", "ฟิลด์ <code>entry</code> คืออะไร",
+     "ป้ายบอกว่ามีผู้เรียกจากนอกกราฟ: <code>@Scheduled</code>, <code>@Bean</code>, <code>@EventListener</code>, <code>@Override</code>/<code>override</code>, <code>main</code>, <code>next:page</code>, <code>next:route</code> หรือ <code>module</code> — node เหล่านี้ไม่ถูกเรียกว่าโค้ดตาย",
+     "บทเรียนจากฟิลด์นี้: ครั้งหนึ่ง <code>build_flow.write_graph</code> ไม่ได้ copy <code>entry</code> ลงไฟล์ ขณะที่เทส r40/r41 ผ่านเพราะตรวจ dict ในหน่วยความจำ ตอนนี้กฎคือ assert บนไฟล์ที่เขียนจริง"],
+    ["graph", "<code>entry: module</code> หมายถึงอะไร",
+     "ฟังก์ชันที่โค้ดระดับบนสุดของโมดูล JS/TS หรือ Python เรียกตอนโหลด เช่น <code>export const api = createApiInstance()</code> หรือ <code>app = create_app()</code>",
+     "การเรียกเหล่านี้เก็บใน <code>module_calls</code> และ resolve เหมือนการเรียกทั่วไป (ไม่นับ body ของฟังก์ชันที่ส่งเข้าไป) ตรวจใน r45 · Python ได้กฎเดียวกันใน <code>py_extract.load_time_calls</code> (finding #24, r48) · ส่วน <code>entry: init</code> คือค่าคู่กันสำหรับโค้ดที่ไม่มี node ของเมธอด: field initializer, initializer block, constructor, property initializer / <code>init {}</code> ของ Kotlin, <code>var</code> ระดับ package ของ Go และ <code>func init()</code> (finding #28, r53)"],
+    ["graph", "Next.js ถูกรู้จักอย่างไร",
+     "ถ้ามี <code>next.config.*</code> หรือ <code>package.json</code> ที่ขึ้นกับ <code>next</code> ฟังก์ชันที่ export ตาม file convention (page, layout, route handler, <code>generateMetadata</code>, <code>getServerSideProps</code>) ได้ <code>entry</code>",
+     "และ <code>export default function () {}</code> ที่ไม่มีชื่อจะเป็น node ที่ตั้งชื่อตาม file stem"],
+    ["graph", "frontend กับ backend อยู่ในกราฟเดียวกันจริงไหม",
+     "จริง — React component จาก <code>.tsx</code> เป็น node อยู่ข้าง service class ของ Python และ HTTP edge เชื่อมสองฝั่งเข้าหากัน",
+     ""],
+    ["graph", "monorepo หลาย root ทำอย่างไร",
+     "<code>--src</code> รับได้หลาย root: <code>archaeologist.py flow --src ./backend ./frontend</code> ได้กราฟเดียว และ <code>source</code> ของ node คง prefix ของ root ไว้ (<code>backend/…</code>, <code>frontend/…</code>)",
+     ""],
+    ["graph", "ทำไมการติดป้าย <code>layer: test</code> ถึงสำคัญมาก",
+     "เพราะเทสไม่มีผู้เรียกในกราฟ ถ้าไม่ติดป้าย เทสทุกตัวจะถูกรายงานว่าเป็นโค้ดตาย และการเรียกจากเทสจะเป่าตัวเลข coupling ให้สูงเกินจริง",
+     "ใน sample node เทสสองตัวมี call edge เข้า <code>OrderService.place_order</code> และ <code>OrderRepository.get</code> — edge เหล่านี้ใช้ตอบ “Covered by” และ blast radius แต่ไม่ถูกนับใน hub/god object"],
+    ["graph", "ไฟล์เทสถูกรู้จักจากอะไร",
+     "จาก path และชื่อไฟล์ (<code>test/</code>, <code>tests/</code>, <code>__tests__/</code>, <code>spec/</code>, <code>test_*.py</code>, <code>*_test.go</code>, <code>*.test.tsx</code>, <code>*_spec.rb</code>, <code>OrderServiceTest.java</code>, <code>PaymentIT.java</code>) และจาก marker ของ framework",
+     "marker ได้แก่ <code>@Test</code>/<code>@SpringBootTest</code> (JUnit 5, Spring Boot), <code>[Fact]</code> (.NET), <code>#[test]</code> (Rust) และ <code>func TestX(t *testing.T)</code> (Go) — ทั้งหมดอยู่ใน <code>taxonomy.is_test_path</code> / <code>is_test_file</code> ที่เดียว"],
+    ["graph", "ค่า <code>layer</code> มีอะไรบ้าง",
+     "<code>controller</code>, <code>service</code>, <code>repository</code>, <code>model</code>, <code>client</code>, <code>config</code>, <code>ui</code>, <code>test</code>, <code>function</code>, <code>module</code>, <code>unknown</code>",
+     "annotation ที่ประกาศบทบาทชนะก่อน ต่อด้วยกฎจากชื่อและ decorator; อะไรในไฟล์เทสเป็น <code>test</code> เสมอ และ <code>component</code> เป็น <code>ui</code> เสมอ ค่าใหม่ต้องได้สีใน <code>LAYER_COLORS</code> ใน commit เดียวกัน"],
+    ["graph", "ชนิดของ edge มีอะไรบ้าง",
+     "<code>references</code> (structure: อ้างอิง/import), <code>calls</code> (flow: การเรียก), <code>http</code> (flow: การเรียก fetch/axios ฝั่งหน้าเว็บที่เชื่อมกับ route handler ฝั่งหลัง), <code>renders</code> (flow: component ที่ render <code>&lt;Name /&gt;</code> ของอีก component), <code>implements</code> (flow: method ที่ implement method ชื่อเดียวกันของ interface หรือคลาสแม่ — เก็บเป็น impl → declaration แต่ trace, <code>--impact-of</code> และการหา orphan เดินกลับทาง)",
+     "<code>renders</code> resolve เหมือนการเรียก แต่ไม่นับเป็น coupling และไม่อยู่ในรายการ calls/callers เพราะการ render ไม่ใช่การเรียก — <code>check_graph.py</code> c20 ตรวจว่า <code>&lt;Name</code> ถูกเขียนอยู่ในผู้ render จริง ใน sample คือ <code>OrderCard → StatusBadge</code> ส่วน <code>&lt;Ctx.Item /&gt;</code> ไม่วาด edge ในทั้งสองแผนที่"]
+  );
+  </script>
+
+  <script>
+  QA.push(
+    ["route", "อ่าน route จากเฟรมเวิร์กอะไรบ้าง",
+     "แบบประกาศติด handler: FastAPI, Flask, Express, NestJS, Spring (Java และ Kotlin), ASP.NET, Go router (net/http, gin, chi, mux), actix-web / Rocket · แบบตารางแยกไฟล์: Django, Rails, Laravel, Phoenix",
+     "รวม 11 เฟรมเวิร์ก (ตามตัวเลขในการนำเสนอ) และตัวการจับคู่ข้าม stack ไม่ผูกกับเฟรมเวิร์กเมื่อ route ถูกรู้จักแล้ว"],
+    ["route", "endpoint node คืออะไร",
+     "รากของ request flow — handler ที่มี route ติดอยู่ ใช้เป็นจุดตั้งต้นที่ชัดเจนของ trace",
+     "handler ที่เป็นฟังก์ชันมีชื่อจะคงเป็น node ของมันพร้อม <code>routes</code> ส่วน inline arrow ของ Express หรือ inline literal ของ Go จะกลายเป็น node ชื่อ route เอง เช่น <code>GET /orders/:id/status</code> และ <code>GET /go/healthz</code> — sample มีทั้งหมด 16 endpoint"],
+    ["route", "ทำไม <code>routes</code> ของ node เป็น list ไม่ใช่ค่าเดียว",
+     "เพราะ handler หนึ่งตัวให้บริการหลาย route ได้: Flask <code>methods=[\"GET\", \"POST\"]</code> หรือ decorator ที่ซ้อนกัน",
+     "ใน sample handler Flask <code>orders</code> มีสอง entry: <code>GET</code> และ <code>POST /legacy/orders</code> — SKILL.md สั่ง agent ให้บอกครบทุก route เมื่อถูกถาม method <code>ANY</code> ใช้เมื่อ framework ลงทะเบียนทุก verb พร้อมกัน (<code>mux.HandleFunc</code> ที่ pattern ไม่มี method)"],
+    ["route", "prefix ของ controller ถูกรวมเข้ากับ path อย่างไร",
+     "อ่านทั้งสองชั้นแล้วต่อกัน: Nest <code>@Controller(\"nest/orders\")</code> + <code>@Get</code>, Spring <code>@RequestMapping(\"/java/orders\")</code> + <code>@PostMapping</code>, ASP.NET <code>[Route(\"cs/[controller]\")]</code> → <code>/cs/Invoice</code>",
+     "token <code>[controller]</code> ของ ASP.NET ถูกแทนด้วยชื่อคลาสที่ตัดคำว่า Controller ออก"],
+    ["route", "cross-stack edge ทำงานอย่างไร",
+     "การเรียก <code>fetch</code>/axios ฝั่งหน้าเว็บถูกจับคู่กับ route ฝั่งหลังด้วย HTTP method + path แล้วกลายเป็น edge ชนิด <code>http</code>",
+     "นี่คือรอยต่อที่เครื่องมือส่วนใหญ่พลาด ถ้าไม่มีจะได้กราฟสองก้อนที่ขาดจากกัน ถ้ามี trace ครั้งเดียวจะวิ่งจากปุ่มที่ผู้ใช้กดไปถึงแถวในฐานข้อมูล — ข้ามเข้า Python, Java หรือ Go ก็ได้"],
+    ["route", "ถ้า path ของฝั่งหน้าเว็บไม่ตรงกับ route เป๊ะล่ะ",
+     "ถอยไปใช้ route ที่ path เป็น <em>suffix</em> ของ path ที่เรียก แต่เชื่อมเฉพาะเมื่อตรงเงื่อนไข <strong>เพียงอันเดียว</strong>",
+     "ใน sample: <code>getOrderStatus</code> เรียก <code>/api/orders/:id/status</code> แต่ router ลงทะเบียน <code>/orders/:id/status</code> — เชื่อมได้เพราะมี route เดียวที่ตรง"],
+    ["route", "ถ้า path กำกวม ตรงหลาย route จะเกิดอะไร",
+     "ไม่เชื่อม — ดังนั้น <code>http</code> edge ที่หายไปหมายถึง “บอกไม่ได้” ไม่ใช่ “ไม่มีผู้เรียก”",
+     ""],
+    ["route", "axios instance ที่สร้างในไฟล์หนึ่งแล้ว import ไปใช้อีกไฟล์ ตามทันไหม",
+     "ทัน: ถ้า import resolve ไปยังไฟล์ <em>เดียว</em> ที่สร้าง instance นั้น (ตรง ๆ หรือผ่าน factory function) ชื่อนั้นจะถูก bind",
+     "<code>extract_js_files</code> parse ทุกไฟล์ก่อนอ่านไฟล์ใด เพื่อให้รู้ว่าไฟล์ไหนสร้าง instance เคสนี้เจอบน repo จริงที่ fixture จับไม่ได้ และกลายเป็นเทสถาวร นอกจากนี้ URL ที่ต่อจาก <code>const BASE = \"/x\"</code> ในไฟล์เดียวกันก็ถูกประกอบด้วย"],
+    ["route", "route table ต่างจาก decorator ในแง่ความยากอย่างไร",
+     "decorator อยู่ติด handler จึงรู้ทันทีว่าเป็นของใคร แต่ตารางอยู่คนละไฟล์และอ้าง handler ด้วยชื่อ — งานยากคือการผูกกลับ ไม่ใช่การอ่าน",
+     ""],
+    ["route", "Django รองรับรูปแบบไหนบ้าง",
+     "<code>urlpatterns</code>, prefix จาก <code>include()</code>, regex path, และ class-based view ที่ได้หนึ่ง route ต่อหนึ่ง HTTP method ที่คลาสนิยาม",
+     "function view ถูกปักกับไฟล์ที่ import ของมันชี้ไป เพื่อไม่ให้ชื่อซ้ำพาไปผิดไฟล์"],
+    ["route", "Rails, Laravel และ Phoenix รองรับอะไร",
+     "Rails: <code>resources</code>, <code>namespace</code>, <code>scope</code>, <code>member</code> · Laravel: handler ทั้งสองรูปแบบ, <code>prefix()->group</code>, <code>resource</code> · Phoenix: <code>scope</code> ซ้อนที่มี alias, <code>resources</code>",
+     ""],
+    ["route", "ถ้า route ในตารางอ้าง handler ที่หาไม่เจอ",
+     "ไม่แนบ — ทั้งกรณีไม่เจอ node และเจอสอง node ถูกนับรวมเป็น stderr บรรทัดเดียว ไม่เดา",
+     ""],
+    ["route", "route table พิสูจน์มาแค่ไหน",
+     "ผ่าน fixture ที่เขียนมือ ตารางละ 5 route (<code>check_langs.py</code> แถว django/rails/laravel/phoenix) แต่ยังไม่เคยเจอ repo จริง",
+     "พูดตรง ๆ ว่าคาดได้ว่าจะเจอข้อค้นพบแบบเดียวกับที่ Python, JS/TS และ Java เจอเมื่อพบโค้ดจริงครั้งแรก"],
+    ["route", "มีตัวอย่างบั๊กเรื่อง route ที่เจอบนโค้ดจริงไหม",
+     "มี: <code>@patch(\"subprocess.run\")</code> ในเทส Python ถูกอ่านเป็น route <code>PATCH</code> — แก้แล้วและอยู่ใน <code>check_regressions.py</code>",
+     "เป็นชนิดของบั๊กที่ fixture ไม่มีวันจับได้ เพราะคนเขียน fixture ไม่ได้คิดถึงมัน"],
+    ["route", "Next.js App Router (<code>app/api/.../route.ts</code>) เป็น endpoint ไหม",
+     "ยังไม่เป็น — handler ได้ <code>entry: next:route</code> จึงไม่ถูกเรียกว่าโค้ดตาย แต่ยังไม่มี route ถูกบันทึก <code>fetch(\"/api/orders/1\")</code> จึงยังไม่ได้ edge ข้าม stack",
+     "บันทึกเป็น finding #18: เป็น route shape ใหม่ (dynamic segment, route group, <code>pages/api</code>) ข้อเสนอคือเพิ่มแบบเดียวกับที่ phase 8 เพิ่ม route table โดยมี fixture ต่อรูปแบบ"],
+    ["route", "gRPC, GraphQL หรือ message queue ถูกอ่านเป็น edge ไหม",
+     "ไม่ — ไม่มี route shape สำหรับสิ่งเหล่านี้ การสื่อสารข้าม service ผ่านช่องทางนั้นจึงไม่เป็น edge",
+     "เป็นข้อจำกัดของขอบเขต: cross-stack ที่รองรับคือ HTTP ที่หน้าเว็บเรียกด้วย fetch/axios และ backend ประกาศ route ด้วยรูปแบบที่ระบุไว้"],
+    ["route", "cross-stack edge ทำให้การตรวจ layer violation ผิดไหม",
+     "ไม่ — client ฝั่งหน้าเว็บที่เรียก controller ฝั่งหลังคือทิศที่ถูกต้องข้าม API boundary อยู่แล้ว <code>http</code> edge จึงถูกยกเว้นจากการตรวจนี้",
+     ""],
+
+    ["review", "health score คำนวณอย่างไร",
+     "เริ่มที่ 100 แล้วหักหกหมวด ทุกหมวดมีเพดาน: <code>dead_code</code> min(20, round(%orphan × 0.5)) · <code>cycles</code> min(24, 8×n) · <code>layer_violations</code> min(16, 4×n) · <code>high_coupling</code> min(12, 3×n) · <code>god_objects</code> min(12, 3×n) · <code>security</code> min(30, 10×high + 4×medium + 1×low)",
+     "โค้ดอยู่ใน <code>analyze.health()</code> ผลรวมเพดานคือ 114 คะแนนจึงถูก clamp ที่ 0 และรายงานแจกแจงรายการหักทุกครั้ง — ตัวเลขเปิดบทสนทนา ส่วนรายการหักคือเนื้อหาจริง"],
+    ["review", "เกณฑ์เกรด A–F คืออะไร",
+     "A ≥ 90 · B ≥ 80 · C ≥ 70 · D ≥ 60 · ต่ำกว่านั้น F",
+     ""],
+    ["review", "ทำไมทุกหมวดต้องมีเพดาน",
+     "เพื่อไม่ให้มิติเดียวลากคะแนนทั้งโปรเจกต์ลงไปเอง ตัวเลขจึงยังมีความหมายข้ามรูปแบบความล้มเหลวที่ต่างกันมาก",
+     "ถ้าไม่มีเพดาน orphan จำนวนมากในโปรเจกต์ที่สถาปัตยกรรมดีจะได้คะแนนเท่ากับสถาปัตยกรรมที่พันกันเป็นวง"],
+    ["review", "ทำไม cycle ถึงถูกหักหนักที่สุดต่อรายการ",
+     "เพราะเป็น coupling ที่แกะยากที่สุด — ไม่มีโมดูลไหนในวงที่จะทำความเข้าใจ ทดสอบ หรือแยกออกมาได้โดยลำพัง",
+     ""],
+    ["review", "น้ำหนักพวกนี้มาจากงานวิจัยหรือ calibrate กับ dataset ไหม",
+     "ไม่ได้ calibrate กับ dataset — เป็น heuristic ที่ตั้งอย่างระมัดระวัง เขียนไว้ที่เดียว และเปิดเผยสูตรทั้งหมด",
+     "จึงแนะนำให้ใช้เกรดเป็น <strong>เส้นแนวโน้มของโปรเจกต์ตัวเอง</strong> มากกว่าเทียบข้ามโปรเจกต์ และไม่ expose เป็น config โดยตั้งใจ เพื่อให้ตัวเลขของสองช่วงเวลาเทียบกันได้"],
+    ["review", "เทียบเกรดข้ามโปรเจกต์ได้ไหม",
+     "ได้แต่ไม่ควรเป็นหลัก — ค่านี้มีประโยชน์ที่สุดเมื่อเทียบกับประวัติของโปรเจกต์ตัวเอง",
+     "ขนาด ภาษา และสไตล์ของ framework ต่างกันมาก เช่น ภาษาที่ source ไม่ค่อยเขียนชนิดของ receiver จะมี node ที่ติด <code>name-matched</code> มาก มี edge น้อยกว่าและ orphan มากกว่าโดยธรรมชาติ"],
+    ["review", "เกรดตัวเดียวไม่ตื้นเกินไปหรือ",
+     "ถ้ามีแต่ตัวเลขก็ตื้น ซึ่งเป็นเหตุผลที่รายการหักคะแนนถูกแสดงคู่กันเสมอ พร้อมรายชื่อ node ที่เป็นต้นเหตุ",
+     ""],
+    ["review", "sample ได้แค่ C ไม่ดูแย่หรือ",
+     "ตั้งใจ — sample ฝังกลิ่นไม่ดีไว้ให้ทุก pass มีของเจอ: structure C (73), flow C (70), 4 risk finding ต่อแผนที่, 2 debt marker",
+     "structure เคยได้ C (71) แล้วลดเป็น D (69) เมื่อเพิ่ม implementation ของ interface — hard case กำลังซื่อสัตย์ — แล้วขึ้นเป็น C (73) เมื่อ base ของคลาสกลายเป็นลิงก์ <code>implements</code> (#29) ส่วน flow ลดจาก D (69) เป็น D (68) เมื่อใส่ clone ตัวอย่าง (ไม่มีใครเรียกมันจึงเป็น orphan เพิ่มหนึ่งตัว) แล้วขึ้นเป็น C (70) เมื่อลิงก์ <code>implements</code> ทำให้ <code>FlatRate.price</code> กับ <code>TieredRate.price</code> ไม่เป็น orphan"],
+    ["review", "ตรวจหา cycle ด้วย algorithm อะไร",
+     "Tarjan's strongly connected components แบบ <strong>iterative</strong> — SCC ที่มีมากกว่าหนึ่ง node (หรือ node ที่เรียกตัวเอง) คือวงจร",
+     "Tarjan หา SCC ทั้งหมดได้ในรอบเดียว O(V + E)"],
+    ["review", "ทำไมต้องเขียน Tarjan แบบวนซ้ำ ไม่ใช่ recursive",
+     "เพราะเวอร์ชัน recursive จะชน recursion limit ของ Python บนกราฟลึก ๆ ของ repo จริง",
+     "เครื่องมือที่พังกับอินพุตที่ใหญ่ที่สุดคือเครื่องมือที่ไม่มีใครใช้"],
+    ["review", "orphan คืออะไร และอะไรได้รับการยกเว้น",
+     "node ที่ไม่มี edge เข้า — ยกเว้น dunder method, <code>kind</code> endpoint/component, node ที่มี <code>routes</code>, layer controller/test, <code>declaration: true</code> และ node ที่มี <code>entry</code>",
+     "เหตุผลร่วมกันคือผู้เรียกอยู่นอกกราฟ (server, framework, test runner) หรือไม่มีโค้ดให้ลบ (declaration) — การไม่มี edge เข้าจึงไม่ได้บอกว่าไม่ถูกใช้"],
+    ["review", "layer violation คืออะไร",
+     "การเรียกย้อนทิศทางของลำดับชั้น controller (0) → service (1) → repository/client (2) → model (3) เช่น repository เรียก service",
+     "<code>LAYER_RANK</code> ใน <code>analyze.py</code> — edge ชนิด http และ edge ที่แตะ test node ไม่ถูกนับ"],
+    ["review", "hub กับ god object นิยามอย่างไร",
+     "hub: fan_in + fan_out ≥ 10 (<code>HUB_DEGREE</code>) · god object: คลาสที่มีเมธอด ≥ 12 ตัวใน flow map (<code>GOD_METHODS</code>) หรืออ้างอิง entity อื่น ≥ 8 ตัวใน structure map (<code>GOD_FANOUT</code>)",
+     "ค่าคงที่ที่ตั้งชื่อไว้ในที่เดียว ตั้งไว้แบบระมัดระวังเพื่อให้รายงานน่าเชื่อถือแทนที่จะเป็นเสียงรบกวน"],
+    ["review", "<code>app_edges()</code> คืออะไร",
+     "ชุด edge ที่ตัด edge ซึ่งแตะ node <code>layer: test</code> ออก — ใช้คำนวณ degree ของ hub และ god object",
+     "เพราะการเรียกจากเทสคือ coverage ไม่ใช่ coupling ถ้านับรวม service ที่มีเทสดีจะถูกลงโทษเป็น hub"],
+    ["review", "ตรวจจับ design pattern (idiom) อย่างไร",
+     "ด้วย regex บน <em>ชื่อ</em>: <code>singleton</code> (<code>get_instance</code>, <code>shared_instance</code>), <code>factory</code> (<code>make_</code>, <code>build_</code>), <code>observer</code> (<code>subscribe</code>, <code>emit</code>, <code>publish</code>), <code>react_hook</code> (<code>useX</code>)",
+     "ประกาศตรง ๆ ว่าเป็นตัวช่วยนำทาง ไม่ใช่การพิสูจน์เชิงโครงสร้าง: “Singleton” หมายถึงชื่อที่อ้างว่าเป็น singleton และไม่มีผลต่อเกรด"],
+    ["review", "debt marker และ test coverage มีผลกับเกรดไหม",
+     "ไม่มี — สอง pass นี้ “รายงาน ไม่ตัดสิน” โดยเจตนา; โค้ดตายมีผลผ่านหมวด <code>dead_code</code> เท่านั้น",
+     "เพราะทั้งคู่เป็น heuristic ที่อ่อนกว่าข้อมูลกราฟ (marker อ่านจากคอมเมนต์, coverage อ่านจากชื่อ) การให้มันตัดสินเกรดจะทำให้เกรดเชื่อถือได้น้อยลง"],
+    ["review", "รู้ได้อย่างไรว่าตัวตรวจ cycle หรือ orphan ไม่ได้พังแล้วคืนค่าว่าง",
+     "ด้วยเทสแบบ metamorphic ในกลุ่ม D ของ <code>check_graph.py</code>: ฉีด cycle, orphan, hub, god object หรือ layer violation เข้าไปในสำเนาของกราฟจริง แล้วบังคับว่าต้องถูกรายงาน",
+     "เพราะตัวตรวจจับที่คืนค่าว่างหน้าตาเหมือน codebase ที่สะอาดทุกประการ และ <code>--self-test</code> ยังสลับฟังก์ชันวิเคราะห์เป็นตัวที่พังเพื่อยืนยันว่าเช็กจะดังขึ้น"],
+    ["review", "หักคะแนน security สูงถึง 30 จาก regex ยุติธรรมไหม",
+     "เป็นจุดอ่อนที่ยอมรับและบันทึกไว้ (finding #16): high finding แค่สามตัวก็กินงบ security ทั้งหมด",
+     "บน Spring + Next.js repository จริง false positive สิบตัวทำให้เกรดตกสองขั้น ตัวกรองตอนนี้ตัดรูปแบบนั้นแล้ว ข้อเสนอคือคงน้ำหนักไว้ (เพื่อให้เทียบกับอดีตได้) แต่แสดงยอดหัก security ข้างเกรดใน <code>brief</code>"],
+    ["review", "<code>analyze.py</code> อ่าน source ด้วยไหม",
+     "ไม่ — เป็น graph-only ทั้งหมด ส่วน security รับเข้ามาเป็นจำนวนนับจาก <code>security.json</code>",
+     "จึงรันกับ graph JSON ใดก็ได้ รวมถึงกราฟที่ถูกฉีดข้อบกพร่องในเทส"],
+
+    ["passes", "<code>scan_security.py</code> ตรวจอะไรบ้าง",
+     "สี่กฎบนบรรทัดเดียว: <code>hardcoded_secret</code>, <code>sql_injection</code> (SQL ที่ต่อสตริง), <code>dangerous_eval</code> (<code>eval</code>/<code>innerHTML</code> sink), <code>debug_statement</code> ที่ค้าง — ระดับ high/medium/low",
+     "ความลับถูก redact ในรายงาน และข้ามไฟล์เทส, fixture และเอกสาร"],
+    ["passes", "finding ด้านความปลอดภัยถูกผูกกับ node อย่างไร",
+     "<code>owner_of</code>: node ที่อยู่ในสุดซึ่งช่วง <code>source..end</code> <em>ครอบ</em> บรรทัดนั้น ถ้าไม่มีก็ไม่มีเจ้าของ (<code>null</code> = ระดับโมดูล)",
+     "เดิมใช้ “node สุดท้ายที่เริ่มก่อนบรรทัด” โดยไม่ดู <code>end</code> ทำให้ finding ระดับโมดูลไปเกาะฟังก์ชันก่อนหน้า — <strong>99 จาก 152</strong> finding บนโค้ด skill ผูกผิด ฟังก์ชันเดียวกันนี้ใช้ร่วมกับ <code>debt.py</code>"],
+    ["passes", "ใช้แทนเครื่องมือ SAST ได้ไหม",
+     "ไม่ได้ และไม่ควรขายแบบนั้น — มันคือรอบตรวจแรกที่เร็ว เป็น regex ไม่ใช่ dataflow จึงตามค่าที่ปนเปื้อนข้ามฟังก์ชันไม่ได้",
+     "จุดที่พิเศษคือ finding ผูกกับกราฟ จึงหา blast radius ของความเสี่ยงได้เหมือน node อื่น — “ถ้า SQL นี้โดน inject มี endpoint ไหนวิ่งผ่านบ้าง”"],
+    ["passes", "ลด false positive ของ hardcoded secret อย่างไร",
+     "<code>_names_not_holds</code>: key ที่ชื่อเหมือน credential แต่ค่า <em>เป็นแค่ชื่อ</em> ไม่ถูกรายงาน — ชื่อ key ตัวเอง (<code>ACCESS_TOKEN: \"accessToken\"</code>), path, ประโยค หรือคำพิมพ์เล็กที่ต่อด้วย <code>-</code>/<code>:</code> (<code>space-y-4</code>, <code>auth:token-refreshed</code>)",
+     "UUID ที่ผสมตัวอักษรกับตัวเลขในส่วนเดียวกันยังถูกรายงาน ที่มา: บน repo จริง “hardcoded secret” <strong>ทั้ง 10 ตัว</strong> เป็นรูปแบบเหล่านี้ และแต่ละตัวราคา 10 คะแนนเกรด"],
+    ["passes", "ทำไมต้อง redact ค่าในรายงาน",
+     "เพราะรายงานเป็น artifact ที่ commit ลง repo ได้ การเขียนความลับจริงลงไปคือการเปลี่ยนข้อค้นพบให้กลายเป็นเหตุรั่วครั้งที่สอง",
+     ""],
+    ["passes", "ทำไมข้ามไฟล์เทส",
+     "รหัสผ่านใน fixture ไม่ใช่ความลับที่รั่ว การสแกนมันสร้างแต่เสียงรบกวนที่ฝึกให้คนเลิกอ่านรายงาน",
+     ""],
+    ["passes", "<code>metrics.py</code> วัดอะไร",
+     "ต่อไฟล์: จำนวนบรรทัด total/code/comment/blank และสัดส่วนภาษา · ต่อ node ในทุกภาษาที่มีกราฟ: LOC, cyclomatic complexity, nesting depth, จำนวน parameter",
+     "sample: 529 บรรทัดใน 22 ไฟล์ (py 126, java 102, csharp 90, ts 90, go 66, js 28, tsx 27) และวัดได้ 52 จาก 53 node ของ flow"],
+    ["passes", "cyclomatic complexity นับข้าม 17 ภาษาอย่างไรให้สม่ำเสมอ",
+     "<code>metrics.TABLES</code> หนึ่งแถวต่อ grammar ระบุชนิด node ที่เป็น decision, block และ definition แล้ววัดบน parse จริงของช่วงของ node นั้น",
+     "fixture ทุกภาษามีฟังก์ชัน <code>grade</code> ที่ <strong>นับด้วยมือ</strong> ไว้ในคอมเมนต์: complexity 6, depth 2, 2 parameters — จึงเทียบกับคน ไม่ใช่เทียบกับตัวบันทึกค่าเอง"],
+    ["passes", "node แบบไหนวัด metrics ไม่ได้ และแสดงอย่างไร",
+     "node ที่ไม่มี body: module group (ทั้งไฟล์ ไม่มีช่วง) และ <code>declaration: true</code> — ถูกระบุใน <code>unmeasured_graph_ids</code> อย่างเปิดเผยแทนการยัดค่า 1 ปลอม",
+     "ใน sample สิ่งที่วัดไม่ได้คือ <code>PricingRule.price</code> หนึ่งตัวใน flow และหก <code>*Module</code> ใน structure พอดี และ SKILL.md ห้าม agent ไปอ่าน source มาเติมตัวเลขแทน"],
+    ["passes", "<code>duplicates.py</code> หาโค้ดที่ก๊อปมาได้อย่างไร แม้เปลี่ยนชื่อตัวแปรแล้ว",
+     "ลดแต่ละ body เป็น “รูปทรงของ token”: identifier → <code>ID</code>, literal → <code>LIT</code>, คอมเมนต์และช่องว่างหายไป, keyword และ operator คงไว้ แล้วจัดกลุ่ม body ที่ hash เท่ากัน",
+     "ใน sample <code>createInvoice</code> คือ <code>createOrder</code> ที่เปลี่ยนชื่อทุก identifier: ได้ 1 cluster, 2 node, 4 บรรทัดซ้ำ — เปลี่ยนชื่อตัวแปรในสำเนาหนึ่งต้องยังอยู่กลุ่มเดียวกัน แต่เปลี่ยน operator ต้องแยกกลุ่ม"],
+    ["passes", "ทำไมไม่ diff ข้อความตรง ๆ หรือใช้ embedding หาโค้ดที่คล้าย",
+     "diff ข้อความแพ้การเปลี่ยนชื่อ ส่วน embedding ไม่คงที่และขัดกับ Zero-RAG — เป้าหมายคือหา <em>สำเนา</em> ไม่ใช่โค้ดที่ดูคล้าย",
+     "การเปลี่ยน operator หรือเพิ่ม branch ทำให้คู่แยกกัน ซึ่งคือสิ่งที่ต้องการ มันเอนไปทางพลาดสำเนาดีกว่าแต่งสำเนาขึ้นมา"],
+    ["passes", "ทำไม body ที่สั้นกว่า 30 token ไม่ถูกนับ",
+     "เพื่อไม่ให้ getter และ delegate บรรทัดเดียวท่วมรายการ — ของพวกนั้นหน้าตาเหมือนกันโดยธรรมชาติ ไม่ใช่การก๊อป",
+     ""],
+    ["passes", "หา “บล็อก” ที่ถูกก๊อปไปอยู่ในสองฟังก์ชันที่ต่างกันได้อย่างไร",
+     "winnowing fingerprint ของ k-gram (K = 10, W = 21) — รับประกันว่าช่วงที่เหมือนกันยาว 30 token ขึ้นไปจะมี fingerprint ร่วมกันอย่างน้อยหนึ่งตัว (W + K − 1 = 30)",
+     "match ถูกขยายเป็นช่วงที่ยาวที่สุด แล้วตัดให้ลงขอบ <strong>บรรทัดเต็ม</strong> ทั้งสองฝั่ง จึงไม่มีการนับครึ่ง statement และยังไม่ต้อง parse ใหม่ ช่วงที่ซ้อนทับกันถูกข้าม, fingerprint ที่เจอ 50+ ที่ถือเป็น boilerplate และคู่ที่อยู่ใน cluster แล้วไม่ถูกรายงานซ้ำเป็นบล็อก"],
+    ["passes", "ทำไมไม่ใช้ <code>hash()</code> ของ Python ใน rolling hash",
+     "เพราะ <code>hash()</code> ของสตริงถูก salt ต่อ process — รันสองครั้งได้ fingerprint ต่างกัน ซึ่งทำลาย deterministic (constraint 2)",
+     "จึงใช้ rolling hash ที่เสถียรของตัวเอง และใช้ sha1 สำหรับ hash ของรูปทรงทั้ง body"],
+    ["passes", "ทำไมบล็อกซ้ำต้องจัดกลุ่มตามรูปทรง ไม่รายงานเป็นคู่",
+     "เพราะบล็อกเดียวที่อยู่ใน N ที่ จะกลายเป็น N×(N−1)/2 คู่ — หนึ่งรายการต่อหนึ่งบล็อกพร้อมรายการ <code>places</code> ทั้งหมดอ่านรู้เรื่องกว่ามาก (finding #7)",
+     "บล็อกที่อยู่ 10 ที่ ถ้ารายงานเป็นคู่คือ 45 รายการ"],
+    ["passes", "duplicates พลาดอะไรบ้าง",
+     "สำเนาที่ถูกแก้ไปแล้ว (operator เดียวทำให้ช่วงยาวแตกเป็นสองช่วงสั้นกว่า 30), สำเนาที่จัดบรรทัดต่างกัน (เพราะตัดลงขอบบรรทัด) และสำเนาที่ฝั่งหนึ่งมี docstring อีกฝั่งไม่มี",
+     "และ node <code>declaration: true</code> ถูกข้ามเพราะไม่มี body ให้เทียบ"],
+    ["passes", "<code>debt.py</code> หาอะไร",
+     "marker ในคอมเมนต์ (<code>TODO</code>, <code>FIXME</code>, <code>HACK</code>, <code>XXX</code>, <code>BUG</code>, <code>DEPRECATED</code>) ผูกกับ node เจ้าของบรรทัด + node ที่ไม่มีใครเรียก + ไฟล์ที่ <em>ทุก</em> node ตาย",
+     "sample: 2 marker (FIXME 1, TODO 1), 7 dead node และไฟล์ที่ตายทั้งไฟล์ <code>sample_src/frontend/order_page.ts</code>"],
+    ["passes", "ทำไมการสรุประดับ “ไฟล์ตายทั้งไฟล์” ถึงมีประโยชน์",
+     "ฟังก์ชันตายหนึ่งตัวคือปลายเชือกที่หลุด แต่ไฟล์ที่ตายทั้งไฟล์คือการลบที่ลงมือได้จริงทันที",
+     ""],
+    ["passes", "<code>tests_map.py</code> ทำงานอย่างไร",
+     "นับว่า node ถูกเทส “เอ่ยถึง” เมื่อไฟล์เทสสะกดชื่อของมัน — <code>Class.method</code> ต้องมีทั้งชื่อคลาสและชื่อเมธอด, function/class ต้องมีชื่อนั้น",
+     "dunder method และ node ที่อยู่ในไฟล์เทสถูกตัดออกจากตัวหาร sample: 2 ไฟล์เทส, flow 4 จาก 49 node ถูกเอ่ยชื่อ"],
+    ["passes", "นี่คือ test coverage จริงหรือเปล่า",
+     "ไม่ใช่ และควรพูดข้อนี้ก่อนเป็นอย่างแรก — coverage จริงต้องมี instrumentation; อันนี้ตอบว่าชุดเทส <em>เอ่ยถึง</em> ส่วนไหนเลยด้วยซ้ำ",
+     "ข้อดีคือไม่ต้องรัน ไม่ต้องติดตั้ง runner และใช้ได้ทุกภาษา node ที่ถูกเอ่ยถึงอาจยังไม่ถูกทดสอบจริง แต่ node ที่ไม่ถูกเอ่ยถึงเลยคือช่องว่างจริง"],
+    ["passes", "ถ้า helper ถูกเรียกผ่าน service ที่มีเทส จะนับว่าถูกเทสไหม",
+     "ไม่นับ — การนับเป็นแบบชื่อและไม่ transitive (finding #15); MockMvc test ที่เอ่ยแต่ URL ก็ไม่นับ endpoint",
+     "บน Spring + Next.js repository ได้ 12% และ agent ที่รายงานโทษ call edge ที่หาย ซึ่งผิด เพราะ pass นี้ไม่อ่าน edge เลย ข้อเสนอคือคงตัวเลขเดิมไว้ใต้ชื่อเดิม และเพิ่มตัวเลข <code>reached_by_tests</code> ที่อิง edge ไว้ข้าง ๆ"],
+    ["passes", "“Covered by” ใน <code>context.py</code> ต่างจาก tests_map อย่างไร",
+     "“Covered by” มาจาก <strong>call edge จริง</strong> ของ test node ที่เรียก node นั้นโดยตรง — ตอบได้ว่า “แก้ตรงนี้ควรรันเทสไหน”",
+     "และ <code>--impact-of</code> ก็บอกได้ว่าการเปลี่ยนแปลงหนึ่งทำให้เทสไหนเสี่ยง"],
+    ["passes", "<code>git_insights.py</code> คำนวณอะไร",
+     "churn (จำนวน commit ต่อไฟล์), เจ้าของหลักต่อไฟล์ และอันดับ hotspot ด้วย <code>risk = commits × (1 + fan_in + fan_out)</code>",
+     "อ่านจาก <code>git log --numstat</code> รอบเดียว ถ้าไม่ได้อยู่ใน git repo จะคืนข้อมูลว่างพร้อมหมายเหตุ ไม่พัง"],
+    ["passes", "ทำไม hotspot ต้องเอา churn คูณ coupling",
+     "เพราะสัญญาณเดี่ยวหลอกได้ทั้งคู่: ไฟล์ที่เปลี่ยนบ่อยแต่ไม่มีใครพึ่งพาก็ไม่อันตราย ไฟล์ที่ถูกพึ่งพาเยอะแต่ไม่เคยเปลี่ยนก็เสถียร — ความเสี่ยงอยู่ตรงที่ทั้งสองจริงพร้อมกัน",
+     "บวก 1 ไว้เพื่อให้ไฟล์ที่ไม่มี edge แต่เปลี่ยนบ่อยยังมีคะแนน ไม่ถูกคูณเป็นศูนย์"],
+    ["passes", "ทำไมอ่าน git log รอบเดียว",
+     "การเรียก git ทีละไฟล์ช้ามากบนประวัติที่ยาว การทำรอบเดียวทำให้รายงานเร็วพอที่จะรันเป็นกิจวัตร",
+     ""]
+  );
+  </script>
+
+  <script>
+  QA.push(
+    ["query", "agent ควรเริ่มเซสชันด้วยคำสั่งอะไร",
+     "<code>archaeologist.py check</code> ก่อนเสมอ ถ้า stale ให้ build ใหม่ แล้วค่อยเปิด <code>archaeologist.py brief</code>",
+     "คำตอบที่มั่นใจจากแผนที่เก่าแย่กว่าการไม่ตอบ เพราะมันผิดและดูเหมือนถูก"],
+    ["query", "<code>search.py</code> มีไว้ทำไม ในเมื่อมี grep อยู่แล้ว",
+     "เพราะมันคืน <em>node id</em> ซึ่งเป็นคีย์ที่ทุกคำสั่งถัดไปรับเข้า — search เพื่อหา, trace เพื่อเชื่อม, context เพื่อโหลด",
+     "และเพราะ id อาจถูก qualify ด้วยชื่อไฟล์เมื่อชื่อซ้ำ การค้นจึงปลอดภัยกว่าการพิมพ์ id จากความจำ SKILL.md ห้าม agent grep source เพื่อหา “ที่ที่จัดการ X”"],
+    ["query", "<code>search.py</code> กรองอะไรได้บ้าง",
+     "<code>--name</code> / <code>--doc</code> (regex), <code>--layer</code>, <code>--kind</code>, <code>--lang</code>, <code>--file</code> (substring ของ path), <code>--calls</code>, <code>--called-by</code>, <code>--orphans</code> — ทุก filter AND กัน",
+     "<code>--graph</code> เลือกแผนที่ (ค่าเริ่มต้น flow), <code>--limit</code> ค่าเริ่มต้น 40 แถว, <code>--format json</code> สำหรับเครื่องมืออื่น"],
+    ["query", "ทำไม <code>--lang ts</code> หาอะไรไม่เจอใน TypeScript repo",
+     "เพราะ tag บน node คือ <code>js</code> สำหรับทั้ง <code>.js</code>, <code>.jsx</code>, <code>.ts</code> และ <code>.tsx</code> — ต้องใช้ <code>--lang js</code> หรือ <code>--file .tsx</code>",
+     "tag ที่ละเอียดกว่า (<code>ts</code>/<code>tsx</code>/<code>jsx</code>) มีอยู่ใน file census ของ <code>metrics.json</code> และแถบภาษาของ explorer ซึ่งอ่านจากนามสกุล"],
+    ["query", "<code>trace_path.py --from/--to</code> ใช้ algorithm อะไร",
+     "BFS หาเส้นทางสั้นที่สุด (จำนวน hop น้อยที่สุด) บนกราฟที่เรียงลำดับคงที่ — ได้เส้นทางเดิมทุกครั้ง; <code>--all</code> คืนทุกเส้นทาง",
+     "output หนึ่งบรรทัดต่อหนึ่งเส้นทาง (<code>A &gt; B &gt; C</code>) ค่าเริ่มต้นคือ structure graph ส่วน flow ต้องระบุ <code>--graph</code>"],
+    ["query", "ทำไมใช้ BFS ไม่ใช่ Dijkstra หรือ A*",
+     "เพราะ edge ไม่มีน้ำหนัก — “สั้นที่สุด” คือจำนวนทอดน้อยที่สุด ซึ่ง BFS ให้คำตอบที่ถูกต้องใน O(V + E) อยู่แล้ว",
+     "การใส่น้ำหนักจะต้องสมมติความหมายที่ source ไม่ได้บอก"],
+    ["query", "<code>--impact-of</code> (blast radius) คำนวณอย่างไร",
+     "หา node ทุกตัวที่ <em>ไปถึง</em> node เป้าหมายได้ (upstream) — คือทุกคนที่ได้รับผลเมื่อเป้าหมายเปลี่ยน ทั้งทางตรงและทางอ้อม",
+     "ต่างจากการค้นข้อความที่เจอเฉพาะที่เอ่ยถึงโดยตรง: ผู้เรียกที่อยู่ห่างไปสามทอดซึ่งไม่มีใครคิดจะ grep หา มักเป็นตัวที่พังจริงบน production และเพราะ http edge อยู่ในกราฟ การแก้ backend จึงเผยฟังก์ชันฝั่งหน้าเว็บที่เป็นต้นทางด้วย"],
+    ["query", "blast radius เชื่อได้ไหม ในเมื่อ edge เป็นแค่ lower bound",
+     "เชื่อได้ในฐานะ <strong>ขั้นต่ำ</strong>: ทุกอย่างในรายการได้รับผลจริง แต่อาจมีมากกว่านั้น — agent ต้องพูดข้อนี้เมื่อคำตอบทั้งคำตอบวางอยู่บน blast radius",
+     "จุดที่ควรสงสัยเป็นพิเศษถูกระบุชื่อไว้แล้ว: node ที่มี <code>precision</code> หรือ <code>unresolved</code> บนเส้นทาง"],
+    ["query", "<code>--impact-of-diff</code> ทำงานอย่างไร",
+     "แปลง git diff (working tree, <code>--staged</code> หรือ <code>--base origin/main</code>) เป็นไฟล์ → node แล้ว union blast radius ของทุก node",
+     "จับคู่ไฟล์กับ node ด้วย suffix ของพาธพร้อมตรวจขอบเขตของ segment จึงถูกต้องไม่ว่า git จะรายงานพาธจากรากของ repo หรือจากโฟลเดอร์ย่อย ใช้ตอนรีวิว PR: เห็นพื้นผิวที่ขยับจริง ซึ่งมักใหญ่กว่าที่ diff ทำให้รู้สึก"],
+    ["query", "<code>context.py</code> คืออะไร ต่างจากเปิดโน้ตอย่างไร",
+     "“ห่อข้อเท็จจริง” ของ node ในการเรียกครั้งเดียว: kind/layer/source, ขนาดและ complexity, churn และเจ้าของ, คำอธิบาย, ผู้เรียกและผู้ถูกเรียกพร้อมคำอธิบายของแต่ละตัว, ความเสี่ยงที่ผูกกับมัน และเทสที่ครอบคลุม",
+     "แทนขั้นตอน “trace แล้วเปิดโน้ตห้าใบ” รับหลาย node, <code>--depth</code>, <code>--diff</code> (ทุก node ที่ diff แตะ) และพิมพ์ caveat เรื่อง precision บน node ที่กำลังอ่าน"],
+    ["query", "ทำไม <code>context.py</code> ต้องมี <code>--max-chars</code>",
+     "เพื่อให้ต้นทุนมีขอบเขตไม่ว่า node จะเชื่อมกับอะไรมากแค่ไหน — hub ที่มีผู้เรียกหกสิบตัวต้องไม่ผลิต payload มหึมา",
+     "ค่าเริ่มต้น 6000 ตัวอักษรเป็น hard budget: รายการเพื่อนบ้านถูกย่อจนพอดี และมันบอกเมื่อมีการตัด"],
+    ["query", "<code>brief</code> แสดงอะไรบ้าง",
+     "จำนวนและเกรดต่อแผนที่, ความสด, ขนาด, entry point และอันดับ top ของ node ที่ยาวที่สุด / ซับซ้อนที่สุด / churn มากที่สุด / เสี่ยงที่สุด",
+     "พร้อมบล็อก <code>SKIPPED</code> (ภาษาที่ขาด grammar + คำสั่งแก้) และ <code>UNPINNED</code> (grammar ที่ไม่ตรง pin) ปรับได้ด้วย <code>--map</code>, <code>--top N</code>, <code>--json</code> — ต้นทุนเท่ากันทั้ง repo 5 ไฟล์และ 200 ไฟล์"],
+    ["query", "ทำไม <code>brief</code> ต้องมีขนาดคงที่",
+     "เพราะเป็นสิ่งที่ agent เปิดเซสชันด้วย ถ้าโตตามขนาด repo มันจะไร้ประโยชน์พอดีกับ codebase ใหญ่ที่ต้องการมันที่สุด",
+     "วัดบน repo 13.6 MB: brief 4.3 KB"],
+    ["query", "ป้องกัน agent “มโน” node id ขึ้นมาเองอย่างไร",
+     "SKILL.md สั่งให้หา id ด้วย <code>search.py</code> เสมอ ห้ามพิมพ์จากความจำ — และ id ที่ไม่มีอยู่จริงจะ trace ไม่ได้ คำตอบจึงไม่ไปต่อบนสิ่งที่ไม่มี",
+     "คำตอบของ agent ยังต้องคง <code>[[wikilink]]</code> ไว้ ผู้อ่านจึงกดตรวจได้ทุกจุด"],
+    ["query", "agent ต้องพูด caveat เรื่องความแม่นเมื่อไร",
+     "ทุกครั้งที่คำตอบทั้งคำตอบวางอยู่บน dead code, blast radius หรือ “ใครเรียกสิ่งนี้” — และระบุชื่อความสูญเสียเมื่อ node ระบุไว้",
+     "<code>context.py</code> และหัวรายงานพิมพ์ caveat ให้แล้ว หน้าที่ของ agent คือส่งต่อ ไม่ใช่ตัดทิ้ง"],
+    ["query", "ถ้ามีภาษาถูก SKIPPED แล้ว agent ถูกถามว่า “มีโค้ดตายไหม”",
+     "ต้องบอกก่อนว่ามีภาษาถูกข้าม — SKILL.md ห้ามตอบคำถาม “อะไรเรียก X”, “นี่คือโค้ดตายไหม” หรือ “codebase ใหญ่แค่ไหน” โดยไม่บอกข้อนี้",
+     "เพราะกราฟเล็กกว่า codebase จริง และไม่มีอะไรอื่นใน output ทำให้มองเห็น"],
+    ["query", "คำถาม “โค้ดนี้สุขภาพดีไหม” agent ตอบจากไหน",
+     "รัน <code>report</code> แล้วตอบจาก <code>brief</code> เป็นหลัก เปิด <code>architecture_report.md</code> เฉพาะรายละเอียดที่ brief ชี้ไป — ไม่อ่าน source",
+     ""],
+    ["query", "หาโค้ดตายด้วยคำสั่งไหน และมีกับดักอะไร",
+     "<code>search.py --orphans</code> หรือ <code>debt.py</code> — กับดักคือฟังก์ชันที่ถูก <em>ส่ง</em> ไม่ได้ถูก <em>เรียก</em> (<code>onClick={fn}</code>, <code>action={fn}</code>, <code>arr.map(format)</code>) ไม่มีผู้เรียกในกราฟ",
+     "SKILL.md เตือน agent ให้ตรวจกรณีนี้ก่อนตัดสินว่าโค้ดตาย และบันทึกเป็น finding #19 พร้อมข้อเสนอ: ฟลาก <code>referenced: true</code> ที่ยกเว้นจาก dead code โดยไม่เปลี่ยนความหมายของ <code>calls</code> edge"],
+    ["query", "ใช้ใน CI/CD ได้ไหม",
+     "ได้ในแบบสคริปต์: ทุกคำสั่งรันจาก shell, หลายคำสั่งมี <code>--format json</code> และ <code>--impact-of-diff --base origin/main</code> ออกแบบมาเพื่อรีวิว PR",
+     "ยังไม่มี integration สำเร็จรูป (เช่น GitHub Action หรือ PR comment bot) — เป็นงานต่อยอด ไม่ใช่สิ่งที่มีแล้ว"],
+    ["query", "มี benchmark ว่าคำตอบของ agent ถูกขึ้นเท่าไรไหม",
+     "ยังไม่มี benchmark ความถูกต้องของคำตอบ agent แบบเป็นทางการ — พูดตรง ๆ",
+     "สิ่งที่วัดแล้วคือ (1) ความถูกต้องของกราฟ: invariant ของ <code>check_graph.py</code>, fixture 21 แถว, regression 49 เคส (2) ต้นทุน: brief เล็กกว่า source 3,212 เท่าบน repo จริง และ trace ตัวอย่างอ่าน ~1,500 tokens การวัดคุณภาพคำตอบจริงเป็นงานถัดไปที่สมเหตุสมผล"],
+    ["query", "explorer ใช้เป็นช่องทางให้ agent อ่านกราฟได้ไหม",
+     "ไม่ควร — explorer มีไว้ให้ <strong>คน</strong>; agent ใช้ <code>search</code> / <code>trace_path</code> / <code>context</code> ซึ่งคืนข้อมูลที่ตรงคำถามและมีขนาดจำกัด",
+     ""],
+    ["query", "ถ้าผู้ใช้ถามเป็นภาษาธรรมชาติ agent รู้ได้อย่างไรว่าต้องรันคำสั่งไหน",
+     "SKILL.md มีตาราง “ผู้ใช้ถาม → รันอะไร → แผนที่ไหน” เช่น “แก้ X แล้วอะไรพัง” → <code>trace_path.py --impact-of</code> บน flow, “มีอะไรถูกก๊อปวาง” → <code>duplicates.py</code>",
+     "กฎเลือกแผนที่: structure สำหรับ “จัดระเบียบอย่างไร / ใครใช้คลาสนี้”, flow สำหรับ “อะไรเรียกอะไร / request เดินทางอย่างไร”"],
+
+    ["determ", "“deterministic” ในโปรเจกต์นี้หมายถึงอะไรแน่",
+     "source เดิมเข้า → <strong>ไบต์เดิม</strong> ออก ทั้งกราฟ <em>และ</em> รายงาน ไม่มี artifact ไหนมีเวลานาฬิกา",
+     "เป็น hard constraint ข้อ 2 และตรวจจริงด้วย <code>check_regressions.py</code> r19 ที่รันรายงานสองครั้งแล้ว diff"],
+    ["determ", "บังคับให้ deterministic ในทางปฏิบัติอย่างไร",
+     "เรียงลำดับ output คงที่, ห้ามเวลานาฬิกาใน artifact, ใช้ hash ที่เสถียร (ไม่ใช่ <code>hash()</code> ที่ถูก salt), เก็บ root แบบสัมพัทธ์, normalize newline และตรึงเวอร์ชัน grammar",
+     "ส่วนที่มาจาก AI เข้ามาทางเดียวคือ <code>apply_descriptions.py</code> ซึ่ง cache ด้วย hash ของ source"],
+    ["determ", "อะไรเคยทำให้ความ deterministic พัง",
+     "พาธสัมบูรณ์ที่รั่วเข้าไปใน artifact (แก้ด้วยการเก็บ root แบบสัมพัทธ์) และฟิลด์ <code>generated</code> ที่เป็นเวลาในรายงาน (ลบออกจาก <code>report.py</code>, <code>metrics.py</code> และที่อื่น)",
+     "หลักคือ: อะไรก็ตามที่เฉพาะเจาะจงกับเครื่องหรือเวลา ห้ามอยู่ใน artifact"],
+    ["determ", "ทำไม deterministic ถึงสำคัญขนาดนั้น",
+     "ทำให้ผลลัพธ์ตรวจสอบย้อนหลังได้: commit กราฟลง repo, diff ใน code review และเห็นว่าสถาปัตยกรรมเปลี่ยนอย่างไรระหว่างสอง release",
+     "และมันคือเครื่องมือทดสอบที่แข็งแรงที่สุดของโปรเจกต์เอง: การย้าย parser ทั้งสามครั้งพิสูจน์ด้วย “กราฟต้องเท่ากันระดับไบต์”"],
+    ["determ", "คำสรุปจาก AI ขัดกับ deterministic ไหม",
+     "ไม่ขัด เพราะคำสรุปถูก cache ด้วย hash ของ source ของ node — source เดิมได้คำสรุปเดิมเสมอ",
+     "ลำดับคือ docstring ก่อน → คำสรุปที่ cache ไว้ → fallback แบบ deterministic ฟิลด์ <code>desc_source</code> บอกว่าคำอธิบายมาจาก <code>docstring</code>, <code>ai</code> หรือ <code>auto</code>"],
+    ["determ", "<code>check</code> ตรวจความสดอย่างไร",
+     "hash sha1 ของเนื้อหาไฟล์ source ทุกไฟล์ (เก็บ 12 ตัวอักษรฐานสิบหก) เทียบกับ manifest ของ build ล่าสุด → <code>{stale, changed, added, deleted}</code>",
+     "ชุด grammar ที่ติดตั้งก็ถูกเทียบด้วย ถ้าเปลี่ยนก็นับว่า stale ใน sample หลัง build ทันทีได้ <code>stale: false</code>"],
+    ["determ", "ทำไมใช้ hash ของเนื้อหา ไม่ใช้เวลาแก้ไขไฟล์ (mtime)",
+     "เพราะ timestamp เปลี่ยนตอน checkout, สลับ branch และคัดลอกไฟล์ ส่วน hash ดังขึ้นเฉพาะเมื่อเนื้อหาต่างจริง",
+     ""],
+    ["determ", "ทำไมใช้ SHA-1 ไม่ใช้ SHA-256 ไม่ปลอดภัยหรือ",
+     "เพราะนี่คือการตรวจการเปลี่ยนแปลง ไม่ใช่งานความปลอดภัย — ไม่มีผู้โจมตีในโมเดล SHA-1 อยู่ใน standard library และเร็วพอ",
+     "เอกสารเคยเขียนผิดว่า SHA-256 แล้วถูกแก้ให้ตรงกับโค้ด (commit <code>6c547e9</code>) — ตัวอย่างของกฎ “เอกสารต้องตรงกับพฤติกรรม”"],
+    ["determ", "ต้องใส่ <code>--src</code> ทุกครั้งที่รัน <code>check</code> หรือ <code>brief</code> ไหม",
+     "ไม่ต้อง — build บันทึก root ไว้ใน manifest แล้ว <code>check</code> กับ <code>brief</code> ใช้ซ้ำ",
+     "เคยเป็นบั๊กจริง: แฟล็กนี้เคยมีค่าเริ่มต้น <code>./src</code> การรัน <code>brief</code> โดยไม่ใส่แฟล็กจึงไปสแกนโฟลเดอร์ที่ไม่มี แล้วรายงานว่าทุกไฟล์ถูกลบ — STALE ปลอมที่มั่นใจมาก ในคำสั่งเดียวที่ agent ถูกสั่งให้เชื่อ ตอนนี้ root ที่หายจริงจะได้ข้อความ <code>source root(s) not found from here</code>"],
+    ["determ", "คำสรุปจาก AI ถูกทำให้ “หมดอายุ” เมื่อไร",
+     "เมื่อ hash ของ source ของ node นั้นเปลี่ยน — เมธอดที่ไม่เปลี่ยนใช้คำสรุปเดิม เมธอดที่ถูกลบก็ถูกล้างออก",
+     "ต้นทุนการรักษาแผนที่ให้สดจึงประมาณเท่ากับขนาดของ diff"],
+    ["determ", "ถ้า build ครั้งแรกมี pending description เป็นพันรายการ agent ต้องเขียนทั้งหมดไหม",
+     "ไม่ควร — คำอธิบายเป็นทางเลือกและทำทีละส่วนได้; กราฟสมบูรณ์โดยไม่ต้องมีมัน",
+     "เจอจริงบน repo 56k บรรทัด: 1,374 pending ขณะที่ SKILL.md เขียนว่า “0 pending คือเสร็จ” ถ้าทำตามตัวอักษรคือ agent เขียน 1,374 คำสรุป บันทึกเป็น finding #17 ข้อเสนอ: อธิบายเฉพาะ node บน path ของคำตอบ หรือ top N ตาม fan-in"],
+    ["determ", "ควร commit กราฟและรายงานลง git ไหม",
+     "ได้และมักคุ้ม — เพราะ deterministic การ diff กราฟใน code review จึงแสดงการเปลี่ยนแปลงของสถาปัตยกรรมจริง ไม่ใช่สัญญาณรบกวน",
+     "repo นี้เองก็ commit ข้อมูลของ sample ไว้เป็นตัวอย่าง และถ้า <code>sample_src/</code> เปลี่ยน ต้อง regenerate ข้อมูลใน commit เดียวกัน"],
+    ["determ", "ผลลัพธ์เหมือนกันข้ามเครื่องและข้าม OS ไหม",
+     "ออกแบบให้เหมือน: newline ถูก normalize, grammar ถูกตรึง, root เป็นพาธสัมพัทธ์, id เทียบแบบไม่สนตัวพิมพ์ และไม่มีเวลาใน artifact",
+     "เงื่อนไขคือชุด grammar ต้องตรงกัน — ถ้าไม่ตรง <code>brief</code> จะบอกเป็น <code>UNPINNED</code> หรือ <code>SKIPPED</code> การทดสอบหลักทำบน Windows"],
+    ["determ", "build ใหม่แบบ incremental ได้ไหม",
+     "ตัวกราฟ build ใหม่ทั้งชุดทุกครั้ง (repo ~1,100 ไฟล์ใช้ project 9.1 s + flow 5.0 s) ส่วนที่ incremental คือคำสรุปจาก AI ซึ่งคิดเฉพาะที่ source เปลี่ยน",
+     "<code>check</code> บอกว่าเมื่อไรต้อง build ใหม่ การ build ทั้งชุดทำให้ไม่มีสถานะค้างที่ผิด ซึ่งเป็นแหล่งบั๊กคลาสสิกของ incremental build"],
+    ["determ", "ถ้า agent ข้ามการตรวจความสดจะเกิดอะไร",
+     "มันผลิตคำตอบที่มั่นใจจากแผนที่เก่าได้ — นี่คือข้อจำกัดที่ประกาศไว้: กราฟสดเท่ากับ build ครั้งล่าสุด และ guard มีผลเฉพาะเมื่อถูกรันจริง",
+     "จึงเป็นกฎข้อแรกใน SKILL.md และ <code>brief</code> พิมพ์บรรทัดความสดทุกครั้ง"],
+
+    ["ui", "<code>explorer.html</code> คืออะไร",
+     "หน้า HTML ไฟล์เดียวที่มีทั้งสองแผนที่ (สลับจาก header) เปิดจาก <code>file://</code> ได้โดยปิดเน็ต",
+     "ข้อมูลและไลบรารีกราฟฝังอยู่ในไฟล์ทั้งหมด จึงส่งให้คนที่ไม่มีสิทธิ์เข้า repo ดูได้ — ซึ่งหมายความว่าควรปฏิบัติกับไฟล์นี้เหมือนข้อมูลภายในของโค้ดด้วย"],
+    ["ui", "explorer มีมุมมองอะไรบ้าง",
+     "เจ็ดมุมมอง: Graph, Treemap, Matrix, Tree, Flowchart, Cluster, Bundle",
+     "ในโครงสามส่วน: ซ้าย = health ring, ตัวเลือกการลงสี (layer / folder / churn / risk), stat tile, สัดส่วนภาษา, file tree · กลาง = มุมมองและ folder hull · ขวา = แท็บ FILE / PATTERNS / SECURITY ที่คลิกทะลุถึงกันได้"],
+    ["ui", "ทำไมต้องฝังไลบรารีลงในไฟล์ ไม่โหลดจาก CDN",
+     "hard constraint ข้อ 4: explorer ต้องไม่มี network เลย — <code>force-graph</code> ถูก vendor ไว้ที่ <code>templates/vendor/</code> และ inline ผ่าน placeholder <code>__VENDOR_JS__</code>",
+     "<code>bin/cli.js --self-test</code> ทำให้ build ล้มเหลวถ้ามี <code>&lt;script src&gt;</code>, <code>&lt;link href&gt;</code> หรือ <code>@import</code> โผล่เข้ามา"],
+    ["ui", "ทำไมเทส “ไม่มี network” ไม่ใช้วิธีค้นหาคำว่า http ในไฟล์",
+     "เพราะสตริงหน้าตาเป็น URL หลีกเลี่ยงไม่ได้ — namespace ของ SVG/XML เป็นตัวระบุที่เบราว์เซอร์ไม่เคยไปโหลด การ assert จึงต้องทำที่ <em>การโหลดทรัพยากร</em>",
+     ""],
+    ["ui", "blast radius toggle ทำอะไร",
+     "แรเงาทุก node ที่ไปถึงได้จาก node ที่เลือก — เห็นผลกระทบบนภาพทันที",
+     ""],
+    ["ui", "checkbox Tests ทำอะไร ทำไมต้องมี",
+     "ซ่อน test node เพื่อดูสถาปัตยกรรมโดยไม่มีชุดเทสห้อยอยู่ — ปรากฏเฉพาะเมื่อแผนที่มี test node",
+     "ทำงานโดยกรองตอนโหลด (<code>loadMap</code> → <code>HAS_TESTS</code> / <code>EDGES</code>) แล้ว re-render ผ่าน <code>applyMap</code> อะไรที่อ่าน edge ต้องอ่าน <code>EDGES</code> ไม่ใช่ <code>GRAPH.edges</code>"],
+    ["ui", "กฎสีของ UI คืออะไร",
+     "หนึ่งความหมาย หนึ่งสี ใช้เหมือนกันทุกมุมมอง — ผู้อ่านเรียนรู้ครั้งเดียว",
+     "controller/endpoint ชมพู <code>#f778ba</code>, service ฟ้า <code>#6ea8fe</code>, repository เขียว <code>#3fb950</code>, model อำพัน <code>#e3b341</code>, client เขียวอมฟ้า <code>#39c5cf</code>, config ม่วง <code>#a371f7</code>, ui ส้ม <code>#f0883e</code>, test เขียว <code>#57ab5a</code>, unknown เทา <code>#8b98ad</code> ทุกจุดสีมีป้ายชื่อคู่เสมอ ความหมายจึงไม่ขึ้นกับสีอย่างเดียว"],
+    ["ui", "ทำไมสีของโฟลเดอร์ต้องคิดจากรายการโฟลเดอร์ทั้งหมด ไม่ใช่รายการที่มองเห็น",
+     "เพราะถ้าคิดจากรายการที่มองเห็น การซ่อนโฟลเดอร์เทสจะทำให้ทุกโฟลเดอร์หลังจากนั้นเปลี่ยนสี และสีชมพูจะไม่หมายถึงโฟลเดอร์เดิมจากภาพหนึ่งไปอีกภาพ",
+     "สีเขียวของเทสถูกกันออกจาก <code>FOLDER_COLORS</code> โดยเจตนา โฟลเดอร์ธรรมดาจึงไม่มีทางได้สีนี้"],
+    ["ui", "17 ภาษาใช้สีอย่างไร ในเมื่อสีที่แยกกันได้มีจำกัด",
+     "ลงสีตาม <strong>ตระกูล</strong>: JVM (Java/Kotlin/Scala/Groovy), .NET, native (C/C++/Rust/Swift), dynamic (Ruby/PHP/Elixir), Go, Dart และห้าสีเดิมของ Python กับ JS/TS",
+     "เพราะ 17 สีที่แยกออกจากกันได้จริงบนพื้นมืดไม่มีอยู่จริง ป้ายข้างสีบอกชื่อภาษา และสีตระกูลอยู่นอกชุดสีโฟลเดอร์และ layer จึงไม่มีสีไหนมีสองความหมาย"],
+    ["ui", "ทำไม UI ดูเรียบมาก ไม่มี emoji เลย",
+     "โทนรอบนอกถูกทำให้เงียบโดยตั้งใจเพื่อให้ข้อมูลดังขึ้น: พื้นเกือบดำ <code>#08090b</code>, เส้นคั่นบาง, สีเน้นเดียวคืออำพัน <code>#d99f4a</code> สำหรับสถานะ active",
+     "ไอคอนทั้งหมดเป็น inline SVG บนกริด 16px และฟอนต์เป็น monospace ของระบบ — ไม่ต้องโหลด webfont"],
+    ["ui", "ลากโหนดจนกราฟเละ จะกลับอย่างไร",
+     "ปุ่ม reset บน toolbar — ล้าง layout, selection และ filter แล้วรันใหม่จากศูนย์",
+     "การลากทำให้ node ถูกปักหมุด (force-graph ตั้ง <code>fx</code>/<code>fy</code> ทิ้งไว้) การปลดหมุดอย่างเดียวไม่พอเพราะซิมูเลชันจะเริ่มจากตำแหน่งที่เละเดิม <code>resetLayout()</code> จึงลบ <code>x</code>/<code>y</code>/<code>vx</code>/<code>vy</code> ทิ้งด้วย"],
+    ["ui", "ทำไม toolbar ไม่เคยล้นจอ",
+     "มันย่อแทนการตัดทิ้ง: เมื่อ toolbar แคบกว่าแถวเต็ม (~803px) <code>fitToolbar()</code> ย้าย toggle (Folders, Blast radius, Tests) <em>ตัวจริง</em> เข้าไปในเมนู <code>⋯</code> แล้วย้ายกลับเมื่อมีที่",
+     "ย้าย element เดิมจึงไม่เสีย id, สถานะ checked และ handler ขับเคลื่อนด้วย <code>ResizeObserver</code> ความกว้างขั้นต่ำที่รองรับเมื่อ rail ทั้งสองแคบสุดคือประมาณ 1020px (987px เมื่อวัดใน phase 5 ก่อนแท็บ Flow จะกลายเป็น Flowchart จากเดิม ~1270px)"],
+    ["ui", "ทำไม zoom, fit และ export PNG ถึงอยู่ในเมนู <code>⋯</code>",
+     "กฎคือแถว toolbar มีเฉพาะสิ่งที่ใช้แทบทุกครั้ง — ย้ายสี่ปุ่มนี้ออกทำให้แถวเต็มลดจาก ~897px เหลือ ~770px",
+     "ปุ่มในเมนูคง id เดิม (<code>zoomIn</code>, <code>zoomOut</code>, <code>zoomFit</code>, <code>png</code>) จึงไม่มี handler ไหนขึ้นกับตำแหน่งที่วาด"],
+    ["ui", "ทำไมแต่ละ pane มี scrollbar เดียว",
+     "กฎของแอปเดสก์ท็อป: chrome อยู่นิ่ง เนื้อหาเลื่อน — rail ซ้ายเลื่อนเฉพาะ file tree, panel ขวาเลื่อนเฉพาะ body ไม่มี scroll ซ้อน",
+     "ถ้าอะไรไม่พอดีให้พับหรือย่อ ส่วนที่ใหญ่ใน rail พับได้จาก <code>h3</code> ของมันเอง และหัวที่พับยังแสดงจำนวน (เช่น <code>Explorer 7 files</code>) ต่ำกว่าความสูง 620px rail จะเลื่อนทั้งก้อน เพราะ tree สูง 60px แย่กว่ามี scrollbar"],
+    ["ui", "rail ปรับขนาดได้ แล้วกันไม่ให้กิน toolbar อย่างไร",
+     "<code>setRail</code> จำกัดการลากไว้ที่ความกว้างที่ส่วนกลางยังต้องใช้ วัดจากผลรวมของลูกใน toolbar — ไม่ใช้ <code>clientWidth</code>",
+     "เพราะ <code>clientWidth</code> จะตอบว่า “เท่าที่มีอยู่ตอนนี้พอดี” แล้วปล่อยให้การลากค่อย ๆ ดันปุ่มหลุดขอบขวาทีละพิกเซล ไม่มีปุ่ม collapse — เคยสร้างแล้วเอาออกเพราะไม่มีใครต้องการ"],
+    ["ui", "แผนที่ที่ยังไม่รัน report เปิดใน explorer ได้ไหม",
+     "ได้ — แสดงกราฟครบ แต่ไม่มี health grade และแท็บรีวิว",
+     ""],
+    ["ui", "explorer รับกราฟหลายพัน node ไหวไหม",
+     "ยังไม่ได้วัดความเร็วการ render อย่างเป็นทางการ — ตอบตรง ๆ",
+     "สิ่งที่มีเพื่อรับมือกราฟใหญ่คือ file tree ที่กรอง canvas, Tests toggle, ตัวกรองโฟลเดอร์ และมุมมองที่ไม่ใช่ force layout (Treemap, Matrix, Tree) ส่วนงานของ agent ไม่พึ่ง explorer เลย"],
+    ["ui", "ทดสอบ <code>viewer.html</code> อย่างไร",
+     "แยก inline script ออกมาแล้ว parse เป็น <strong>classic script</strong> ด้วย <code>new vm.Script(code)</code> จากนั้นเปิดในเบราว์เซอร์และลองทุกอย่าง: สลับแผนที่, ทั้งเจ็ดมุมมอง, filter, blast toggle, คลิกทะลุแท็บ",
+     "ไม่ใช้ <code>node --check</code> เพราะมันห่อ input ด้วยฟังก์ชัน CommonJS จึงยอมรับ <code>return</code> ระดับบนสุดที่เบราว์เซอร์ปฏิเสธ และห้าม probe ด้วย indirect eval ซึ่งเคยสร้าง instance เงาที่ทำให้เห็น “บั๊ก” ปลอมว่า Tests checkbox ไม่ทำงาน"],
+    ["ui", "ทำไม explorer ไม่ทำเป็น web app ที่มี server",
+     "เพราะ server ต้องมีคนรัน ต้องมีพอร์ต และแชร์ยาก — ไฟล์เดียวแนบอีเมลได้ เปิดได้ทุกที่ และไม่มีอะไรให้ดูแล",
+     ""]
+  );
+  </script>
+
+  <script>
+  QA.push(
+    ["verify", "จะเชื่อได้อย่างไรว่ากราฟถูกต้อง",
+     "<code>tools/check_graph.py</code> ตรวจเงื่อนไขที่กราฟ <em>ถูกต้อง</em> ต้องเป็นจริงเสมอ บนกราฟใดก็ได้ — ไม่ใช่เทียบกับค่าที่จดไว้",
+     "ทุก edge ลงบน node จริง, id ไม่ซ้ำ, ช่วงของ node ครอบชื่อตัวเอง, callee ของ call edge ถูกเอ่ยชื่อในผู้เรียก, <code>precision</code> ตรงกับสิ่งที่ edge บอก, ตัวเลขในรายงานเป็นของกราฟ, security finding อยู่ในช่วงของ node ที่ผูก, ไม่มีโน้ตสองใบกลายเป็นไฟล์เดียวบนระบบไฟล์ที่ไม่สนตัวพิมพ์ (c17), ทุกการเรียกที่ทิ้งเป็น ambiguous อ้างถึงชุด overload จริง (c18) ทุก <code>renders</code> edge มี <code>&lt;Name</code> เขียนอยู่ในผู้ render จริง (c20) และทุกลิงก์ <code>implements</code> / <code>extends</code> / <code>overrides</code> เชื่อม method ชื่อเดียวกันของสองคลาสที่ไฟล์เอ่ยชื่อกันจริง และชนิดของลิงก์ตรงกับปลายทั้งสองข้าง (c21) และทุก node ที่ติด <code>overridden</code> มีลิงก์ <code>overrides</code> ชี้เข้าจริง (c22)"],
+    ["verify", "“self-test” ของตัวตรวจคืออะไร ทำไมต้องมี",
+     "<code>check_graph.py --self-test</code> ทำให้อินพุตพังทีละจุด (หรือสลับฟังก์ชันวิเคราะห์เป็นตัวที่พัง) แล้วบังคับว่าแต่ละเช็กต้องดังขึ้น — ผลล่าสุด 34/34",
+     "หลักคือ assertion ที่ไม่มีทางล้มเหลวแย่กว่าไม่มี assertion เพราะมันให้ความมั่นใจปลอม"],
+    ["verify", "metamorphic testing ในโปรเจกต์นี้คืออะไร",
+     "แทนที่จะรู้คำตอบที่ถูกล่วงหน้า ให้ <em>เปลี่ยนอินพุตแบบที่รู้ผล</em> แล้วตรวจว่าผลเปลี่ยนตาม: ฉีด cycle, orphan, hub, god object หรือ layer violation ลงในสำเนากราฟจริง แล้วต้องถูกรายงาน",
+     "เหมาะกับตัววิเคราะห์เพราะบน codebase จริงเราไม่รู้ “คำตอบที่ถูก” แต่รู้ว่าถ้าเพิ่ม cycle หนึ่งวง จำนวน cycle ต้องไม่ลดลง"],
+    ["verify", "<code>check_langs.py</code> ตรวจอะไร",
+     "ทุกภาษายังสร้างกราฟได้: 21 แถว (17 ภาษา + 4 route table) แต่ละแถวตรวจจำนวน node, edge, route, test node รวมถึงบรรทัด, doc และ metrics ของทุก node",
+     "<strong>edge คือสิ่งที่สำคัญที่สุด</strong>: node อย่างเดียวพิสูจน์แค่ว่า grammar โหลดได้ แต่ edge พิสูจน์ว่าการ resolve receiver ผ่าน field ที่ประกาศชนิดได้ผล ควรรันทุกครั้งที่แตะ extractor ใดก็ตาม"],
+    ["verify", "<code>check_langs.py --update</code> อันตรายไหม",
+     "อันตรายถ้าไม่อ่าน diff — มันเขียนค่าคาดหวังใหม่จากความเป็นจริง ซึ่งเป็นวิธีที่ค่าเหล่านั้นถูกบันทึกครั้งแรก และมันจะยินดีรับรอง regression ให้ด้วย",
+     "นี่คือเหตุผลที่ metrics ของฟังก์ชัน <code>grade</code> ในทุก fixture ถูกนับด้วยมือไว้ในคอมเมนต์ — มีจุดหนึ่งที่เทียบกับคน ไม่ใช่กับตัวบันทึก"],
+    ["verify", "<code>check_py_oracle.py</code> คืออะไร",
+     "parse ไฟล์ Python ทุกไฟล์ด้วยทั้ง <code>ast</code> และ tree-sitter แล้วล้มเหลวถ้าเห็นไม่ตรงกันว่าอะไรถูกประกาศ — ผลล่าสุด 0 disagreements",
+     "เป็นเหตุผลเดียวที่ยังเก็บ parser ของ standard library ไว้ และเป็นไฟล์เดียวใน repo ที่ยัง import <code>ast</code>"],
+    ["verify", "<code>check_regressions.py</code> คืออะไร",
+     "หนึ่งเคสที่มีชื่อต่อหนึ่ง “ความล้มเหลวแบบเงียบ” ที่โปรเจกต์นี้เคยเจอจริง — ผลล่าสุด 49/49",
+     "ตัวอย่าง: r19 รันรายงานสองครั้งแล้ว diff (ห้ามมีเวลา), r23 ชื่อคลาส 100 ตัวอักษรใน vault ~200 ตัวอักษรต้อง build ได้ (MAX_PATH), r33 overload, r34 receiver ของ TypeScript, r42 import resolution ของ Next.js, r44 method reference, r45 การเรียกตอนโหลดโมดูลของ JS/TS, r46 method chain ผ่าน return type, r47 ตัวแปรที่ไม่มีชนิดใน TS, r48 การเรียกตอนโหลดโมดูลของ Python, r49 <code>renders</code> edge"],
+    ["verify", "ทำไมเรียก “ความล้มเหลวแบบเงียบ” และทำไมมันร้ายที่สุด",
+     "เพราะเครื่องมือวิเคราะห์ที่พังแบบเสียงดังจะถูกแก้ แต่ที่พังแบบเงียบให้ผลที่ <em>ดูสมเหตุสมผล</em> — กราฟเล็กลงนิดหน่อย, finding ย้ายไปฟังก์ชันข้าง ๆ, STALE ปลอม",
+     "ทุกเคสใน check_regressions เป็นแบบนั้น และแต่ละเคสต้องล้มเหลวได้เมื่อสิ่งที่มันคุ้มครองถูกถอดออก (เช่น r23 ล้มเมื่อ stub <code>long_path</code> ออก)"],
+    ["verify", "“byte-identity” ใช้พิสูจน์อะไร",
+     "rebuild แล้ว <code>git diff</code> บน <code>graph.json</code> และ <code>flow_graph.json</code> ต้องว่างเปล่า — เป็นการตรวจที่แข็งแรงที่สุดที่มี",
+     "การย้าย parser ทั้งสามครั้ง (JS/TS, Python, metrics) พิสูจน์ด้วยวิธีนี้ และไม่มีไบต์ไหนของกราฟขยับเลย ทำได้เพราะ output deterministic"],
+    ["verify", "<code>check_docs.py</code> ตรวจอะไร",
+     "ครึ่งที่ตรวจด้วยเครื่องได้ของกฎ “เอกสารเปลี่ยนใน commit เดียวกับพฤติกรรม”: ทุกสคริปต์อยู่ใน README และถูกเอ่ยใน CLAUDE.md, ทุก <code>scripts/...</code> ที่เอกสารอ้างมีไฟล์อยู่จริง และทุกค่า kind/layer ใน taxonomy มีใน TAXONOMY.md",
+     "ตั้งใจตรวจเฉพาะข้อเท็จจริง ไม่ตรวจร้อยแก้ว — ความซื่อสัตย์ของคำยังเป็นหน้าที่ของคนเขียน"],
+    ["verify", "มี unit test แบบ pytest ไหม",
+     "ไม่มีชุด pytest — การตรวจเป็นสคริปต์ assertion ที่รันได้ตรง ๆ ใน <code>tools/</code> พร้อม fixture ใน <code>tests/fixtures/</code>",
+     "เหตุผลคือ constraint ที่ห้ามเพิ่ม dependency และสิ่งที่ต้องการพิสูจน์ส่วนใหญ่เป็นคุณสมบัติของกราฟทั้งก้อน (invariant, byte-identity, metamorphic) มากกว่าพฤติกรรมของฟังก์ชันเดี่ยว เครื่องมือเหล่านี้อยู่ใน repo แต่ไม่ถูกติดตั้งไปกับ skill"],
+    ["verify", "ทำไม fixture ของแต่ละภาษาไม่อยู่ใน <code>sample_src</code>",
+     "เพราะ <code>sample_src/</code> ถูกส่งให้ผู้ใช้และตัวเลขของมันถูกตรึงไว้ในเอกสารด้วยมือ — เพิ่มภาษาหนึ่งเท่ากับเขียนตัวเลขทั้งบล็อกใหม่ ส่วน fixture ราคาแค่หนึ่งโฟลเดอร์กับหนึ่งแถว",
+     ""],
+    ["verify", "ทดสอบการ degrade เมื่อไม่มี grammar อย่างไร",
+     "ย้าย grammar ออกจาก <code>vendor/</code> แล้ว build: ต้องสำเร็จ, มีคำเตือน <strong>หนึ่ง</strong> ครั้งที่มีคำสั่งติดตั้งตรงเป๊ะ และได้จำนวน node/edge ตามตารางที่บันทึกไว้",
+     "เอา JS/TS ออก → structure 19/19, flow 37/23 · เอา Python ออก → structure 18/12, flow 39/21"],
+    ["verify", "<code>bin/cli.js --self-test</code> ทดสอบอะไร",
+     "ติดตั้ง skill ลงโฟลเดอร์ชั่วคราว ดึง grammar ของ sample แล้ว build จริง — และล้มเหลวถ้ามี <code>&lt;script src&gt;</code>, <code>&lt;link href&gt;</code> หรือ <code>@import</code> ในหน้า explorer",
+     "เป็นการทดสอบเส้นทางที่ผู้ใช้เดินจริง ไม่ใช่เส้นทางใน repo"],
+    ["verify", "รันกับ repo จริงเจออะไรที่ fixture จับไม่ได้บ้าง",
+     "ทุกครั้งที่รันกับโค้ดจริงเจอบั๊กใหม่ และทุกตัวกลายเป็นเทสถาวร",
+     "ตัวอย่าง: cache <code>.next/</code> ของ Next.js ทำให้กราฟพอง (9% ของ flow graph), <code>@patch(\"subprocess.run\")</code> ถูกอ่านเป็น PATCH route, axios instance ที่ import มาแล้วมองไม่เห็น, <code>login</code>/<code>Login</code> ทับกันเป็นไฟล์เดียว, พาธเกิน MAX_PATH ทำให้ <code>project</code> ตาย, <code>entry</code> ไม่ถูกเขียนลงไฟล์, <code>handler</code> สร้าง layer violation ปลอม 24 ครั้ง, และ secret ปลอม 10 ตัว"],
+    ["verify", "พิสูจน์บน repo จริงไปแล้วกี่ภาษา",
+     "Python, JS/TS (แอป Next.js + NestJS) และ Java (Spring) — อีก 11 ภาษาและ route table ทั้งสี่ผ่าน fixture กับ <code>check_graph.py</code> เท่านั้น",
+     "พูดตรง ๆ ว่าคาดได้ว่าจะเจอข้อค้นพบแบบเดียวกันเมื่อพบโค้ดจริงของภาษาเหล่านั้นครั้งแรก"],
+    ["verify", "ถ้าตัวตรวจจับคืนค่าว่าง จะรู้ได้อย่างไรว่าโค้ดสะอาดจริง ไม่ใช่ตัวตรวจพัง",
+     "นี่คือคำถามที่ยากที่สุดของเครื่องมือวิเคราะห์ และคำตอบคือสามชั้น: sample ที่ฝังของไว้ให้เจอ, เทส metamorphic ที่ฉีดข้อบกพร่อง, และ self-test ที่พิสูจน์ว่าเช็กแต่ละตัวล้มได้",
+     ""],
+    ["verify", "ผลการตรวจล่าสุดเป็นอย่างไร",
+     "check_regressions 61/61 · check_langs 21/21 · check_graph ผ่านทั้งสองแผนที่ และ self-test 42/42 · check_py_oracle 0 disagreements · check_docs OK · <code>check</code> ได้ <code>stale: false</code> · กราฟและรายงานของ sample เท่ากันระดับไบต์",
+     "บันทึกไว้ในรายการล่าสุดของ <code>docs/prompt.md</code>"],
+    ["verify", "เคยเจอกรณีที่เทสผ่านแต่ของจริงพังไหม",
+     "เคย: เทส r40/r41 ผ่านบน dict ในหน่วยความจำ แต่ <code>build_flow.write_graph</code> ไม่ได้ copy ฟิลด์ <code>entry</code> ลงไฟล์ — ผู้ใช้จริงจึงไม่ได้ฟีเจอร์นั้น",
+     "บทเรียนที่กลายเป็นกฎ: assert บนไฟล์ที่ถูกเขียนจริง ไม่ใช่บนโครงสร้างข้อมูลระหว่างทาง"],
+    ["verify", "มีเครื่องมือจับเวลาไหม และมันกระทบ repo ที่วัดไหม",
+     "<code>tools/time_build.py</code> จับเวลาแต่ละขั้นตอน และ <strong>snapshot ทุกไฟล์ของ corpus ก่อนและหลัง — ถ้าต่างกันการรันจะล้มเหลว</strong>",
+     "คำว่า “อ่านอย่างเดียว” จึงถูกตรวจ ไม่ใช่แค่สัญญา มันพิมพ์เฉพาะตัวเลขรวม ไม่เปิดเผยชื่อไฟล์หรือ node ของ repo ที่วัด"],
+
+    ["install", "ต้องมีอะไรบ้างถึงจะใช้ได้",
+     "Python 3.10+ (จำเป็น), tree-sitter กับ grammar wheel ของภาษาที่ repo มี (จำเป็น), git (ไม่บังคับ — ใช้เฉพาะ churn/owner/hotspot), เบราว์เซอร์สำหรับเปิด explorer",
+     "ถ้าไม่ได้อยู่ใน git repo ฟีเจอร์ git จะให้ข้อมูลว่างแทนการพัง"],
+    ["install", "ขั้นตอนติดตั้งและใช้งานครั้งแรก",
+     "(1) <code>npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --harness claude</code> (2) <code>grammars.py --install python typescript</code> (3) <code>archaeologist.py both --src ./src</code> (4) <code>archaeologist.py report --src ./src</code> แล้วเปิด <code>data/explorer.html</code>",
+     "ไม่ต้อง clone ไม่ต้องมีบัญชี npm และ SKILL.md สั่งให้ agent ติดตั้ง grammar เอง ไม่ต้องขอให้ผู้ใช้ทำ"],
+    ["install", "ติดตั้งแล้วกระทบ Python ของผู้ใช้ไหม",
+     "ไม่กระทบ — wheel ถูกติดตั้งลง <code>&lt;skill&gt;/vendor</code> ซึ่งอยู่ใน <code>.gitignore</code> ไม่มีอะไรเข้าไปใน environment ที่ผู้ใช้ใช้รันโปรเจกต์ตัวเอง",
+     "ไม่มีเวอร์ชันไหนชนกับของผู้ใช้ และลบโฟลเดอร์ skill ทิ้งก็หายเกลี้ยง"],
+    ["install", "pip flag สามตัวที่ใช้ มีไว้ทำอะไร",
+     "<code>--target vendor</code> คือหัวใจ (ลงในโฟลเดอร์ skill), <code>--only-binary :all:</code> ปฏิเสธการคอมไพล์และล้มเหลวเสียงดังแทน, <code>--no-cache-dir</code> กันไม่ให้ pip เขียน wheel ไว้นอกโฟลเดอร์",
+     "<code>grammars.py --install [langs]</code> รัน pip ด้วย interpreter ตัวเดียวกับที่จะรัน skill และ <code>--print</code> แสดงคำสั่งโดยไม่รัน"],
+    ["install", "ถ้าอัปเกรด Python แล้ว <code>vendor/</code> ใช้ไม่ได้ จะเกิดอะไร",
+     "ได้ข้อความประโยคเดียวว่า runtime พบแต่โหลดไม่ได้ ให้รันคำสั่งติดตั้งใหม่ — ไม่ใช่ <code>ImportError</code> traceback",
+     "เพราะ runtime wheel ถูก build สำหรับ Python เวอร์ชันเดียว นี่คือข้อแลกเปลี่ยนที่รู้ตัวของการติดตั้งลงโฟลเดอร์ skill"],
+    ["install", "ทำไมบางครั้งระบบบอกว่าขาด grammar ทั้งที่ติดตั้งแล้ว",
+     "ระบบถูกออกแบบให้ไม่พูดแบบนั้น: <code>runtime_available()</code> คือ <code>find_spec</code> ส่วน <code>runtime()</code> คือ import จริง ทั้งสองขัดกันพอดีเมื่อ wheel ถูก build สำหรับ Python อีกเวอร์ชัน",
+     "ผู้เรียกที่จะรายงานว่าข้ามภาษาต้องถาม <code>runtime_error()</code> ก่อน เพราะการบอกว่า grammar หายทั้งที่มันอยู่ตรงนั้น คือการส่งคนไปติดตั้งสิ่งที่มีอยู่แล้ว"],
+    ["install", "ตัวติดตั้งรองรับ agent harness ไหนบ้าง",
+     "<code>agents</code> (ค่าเริ่มต้น), <code>claude</code>, <code>cursor</code>, <code>windsurf</code>, <code>zed</code> หรือระบุโฟลเดอร์เองด้วย <code>--dir &lt;path&gt;</code>",
+     "ตัวติดตั้งเขียนพาธในคำสั่งของ SKILL.md ใหม่ให้ตรงกับที่ติดตั้งจริง และตัวติดตั้งเองไม่มี dependency ของ npm เลย"],
+    ["install", "ทำไมติดตั้งผ่าน GitHub ไม่ใช่ npm registry",
+     "การ publish ไป npm ติดกำแพง 2FA จึงเลือกทาง <code>npx github:...</code> — package พร้อม publish ถ้าจะกลับไปทางนั้น",
+     ""],
+    ["install", "ถอนการติดตั้งทำอย่างไร",
+     "ลบโฟลเดอร์ skill — wheel, cache และ artifact ทั้งหมดอยู่ในนั้น",
+     ""],
+    ["install", "ทำไมทดสอบบน Windows เป็นหลัก",
+     "เพราะ Windows คือจุดที่บั๊กเงียบซ่อนอยู่มากที่สุด: คอนโซล cp874, MAX_PATH 260 ตัวอักษร, ระบบไฟล์ไม่สนตัวพิมพ์ และ CRLF — บั๊กสี่ตัวที่เจอไม่มีตัวไหนโผล่บน fixture เลย",
+     "กฎที่ตามมา: output ของ <code>print()</code> เป็น ASCII, ข้อความจาก repo ผ่าน <code>console.safe_stdout()</code>, ไฟล์ต่อ node ผ่าน <code>paths.long_path()</code>"],
+    ["install", "ปัญหา MAX_PATH คืออะไร แก้อย่างไร",
+     "ชื่อที่ถูก qualify ด้วย path ทำให้ไฟล์โน้ต (<code>&lt;id&gt;.md</code>) มีพาธยาวเกิน 260 ตัวอักษร <code>open()</code> โยน <code>FileNotFoundError</code> และ <strong>ขั้น project ตายทั้งขั้น</strong> บน repo จริง",
+     "<code>paths.long_path()</code> เติม prefix <code>\\\\?\\</code> เมื่อจำเป็น และทุกการเขียน อ่าน ลบ โน้ตผ่านมัน r23 คุ้มครองไว้ ครั้งถัดมาเครื่องมือจับเวลาของเราเองก็พังด้วยสาเหตุเดียวกัน จึงแก้ตามไปด้วย"],
+    ["install", "ใช้บน macOS หรือ Linux ได้ไหม",
+     "ออกแบบให้ข้ามแพลตฟอร์ม (Python ล้วน + wheel สำเร็จรูป และจัดการระบบไฟล์ไม่สนตัวพิมพ์ของ macOS แล้ว) แต่การทดสอบหลักทำบน Windows — พูดตรง ๆ",
+     ""],
+    ["install", "เคยมีปัญหาการติดตั้งผ่าน npx อะไรบ้าง",
+     "npm อ่าน <code>.gitignore</code> ของ skill ตอน pack และกฎ <code>vendor/</code> ที่ไม่ได้ anchor (ตั้งใจไว้สำหรับ pip wheel) ทำให้ <code>templates/vendor/</code> หายไปด้วย — <code>both</code> หยุดก่อนสร้าง flow map",
+     "แก้เป็น <code>/vendor/</code>, ทำให้ไฟล์ vendor ที่หายเป็น error ที่มีชื่อ และ <code>bin/cli.js</code> ตรวจว่าไฟล์อยู่หลังติดตั้ง"],
+    ["install", "ถ้าติดตั้ง skill ไว้ใน repo เดียวกับที่จะวิเคราะห์ มันจะกราฟตัวเองไหม",
+     "ไม่ — <code>taxonomy.source_dirs()</code> ข้ามทุกโฟลเดอร์ลูกที่มี <code>SKILL.md</code> และ <code>scripts/archaeologist.py</code>",
+     "เคยเป็นบั๊ก: โปรเจกต์ที่ติดตั้งไว้ใต้ <code>.claude/skills/</code> ได้กราฟที่มีโค้ดของ skill ปนอยู่ราวกับเป็นโค้ดของโปรเจกต์"],
+    ["install", "โฟลเดอร์ไหนถูกข้ามตอนสแกน",
+     "<code>SKIP_DIRS</code>: <code>.git</code>, <code>__pycache__</code>, <code>venv</code>, <code>.venv</code>, <code>node_modules</code>, <code>.idea</code>, <code>data</code>, <code>dist</code>, <code>build</code>, <code>.next</code>, <code>.nuxt</code>, <code>.svelte-kit</code>, <code>.angular</code>, <code>.turbo</code>, <code>.parcel-cache</code>, <code>.gradle</code>, <code>.dart_tool</code>",
+     "<code>target</code>, <code>out</code>, <code>coverage</code> และ <code>vendor</code> ไม่อยู่ในรายการโดยเจตนา เพราะแต่ละชื่อเป็นโฟลเดอร์ source จริงในบางโปรเจกต์"],
+    ["install", "การข้าม <code>data</code> กับ <code>build</code> มีปัญหาไหม",
+     "มี และยอมรับแล้ว (finding #13): ชื่อถูกจับทุกระดับความลึก ทำให้ package Java เช่น <code>src/main/java/com/acme/data/</code> หายไปจากทั้งสองแผนที่แบบเงียบ",
+     "ยังไม่แก้ทันทีเพราะเปลี่ยนว่าแผนที่ของผู้ใช้ทุกคนมีไฟล์อะไร ข้อเสนอคือข้ามสองชื่อนี้เฉพาะที่อยู่ใต้ root ของ <code>--src</code> โดยตรง และวัดบน layout ของ Spring ก่อน"],
+    ["install", "รันบน repo ที่ไม่น่าไว้ใจ ปลอดภัยไหม",
+     "skill ไม่รันโค้ดของ repo — มัน parse ข้อความ อ่าน <code>git log</code> และเขียนเฉพาะในโฟลเดอร์ <code>data/</code> ของตัวเอง",
+     "ไม่มีการ import, execute หรือ build โค้ดของเป้าหมาย ต่างจากเครื่องมือที่ต้อง build โปรเจกต์เพื่อสกัดข้อมูล"],
+    ["install", "เรื่อง supply chain ของ wheel ที่ติดตั้ง",
+     "ติดตั้งจาก PyPI ด้วยเวอร์ชันที่ตรึงตรงเป๊ะ และเป็น binary เท่านั้น (ไม่รัน build script ของ source distribution)",
+     "ยังไม่ได้ตรึงด้วย hash ของ wheel — ถ้าต้องการระดับนั้นเป็นส่วนเพิ่มที่ทำได้ใน <code>grammars.py</code> ที่เดียว"],
+
+    ["perf", "เร็วแค่ไหน มีตัวเลขจริงไหม",
+     "มี — วัดด้วย <code>tools/time_build.py</code> บนสาม corpus: sample 22 ไฟล์รวม 2.1 s · โค้ดของ skill 46 ไฟล์ 3.1 s · repo จริง 1,100 ไฟล์ (13.6 MB) รวม <strong>27.7 s</strong>",
+     "repo จริงแยกขั้นตอน: project 9.10 s · flow 4.96 s · report 13.29 s · brief 0.36 s ได้ flow graph 2,377 node / 2,779 edge และ structure 725 / 1,077 (ตัวเลข ณ ตอนวัดใน phase 6d)"],
+    ["perf", "เวลาโตตามขนาด repo อย่างไร",
+     "เกณฑ์ที่ตั้งไว้ <em>ก่อน</em> วัดคือ “ไม่มีขั้นไหนโตเร็วกว่าจำนวนไฟล์” — ผ่านแบบห่างมาก: ต่อ 100 ไฟล์ทุกขั้น <strong>ถูกลง</strong> เมื่อ corpus ใหญ่ขึ้น",
+     "project 5.9 → 2.6 → 0.83 s ต่อ 100 ไฟล์, report 1.6 → 2.1 → 1.2 s เพราะต้นทุนเริ่มต้นคงที่ครอบงำ corpus เล็ก"],
+    ["perf", "อัตราส่วนคุ้มค่าเทียบกับการอ่าน source คือเท่าไร",
+     "source ÷ brief: 5.5 เท่าบน sample, 139 เท่าบนโค้ดของ skill, <strong>3,212 เท่า</strong> บน repo จริง (4.3 KB เทียบกับ 13.6 MB)",
+     "ยิ่ง repo ใหญ่ อัตราส่วนยิ่งดี เพราะ brief มีขนาดคงที่"],
+    ["perf", "repo ที่ใหญ่ที่สุดที่ทดสอบคือเท่าไร แล้ว monorepo 100,000 ไฟล์ล่ะ",
+     "ใหญ่สุดที่วัดคือ ~1,100 ไฟล์ / 13.6 MB — ยังไม่ได้ทดสอบระดับแสนไฟล์ พูดตรง ๆ",
+     "แนวโน้มที่วัดได้ (ต่อไฟล์ถูกลงเมื่อใหญ่ขึ้น) เป็นสัญญาณดี แต่ไม่ใช่หลักฐาน ระหว่างนี้จำกัดขอบเขตได้ด้วยการระบุ <code>--src</code> เฉพาะส่วนที่สนใจ"],
+    ["perf", "ใช้ memory เท่าไร",
+     "ยังไม่ได้วัดอย่างเป็นทางการ — สิ่งที่วัดคือเวลาและขนาดไฟล์",
+     "เป็นตัวเลขที่ควรเพิ่มใน <code>time_build.py</code> ถ้าจะทดสอบ repo ขนาดใหญ่ขึ้น"],
+    ["perf", "คำถามหนึ่งข้อของ agent มีต้นทุนเท่าไร",
+     "การเดินกราฟไม่ใช้ token เลย — token ถูกใช้เฉพาะตอนอ่านผลลัพธ์ เช่น trace ตัวอย่างอ่านโน้ต 5 ใบ (~1,500 tokens) และ <code>context.py</code> ถูกจำกัดที่ 6,000 ตัวอักษรโดยค่าเริ่มต้น",
+     ""],
+    ["perf", "BFS บนกราฟหลายพัน node ช้าไหม",
+     "ไม่ช้า — BFS เป็น O(V + E) กราฟระดับไม่กี่พัน node และ edge เดินเสร็จในเสี้ยววินาทีบน Python ธรรมดา",
+     "ขั้นที่กินเวลาคือการ parse และรายงาน ไม่ใช่การ query ซึ่งเป็นเหตุผลที่ query แยกออกจาก build"],
+    ["perf", "ต้องดาวน์โหลด grammar ขนาดเท่าไร",
+     "ประมาณ 9.4 MB สำหรับห้าภาษา และจ่ายเฉพาะภาษาที่ repo มีจริง — repo ที่ไม่มี Go ไม่ต้องลง grammar ของ Go",
+     ""],
+    ["perf", "ขั้นไหนช้าที่สุด และทำไม",
+     "<code>report</code> บน repo ใหญ่ (13.29 s จาก 27.7 s) เพราะรวมเจ็ด pass ที่อ่าน source/ranges เช่น security scan, metrics และ duplicates",
+     "<code>git_insights</code> ถูกออกแบบให้อ่าน git log รอบเดียวเพื่อไม่ให้เป็นคอขวดบนประวัติยาว"]
+  );
+  </script>
+
+  <script>
+  QA.push(
+    ["limits", "ข้อจำกัดที่ใหญ่ที่สุดคืออะไร",
+     "การ resolve การเรียกเป็นฮิวริสติก ไม่ใช่ type inference — dynamic dispatch, duck typing, DI ด้วย string key, reflection และ monkey-patching มองไม่เห็น",
+     "ระบบเลือก precision เหนือ recall: ทุก edge ที่แสดงเป็นของจริง แต่ edge จริงบางเส้นหายไป — ควรพูดข้อนี้ก่อนที่คนอื่นจะไปเจอเอง"],
+    ["limits", "dependency injection ใช้ได้ไหม",
+     "constructor injection แบบ Spring, ASP.NET DI หรือ struct literal ของ Go resolve ได้ดี เพราะภาษาเหล่านั้นบังคับประกาศชนิดของ parameter/field อยู่แล้ว",
+     "ส่วน DI ที่ผูกด้วย string key, container ที่ resolve ตอน runtime หรืออะไรที่ต้องใช้ type inference จริงจึงจะรู้ — resolve ไม่ได้"],
+    ["limits", "Python ซึ่งเป็นภาษา dynamic ได้ผลแค่ไหน",
+     "declaration แม่นเสมอ (มี oracle <code>ast</code> คุม) ส่วนการเรียกได้เมื่อ source บอกชนิดของ receiver ได้ — ใน sample trace ของ FastAPI/Flask ครบทุกเส้น",
+     "ช่องว่างเรื่องการเรียกตอนโหลดโมดูล (<code>app = create_app()</code>) ที่เคยทำให้ callee ดูเหมือนโค้ดตาย ถูกปิดแล้วด้วยกฎเดียวกับ JS/TS (<code>py_extract.load_time_calls</code> → <code>entry: module</code>, finding #24, r48) ที่เหลือคือข้อจำกัดทั่วไปของภาษา dynamic: receiver ที่ไม่มี type hint ถูกทิ้ง"],
+    ["limits", "method chain อย่าง <code>a().b().c()</code> resolve ได้ไหม",
+     "ได้บางส่วนแล้ว (finding #21, r46): เมธอดบันทึก return type ที่ประกาศไว้ (<code>returns</code> ใน Java/Groovy/C#/Kotlin และ TS <code>(): X</code>) การเรียกบนผลของการเรียกจึงเดินต่อได้ และติด <code>via</code>",
+     "คลาสที่ใช้ Lombok บันทึก <code>getters</code> ไว้ด้วย การเดินทิ้งทันทีเมื่อเจอขั้นที่ไม่รู้ หรือ overload ที่ return type ไม่ตรงกัน ที่ยังเปิดอยู่: chain ที่จบที่ getter ของ Lombok ไม่มี node ให้ลง (ถูกต้อง) และ return type แบบ generic เช่น <code>Optional&lt;Handler&gt;</code> ถูกย่อเหลือ container แล้วทิ้ง ที่มาของงานนี้คือ 26 เมธอดของ upload handler บน Spring repository จริง"],
+    ["limits", "โค้ดที่ generate ขึ้น (Lombok, codegen, ORM) เป็นอย่างไร",
+     "สิ่งที่ไม่มีใน source ไม่มีในกราฟ — getter/setter ของ Lombok หรือ client ที่ generate ตอน build จะไม่เป็น node",
+     "เป็นผลโดยตรงของ “รันบน source ดิบ ไม่ build โปรเจกต์” ถ้าไฟล์ที่ generate แล้วถูก commit อยู่ใน repo ก็จะถูกอ่านเหมือนโค้ดทั่วไป"],
+    ["limits", "JSX render (<code>&lt;Dashboard /&gt;</code>) เป็น edge ใน flow map ไหม",
+     "เป็นแล้ว — เป็น edge ชนิดของตัวเอง <code>renders</code> (finding #22, r49) แยกจาก <code>calls</code> เพราะการ render ไม่ใช่การเรียก",
+     "resolve เหมือนการเรียก แต่ไม่นับเป็น coupling และไม่อยู่ในรายการ calls/callers; <code>check_graph.py</code> c20 ตรวจว่า <code>&lt;Name</code> ถูกเขียนในผู้ render จริง ใน sample ได้ edge เพิ่มหนึ่งเส้น <code>OrderCard → StatusBadge</code> (flow 33 → 34) และ explorer วาดเป็นเส้นสีลาเวนเดอร์ ส่วน <code>&lt;Ctx.Item /&gt;</code> ไม่วาดอะไรในทั้งสองแผนที่"],
+    ["limits", "ฟังก์ชันที่ถูกส่งเป็น callback ถูกเรียกว่าโค้ดตายผิด ๆ ไหม",
+     "ใช่ — <code>onClick={handleSave}</code>, <code>&lt;form action={saveAction}&gt;</code>, <code>arr.map(format)</code> ไม่ใช่การเรียก จึงไม่มีผู้เรียก (finding #19)",
+     "ไม่เปลี่ยนให้เป็น <code>calls</code> edge เพราะ <code>check_graph</code> c13 และทุก trace พึ่งความหมายว่า edge คือการเรียก ข้อเสนอคือฟลาก <code>referenced: true</code> ที่ยกเว้นเฉพาะจาก dead code และระหว่างนี้ SKILL.md เตือน agent ไว้แล้ว"],
+    ["limits", "Java static import ที่เรียกเปล่า ๆ resolve ได้ไหม",
+     "ยังไม่ได้ — <code>import static com.acme.DateUtil.now;</code> แล้วเรียก <code>now()</code> ถูกทิ้ง (finding #14)",
+     "import ถูกอ่านอยู่แล้วแต่ยังไม่ถูกใช้ ข้อเสนอคือ bind เฉพาะ static import รายตัวที่คลาสอยู่ในกราฟ และปล่อย wildcard <code>import static X.*</code> ให้ทิ้งต่อไป เพราะเป็นการเดา"],
+    ["limits", "การเรียกผ่านตัวแปรที่ไม่มีชนิดใน TypeScript เช่น <code>api.approve(...)</code>",
+     "รูปแบบที่แม่นได้ resolve แล้ว (finding #23, r47): instance <code>new X()</code> ที่ import มาหรือประกาศระดับโมดูล (<code>export const api = new ProjectApi()</code>), barrel re-export, member ของ object literal (เป็น node ชื่อ <code>api.member</code>) และ alias ชื่อเดียวกัน",
+     "ที่ยังทิ้งโดยตั้งใจคือค่าที่ hook คืนมาซึ่งไม่มีชนิด และ re-export ที่ผ่านการเปลี่ยนชื่อ — เพราะในสองกรณีนี้ source ไม่ได้บอกว่าตัวแปรนั้นคืออะไร"],
+    ["limits", "test coverage แม่นแค่ไหน",
+     "วัดจากชื่อ ไม่ใช่ instrumentation — เทสที่เอ่ยชื่อเมธอดแต่ไม่ assert อะไรก็นับว่าครอบคลุม และไม่ transitive",
+     "มันเสริมเครื่องมือ coverage จริง ไม่ได้แทนที่"],
+    ["limits", "การสแกนความปลอดภัยพลาดอะไรได้บ้าง",
+     "เป็น regex บรรทัดเดียว ไม่ใช่ dataflow — ตามค่าที่ปนเปื้อนข้ามฟังก์ชันไม่ได้ จึงพลาด injection จริงได้ และบางครั้งเตือนโค้ดที่ปลอดภัย",
+     "ใช้เป็นรอบตรวจแรกที่เร็ว และใช้ SAST จริงคู่กัน"],
+    ["limits", "idiom detection เชื่อได้แค่ไหน",
+     "อ่านจากชื่อ ไม่ใช่พฤติกรรม — “Singleton” หมายถึงชื่อที่อ้างว่าเป็น singleton เป็นตัวช่วยนำทาง ไม่ใช่ข้อค้นพบที่พิสูจน์แล้ว",
+     ""],
+    ["limits", "กราฟเก่าได้ไหม",
+     "ได้ — กราฟสดเท่ากับ build ครั้งล่าสุด นั่นคือเหตุผลที่มี <code>check</code> แต่มันต้องถูกรันจริง",
+     "agent ที่ข้ามการตรวจสามารถผลิตคำตอบที่มั่นใจจากแผนที่เก่าได้ ซึ่งเป็นเหตุผลที่มันเป็นกฎข้อแรก"],
+    ["limits", "ภาษาไหนยังไม่เคยเจอโค้ดจริง",
+     "Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir และ route table ของ Django/Rails/Laravel/Phoenix — ผ่าน fixture เท่านั้น",
+     "Python, JS/TS และ Java ผ่านโค้ดจริงแล้ว และทุกครั้งเจอบั๊กที่ fixture จับไม่ได้ จึงคาดได้ว่าภาษาที่เหลือจะเจอแบบเดียวกัน"],
+    ["limits", "Swift, Scala, Dart, C, C++ อ่าน route ไหม",
+     "ไม่อ่าน — เป็นขอบเขตที่ประกาศไว้ใน README; fixture ของภาษาเหล่านี้จึงมี 2 edge และ 0 route",
+     "Ruby, PHP และ Elixir ได้ route ผ่าน route table (Rails, Laravel, Phoenix) แทน"],
+    ["limits", "import ที่เปลี่ยนชื่อ (<code>import { label as tag }</code>) ล่ะ",
+     "ยังไม่ตาม — flow map ตาม import เฉพาะชื่อที่ export จริง (finding #20)",
+     "ครึ่งของ structure map แก้แล้ว: import ที่ resolve ได้บันทึกไฟล์ที่มันชี้ไว้ใน <code>import_sources</code> และลิงก์ด้วย <code>SharedNames.id</code> ครึ่งที่เหลือต้องแก้ c13 ให้ยอมรับชื่อที่มาผ่าน binding ก่อน"],
+    ["limits", "มีอะไรที่ไม่ได้อยู่ในกราฟเลย",
+     "สิ่งที่ไม่ใช่โค้ดใน 17 ภาษา: schema ฐานข้อมูลและ migration SQL, ไฟล์ config, infrastructure-as-code, message queue และ gRPC",
+     "และพฤติกรรม runtime ทั้งหมด (ค่าจริงของตัวแปร, implementation ที่ถูกเลือกจริง) — static analysis เห็นเส้นทางที่ประกาศไว้ ไม่ใช่เส้นทางที่ถูกรันจริง"],
+    ["limits", "ทำไมไม่แก้ข้อจำกัดเหล่านี้ให้หมดก่อนนำเสนอ",
+     "เพราะหลายข้อเป็นการตัดสินใจที่แลกคุณสมบัติหนึ่งกับอีกคุณสมบัติ — เช่น ทำให้ callback เป็น edge จะเปลี่ยนความหมายของ <code>calls</code> ที่ทุก trace พึ่ง",
+     "กฎของโปรเจกต์คือ: อะไรแก้ได้โดยไม่มีใครต้องเลือก ให้แก้ทันที อะไรที่ต้องตัดสินใจ ให้บันทึกใน <code>docs/ROADMAP_PLAN.md</code> หัวข้อ <em>Found while implementing</em> พร้อมตัวเลือกและข้อเสนอ แล้วตัดสินพร้อมกับ phase"],
+    ["limits", "ถ้ามีเวลาเพิ่ม จะทำอะไรต่อ",
+     "สามอย่างที่คุ้มที่สุด: (1) รันกับโค้ดจริงของภาษาที่ยังผ่านแค่ fixture (2) ฟลาก <code>referenced</code> สำหรับฟังก์ชันที่ถูกส่งเป็น callback เพื่อลดโค้ดตายปลอมใน React (#19) (3) benchmark คุณภาพคำตอบของ agent อย่างเป็นทางการ",
+     "ตามด้วยข้อเสนอที่บันทึกไว้แล้ว: Next.js file route เป็น endpoint (#18), ข้าม <code>data</code>/<code>build</code> เฉพาะใต้ root (#13), ตัวเลข <code>reached_by_tests</code> ที่อิง edge (#15), static import ของ Java (#14), import ที่เปลี่ยนชื่อ (#20), ให้ <code>name-matched</code> มาจากการเรียกที่ถูกทิ้งจริงแทนภาษา (#25) และ integration กับ PR review"],
+    ["limits", "ถ้า Python ไม่ติดตั้ง grammar แล้วรัน จะได้อะไร",
+     "กราฟที่แทบว่างพร้อมคำเตือนที่บอกเหตุผลและคำสั่งติดตั้ง — ไม่ใช่ความล้มเหลว และไม่ใช่ความเงียบ",
+     "นี่คือราคาของการใช้เอนจินเดียว ซึ่งถูกเขียนไว้เป็นข้อจำกัดข้อแรก ๆ ในการนำเสนอ"],
+    ["limits", "ผลลัพธ์ตอบคำถาม “ตอน runtime ตัวไหนทำงานจริง” ได้ไหม",
+     "ไม่ได้ และไม่ได้อ้างว่าได้ — trace หยุดที่ interface พร้อมป้าย <code>interface-dispatch</code> เพื่อบอกว่า “ต่อจากนี้เป็นเรื่องของ runtime”",
+     "ถ้าต้องการคำตอบนั้นต้องใช้ข้อมูล runtime เช่น tracing ซึ่งเสริมกันได้กับแผนที่นี้"],
+
+    ["compare", "ต่างจาก grep / ripgrep อย่างไร",
+     "grep เจอเฉพาะที่เอ่ยถึงโดยตรงและคืนบรรทัดข้อความ ส่วนนี่คืน node id, เส้นทาง และเซตแบบ transitive — ผู้เรียกทางอ้อมสามทอดที่ไม่มีใครคิดจะ grep หา",
+     "grep ยังเร็วและดีสำหรับค้นข้อความ แต่ไม่รู้ขอบเขตของฟังก์ชัน ไม่รู้ว่าชื่อเดียวกันในสองไฟล์คือคนละตัว และไม่รู้ว่า HTTP call ฝั่งหน้าเว็บวิ่งไปหา handler ตัวไหน"],
+    ["compare", "ต่างจาก “Find usages” ของ IDE หรือ LSP อย่างไร",
+     "IDE/LSP resolve ได้แม่นกว่าในภาษาที่มี type แต่ต้องมีโปรเจกต์ที่ตั้งค่าและ build ได้ ทำงานทีละภาษา และตอบทีละคำถามแบบ interactive",
+     "Code Archaeologist ให้ artifact ถาวรที่ commit ได้ ครอบคลุม 17 ภาษาในกราฟเดียว ข้าม HTTP boundary และ agent query ผ่าน shell ได้ — แลกกับการเป็น lower bound"],
+    ["compare", "ต่างจาก CodeQL อย่างไร",
+     "CodeQL สร้างฐานข้อมูลเชิงความหมายเพื่อ query เรื่องความปลอดภัยแบบ dataflow/taint และสำหรับภาษาที่คอมไพล์มักต้องสกัดระหว่าง build ส่วนนี่คือแผนที่สถาปัตยกรรมจาก source ดิบโดยไม่ build",
+     "เป้าหมายต่างกัน: CodeQL ตอบ “ค่าที่ไม่ปลอดภัยไหลถึง sink ไหม” ได้ดีกว่ามาก ส่วนเราตอบ “request เดินทางอย่างไร / แก้ตรงนี้กระทบอะไร” ให้ agent ในราคาถูก ใช้คู่กันได้"],
+    ["compare", "ต่างจาก SonarQube หรือเครื่องมือ code quality อย่างไร",
+     "เครื่องมือกลุ่มนั้นเป็นแพลตฟอร์มที่มีกฎจำนวนมากและมักรันเป็น server/CI ส่วนนี่เป็นสคริปต์ offline ที่เน้น <em>กราฟที่ agent query ได้</em> — health grade เป็นแค่ส่วนหนึ่งที่เรียบง่ายและเปิดสูตร",
+     "ไม่ได้อ้างว่ามีกฎครบเท่า และ security scan ของเราเป็นรอบตรวจแรกที่เร็วเท่านั้น"],
+    ["compare", "ต่างจาก codebase indexing ของ AI coding assistant ทั่วไปอย่างไร",
+     "เครื่องมือกลุ่มนั้นโดยทั่วไปใช้ embedding และ similarity search (แนว RAG) ส่วนนี่ไม่มี embedding — ผลลัพธ์คงที่ ตรวจสอบย้อนหลังได้ และบอกความสัมพันธ์การเรียกได้ตรง ๆ",
+     "สองอย่างเสริมกันได้: similarity ดีสำหรับ “โค้ดที่หน้าตาคล้ายสิ่งนี้อยู่ไหน” ส่วนกราฟดีสำหรับ “อะไรเรียกอะไร”"],
+    ["compare", "ต่างจาก repo map ของ Aider ที่ใช้ tree-sitter เหมือนกันอย่างไร",
+     "repo map แบบนั้นมีเป้าหมายคือสรุป symbol สำคัญให้พอดี context ของโมเดลในแต่ละครั้ง ส่วนนี่สร้าง call graph ที่ resolve receiver, ข้าม HTTP, มี route, precision รายโหนด และรายงานรีวิว เก็บเป็น artifact ถาวร",
+     "จุดร่วมคือการเลือก tree-sitter เพราะเหตุผลเดียวกัน: parser จริงหลายภาษาโดยไม่ต้อง build"],
+    ["compare", "ต่างจาก Doxygen, Javadoc หรือเครื่องมือทำเอกสารจากคอมเมนต์อย่างไร",
+     "เครื่องมือกลุ่มนั้นผลิตเอกสาร API ต่อภาษาจากคอมเมนต์ ส่วนนี่ผลิตแผนที่ความสัมพันธ์ข้ามภาษาและข้าม stack ที่ query ได้ พร้อมรีวิวสุขภาพ",
+     "docstring ที่มีอยู่ถูกใช้เป็นคำอธิบายของ node ก่อนเสมอ จึงไม่ทิ้งงานเอกสารที่ทีมทำไว้"],
+    ["compare", "ต่างจากเครื่องมือกราฟ dependency เฉพาะภาษา (madge, dependency-cruiser, pydeps) อย่างไร",
+     "กลุ่มนั้นส่วนใหญ่ทำ import graph ระดับไฟล์/โมดูลของภาษาเดียว ส่วนนี่ทำทั้งระดับคลาสและระดับเมธอด ใน 17 ภาษา และเชื่อม frontend กับ backend ในกราฟเดียว",
+     ""],
+    ["compare", "ต่างจาก runtime tracing / APM (เช่น OpenTelemetry) อย่างไร",
+     "tracing เห็นเส้นทางที่ <em>ถูกรันจริง</em> และ dispatch จริง แต่ต้องมีระบบที่รันอยู่และเห็นเฉพาะเส้นทางที่เกิดขึ้น ส่วน static map เห็นทุกเส้นทางที่ประกาศไว้โดยไม่ต้องรันอะไร",
+     "เสริมกันพอดี: static map บอกว่ามีทางไหนบ้าง tracing บอกว่าทางไหนถูกใช้"],
+    ["compare", "ต่างจากการให้ LLM สรุป repo เป็นเอกสาร Markdown ทีเดียวอย่างไร",
+     "เอกสารที่ LLM สรุปเป็นร้อยแก้วที่ตรวจไม่ได้และเก่าแบบเงียบ ๆ ส่วนโน้ตของเราสร้างแบบ deterministic จาก parse รู้ว่าเก่าเมื่อไร (hash) และทุกความสัมพันธ์มาจากกราฟ",
+     "จุดเดียวที่โมเดลเขียนคือคำสรุปหนึ่งบรรทัด ซึ่งไม่มีผลต่อโครงสร้าง"],
+    ["compare", "ทำไมเก็บกราฟเป็น JSON ไม่ใช้ graph database อย่าง Neo4j",
+     "เพราะกราฟระดับพัน node ใส่หน่วยความจำได้สบาย BFS เสร็จทันที และไฟล์ JSON เดียว commit ได้ diff ได้ ไม่ต้องมี server",
+     "graph DB จะเพิ่มโครงสร้างพื้นฐาน การติดตั้ง และสถานะที่ต้องดูแล โดยไม่เพิ่มคำตอบให้คำถามเป้าหมาย"],
+    ["compare", "ทำไมเขียนด้วย Python ไม่ใช่ Rust หรือ Go ที่เร็วกว่า",
+     "เพราะ environment ที่ agent ทำงานแทบทุกที่มี Python อยู่แล้ว สคริปต์รันได้ทันทีโดยไม่ต้องคอมไพล์ และงานหนัก (parse) ทำโดย tree-sitter ที่เป็น native code อยู่แล้ว",
+     "ตัวเลขที่วัด (repo 1,100 ไฟล์ใน 27.7 วินาที) เพียงพอสำหรับงานที่รันเมื่อโค้ดเปลี่ยน ไม่ใช่ทุกคำถาม"],
+
+    ["process", "โปรเจกต์นี้สร้างอย่างไร ใช้ AI ช่วยไหม",
+     "ใช่ พัฒนาร่วมกับ AI coding agent (Claude Code) และบันทึกทุกรอบของการสนทนาไว้ใน <code>docs/prompt.md</code> — ปัจจุบันกว่าร้อยรายการ",
+     "ทุกการตัดสินใจที่ต้องเลือกระหว่างทางเลือกถูกเขียนไว้ใน <code>docs/ROADMAP_PLAN.md</code> และประวัติทั้งหมดอยู่ใน <code>docs/PROJECT_HISTORY.md</code> คนเป็นผู้ตัดสินใจเรื่องที่แลกคุณสมบัติกัน"],
+    ["process", "โค้ดที่ AI ช่วยเขียน รับประกันคุณภาพอย่างไร",
+     "ไม่เชื่อจากการอ่าน — เชื่อจากการตรวจ: byte-identity ของกราฟ, invariant ของ <code>check_graph.py</code> พร้อม self-test, fixture ทุกภาษา, regression 49 เคส, oracle ของ Python และการรันกับ repo จริง",
+     "และกฎว่าตัวเลขที่อ้างในเอกสารต้องมาจากผลที่วัดจริง ไม่ใช่จากความจำ"],
+    ["process", "รักษาเอกสารให้ตรงกับโค้ดอย่างไร",
+     "กฎคือเอกสารเปลี่ยนใน commit เดียวกับพฤติกรรม และมีสองวินัย: เอกสารที่ “สะท้อนความจริงปัจจุบัน” (README, SKILL.md, USAGE.md …) เขียนใหม่ได้ ส่วน “บันทึก” (PROJECT_HISTORY, prompt.md) ต่อท้ายเท่านั้น ห้ามแก้ย้อนหลัง",
+     "<code>tools/check_docs.py</code> ตรวจครึ่งที่ตรวจด้วยเครื่องได้ และเคยจับชื่อฟังก์ชันที่ถูกแต่งขึ้นในคู่มือสถาปัตยกรรมได้ถึงแปดชื่อ (finding #12) ซึ่งตอนนี้ถูกแก้แล้ว"],
+    ["process", "เจออะไรผิดระหว่างทำ มีหลักการจัดการอย่างไร",
+     "“แก้ หรือ เขียนบันทึก — ห้ามแค่พูดถึง”: ถ้ามีคำตอบถูกทางเดียวให้แก้ทันที ถ้าต้องมีคนตัดสินใจให้บันทึกพร้อมข้อเสนอใน ROADMAP_PLAN",
+     "เกณฑ์แบ่งคือ “ถ้าแก้ตามแบบของเราแล้วเจ้าของไม่เห็นด้วย เราทำลายอะไรไปหรือเปล่า” — ถ้าใช่ ให้เขียนบันทึก"],
+    ["process", "ตัวอย่างการตัดสินใจเชิงออกแบบที่ยากที่สุด",
+     "overload (finding #8): จะรวมเป็น node เดียว, ใส่ index, หรือให้ทุก overload เป็น node ที่ id มีชนิด parameter — เลือกแบบหลังพร้อมกฎว่า id อื่นทุกตัวต้องคงเดิม",
+     "อีกข้อคือ interface dispatch: หยุดที่ interface แทนการลากไปทุก implementation เพราะเลือกรักษาคำสัญญาเรื่อง precision"],
+    ["process", "บทเรียนสำคัญที่สุดจากการพัฒนาคืออะไร",
+     "“ความล้มเหลวแบบเงียบ” คือศัตรูหลักของเครื่องมือวิเคราะห์ — ทุกบั๊กที่แพงที่สุดให้ผลที่ดูสมเหตุสมผล",
+     "จึงเกิดแนวปฏิบัติสามข้อ: ขาดอะไรต้องเตือนด้วยชื่อ, ทุก assertion ต้องพิสูจน์ว่าล้มได้, และทุกบั๊กเงียบที่เจอกลายเป็นเคสถาวรที่มีชื่อ"],
+    ["process", "ทำไม fixture กับ repo จริงต้องมีทั้งคู่",
+     "fixture พิสูจน์สิ่งที่เรารู้ว่าต้องทดสอบ ส่วน repo จริงเผยสิ่งที่เราไม่รู้ว่าต้องทดสอบ — ทุกการรันกับโค้ดจริงเจอบั๊กที่ fixture ไม่มีทางจับได้",
+     ""],
+    ["process", "ใช้ repo จริงของคนอื่นทดสอบ แล้วเรื่องความเป็นส่วนตัวของโค้ดล่ะ",
+     "รันแบบอ่านอย่างเดียว (ตรวจด้วย snapshot ก่อน-หลัง) และบันทึกเฉพาะตัวเลขรวม — ไม่มีชื่อไฟล์หรือ node ของ repo นั้นใน repo นี้",
+     ""],
+    ["process", "โปรเจกต์ขยายจากภาษาเดียวเป็น 17 ภาษาได้อย่างไรโดยไม่พัง",
+     "ด้วยการย้ายทีละขั้นที่พิสูจน์ได้: ย้าย parser ทีละตัวภายใต้ output contract เดิม, diff กราฟให้เท่ากันระดับไบต์, แล้วค่อยลบของเก่า — ก่อนเพิ่มภาษาใหม่บน walker ร่วม",
+     "แต่ละภาษาใหม่มาพร้อม fixture และแถวคาดหวังของตัวเอง จึงไม่มีภาษาไหนทำให้ภาษาอื่นถดถอยโดยไม่มีใครเห็น"],
+    ["process", "ถ้าคนอื่นอยากร่วมพัฒนา ต้องเริ่มจากตรงไหน",
+     "อ่าน <code>CLAUDE.md</code> (กฎและตัวเลขที่คาดหวัง) และหน้านี้ แล้วรันชุดตรวจทั้งหมดบน <code>sample_src</code> ให้ผ่านก่อนแก้อะไร",
+     "ภาษาใหม่: grammar + แถวในตาราง + fixture · pass ใหม่: สคริปต์ใน <code>review/</code> ที่ถาม taxonomy · ทุกอย่าง: เอกสารใน commit เดียวกัน"],
+    ["process", "ทำไมเอกสารนำเสนอเป็นภาษาไทยแต่ชื่อทางเทคนิคเป็นอังกฤษ",
+     "เพื่อให้ผู้ฟังไทยเข้าใจร้อยแก้ว ขณะที่ทุก identifier (ชื่อสคริปต์ ฟังก์ชัน ค่า <code>kind</code>/<code>layer</code> ชื่อ algorithm และ CLI flag) ค้นหาในโค้ดได้ตรงตัว",
+     "และหน้าเอกสารใช้ฟอนต์ของระบบเท่านั้น เพราะต้องเปิดได้แบบ offline เหมือน explorer"],
+    ["process", "ถ้าให้สรุปว่าทำไมโปรเจกต์นี้น่าเชื่อถือ ในสามประโยค",
+     "มันคำนวณ ไม่ได้เดา; มันบอกว่าไม่รู้อะไรและเพราะอะไร; และทุกคำกล่าวอ้างมีสคริปต์ที่รันซ้ำแล้วได้ผลเดิม",
+     ""]
+  );
+  </script>
+
+  <!-- QA-DATA-END -->
+
+  <script>
+    let qaCat = "all";
+    const qaStrip = s => s.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").toLowerCase();
+
+    function qaRender() {
+      const byCat = {};
+      QA.forEach((row, i) => { (byCat[row[0]] = byCat[row[0]] || []).push(i); });
+      document.getElementById("qaTotal").textContent = QA.length;
+
+      const cats = document.getElementById("qaCats");
+      cats.innerHTML = `<button class="qa-cat active" data-cat="all" onclick="qaSetCat('all', this)">ทั้งหมด<small>${QA.length}</small></button>` +
+        QA_CATS.filter(([k]) => byCat[k]).map(([k, label]) =>
+          `<button class="qa-cat" data-cat="${k}" onclick="qaSetCat('${k}', this)">${label}<small>${byCat[k].length}</small></button>`
+        ).join("");
+
+      let n = 0;
+      document.getElementById("qaList").innerHTML = QA_CATS.filter(([k]) => byCat[k]).map(([k, label]) => {
+        const items = byCat[k].map(i => {
+          const [, q, s, d] = QA[i];
+          n += 1;
+          return `<details class="qa-item" id="qa-${n}" data-cat="${k}" data-text="${qaStrip(q + " " + s + " " + (d || "")).replace(/"/g, "&quot;")}">
+            <summary><span class="qa-num">Q${n}</span><span class="qa-q">${q}</span></summary>
+            <div class="qa-body"><div class="qa-short">${s}</div>${d ? `<div class="qa-detail">${d}</div>` : ""}</div>
+          </details>`;
+        }).join("");
+        return `<div class="qa-group" data-cat="${k}"><div class="qa-group-head"><span>${label}</span><span>${byCat[k].length} ข้อ</span></div><div class="qa-list">${items}</div></div>`;
+      }).join("") + `<div class="qa-empty" id="qaEmpty" hidden>ไม่พบคำถามที่ตรงกับคำค้น</div>`;
+      qaApply();
+    }
+
+    function qaSetCat(k, btn) {
+      qaCat = k;
+      document.querySelectorAll(".qa-cat").forEach(b => b.classList.toggle("active", b === btn));
+      qaApply();
+    }
+
+    function qaApply() {
+      const terms = document.getElementById("qaSearch").value.toLowerCase().split(/\s+/).filter(Boolean);
+      let shown = 0;
+      document.querySelectorAll(".qa-group").forEach(g => {
+        let groupShown = 0;
+        g.querySelectorAll(".qa-item").forEach(it => {
+          const ok = (qaCat === "all" || it.dataset.cat === qaCat) &&
+                     terms.every(t => it.dataset.text.includes(t));
+          it.hidden = !ok;
+          if (ok) groupShown += 1;
+        });
+        g.hidden = groupShown === 0;
+        shown += groupShown;
+      });
+      document.getElementById("qaEmpty").hidden = shown !== 0;
+      document.getElementById("qaStatus").textContent = `แสดง ${shown} / ${QA.length}`;
+    }
+
+    function qaOpenAll(open) {
+      document.querySelectorAll(".qa-item").forEach(it => { if (!it.hidden) it.open = open; });
+    }
+
+    function qaRandom() {
+      const visible = [...document.querySelectorAll(".qa-item")].filter(it => !it.hidden);
+      if (!visible.length) return;
+      const it = visible[Math.floor(Math.random() * visible.length)];
+      visible.forEach(v => { v.open = false; v.classList.remove("flash"); });
+      it.classList.add("flash");
+      it.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => it.classList.remove("flash"), 2500);
+    }
+
+    qaRender();
+    if (location.hash.startsWith("#qa-")) {
+      const it = document.getElementById(location.hash.slice(1));
+      if (it) { it.open = true; it.scrollIntoView({ block: "center" }); }
+    }
+  </script>
 </main>
 
 <script>
@@ -1440,7 +2631,7 @@ const SCRIPTS_DATA = [
     invariant: "deterministic: ไม่สนใจ wall-clock time และ hash รวม grammar version ไว้ด้วย การถอด pin จึงทำให้ stale",
     cli: "python scripts/core/manifest.py --src ./src",
     callers: [{ name: "archaeologist.py", fn: "compare()/write()" }, { name: "brief.py", fn: "compare()" }],
-    callees: [{ name: "grammars.py", fn: "drift()" }, { name: "taxonomy.py", fn: "SKIP_DIRS" }]
+    callees: [{ name: "grammars.py", fn: "drift()" }, { name: "taxonomy.py", fn: "source_dirs()" }]
   },
   {
     name: "console.py",
@@ -1536,7 +2727,7 @@ const SCRIPTS_DATA = [
     algorithm: "ใช้ grammar javascript, typescript และ tsx ตรวจจับ route ของ Express/Nest, HTTP call ผ่าน fetch/axios และ function ที่ return JSX พร้อม emit call เป็น {type, name} เมื่อ receiver มี type กำกับ",
     inputs: "ไฟล์ .js, .jsx, .ts, .tsx",
     outputs: "JSON entity dictionary (class, function, route, call)",
-    invariant: "มี precision: name-matched เพราะ JS/TS มี dynamic receiver ที่ไม่มี type กำกับ",
+    invariant: "มี precision: name-matched เฉพาะเมื่อ node ทิ้งการเรียกผ่าน receiver ที่ไม่มี type กำกับไปยังชื่อที่กราฟมีนิยาม",
     cli: "python scripts/extract/js_ts_extract.py --src ./src",
     callers: [{ name: "build_wiki.py", fn: "find_js_files()" }, { name: "build_flow.py", fn: "extract_js_files()" }],
     callees: [{ name: "grammars.py", fn: "parser_for('javascript')" }]
@@ -1783,7 +2974,7 @@ const SCRIPTS_DATA = [
     path: "templates/viewer.html",
     role: "desktop application สำหรับ visualize แบบ interactive สามแผง responsive",
     tech: "Force-Graph Simulation และ Multi-View Explorer",
-    algorithm: "7 โหมด visualization (Graph, Treemap, Matrix, Tree, Flow, Cluster, Bundle), physics ของ D3/force-graph, drag เพื่อ pin layout และ toolbar ที่ย่อตัวเองอัตโนมัติ",
+    algorithm: "7 โหมด visualization (Graph, Treemap, Matrix, Tree, Flowchart, Cluster, Bundle), physics ของ D3/force-graph, drag เพื่อ pin layout และ toolbar ที่ย่อตัวเองอัตโนมัติ",
     inputs: "ข้อมูล map แบบ JSON ที่ inline มาแล้ว",
     outputs: "DOM UI แบบ interactive",
     invariant: "test node เป็นสีเขียว (#57ab5a) ทุกที่, chrome สีเงียบ (#08090b) และไม่มี emoji เลย (ใช้ SVG icon เท่านั้น)",

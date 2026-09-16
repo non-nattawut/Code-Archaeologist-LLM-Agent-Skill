@@ -368,6 +368,106 @@ argument type the source states. A call the arguments cannot settle is dropped a
 overloading languages failed first on Kotlin, whose pinned grammar puts a call's arguments where
 Swift's does not -- one more thing only a test in that language could have shown.
 
+### A third real repository: Spring + Next.js (2026-09-14)
+
+Another project's session installed the skill into a Java Spring + Next.js repository (628 files,
+56k lines) and graded it F -- structure 20, flow 26 -- almost entirely on the skill's own
+mistakes. It had to work around the install and tell its user not to trust the dead-code list.
+Every cause was reproduced in a fixture or a regression case (r36-r43) before it was fixed, and
+the sample's committed graphs did not move a byte:
+
+- **The install lost the graph library.** An unanchored `vendor/` in the skill's `.gitignore`,
+  meant for the pip wheels, also matched `templates/vendor/`, and npm reads that file when it
+  packs the repo for `npx`. The render after the structure map then raised, so `both` never built
+  the flow map. The rule is `/vendor/`, the installer checks the file, and the page is rendered
+  once after every map: a missing library costs the page, never a map.
+- **Ten "hardcoded secrets" were constant names** -- `ACCESS_TOKEN: "accessToken"`, a route, a
+  sentence -- and at ten points each they set the grade.
+- **`handler` meant controller**, so 24 service-to-handler calls were layer violations, and
+  Spring's `@Component` matched the `ui` rule. An annotation that declares a layer now wins.
+- **The dead code was mostly alive.** Java and JS/TS dropped every call on a class name
+  (`DateUtil.now()`); nothing knew a framework calls `@Scheduled` methods, filters or Next.js
+  pages; and a tsconfig `@/` alias, a namespace import or an anonymous default export broke the
+  frontend's links. Those resolve now, and framework-called code carries a named `entry`.
+- **The skill graphed itself** from `.claude/skills/`, adding its own scripts to the project's
+  dead and untested counts.
+
+The report was not all right, either: it blamed the low test-mention figure on missing edges, but
+that pass matches names and never reads an edge. A confident diagnosis from an agent is a lead,
+not a finding. What needed a decision went to *Found while implementing* #13-#20.
+
+The retest on the same repository caught this session's own miss. Static calls, layers and the
+explorer were fixed -- `GlobalResponse.success` went from no callers to 109 -- but every framework
+entry point was still dead: the extractors set `entry` and `write_graph` never copied it into
+`flow_graph.json`. The regression cases had asserted on `build_flow.analyze()`'s in-memory dicts,
+one step before the file every reader opens, so they passed. They now read the written graph. The
+same retest named what else still hid live code -- Java method references, calls made by a module's
+top-level code, `new X()` in the structure map, a structure import of a name two files define, and
+two more constant-shaped "secrets" -- and those were fixed with r44/r45 and extended r37/r42.
+Calls on another call's result, JSX render edges and calls through untyped variables went to
+#21-#24.
+
+Asked how those four would be fixed, the user chose to have all of them built, `api.x()` in every
+shape that can be resolved exactly. A chained call is now typed from declared return types and
+Lombok getters; `api.approveSetdatProject()` resolves through an imported instance, a barrel
+re-export or an object of functions; Python's `main()` behind `if __name__ == "__main__":` is
+no longer dead; and the flow map has its first new edge type since `http`, **`renders`**, so an
+impact query on a component finally reaches the pages that render it. The sample moved by exactly
+that one edge. Building object-literal members surfaced one more silent mistake of this same day
+-- a method inside an object literal counted as module-load code -- and it was fixed before it
+shipped.
+
+### The `implements` link (2026-09-14)
+
+A long Q&A about why the sample's `FlatRate.price` and `TieredRate.price` were dead code ended
+where phase 1b had left an option open. A call through an interface stops at the declaration,
+because which class runs is decided outside the source -- here by Spring injection. Offered either
+call links to every implementation (rejected once already: it breaks "every call link is real") or
+a separate link that only says "this implements that", the user chose the second. Every method is
+now joined to the same-named method of its class's nearest base in the graph, stored
+implementation -> declaration and read backwards by everything that walks callers, so a trace
+from `OrderApiController.create` reaches both rates, `--impact-of` on one reaches its callers, and
+neither is an orphan. Cycles, layers and coupling ignore it: a decorator delegating to its own
+interface is not a cycle. The flow grade rose from D (68) to C (70) on exactly those two links. The
+same Q&A also recorded, without building, a stale sample comment (#26, fixed alongside), calls
+through globals (#27), calls outside any method (#28) and the structure map's own
+implementation orphans (#29).
+
+### The rest of that Q&A, built (2026-09-14)
+
+The user then asked for everything still open to be built, and it was, test first. `name-matched`
+stopped being a language label: a node earns it only by dropping a call through an untyped
+receiver to a name the graph defines, which took it from 15 sample nodes to 2 -- after the obvious
+rule ("any untyped drop") was measured against Java, where `System.out.println` would have marked
+almost everything. Calls through globals resolve in Python, Kotlin and Go, and Python finally links
+`ClassName.method()`. Calls made outside any method -- initializers, constructors, package vars --
+mark their callees `entry: init` instead of silently leaving them dead. Spring injection is followed
+where the source settles it. And the structure map got its own `implements` links, which lifted it
+from D (69) to C (73). Two of the new tests were wrong before the code was, and were corrected
+rather than the code bent to them.
+
+Of the two limits that work left, one was fixed and one deliberately kept. Kotlin Spring services
+(#30) now resolve their injected beans exactly as Java's do -- it was only unwritten extractor
+work. "The only bean" meaning only in the scanned source (#31) stays: a library's beans live in
+jars the skill never reads, and Spring Boot's auto-configuration usually steps aside for a bean the
+project defines anyway.
+
+### The object model (2026-09-14)
+
+The next Spring + Next.js rerun left one question the user wanted answered by design rather than
+by another rule: an abstract upload handler whose default methods its only subclass overrides was
+flagged dead. Could abstract/interface node types and inheritance arrows fix it? Not by themselves
+-- those bodies really never run -- but naming the relations could make the report say *why*.
+So a class is now `interface`, `abstract` or `class`; `implements` split into `implements`,
+`extends` and `overrides`; and a body every subclass replaces is `overridden`, listed on its own
+and not graded, because deleting it changes what a new subclass inherits.
+
+The same rerun named four more hidden callers, and each was a rule nobody had written yet rather
+than a limit of reading source: two applications in one repository sharing class names (settled
+now by package and imports, as the compiler settles it), helpers inherited from a base class,
+locals typed by their declaration instead of only by `new`, and `new ApiError()` in TypeScript.
+The sample moved by one field -- `PricingRule` became an interface -- and 61 regression cases hold.
+
 ---
 
 ## Where it stands now

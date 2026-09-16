@@ -5,6 +5,7 @@ source: sample_src/services/orders_java/OrderArchive.java:7
 end: 23
 kind: class
 lang: java
+entry: 
 ---
 # OrderArchive
 
@@ -14,7 +15,7 @@ Where Java orders are kept. Stands in for a JPA repository.
 ## Bases
 _None._
 
-## Decorators
+## Annotations
 - `Repository`
 
 ## Methods

@@ -5,6 +5,7 @@ source: sample_src/services/orders_java/OrderApiController.java:4
 end: 25
 kind: class
 lang: java
+entry: 
 ---
 # OrderApiController
 
@@ -14,7 +15,7 @@ HTTP entry point for the Java side of the order domain.
 ## Bases
 _None._
 
-## Decorators
+## Annotations
 - `RestController`
 - `RequestMapping`
 

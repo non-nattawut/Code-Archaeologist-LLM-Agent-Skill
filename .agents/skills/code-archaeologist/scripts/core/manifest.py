@@ -36,7 +36,7 @@ SOURCE_EXTS = (".py", ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs",
                ".java", ".kt", ".kts", ".go", ".rs", ".cs", ".rb", ".php",
                ".swift", ".scala", ".groovy", ".dart", ".ex", ".exs",
                ".c", ".cc", ".cpp", ".h", ".hpp")
-from taxonomy import SKIP_DIRS  # noqa: E402  (one definition of "not source")
+from taxonomy import source_dirs  # noqa: E402  (one definition of "not source")
 
 
 def _rel_key(path: str, root: str) -> str:
@@ -70,7 +70,7 @@ def snapshot(roots) -> dict[str, str]:
     for root in roots:
         root = os.path.abspath(root)
         for dirpath, dirs, names in os.walk(root):
-            dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+            dirs[:] = source_dirs(dirpath, dirs)
             for fn in names:
                 if not fn.endswith(SOURCE_EXTS):
                     continue

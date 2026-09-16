@@ -1,0 +1,7 @@
+{
+  // Next.js generates this alias for every new app.
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": { "@/*": ["./src/*"] },
+  },
+}

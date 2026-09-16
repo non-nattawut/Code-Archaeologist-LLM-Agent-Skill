@@ -41,7 +41,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from paths import DATA_DIR  # noqa: E402,F401  (puts sibling script dirs on sys.path)
 
 import grammars  # noqa: E402
-from langs_extract import SKIP_DIRS  # noqa: E402  (one definition of "not source")
+from taxonomy import source_dirs  # noqa: E402  (one definition of "not source")
 
 HTTP_METHOD_NAMES = ("get", "post", "put", "patch", "delete", "head", "options")
 
@@ -107,7 +107,7 @@ def _filter(actions, only, except_):
 def _files(roots, exts):
     for root in roots:
         for dirpath, dirs, names in os.walk(root):
-            dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS)
+            dirs[:] = sorted(source_dirs(dirpath, dirs))
             for fn in sorted(names):
                 if os.path.splitext(fn)[1].lower() in exts:
                     yield root, os.path.join(dirpath, fn)

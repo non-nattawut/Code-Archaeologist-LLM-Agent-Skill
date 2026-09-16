@@ -376,3 +376,20 @@ def assignments(scope):
 def calls_in(scope):
     """Every `call` node in `scope`, in a stable order."""
     return [n for n in walk(scope) if n.type == "call"]
+
+
+_RUN_LATER = frozenset({"function_definition", "class_definition", "decorated_definition", "lambda"})
+
+
+def load_time_calls(module):
+    """The calls a module makes as it is imported, in a stable order: top-level
+    statements and the `if __name__ == "__main__":` guard -- never a def, class or lambda
+    body, which run only when something calls them."""
+    out = []
+    stack = [c for c in reversed(module.children) if c.type not in _RUN_LATER]
+    while stack:
+        n = stack.pop()
+        if n.type == "call":
+            out.append(n)
+        stack.extend(c for c in reversed(n.children) if c.type not in _RUN_LATER)
+    return out

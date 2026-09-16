@@ -2,15 +2,14 @@
   "graph": "data/flow/flow_graph.json",
   "census": {
     "nodes": 53,
-    "edges": 33,
+    "edges": 36,
     "layers": {
       "client": 6,
       "controller": 18,
       "repository": 8,
-      "service": 11,
+      "service": 14,
       "test": 2,
-      "ui": 5,
-      "unknown": 3
+      "ui": 5
     },
     "langs": {
       "csharp": 8,
@@ -27,7 +26,9 @@
     },
     "edge_types": {
       "calls": 29,
-      "http": 4
+      "http": 4,
+      "implements": 2,
+      "renders": 1
     },
     "routes": [
       {
@@ -111,7 +112,7 @@
         "node": "OrderController.get_order"
       }
     ],
-    "imprecise_nodes": 16
+    "imprecise_nodes": 3
   },
   "files": {
     "files": {
@@ -228,24 +229,23 @@
   "analysis": {
     "cycles": [],
     "orphans": [
-      "FlatRate.price",
-      "TieredRate.price",
       "createInvoice",
       "getOrderStatus",
       "loadOrder",
       "loadOrderHistory",
       "submitOrder"
     ],
+    "overridden": [],
     "layer_violations": [],
     "hubs": [],
     "god_objects": [],
     "patterns": {},
     "health": {
-      "score": 68,
-      "grade": "D",
-      "dead_code_pct": 13.2,
+      "score": 70,
+      "grade": "C",
+      "dead_code_pct": 9.4,
       "deductions": {
-        "dead_code": 7,
+        "dead_code": 5,
         "cycles": 0,
         "layer_violations": 0,
         "high_coupling": 0,
@@ -255,9 +255,10 @@
     },
     "summary": {
       "nodes": 53,
-      "edges": 33,
+      "edges": 36,
       "cycles": 0,
-      "orphans": 7,
+      "orphans": 5,
+      "overridden": 0,
       "layer_violations": 0,
       "hubs": 0,
       "god_objects": 0
@@ -682,8 +683,8 @@
         "last_commit": "2026-09-10T09:21:00+07:00",
         "first_commit": "2026-09-08T22:13:49+07:00",
         "fan_in": 0,
-        "fan_out": 0,
-        "risk": 2
+        "fan_out": 1,
+        "risk": 4
       },
       "GET /go/healthz": {
         "file": "sample_src/services/orders_go/router.go",
@@ -906,8 +907,8 @@
         "last_commit": "2026-09-08T20:53:05+07:00",
         "first_commit": "2026-09-08T20:53:05+07:00",
         "fan_in": 0,
-        "fan_out": 1,
-        "risk": 2
+        "fan_out": 2,
+        "risk": 3
       },
       "OrderController.__init__": {
         "file": "sample_src/backend/order_controller.py",
@@ -1119,9 +1120,9 @@
         "author_count": 2,
         "last_commit": "2026-09-10T09:21:00+07:00",
         "first_commit": "2026-09-08T22:13:49+07:00",
-        "fan_in": 1,
+        "fan_in": 3,
         "fan_out": 0,
-        "risk": 4
+        "risk": 8
       },
       "StatusBadge": {
         "file": "sample_src/frontend/OrderCard.tsx",
@@ -1133,9 +1134,9 @@
         "author_count": 1,
         "last_commit": "2026-09-08T20:53:05+07:00",
         "first_commit": "2026-09-08T20:53:05+07:00",
-        "fan_in": 0,
+        "fan_in": 1,
         "fan_out": 0,
-        "risk": 1
+        "risk": 2
       },
       "TieredRate.price": {
         "file": "sample_src/services/orders_java/PricingRule.java",
@@ -1149,8 +1150,8 @@
         "last_commit": "2026-09-10T09:21:00+07:00",
         "first_commit": "2026-09-08T22:13:49+07:00",
         "fan_in": 0,
-        "fan_out": 0,
-        "risk": 2
+        "fan_out": 1,
+        "risk": 4
       },
       "createInvoice": {
         "file": "sample_src/frontend/api_client.ts",
@@ -1468,6 +1469,22 @@
         "risk": 8
       },
       {
+        "node": "PricingRule.price",
+        "file": "sample_src/services/orders_java/PricingRule.java",
+        "commits": 2,
+        "owner": "Nattawut Rodthong",
+        "authors": {
+          "Nattawut Rodthong": 1,
+          "non-nattawut": 1
+        },
+        "author_count": 2,
+        "last_commit": "2026-09-10T09:21:00+07:00",
+        "first_commit": "2026-09-08T22:13:49+07:00",
+        "fan_in": 3,
+        "fan_out": 0,
+        "risk": 8
+      },
+      {
         "node": "InvoiceService.Find",
         "file": "sample_src/services/orders_cs/InvoiceService.cs",
         "commits": 2,
@@ -1639,6 +1656,22 @@
         "risk": 5
       },
       {
+        "node": "FlatRate.price",
+        "file": "sample_src/services/orders_java/PricingRule.java",
+        "commits": 2,
+        "owner": "Nattawut Rodthong",
+        "authors": {
+          "Nattawut Rodthong": 1,
+          "non-nattawut": 1
+        },
+        "author_count": 2,
+        "last_commit": "2026-09-10T09:21:00+07:00",
+        "first_commit": "2026-09-08T22:13:49+07:00",
+        "fan_in": 0,
+        "fan_out": 1,
+        "risk": 4
+      },
+      {
         "node": "InvoiceService.Total(int,int)",
         "file": "sample_src/services/orders_cs/InvoiceService.cs",
         "commits": 2,
@@ -1684,7 +1717,7 @@
         "risk": 4
       },
       {
-        "node": "PricingRule.price",
+        "node": "TieredRate.price",
         "file": "sample_src/services/orders_java/PricingRule.java",
         "commits": 2,
         "owner": "Nattawut Rodthong",
@@ -1695,8 +1728,8 @@
         "author_count": 2,
         "last_commit": "2026-09-10T09:21:00+07:00",
         "first_commit": "2026-09-08T22:13:49+07:00",
-        "fan_in": 1,
-        "fan_out": 0,
+        "fan_in": 0,
+        "fan_out": 1,
         "risk": 4
       },
       {
@@ -1727,6 +1760,21 @@
         "first_commit": "2026-09-08T22:13:49+07:00",
         "fan_in": 1,
         "fan_out": 1,
+        "risk": 3
+      },
+      {
+        "node": "OrderCard",
+        "file": "sample_src/frontend/OrderCard.tsx",
+        "commits": 1,
+        "owner": "non-nattawut",
+        "authors": {
+          "non-nattawut": 1
+        },
+        "author_count": 1,
+        "last_commit": "2026-09-08T20:53:05+07:00",
+        "first_commit": "2026-09-08T20:53:05+07:00",
+        "fan_in": 0,
+        "fan_out": 2,
         "risk": 3
       },
       {
@@ -1786,22 +1834,6 @@
         "last_commit": "2026-09-08T22:13:49+07:00",
         "first_commit": "2026-09-08T22:13:49+07:00",
         "fan_in": 1,
-        "fan_out": 0,
-        "risk": 2
-      },
-      {
-        "node": "FlatRate.price",
-        "file": "sample_src/services/orders_java/PricingRule.java",
-        "commits": 2,
-        "owner": "Nattawut Rodthong",
-        "authors": {
-          "Nattawut Rodthong": 1,
-          "non-nattawut": 1
-        },
-        "author_count": 2,
-        "last_commit": "2026-09-10T09:21:00+07:00",
-        "first_commit": "2026-09-08T22:13:49+07:00",
-        "fan_in": 0,
         "fan_out": 0,
         "risk": 2
       },
@@ -1941,21 +1973,6 @@
         "risk": 2
       },
       {
-        "node": "OrderCard",
-        "file": "sample_src/frontend/OrderCard.tsx",
-        "commits": 1,
-        "owner": "non-nattawut",
-        "authors": {
-          "non-nattawut": 1
-        },
-        "author_count": 1,
-        "last_commit": "2026-09-08T20:53:05+07:00",
-        "first_commit": "2026-09-08T20:53:05+07:00",
-        "fan_in": 0,
-        "fan_out": 1,
-        "risk": 2
-      },
-      {
         "node": "OrderController.__init__",
         "file": "sample_src/backend/order_controller.py",
         "commits": 2,
@@ -1986,18 +2003,17 @@
         "risk": 2
       },
       {
-        "node": "TieredRate.price",
-        "file": "sample_src/services/orders_java/PricingRule.java",
-        "commits": 2,
-        "owner": "Nattawut Rodthong",
+        "node": "StatusBadge",
+        "file": "sample_src/frontend/OrderCard.tsx",
+        "commits": 1,
+        "owner": "non-nattawut",
         "authors": {
-          "Nattawut Rodthong": 1,
           "non-nattawut": 1
         },
-        "author_count": 2,
-        "last_commit": "2026-09-10T09:21:00+07:00",
-        "first_commit": "2026-09-08T22:13:49+07:00",
-        "fan_in": 0,
+        "author_count": 1,
+        "last_commit": "2026-09-08T20:53:05+07:00",
+        "first_commit": "2026-09-08T20:53:05+07:00",
+        "fan_in": 1,
         "fan_out": 0,
         "risk": 2
       },
@@ -2162,21 +2178,6 @@
         "author_count": 1,
         "last_commit": "2026-09-08T21:12:23+07:00",
         "first_commit": "2026-09-08T21:12:23+07:00",
-        "fan_in": 0,
-        "fan_out": 0,
-        "risk": 1
-      },
-      {
-        "node": "StatusBadge",
-        "file": "sample_src/frontend/OrderCard.tsx",
-        "commits": 1,
-        "owner": "non-nattawut",
-        "authors": {
-          "non-nattawut": 1
-        },
-        "author_count": 1,
-        "last_commit": "2026-09-08T20:53:05+07:00",
-        "first_commit": "2026-09-08T20:53:05+07:00",
         "fan_in": 0,
         "fan_out": 0,
         "risk": 1
@@ -3069,7 +3070,7 @@
         "FIXME": 1,
         "TODO": 1
       },
-      "dead_nodes": 7,
+      "dead_nodes": 5,
       "dead_files": 1
     },
     "markers": [
@@ -3089,18 +3090,6 @@
       }
     ],
     "dead_nodes": [
-      {
-        "id": "FlatRate.price",
-        "source": "sample_src/services/orders_java/PricingRule.java:14",
-        "layer": "unknown",
-        "kind": "method"
-      },
-      {
-        "id": "TieredRate.price",
-        "source": "sample_src/services/orders_java/PricingRule.java:23",
-        "layer": "unknown",
-        "kind": "method"
-      },
       {
         "id": "createInvoice",
         "source": "sample_src/frontend/api_client.ts:16",
@@ -3194,7 +3183,7 @@
       {
         "id": "FlatRate.price",
         "source": "sample_src/services/orders_java/PricingRule.java:14",
-        "layer": "unknown",
+        "layer": "service",
         "kind": "method"
       },
       {
@@ -3350,7 +3339,7 @@
       {
         "id": "PricingRule.price",
         "source": "sample_src/services/orders_java/PricingRule.java:7",
-        "layer": "unknown",
+        "layer": "service",
         "kind": "method"
       },
       {
@@ -3362,7 +3351,7 @@
       {
         "id": "TieredRate.price",
         "source": "sample_src/services/orders_java/PricingRule.java:23",
-        "layer": "unknown",
+        "layer": "service",
         "kind": "method"
       },
       {

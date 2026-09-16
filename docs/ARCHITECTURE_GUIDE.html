@@ -1217,14 +1217,14 @@
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('build_wiki.py')">scripts/extract/build_wiki.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('taxonomy.py')">scripts/core/taxonomy.py</span></td>
-              <td><span class="matrix-fn">infer_layer(), is_test_path(), SKIP_DIRS</span></td>
+              <td><span class="matrix-fn">infer_layer(), is_test_path(), source_dirs()</span></td>
               <td>File path, kind, name</td>
               <td>Architectural layer assignment (<code>controller</code>, <code>model</code>, <code>test</code>, etc.)</td>
             </tr>
             <tr>
               <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
               <td><span class="matrix-pill" onclick="focusCard('py_extract.py')">scripts/extract/py_extract.py</span></td>
-              <td><span class="matrix-fn">parse(), read_source(), field(), defs_in()</span></td>
+              <td><span class="matrix-fn">parse(), read_source(), field(), defs_in(), load_time_calls()</span></td>
               <td>Python file path / source bytes</td>
               <td>Method definitions, AST statements, call expressions</td>
             </tr>
@@ -1446,7 +1446,7 @@ const SCRIPTS_DATA = [
     invariant: "Deterministic: ignores wall-clock time. Hash includes grammar versions so unpinning causes staleness.",
     cli: "python scripts/core/manifest.py --src ./src",
     callers: [{ name: "archaeologist.py", fn: "compare()/write()" }, { name: "brief.py", fn: "compare()" }],
-    callees: [{ name: "grammars.py", fn: "drift()" }, { name: "taxonomy.py", fn: "SKIP_DIRS" }]
+    callees: [{ name: "grammars.py", fn: "drift()" }, { name: "taxonomy.py", fn: "source_dirs()" }]
   },
   {
     name: "console.py",
@@ -1542,7 +1542,7 @@ const SCRIPTS_DATA = [
     algorithm: "Uses javascript, typescript, and tsx grammars. Detects Express/Nest routes, fetch/axios HTTP calls, and JSX component returns. Emits {type, name} calls for typed receivers.",
     inputs: ".js, .jsx, .ts, .tsx files",
     outputs: "JSON entity dictionary (classes, functions, routes, calls)",
-    invariant: "Carries precision: name-matched because JS/TS has untyped dynamic receivers.",
+    invariant: "Carries precision: name-matched only when a node drops a call through an untyped receiver to a name the graph defines.",
     cli: "python scripts/extract/js_ts_extract.py --src ./src",
     callers: [{ name: "build_wiki.py", fn: "find_js_files()" }, { name: "build_flow.py", fn: "extract_js_files()" }],
     callees: [{ name: "grammars.py", fn: "parser_for('javascript')" }]
@@ -1789,7 +1789,7 @@ const SCRIPTS_DATA = [
     path: "templates/viewer.html",
     role: "Three-pane responsive interactive visualization desktop application.",
     tech: "Force-Graph Simulation & Multi-View Explorer",
-    algorithm: "7 visualization modes (Graph, Treemap, Matrix, Tree, Flow, Cluster, Bundle); D3/force-graph physics; drag-to-pin layout; dynamic toolbar auto-compaction.",
+    algorithm: "7 visualization modes (Graph, Treemap, Matrix, Tree, Flowchart, Cluster, Bundle); D3/force-graph physics; drag-to-pin layout; dynamic toolbar auto-compaction.",
     inputs: "Inlined JSON maps data",
     outputs: "Interactive DOM UI",
     invariant: "Test nodes colored green (#57ab5a) everywhere; quiet chrome (#08090b); zero emoji (SVG icons only).",

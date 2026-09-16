@@ -5,6 +5,7 @@ source: sample_src/frontend/OrderCard.tsx:11
 end: 27
 kind: component
 lang: js
+entry: 
 ---
 # OrderCard
 

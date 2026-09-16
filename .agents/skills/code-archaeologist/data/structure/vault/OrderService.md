@@ -5,6 +5,7 @@ source: sample_src/backend/order_service.py:6
 end: 20
 kind: class
 lang: py
+entry: 
 ---
 # OrderService
 

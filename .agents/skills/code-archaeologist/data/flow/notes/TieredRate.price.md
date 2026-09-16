@@ -1,7 +1,7 @@
 ---
 entity: TieredRate.price
 kind: method
-layer: unknown
+layer: service
 class: TieredRate
 source: sample_src/services/orders_java/PricingRule.java:23
 lang: java

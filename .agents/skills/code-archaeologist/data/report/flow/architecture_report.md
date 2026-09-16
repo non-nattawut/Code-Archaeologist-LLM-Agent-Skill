@@ -1,27 +1,27 @@
 # Architecture report — flow_graph.json
 
-53 nodes · 33 edges
+53 nodes · 36 edges
 
-## Health: **D** (68/100)
+## Health: **C** (70/100)
 
 | Deduction | Points |
 | --- | --- |
-| dead code | -7 |
+| dead code | -5 |
 | security | -25 |
 
-Dead-code ratio 13.2% · cycles 0 · layer violations 0 · security findings 4
+Dead-code ratio 9.4% · cycles 0 · layer violations 0 · security findings 4
 
 > **This grade rests on a lower bound.** Call edges are a lower bound in every language: a call is only drawn when the receiver's type can be read from the source, and anything else is dropped rather than guessed. The real coupling is at least this much, never less.
 
-> **16 of 53 nodes lose precision in a way that can be named** — see each node's `precision` field: `interface-dispatch` (calls through an interface stop at its declaration -- which implementation runs is not knowable from the source); `overloads` (a call to an overloaded method could not be matched to one overload from the arguments the source states, so it was dropped); `name-matched` (in JS/TS, Ruby, PHP, Elixir and Groovy a call through an object whose class the source does not state was dropped).
+> **3 of 53 nodes lose precision in a way that can be named** — see each node's `precision` field: `interface-dispatch` (calls through an interface stop at its declaration -- which implementation runs is not knowable from the source); `overloads` (a call to an overloaded method could not be matched to one overload from the arguments the source states, so it was dropped); `name-matched` (a call through an object whose class the source does not state was dropped, and the graph defines that name (see `untyped`)).
 
 ## Census
 
 - Source: 22 file(s), 529 lines (py 23.8%, java 19.3%, csharp 17.0%, ts 17.0%, go 12.5%, js 5.3%, tsx 5.1%)
-- Layers: `client` 6, `controller` 18, `repository` 8, `service` 11, `test` 2, `ui` 5, `unknown` 3
+- Layers: `client` 6, `controller` 18, `repository` 8, `service` 14, `test` 2, `ui` 5
 - Kinds: `component` 2, `endpoint` 16, `function` 11, `method` 24
 - Languages: `csharp` 8, `go` 8, `java` 9, `js` 15, `py` 13
-- Edge types: `calls` 29, `http` 4
+- Edge types: `calls` 29, `http` 4, `implements` 2, `renders` 1
 
 ## Entry points (routes)
 
@@ -104,17 +104,19 @@ _None._
 
 _None._
 
-### Orphans (no callers, not an entry point) — 7
+### Orphans (no callers, not an entry point) — 5
 
 | Node |
 | --- |
-| `FlatRate.price` |
-| `TieredRate.price` |
 | `createInvoice` |
 | `getOrderStatus` |
 | `loadOrder` |
 | `loadOrderHistory` |
 | `submitOrder` |
+
+### Overridden everywhere (a body every subclass replaces, so it never runs) — 0
+
+_None._
 
 ## Anti-patterns & idioms
 
@@ -149,12 +151,12 @@ _None._
 | `getOrderStatus` | 5 | 0 | 1 | 10 | non-nattawut |
 | `OrderRepository.get` | 3 | 2 | 0 | 9 | non-nattawut |
 | `InvoiceService.Issue` | 2 | 1 | 2 | 8 | non-nattawut |
+| `PricingRule.price` | 2 | 3 | 0 | 8 | Nattawut Rodthong |
 | `InvoiceService.Find` | 2 | 1 | 1 | 6 | non-nattawut |
 | `InvoiceService.Total(InvoiceRequest)` | 2 | 1 | 1 | 6 | non-nattawut |
 | `OrderController.create_order` | 2 | 1 | 1 | 6 | Nattawut Rodthong |
-| `OrderController.get_order` | 2 | 1 | 1 | 6 | Nattawut Rodthong |
 
-## Debt — 2 marker(s) (FIXME 1, TODO 1), 7 dead node(s)
+## Debt — 2 marker(s) (FIXME 1, TODO 1), 5 dead node(s)
 
 | Tag | Location | Owner | Note |
 | --- | --- | --- | --- |
@@ -175,7 +177,7 @@ _2 test file(s). Name-based, not execution coverage: a node counts as referenced
 | `EventService.Record` | service | `sample_src/services/orders_go/event_service.go:14` |
 | `EventStore.Append` | repository | `sample_src/services/orders_go/event_store.go:14` |
 | `EventStore.List` | repository | `sample_src/services/orders_go/event_store.go:9` |
-| `FlatRate.price` | unknown | `sample_src/services/orders_java/PricingRule.java:14` |
+| `FlatRate.price` | service | `sample_src/services/orders_java/PricingRule.java:14` |
 | `GET /go/healthz` | controller | `sample_src/services/orders_go/router.go:16` |
 | `GET /orders/:id/status` | controller | `sample_src/api_express/order_router.js:24` |
 | `InvoiceController.Create` | controller | `sample_src/services/orders_cs/InvoiceController.cs:16` |

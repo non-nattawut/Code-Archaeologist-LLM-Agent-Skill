@@ -104,6 +104,9 @@
   .langs { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11px; color: var(--muted); }
   .langs span { display: inline-flex; align-items: center; gap: 6px; }
   .langs i { width: 7px; height: 7px; }
+  /* A class kind is a shape, never a colour: colour already means layer. */
+  .langs i.kind-interface { background: transparent; box-shadow: inset 0 0 0 2px #8b98ad; border-radius: 50%; }
+  .langs i.kind-abstract { background: transparent; border: 1px dashed #8b98ad; border-radius: 50%; }
 
   #filterChip { display: none; align-items: center; gap: 8px; width: 100%; margin-bottom: 8px;
     padding: 6px 9px; border: 1px solid var(--border); color: var(--muted); font-size: 11px; }
@@ -112,6 +115,16 @@
     border: 1px solid var(--border); padding: 7px 9px; outline: none; }
   #search::placeholder { color: var(--dim); }
   #search:focus { border-color: var(--accent); }
+  /* Node search results. Fixed to the box, so the rail's overflow cannot clip them, and capped
+     rather than scrolled -- the rail keeps its one scroll region. */
+  #results { position: fixed; z-index: 30; background: var(--panel2); border: 1px solid var(--border); }
+  .hit { display: flex; align-items: center; gap: 7px; padding: 4px 8px; cursor: pointer;
+    white-space: nowrap; font-size: 12px; }
+  .hit:hover, .hit.on { background: var(--rule); color: var(--bright); }
+  .hit i { width: 7px; height: 7px; flex: none; }
+  .hit b { font-weight: 400; flex: none; max-width: 60%; overflow: hidden; text-overflow: ellipsis; }
+  .hit span { color: var(--dim); font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
+  .hit.more, .hit.more:hover { color: var(--dim); background: none; cursor: default; }
   .tree { margin-top: 12px; }
   .sect.grow .tree { flex: 1; min-height: 0; overflow-y: auto; margin-right: -6px;
     padding-right: 6px; }
@@ -158,8 +171,8 @@
   .toolbar .sp { margin-left: auto; }
   /* The overflow menu holds the least-used controls (zoom, fit, PNG): that took the full
      row from ~897px to ~770px. Below that, the compact row (further down) moves the three
-     toggles in here too, needing ~527px -- so with both rails at their minimum the toolbar
-     never clips above ~987px wide (was ~1270px, and ~1360px before the menu). Measured in
+     toggles in here too, needing ~560px -- so with both rails at their minimum the toolbar
+     never clips above ~1020px wide (~987px before "Flow" became "Flowchart"; was ~1270px, and ~1360px before the menu). Measured in
      phase 5, not estimated. The menu opens down over the stage, amber only while open, and
      closes on an outside click or Escape -- but not when a toggle inside it is clicked. */
   .more { position: relative; display: flex; }
@@ -305,6 +318,7 @@
       <h3>Explorer<span class="n" id="treeCount"></span></h3>
       <button id="filterChip"><b>×</b> <span id="filterName"></span></button>
       <input id="search" placeholder="Search node…  (press /)" autocomplete="off" />
+      <div id="results" hidden></div>
       <div class="tree" id="tree"></div>
     </div>
   </aside>
@@ -317,9 +331,10 @@
       <div class="views" id="views"></div>
       <span class="sp"></span>
       <span class="toggles" id="toggles">
-        <label><input type="checkbox" id="hulls" checked /> Folders</label>
+        <label id="hullsToggle"><input type="checkbox" id="hulls" checked /> Folders</label>
         <label><input type="checkbox" id="blast" /> Blast radius</label>
-        <label id="testsToggle" style="display:none"><input type="checkbox" id="showTests" checked /> Tests</label>
+        <label title="Keep the current view when another node is clicked"><input type="checkbox" id="freeze" /> Freeze</label>
+        <label id="testsToggle" style="display:none"><input type="checkbox" id="showTests" /> Tests</label>
       </span>
       <div class="more" id="more">
         <button class="tbtn" id="moreBtn" title="Zoom, fit and export" aria-haspopup="true"
@@ -375,6 +390,23 @@ const lineOf = (n) => { const p = String(n.source || "").split(":")[1]; return p
 const dirOf = (path) => { const i = path.lastIndexOf("/"); return i < 0 ? "(root)" : path.slice(0, i); };
 const baseOf = (path) => path.slice(path.lastIndexOf("/") + 1);
 
+// A node's own name: its id without the file qualifier ids.py adds when two files define the
+// same name (`src/app/users/page.Page` -> `Page`), mirroring ids._qualifiers. The path is in
+// the panel; as a canvas label it buried the name. A method keeps its class, so an unqualified
+// `Foo.bar` in Foo.java is left alone.
+function labelOf(n) {
+  if (n._label != null) return n._label;
+  const id = n.id, rel = fileOf(n), base = baseOf(rel);
+  const stem = base.includes(".") ? base.slice(0, base.lastIndexOf(".")) : base;
+  n._label = id;
+  for (const q of [rel, rel.slice(0, rel.length - base.length) + stem, stem]) {
+    const rest = q && id.startsWith(q + ".") ? id.slice(q.length + 1) : "";
+    if (rest && (!n.cls || rest.startsWith(n.cls + "."))) { n._label = rest; break; }
+  }
+  return n._label;
+}
+const nameOf = (id) => (byId.has(id) ? labelOf(byId.get(id)) : id);
+
 let EDGES = [], HAS_TESTS = false, allFolders = [];
 
 function loadMap(name) {
@@ -405,7 +437,12 @@ function loadMap(name) {
 
   outAdj = new Map(); inAdj = new Map();
   nodes.forEach((n) => { outAdj.set(n.id, []); inAdj.set(n.id, []); });
-  EDGES.forEach((e) => { outAdj.get(e.source)?.push(e.target); inAdj.get(e.target)?.push(e.source); });
+  // An implements link is stored implementation -> declaration, but a call to the declaration
+  // runs the implementation, so every walk reads it backwards (taxonomy.call_direction).
+  EDGES.forEach((e) => {
+    const [s, t] = REVERSED_LINKS.has(e.type) ? [e.target, e.source] : [e.source, e.target];
+    outAdj.get(s)?.push(t); inAdj.get(t)?.push(s);
+  });
 
   filesIndex = new Map();                   // file -> {nodes:[], lines, lang}
   nodes.forEach((n) => {
@@ -456,6 +493,9 @@ const LAYER_COLORS = {
   model: "#e3b341", client: "#39c5cf", config: "#a371f7", ui: "#f0883e", test: TEST_COLOR,
   function: "#adbac7", module: "#adbac7", unknown: "#8b98ad"
 };
+// Inheritance links are stored subclass -> base, but a call to the base runs the subclass,
+// so every walk reads them backwards (taxonomy.REVERSED_LINKS).
+const REVERSED_LINKS = new Set(["implements", "extends", "overrides"]);
 const FOLDER_COLORS = ["#6ea8fe", "#f778ba", "#3fb950", "#e3b341", "#a371f7", "#39c5cf",
                        "#f0883e", "#db6d28", "#8ddb8c", "#c297ff", "#ff7b72", "#7ee787"];
 // The language-mix bar. Since phase 7 eighteen languages have graphs, and eighteen
@@ -510,9 +550,14 @@ function reach(id, adj) {
 
 // ---------------------------------------------------------------- state
 let selected = null;        // node id
+let focus = null;           // node id the view is built around: the selection, unless Freeze holds it
 let fileFilter = null;      // file path or folder prefix
 let view = "graph";
 let highlightNodes = new Set(), highlightLinks = new Set();
+// What a file filter or a flowchart focus leaves on the canvas; null = everything. Hidden,
+// not dimmed: at 1,500 nodes a faded node is still in the way.
+let visibleIds = null;
+function isVisible(n) { return !visibleIds || visibleIds.has(n.id); }
 let tab = "file", backTo = null;
 
 // ---------------------------------------------------------------- left: health
@@ -582,8 +627,10 @@ function renderLegend() {
     const unit = colorMode === "churn" ? "commits" : "risk";
     items = [0, 0.5, 1].map((t) => [heat(max * t, max), `${Math.round(max * t)} ${unit}`]);
   }
+  const kinds = ["interface", "abstract"].filter((k) => nodes.some((n) => n.kind === k));
   el("legend").innerHTML = items.map(([c, l]) =>
-    `<span><i style="background:${c}"></i>${esc(l)}</span>`).join("");
+    `<span><i style="background:${c}"></i>${esc(l)}</span>`).join("")
+    + kinds.map((k) => `<span><i class="kind-${k}"></i>${k}</span>`).join("");
 }
 
 function renderTiles() {
@@ -685,7 +732,7 @@ function setFilter(path) {
   fileFilter = path;
   el("filterChip").classList.toggle("on", !!path);
   el("filterName").textContent = path ? `Clear filter: ${baseOf(path)}` : "";
-  renderTree(); repaint(); updateStatus();
+  renderTree(); refocus(true); updateStatus();
   if (view === "matrix") renderMatrix();
   if (view === "treemap") renderTreemap();
 }
@@ -699,29 +746,60 @@ const Graph = ForceGraph()(el("graph"))
   .nodeRelSize(5)
   .onDagError(() => {})            // cycles are fine: just fall back to a free layout
   .linkColor((l) => highlightLinks.has(l) ? "rgba(63,224,160,.9)"
-    : (l.type === "http" ? "rgba(226,116,161,.5)" : "rgba(139,152,173,.16)"))
+    : (l.type === "http" ? "rgba(226,116,161,.5)"
+      : l.type === "renders" ? "rgba(167,139,250,.45)"
+      : l.type === "passes" ? "rgba(125,211,252,.45)"
+      : l.type === "implements" ? "rgba(201,209,217,.4)"
+      : l.type === "extends" || l.type === "overrides" ? "rgba(214,190,140,.45)" : "rgba(139,152,173,.16)"))
   .linkWidth((l) => highlightLinks.has(l) ? 2 : 1)
-  .linkLineDash((l) => l.type === "http" ? [4, 3] : null)
-  .linkDirectionalArrowLength(4)
+  .linkLineDash((l) => l.type === "http" ? [4, 3] : l.type === "renders" ? [1, 3]
+    : l.type === "passes" ? [6, 2, 1, 2]
+    : l.type === "implements" || l.type === "extends" ? [6, 3] : l.type === "overrides" ? [2, 3] : null)
+  .linkDirectionalArrowLength(() => view === "flow" ? 0 : 4)
   .linkDirectionalArrowRelPos(1)
-  .linkDirectionalParticles((l) => highlightLinks.has(l) ? 3 : 0)
+  .linkDirectionalParticles((l) => view !== "flow" && highlightLinks.has(l) ? 3 : 0)
   .linkDirectionalParticleWidth(2)
+  // The flowchart draws its own links (elbows between boxes); the other views keep the default
+  // line, and drawFlowLink returns at once for them.
+  .linkCanvasObjectMode(() => view === "flow" ? "replace" : "after")
+  .linkCanvasObject(drawFlowLink)
+  .nodeVisibility(isVisible)
+  .linkVisibility((l) => !visibleIds
+    || (visibleIds.has(l.source.id || l.source) && visibleIds.has(l.target.id || l.target)))
   .onRenderFramePre(drawHulls)
   .nodeCanvasObject(drawNode)
-  .onNodeClick((n) => selectNode(n.id, true))
-  .onBackgroundClick(() => clearSelection());
+  .nodePointerAreaPaint((node, color, ctx) => {
+    ctx.fillStyle = color;
+    if (view === "flow") return ctx.fillRect(node.x - FC.w / 2, node.y - FC.h / 2, FC.w, FC.h);
+    ctx.beginPath(); ctx.arc(node.x, node.y, 5, 0, 2 * Math.PI); ctx.fill();
+  })
+  .onNodeClick((n) => selectNode(n.id, true));   // empty canvas keeps the focus: only reset clears it
 
 const repaint = () => Graph.nodeRelSize(Graph.nodeRelSize());
 const degree = (id) => outAdj.get(id).length + inAdj.get(id).length;
 
 function drawNode(node, ctx, scale) {
+  if (view === "flow") return drawFlowBox(node, ctx, scale);
   const r = 4 + Math.min(degree(node.id), 8) * 0.7;
-  const dim = (selected && !highlightNodes.has(node.id)) || !inFilter(node);
+  const dim = selected && !highlightNodes.has(node.id);
   ctx.globalAlpha = dim ? 0.15 : 1;
   ctx.beginPath();
   ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
   ctx.fillStyle = colorFor(node);
   ctx.fill();
+  // A class kind is a shape, not a colour: an interface is hollow, an abstract class ringed
+  // with a dashed line. Then the outer circle again, for the selection / issue stroke below.
+  if (node.kind === "interface" || node.kind === "abstract") {
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, r * (node.kind === "interface" ? 0.45 : 0.6), 0, 2 * Math.PI);
+    if (node.kind === "interface") { ctx.fillStyle = "#0b0e14"; ctx.fill(); }
+    else {
+      ctx.lineWidth = 1.2 / scale; ctx.strokeStyle = "#0b0e14";
+      ctx.setLineDash([2 / scale, 2 / scale]); ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
+  }
   const issue = worstIssue(node.id);
   if (node.id === selected) {
     ctx.lineWidth = 2 / scale; ctx.strokeStyle = "#ffffff"; ctx.stroke();
@@ -733,7 +811,7 @@ function drawNode(node, ctx, scale) {
   const fs = Math.max(3, 11 / scale);
   ctx.font = `${fs}px ui-sans-serif, system-ui`;
   ctx.fillStyle = dim ? "rgba(215,221,232,.3)" : "#d7dde8";
-  ctx.fillText(node.id, node.x + r + 2, node.y + 3.5);
+  ctx.fillText(labelOf(node), node.x + r + 2, node.y + 3.5);
   ctx.globalAlpha = 1;
 }
 
@@ -841,7 +919,7 @@ function drawHulls(ctx, scale) {
   const groups = new Map();
   const all = [];
   nodes.forEach((n) => {
-    if (n.x == null || !inFilter(n)) return;
+    if (n.x == null || !isVisible(n)) return;
     const f = dirOf(fileOf(n));
     if (!groups.has(f)) groups.set(f, []);
     groups.get(f).push([n.x, n.y]);
@@ -860,14 +938,14 @@ function drawHulls(ctx, scale) {
       ctx.fillStyle = color + "cc";
       ctx.font = `${Math.max(3, 11 / scale)}px ui-monospace, monospace`;
       ctx.textAlign = "center";
-      ctx.fillText(folder, cx, top - 6 / scale);
+      ctx.fillText(baseOf(folder), cx, top - 6 / scale);
       ctx.textAlign = "left";
     });
   });
 }
 // ---------------------------------------------------------------- views
 const VIEWS = [["graph", "Graph"], ["treemap", "Treemap"], ["matrix", "Matrix"], ["tree", "Tree"],
-               ["flow", "Flow"], ["cluster", "Cluster"], ["bundle", "Bundle"]];
+               ["flow", "Flowchart"], ["cluster", "Cluster"], ["bundle", "Bundle"]];
 el("views").innerHTML = VIEWS.map(([id, label]) =>
   `<button data-view="${id}" class="${id === view ? "on" : ""}">${label}</button>`).join("");
 el("views").querySelectorAll("button").forEach((b) =>
@@ -889,7 +967,11 @@ function resetLayout() {
 
 function setView(next) {
   view = next;
+  computeVisible();
   el("views").querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.view === view));
+  // Folder areas are drawn only where drawHulls draws them; elsewhere the box would do nothing.
+  el("hullsToggle").style.display = (view === "graph" || view === "cluster") ? "" : "none";
+  fitToolbar();                      // the row just changed width, and no resize will say so
   el("graph").style.display = (view === "matrix" || view === "treemap") ? "none" : "block";
   el("matrix").style.display = view === "matrix" ? "block" : "none";
   el("treemap").style.display = view === "treemap" ? "block" : "none";
@@ -899,15 +981,16 @@ function setView(next) {
   nodes.forEach((n) => { n.fx = null; n.fy = null; });
   Graph.linkCurvature(view === "bundle" ? 0.45 : 0);
 
-  if (view === "tree" || view === "flow") {
-    Graph.dagMode(view === "tree" ? "td" : "lr").dagLevelDistance(70);
+  if (view === "tree") {
+    Graph.dagMode("td").dagLevelDistance(70);
   } else {
     Graph.dagMode(null);
   }
   if (view === "bundle") layoutBundle();
   if (view === "cluster") layoutCluster();
+  if (view === "flow") layoutFlowchart();
   Graph.d3ReheatSimulation();
-  setTimeout(() => Graph.zoomToFit(500, 60), 350);
+  if (nodes.some(isVisible)) setTimeout(() => Graph.zoomToFit(500, 60, isVisible), 350);
 }
 
 // Bundle: nodes pinned on a circle, grouped by folder, links drawn as curves that
@@ -942,6 +1025,180 @@ function layoutCluster() {
   });
 }
 
+// ---------------------------------------------------------------- focus + flowchart view
+// What stays on the canvas. A file filter keeps its own nodes and everything they link to
+// directly. In the flowchart a selection keeps its whole flow -- every caller back to where it
+// starts and every callee down to where it ends -- whatever Blast radius says (that toggle
+// only decides which links are highlighted); a flow cut at a filter's edge reads as finished.
+// The flow kept is the focus's, which under Freeze stays put while the selection moves.
+function computeVisible() {
+  let keep = null;
+  if (fileFilter) {
+    keep = new Set();
+    nodes.forEach((n) => {
+      if (!inFilter(n)) return;
+      keep.add(n.id);
+      outAdj.get(n.id).forEach((id) => keep.add(id));
+      inAdj.get(n.id).forEach((id) => keep.add(id));
+    });
+  }
+  if (view === "flow" && focus)
+    keep = new Set([focus, ...reach(focus, inAdj).set, ...reach(focus, outAdj).set]);
+  visibleIds = keep;
+}
+
+// Recompute what is shown, re-lay the flowchart around it, and zoom to it if asked.
+function refocus(fit) {
+  computeVisible();
+  if (view === "flow") { layoutFlowchart(); Graph.d3ReheatSimulation(); }
+  repaint();
+  // Fitting an empty set collapses the zoom to its floor, so only fit what is there.
+  if (fit && view !== "matrix" && view !== "treemap" && nodes.some(isVisible))
+    setTimeout(() => Graph.zoomToFit(400, 60, isVisible), 60);
+}
+
+// Flowchart: callers on the left, what they call to the right. A node's column is its longest
+// call path from a node nothing calls (a cycle is cut where the walk meets its own stack). Each
+// column starts in folder order and is then pulled toward its neighbours' rows a few times,
+// which is what untangles the links. Nodes with no links sit in a grid underneath, so hundreds
+// of them cannot stretch the first column. Pinned, like Cluster and Bundle.
+const FC = { w: 180, h: 24, row: 34, col: 250 };
+
+function layoutFlowchart() {
+  const shown = nodes.filter(isVisible).sort((a, b) =>
+    dirOf(fileOf(a)).localeCompare(dirOf(fileOf(b))) || labelOf(a).localeCompare(labelOf(b)));
+  const ids = new Set(shown.map((n) => n.id));
+  const near = (adj, id) => [...new Set(adj.get(id))].filter((x) => x !== id && ids.has(x));
+  const outs = new Map(shown.map((n) => [n.id, near(outAdj, n.id)]));
+  const ins = new Map(shown.map((n) => [n.id, near(inAdj, n.id)]));
+  const linked = shown.filter((n) => outs.get(n.id).length || ins.get(n.id).length);
+  const loose = shown.filter((n) => !outs.get(n.id).length && !ins.get(n.id).length);
+
+  // Depth-first from the nodes nothing calls, iteratively: a chain can be deeper than the
+  // stack is kind to. Reverse post-order of the kept links is a topological order.
+  const starts = linked.slice().sort((a, b) => (ins.get(a.id).length ? 1 : 0) - (ins.get(b.id).length ? 1 : 0));
+  const state = new Map(), fwd = new Map(), post = [];
+  starts.forEach(({ id: root }) => {
+    if (state.has(root)) return;
+    const stack = [[root, 0]];
+    state.set(root, 1);
+    while (stack.length) {
+      const top = stack[stack.length - 1], kids = outs.get(top[0]);
+      if (top[1] === kids.length) { state.set(top[0], 2); post.push(top[0]); stack.pop(); continue; }
+      const t = kids[top[1]++];
+      if (state.get(t) === 1) continue;                  // back onto its own stack: a cycle
+      if (!fwd.has(top[0])) fwd.set(top[0], []);
+      fwd.get(top[0]).push(t);
+      if (!state.has(t)) { state.set(t, 1); stack.push([t, 0]); }
+    }
+  });
+  const col = new Map(linked.map((n) => [n.id, 0]));
+  post.slice().reverse().forEach((id) =>
+    (fwd.get(id) || []).forEach((t) => col.set(t, Math.max(col.get(t), col.get(id) + 1))));
+
+  const columns = [];
+  linked.forEach((n) => {
+    const c = col.get(n.id);
+    if (!columns[c]) columns[c] = [];
+    columns[c].push(n.id);
+  });
+  const pos = new Map();
+  const place = (list) => list.forEach((id, i) => pos.set(id, i - (list.length - 1) / 2));
+  columns.forEach(place);
+  for (let sweep = 0; sweep < 4; sweep++) {
+    (sweep % 2 ? columns.slice().reverse() : columns).forEach((list) => {
+      const bary = new Map(list.map((id) => {
+        const next = ins.get(id).concat(outs.get(id));
+        return [id, next.reduce((s, x) => s + pos.get(x), 0) / next.length];
+      }));
+      list.sort((a, b) => bary.get(a) - bary.get(b));    // stable: a tie keeps folder order
+      place(list);
+    });
+  }
+
+  let bottom = 0;
+  columns.forEach((list, c) => list.forEach((id) => {
+    const n = byId.get(id), y = pos.get(id) * FC.row;
+    n.x = n.fx = c * FC.col;
+    n.y = n.fy = y;
+    bottom = Math.max(bottom, y);
+  }));
+  const across = Math.max(4, columns.length);
+  loose.forEach((n, i) => {
+    n.x = n.fx = (i % across) * FC.col;
+    n.y = n.fy = bottom + FC.row * (2 + Math.floor(i / across));
+  });
+}
+
+function roundBox(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function fitText(ctx, text, max) {
+  if (ctx.measureText(text).width <= max) return text;
+  let lo = 0, hi = text.length;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (ctx.measureText(text.slice(0, mid) + "…").width <= max) lo = mid; else hi = mid - 1;
+  }
+  return text.slice(0, lo) + "…";
+}
+
+// A box: the layer colour as a bar down its left edge (hollow for an interface, and a dashed
+// border for an abstract class -- a kind is a shape, never a colour), the name, and the same
+// selection / risk stroke the round nodes get.
+function drawFlowBox(node, ctx, scale) {
+  const { w, h } = FC, x = node.x - w / 2, y = node.y - h / 2;
+  const issue = worstIssue(node.id);
+  roundBox(ctx, x, y, w, h, 4);
+  ctx.fillStyle = "#131820"; ctx.fill();
+  ctx.setLineDash(node.kind === "abstract" ? [4, 3] : []);
+  ctx.lineWidth = (node.id === selected ? 2 : issue ? 1.5 : 1) / scale;
+  ctx.strokeStyle = node.id === selected ? "#ffffff"
+    : issue === "high" ? "#f85149" : issue ? "#e3b341" : "#2a313c";
+  ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = ctx.strokeStyle = colorFor(node);
+  if (node.kind === "interface") { ctx.lineWidth = 1 / scale; ctx.strokeRect(x + 3, y + 4, 3, h - 8); }
+  else ctx.fillRect(x + 3, y + 4, 3, h - 8);
+  if (scale < 0.35) return;               // unreadable this far out, and not free on a big map
+  ctx.font = "11px ui-monospace, monospace";
+  if (node._fcText == null) node._fcText = fitText(ctx, labelOf(node), w - 20);
+  ctx.fillStyle = "#d7dde8";
+  ctx.fillText(node._fcText, x + 12, node.y + 4);
+}
+
+// An elbow from the caller's right edge to the callee's left edge, bending in the gap before
+// the callee's column. A link back to the same or an earlier column loops under both boxes.
+// Colour and dash come from the same accessors as every other view.
+function drawFlowLink(l, ctx, scale) {
+  if (view !== "flow") return;
+  const s = l.source, t = l.target;
+  if (s === t || s.x == null || t.x == null) return;
+  const gap = (FC.col - FC.w) / 2;
+  const x1 = s.x + FC.w / 2, y1 = s.y, x2 = t.x - FC.w / 2, y2 = t.y;
+  ctx.strokeStyle = ctx.fillStyle = Graph.linkColor()(l);
+  ctx.lineWidth = (highlightLinks.has(l) ? 2 : 1) / scale;
+  ctx.setLineDash(Graph.linkLineDash()(l) || []);
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  if (x2 > x1) {
+    ctx.lineTo(x2 - gap, y1); ctx.lineTo(x2 - gap, y2);
+  } else {
+    const lane = Math.max(y1, y2) + FC.row / 2;
+    ctx.lineTo(x1 + gap / 2, y1); ctx.lineTo(x1 + gap / 2, lane);
+    ctx.lineTo(x2 - gap / 2, lane); ctx.lineTo(x2 - gap / 2, y2);
+  }
+  ctx.lineTo(x2, y2);
+  ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(x2, y2); ctx.lineTo(x2 - 6, y2 - 3.5); ctx.lineTo(x2 - 6, y2 + 3.5);
+  ctx.closePath(); ctx.fill();
+}
+
 // ---------------------------------------------------------------- matrix view
 const MATRIX_CAP = 140;
 function matrixNodes() {
@@ -962,24 +1219,29 @@ function renderMatrix() {
 
   const edgeSet = new Set(EDGES.map((e) => e.source + "|" + e.target));
   const httpSet = new Set(EDGES.filter((e) => e.type === "http").map((e) => e.source + "|" + e.target));
+  const renderSet = new Set(EDGES.filter((e) => e.type === "renders").map((e) => e.source + "|" + e.target));
+  const passSet = new Set(EDGES.filter((e) => e.type === "passes").map((e) => e.source + "|" + e.target));
+  const implSet = new Set(EDGES.filter((e) => e.type === "implements").map((e) => e.source + "|" + e.target));
+  const inheritSet = new Set(EDGES.filter((e) => e.type === "extends" || e.type === "overrides")
+    .map((e) => e.source + "|" + e.target));
 
   ctx.font = "10px ui-monospace, monospace";
   list.forEach((n, i) => {
     const y = pad + i * cell;
     ctx.fillStyle = n.id === selected ? "#3fe0a0" : "#8b98ad";
     ctx.textAlign = "right";
-    ctx.fillText(n.id.slice(0, 28), pad - 8, y + cell * 0.75);
+    ctx.fillText(labelOf(n).slice(0, 28), pad - 8, y + cell * 0.75);
     ctx.save();
     ctx.translate(pad + i * cell + cell * 0.8, pad - 8);
     ctx.rotate(-Math.PI / 2);
     ctx.textAlign = "left";
-    ctx.fillText(n.id.slice(0, 28), 0, 0);
+    ctx.fillText(labelOf(n).slice(0, 28), 0, 0);
     ctx.restore();
   });
   list.forEach((src, i) => list.forEach((dst, j) => {
     const key = src.id + "|" + dst.id;
     const x = pad + j * cell, y = pad + i * cell;
-    if (edgeSet.has(key)) ctx.fillStyle = httpSet.has(key) ? "#f778ba" : "#3fe0a0";
+    if (edgeSet.has(key)) ctx.fillStyle = httpSet.has(key) ? "#f778ba" : renderSet.has(key) ? "#a78bfa" : passSet.has(key) ? "#7dd3fc" : implSet.has(key) ? "#c9d1d9" : inheritSet.has(key) ? "#d6be8c" : "#3fe0a0";
     else if (src.id === selected || dst.id === selected) ctx.fillStyle = "#16241f";
     else ctx.fillStyle = (i + j) % 2 ? "#0e131b" : "#111722";
     ctx.fillRect(x + 1, y + 1, cell - 2, cell - 2);
@@ -1091,7 +1353,12 @@ function selectNode(id, recenter) {
   computeHighlight(id);
   showTab("file");
   renderFile(node);
-  if (recenter && node.x != null && view !== "matrix" && view !== "treemap") {
+  // The flowchart narrows to the selection's chain and fits it; the other views fly to the node.
+  // Under Freeze neither happens: the panel and highlight follow the click, the canvas does not.
+  if (!el("freeze").checked) focus = id;
+  if (el("freeze").checked) { /* view held */ }
+  else if (view === "flow") refocus(true);
+  else if (recenter && node.x != null && view !== "matrix" && view !== "treemap") {
     Graph.centerAt(node.x, node.y, 500); Graph.zoom(3, 500);
   }
   if (view === "matrix") renderMatrix();
@@ -1099,24 +1366,24 @@ function selectNode(id, recenter) {
 }
 
 function clearSelection() {
-  selected = null; highlightNodes.clear(); highlightLinks.clear();
+  selected = null; focus = null; highlightNodes.clear(); highlightLinks.clear();
   // #backBtn is rendered into the panel by backLink(), so it only exists while a
   // panel that offers "back" is showing. Reset from any other panel used to throw
   // on null here; renderPanel() below redraws the panel from `backTo` anyway.
   backTo = null; el("backBtn")?.classList.remove("on");
-  renderPanel(); updateStatus(); repaint();
+  refocus(view === "flow"); renderPanel(); updateStatus();
   if (view === "matrix") renderMatrix();
 }
 
 function updateStatus() {
-  const shown = nodes.filter(inFilter).length;
+  const shown = visibleIds ? visibleIds.size : nodes.length;
   el("stFiles").innerHTML = `<b>${filesIndex.size}</b> files`;
-  el("stNodes").innerHTML = `<b>${shown}</b>${fileFilter ? "/" + nodes.length : ""} nodes`;
+  el("stNodes").innerHTML = `<b>${shown}</b>${visibleIds ? "/" + nodes.length : ""} nodes`;
   el("stLinks").innerHTML = `<b>${links.length}</b> links`;
   const affected = selected ? reach(selected, inAdj).set.size : 0;
   el("stAffected").innerHTML = `<b>${affected}</b> affected`;
   el("stAffected").style.display = selected ? "" : "none";
-  el("stSel").innerHTML = selected ? `selected <b>${esc(selected)}</b>` : "click a node for details";
+  el("stSel").innerHTML = selected ? `selected <b>${esc(nameOf(selected))}</b>` : "click a node for details";
 }
 
 // ---------------------------------------------------------------- right panel
@@ -1171,7 +1438,7 @@ function nodeItem(id) {
   const int = outAdj.get(id) ? outAdj.get(id).length : 0;
   const ext = n && n.ext ? n.ext : 0;
   return `<div class="item" data-goto="${esc(id)}">
-    <span class="mono link">${esc(id)}</span>
+    <span class="mono link" title="${esc(id)}">${esc(nameOf(id))}</span>
     <span class="grow">${ln ? `<span class="badge">L${ln}</span>` : ""}
       <span class="badge">${int} int</span>
       ${ext ? `<span class="badge med">${ext} ext</span>` : ""}</span></div>`;
@@ -1191,9 +1458,9 @@ function renderFile(node) {
     .sort((a, b) => (lineOf(a) || 0) - (lineOf(b) || 0));
 
   const parts = [backLink()];
-  parts.push(`<h2 class="node mono">${esc(node.id)}</h2>
+  parts.push(`<h2 class="node mono">${esc(labelOf(node))}</h2>
     <div class="sub">${esc(file)}${meta.lines ? ` · ${meta.lines} lines` : ""}
-      ${lineOf(node) ? ` · line ${lineOf(node)}` : ""}</div>
+      ${lineOf(node) ? ` · line ${lineOf(node)}` : ""}${labelOf(node) !== node.id ? `<br>id ${esc(node.id)}` : ""}</div>
     <div class="chips">
       <span class="chip"><i style="background:${colorFor(node)}"></i>${esc(node.kind || "node")}</span>
       ${node.layer ? `<span class="chip">${esc(node.layer)}</span>` : ""}
@@ -1272,13 +1539,13 @@ function showFile(path) {
 
 function renderDoc(text) {
   return esc(text || "").replace(/\[\[(.*?)\]\]/g, (_, id) =>
-    byId.has(id) ? `<span class="link" data-goto="${esc(id)}">${esc(id)}</span>` : esc(id));
+    byId.has(id) ? `<span class="link" data-goto="${esc(id)}">${esc(nameOf(id))}</span>` : esc(id));
 }
 
 function issueRow(f) {
   return `<div class="issue ${SEV_CLASS[f.severity]}" ${f.node ? `data-goto="${esc(f.node)}"` : `data-file="${esc(f.file)}"`}>
     <span class="badge ${SEV_CLASS[f.severity]}">${esc(f.severity)}</span> ${esc(f.message)}
-    <div class="m mono">${esc(f.file)}:${f.line}${f.node ? ` · ${esc(f.node)}` : ""}</div>
+    <div class="m mono">${esc(f.file)}:${f.line}${f.node ? ` · ${esc(nameOf(f.node))}` : ""}</div>
     <div class="m mono">${esc(f.snippet || "")}</div></div>`;
 }
 
@@ -1307,12 +1574,12 @@ function renderPatterns() {
     sections.push(`<div class="grp">${title} — ${items.length}</div>` + items.map(render).join(""));
   };
   push("Circular dependencies", ANALYSIS.cycles || [], (c) =>
-    `<div class="item" data-goto="${esc(c[0])}"><span class="mono link">${c.map(esc).join(" → ")}</span></div>`);
+    `<div class="item" data-goto="${esc(c[0])}"><span class="mono link">${c.map((id) => esc(nameOf(id))).join(" → ")}</span></div>`);
   push("Backwards layer dependencies", ANALYSIS.layer_violations || [], (v) =>
-    `<div class="item" data-goto="${esc(v.source)}"><span class="mono link">${esc(v.source)} → ${esc(v.target)}</span>
+    `<div class="item" data-goto="${esc(v.source)}"><span class="mono link">${esc(nameOf(v.source))} → ${esc(nameOf(v.target))}</span>
       <span class="grow"><span class="badge med">${esc(v.from)}→${esc(v.to)}</span></span></div>`);
   push("High coupling (hubs)", ANALYSIS.hubs || [], (h) =>
-    `<div class="item" data-goto="${esc(h.node)}"><span class="mono link">${esc(h.node)}</span>
+    `<div class="item" data-goto="${esc(h.node)}"><span class="mono link">${esc(nameOf(h.node))}</span>
       <span class="grow"><span class="badge">${h.fan_in} in</span><span class="badge">${h.fan_out} out</span></span></div>`);
   push("God objects", ANALYSIS.god_objects || [], (g) =>
     `<div class="item"><span class="mono">${esc(g.name)}</span>
@@ -1389,7 +1656,13 @@ el("reset").addEventListener("click", () => { setFilter(null); clearSelection();
 el("hulls").addEventListener("change", repaint);
 el("showTests").addEventListener("change", () => applyMap(mapName));
 el("blast").addEventListener("change", () => {
-  if (selected) { computeHighlight(selected); repaint(); }
+  if (selected) { computeHighlight(selected); refocus(view === "flow" && !el("freeze").checked); }
+});
+// Unfreezing catches the view up with whatever was selected while it was held.
+el("freeze").addEventListener("change", () => {
+  if (el("freeze").checked || !selected || focus === selected) return;
+  if (view === "flow") { focus = selected; refocus(true); }
+  else selectNode(selected, true);
 });
 // The overflow menu. Its buttons keep their old ids, so the handlers around this
 // did not change; the menu only decides where they are drawn.
@@ -1429,16 +1702,65 @@ el("png").addEventListener("click", () => {
   a.click();
 });
 
-const search = el("search");
-search.addEventListener("keydown", (e) => {
-  if (e.key !== "Enter") return;
+// Node search. Every keystroke ranks the map's nodes -- name starts with the term, name
+// contains it, then id or path contains it -- and lists the first few under the box.
+const search = el("search"), hitBox = el("results");
+const SEARCH_CAP = 12;
+let searchHits = [], searchAt = 0, searchCap = SEARCH_CAP;
+function runSearch() {
   const term = search.value.trim().toLowerCase();
-  const hit = nodes.find((n) => n.id.toLowerCase().includes(term));
-  if (hit) selectNode(hit.id, true);
+  searchAt = 0;
+  if (!term) { searchHits = []; hitBox.hidden = true; return; }
+  const scored = [];
+  nodes.forEach((n) => {
+    const name = labelOf(n), low = name.toLowerCase();
+    const rank = low.startsWith(term) ? 0 : low.includes(term) ? 1
+      : n.id.toLowerCase().includes(term) || fileOf(n).toLowerCase().includes(term) ? 2 : -1;
+    if (rank >= 0) scored.push([rank, name, n]);
+  });
+  scored.sort((a, b) => a[0] - b[0] || a[1].length - b[1].length || a[1].localeCompare(b[1]));
+  searchHits = scored.map((s) => s[2]);
+  renderHits();
+}
+function renderHits() {
+  const box = search.getBoundingClientRect();
+  // As many rows as fit under the box -- it sits low in the rail -- and never a scrollbar.
+  searchCap = Math.max(3, Math.min(SEARCH_CAP, Math.floor((window.innerHeight - box.bottom - 12) / 26) - 1));
+  searchAt = Math.min(searchAt, searchCap - 1);
+  Object.assign(hitBox.style, { left: box.left + "px", top: box.bottom + 2 + "px", width: box.width + "px" });
+  hitBox.innerHTML = (searchHits.length ? searchHits.slice(0, searchCap).map((n, i) =>
+    `<div class="hit ${i === searchAt ? "on" : ""}" data-hit="${i}" title="${esc(n.id)}">
+      <i style="background:${colorFor(n)}"></i><b>${esc(labelOf(n))}</b><span>${esc(fileOf(n))}</span></div>`).join("")
+    : `<div class="hit more">No node matches</div>`)
+    + (searchHits.length > searchCap ? `<div class="hit more">+${searchHits.length - searchCap} more</div>` : "");
+  hitBox.hidden = false;
+}
+function pickHit(i) {
+  const n = searchHits[i];
+  if (!n) return;
+  hitBox.hidden = true; search.blur();
+  selectNode(n.id, true);
+}
+search.addEventListener("input", runSearch);
+search.addEventListener("focus", () => { if (search.value.trim()) runSearch(); });
+search.addEventListener("blur", () => { hitBox.hidden = true; });
+search.addEventListener("keydown", (e) => {
+  const shown = Math.min(searchHits.length, searchCap);
+  if ((e.key === "ArrowDown" || e.key === "ArrowUp") && shown) {
+    e.preventDefault();
+    searchAt = (searchAt + (e.key === "ArrowDown" ? 1 : shown - 1)) % shown;
+    renderHits();
+  } else if (e.key === "Enter") { e.preventDefault(); pickHit(searchAt); }
+});
+// mousedown, not click: the input's blur fires between the two and would close the list first.
+hitBox.addEventListener("mousedown", (e) => {
+  e.preventDefault();
+  const row = e.target.closest("[data-hit]");
+  if (row) pickHit(+row.dataset.hit);
 });
 window.addEventListener("keydown", (e) => {
   if (e.key === "/" && document.activeElement !== search) { e.preventDefault(); search.focus(); }
-  else if (e.key === "Escape") { clearSelection(); search.blur(); }
+  else if (e.key === "Escape") { clearSelection(); hitBox.hidden = true; search.blur(); }
 });
 
 const stage = el("stage");
@@ -1466,8 +1788,8 @@ function renderMapSwitch() {
 // Switch the whole page over to another map: same UI, different graph.
 function applyMap(name) {
   loadMap(name);
-  selected = null; fileFilter = null; backTo = null; tab = "file";
-  highlightNodes = new Set(); highlightLinks = new Set();
+  selected = null; focus = null; fileFilter = null; backTo = null; tab = "file";
+  highlightNodes = new Set(); highlightLinks = new Set(); visibleIds = null;
   el("filterChip").classList.remove("on");
   if (!HAS_CHURN && (colorMode === "churn" || colorMode === "risk")) colorMode = "layer";
   // `.toolbar label { display: inline-flex }` outranks the UA rule for [hidden],

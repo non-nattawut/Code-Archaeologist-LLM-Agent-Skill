@@ -5,6 +5,7 @@ source: sample_src/backend/order_controller.py:9
 end: 23
 kind: class
 lang: py
+entry: 
 ---
 # OrderController
 

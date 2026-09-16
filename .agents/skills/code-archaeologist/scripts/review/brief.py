@@ -112,6 +112,7 @@ def collect(src=None, focus: str = "flow", top: int = 5) -> dict:
         "hotspots": insights.get("hotspots", [])[:top],
         "risks": findings[:top],
         "orphans": (smells.get("orphans") or [])[:top],
+        "overridden": (smells.get("overridden") or [])[:top],
         "debt": (rep.get("debt") or {}).get("summary") or {},
         "tests": (rep.get("tests") or {}).get("summary") or {},
     }
@@ -147,8 +148,8 @@ def to_text(d: dict) -> str:
     if any(m.get("imprecise") for m in d["maps"].values()):
         out.append("             Nodes with a NAMED loss carry `precision`: interface-dispatch")
         out.append("             (stops at an interface), overloads (the arguments did not say")
-        out.append("             which overload; dropped), name-matched (JS/TS, Ruby, PHP, Elixir, Groovy: a call")
-        out.append("             through an object with no declared type dropped).")
+        out.append("             which overload; dropped), name-matched (a call through an object")
+        out.append("             with no declared type dropped, naming something the graph defines).")
     if d.get("skipped_langs"):
         langs = ", ".join(d["skipped_langs"])
         out.append(f"  SKIPPED    {langs}: no tree-sitter grammar installed, so these files")
@@ -187,6 +188,7 @@ def to_text(d: dict) -> str:
     block("risks", [f"{f['severity']:<6} {f['rule']} {f['file']}:{f['line']}"
                     + (f" -> {f['node']}" if f.get("node") else "") for f in d["risks"]])
     block("orphans", d["orphans"])
+    block("overridden", d.get("overridden") or [])
     if d["debt"]:
         tags = ", ".join(f"{k} {v}" for k, v in d["debt"]["by_tag"].items()) or "none"
         block("debt", [f"{d['debt']['markers']} marker(s) ({tags}), "

@@ -328,8 +328,8 @@ archaeologist.py   project | flow | both | check | report | brief   &lt;- ทา
        Kotlin, Rust, Swift, Scala, Dart, C และ C++ ประกาศชนิดข้อมูลไว้ การเรียกผ่าน field หรือ parameter
        จึง resolve ได้เหมือน Java · JS/TS resolve ได้ทุกที่ที่ source เขียนคลาสไว้ (<code>new X()</code>,
        <code>this</code>, field/parameter/local ที่ประกาศชนิดข้อมูล) ส่วน Ruby, PHP, Elixir และ Groovy
-       มักไม่ประกาศ node ของภาษาเหล่านี้จึงติดป้าย <code>name-matched</code>
-       และการเรียกผ่านอ็อบเจ็กต์ที่ไม่มีชนิดข้อมูลจะถูก<em>ทิ้ง</em> ไม่ใช่เดา</p>
+       มักไม่ประกาศ การเรียกผ่านอ็อบเจ็กต์ที่ไม่มีชนิดข้อมูลจะถูก<em>ทิ้ง</em> ไม่ใช่เดา และ node ที่ทิ้งการเรียกแบบนั้น
+       (ไปยังชื่อที่กราฟมีนิยาม) จะติดป้าย <code>name-matched</code> — ในภาษาใดก็ได้</p>
 
     <h3 style="margin-top:38px; font-family:var(--mono); font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3)">พิสูจน์มาถึงไหนแล้ว</h3>
     <div class="tscroll"><table>
@@ -389,13 +389,13 @@ archaeologist.py   project | flow | both | check | report | brief   &lt;- ทา
       <tr><th>ค่า</th><th>เกิดขึ้นเมื่อ</th><th>ผลที่ตามมา</th></tr>
       <tr><td class="k mono">interface-dispatch</td>
           <td>edge ขาออกไปหยุดที่ node ที่เป็น <code>declaration: true</code> (ตัว interface)</td>
-          <td>trace หยุดที่ interface ไม่วิ่งต่อเข้าคลาสที่ implement — เพราะ "อันไหนทำงานจริงตอนรัน" เป็นคำถามที่ type checker ก็ตอบไม่ได้ การเดาหนึ่งอันหรือลากสองเส้นผิดแย่กว่าการหยุดอย่างซื่อสัตย์</td></tr>
+          <td>edge การเรียกหยุดที่ interface เพราะ "อันไหนทำงานจริงตอนรัน" เป็นคำถามที่ type checker ก็ตอบไม่ได้ — แต่ละ impl ต่อเข้ามาด้วยลิงก์ <code>implements</code> ให้ trace เดินถึงได้โดยไม่อ้างว่าตัวไหนรัน ยกเว้นเมื่อ source บอกชัดว่า Spring inject bean ตัวไหน (<code>@Qualifier</code>, <code>@Primary</code>, bean เดียว, <code>@Bean</code>) จึงลิงก์ตรงไปยัง bean นั้น</td></tr>
       <tr><td class="k mono">overloads</td>
           <td>การเรียกชี้ไปที่ชุด overload แต่ argument ที่เขียนไว้ใน source ไม่พอจะบอกว่าเป็นตัวไหน</td>
           <td>การเรียกนั้นถูกทิ้ง และ node ผู้เรียกบันทึกชุดที่กำกวมไว้ในฟิลด์ <code>ambiguous</code></td></tr>
       <tr><td class="k mono">name-matched</td>
-          <td>node อยู่ในภาษาที่ source มักไม่เขียนชนิดข้อมูลของ receiver ไว้ (JS, TS, JSX, TSX, Ruby, PHP, Elixir, Groovy)</td>
-          <td>การเรียกผ่านอ็อบเจ็กต์ที่ไม่ได้บอกคลาสไว้ถูกทิ้ง — วัดได้จริง: fixture ของ Ruby ทิ้ง <code>@store.save</code> แต่เก็บการเรียกในคลาสเดียวกันไว้ ส่วน fixture ของ TypeScript ที่เขียนคลาสไว้ครบ resolve ได้ 3 จาก 3</td></tr>
+          <td>node ทิ้งการเรียกผ่าน receiver ที่ source ไม่ได้บอกชนิดไว้ ไปยังชื่อที่กราฟมีนิยาม (ฟิลด์ <code>untyped</code>) — ในภาษาใดก็ได้</td>
+          <td>ลิงก์อาจขาดตรงนี้ — พบบ่อยใน Ruby, PHP, Elixir, Groovy และ JS/TS ที่ไม่ใส่ type จนถึง finding #25 ป้ายนี้ติดทุก node ของห้าภาษานั้น (15 node ใน sample) ตอนนี้เหลือ 2</td></tr>
     </table></div>
     <pre class="code" style="margin-top:22px"><span class="c"># sample_src/services/orders_java/OrderWorkflow.java</span>
 private final PricingRule pricing;        // PricingRule เป็น interface
@@ -408,14 +408,16 @@ public Order place(OrderRequest request) {
 {"id": "OrderWorkflow.place", "lang": "java",
  "precision": ["interface-dispatch"]}
 
-<span class="c"># edge หยุดที่ interface และไม่แตกไปหา impl ทั้งสองตัว</span>
+<span class="c"># edge การเรียกหยุดที่ interface -- ไม่เดาว่า impl ตัวไหนรันจริง</span>
 {"source": "OrderWorkflow.place", "target": "PricingRule.price", "type": "calls"}
-<span class="c"># ไม่มี edge ไป FlatRate.price หรือ TieredRate.price -- สองตัวนั้นจึงเป็น orphan</span>
+<span class="c"># แต่ละ impl ต่อเข้ากับ declaration ด้วยลิงก์ implements -- trace และ --impact-of เดินผ่านได้ จึงไม่เป็น orphan</span>
+{"source": "FlatRate.price", "target": "PricingRule.price", "type": "implements"}
+{"source": "TieredRate.price", "target": "PricingRule.price", "type": "implements"}
 
 <span class="c"># โค้ดที่คำนวณค่านี้: scripts/core/taxonomy.py</span>
 def precision_of(node, targets):
     reasons = set()
-    if node.get("lang") in NAME_MATCHED_LANGS: reasons.add("name-matched")
+    if node.get("untyped"):                    reasons.add("name-matched")
     if node.get("ambiguous"):                  reasons.add("overloads")
     for t in targets:
         if t.get("declaration"):               reasons.add("interface-dispatch")
@@ -1001,15 +1003,15 @@ const FEATURES = [
       ["ต้องเข้าถึง source ของผมไหม","ไม่ ทุกอย่างที่จำเป็นถูกฝังอยู่แล้ว จึงแชร์ให้คนที่ไม่มีสิทธิ์เข้า repo ได้"],
       ["ลากแผงจนพังได้ไหม","มันมีขอบเขต ไม่ได้ปล่อยตามใจ แผงถูกจำกัดไม่ให้ลากเกินสิ่งที่ toolbar ยังต้องใช้ โดยวัดจากผลรวมความกว้างของลูก ๆ ใน toolbar เอง — ถ้าใช้ <code>clientWidth</code> มันจะรายงาน \"เท่าที่มีอยู่ตอนนี้\" แล้วปล่อยให้การลากค่อย ๆ ไล่ปุ่มตกขอบทีละพิกเซล"],
       ["ถ้าลากโหนดจนกราฟเละล่ะ","ปุ่ม reset รันเลย์เอาต์ใหม่จากศูนย์ การลากโหนดเท่ากับปักหมุดมันไว้ตรงนั้น (force-graph ตั้ง <code>fx</code>/<code>fy</code> แล้วทิ้งไว้) และการปลดหมุดอย่างเดียวไม่พอ เพราะซิมูเลชันจะเริ่มใหม่จากความเละเดิม reset จึงลบพิกัดทุกตัวทิ้งด้วย"],
-      ["ทำไม toolbar ถึงไม่เคยล้น","เพราะมันย่อแทนที่จะตัดทิ้ง เมื่อ toolbar แคบกว่าแถวเต็ม (~770px) ปุ่มสลับ (Folders, Blast radius, Tests) จะถูกย้าย<em>ตัวจริง</em>เข้าไปในเมนู <code>⋯</code> ด้านบน แล้วย้ายกลับทันทีที่มีที่ว่างพอ id, สถานะติ๊ก และ handler จึงเดินทางไปพร้อมกับมัน"]
+      ["ทำไม toolbar ถึงไม่เคยล้น","เพราะมันย่อแทนที่จะตัดทิ้ง เมื่อ toolbar แคบกว่าแถวเต็ม (~803px) ปุ่มสลับ (Folders, Blast radius, Tests) จะถูกย้าย<em>ตัวจริง</em>เข้าไปในเมนู <code>⋯</code> ด้านบน แล้วย้ายกลับทันทีที่มีที่ว่างพอ id, สถานะติ๊ก และ handler จึงเดินทางไปพร้อมกับมัน"]
     ]
   },
   {
     id:"views", cat:"output", title:"เจ็ดมุมมองของกราฟเดียวกัน",
-    d:"Graph, Treemap, Matrix, Tree, Flow, Cluster, Bundle",
+    d:"Graph, Treemap, Matrix, Tree, Flowchart, Cluster, Bundle",
     how:"คำถามแต่ละแบบมีรูปร่างของมันเอง: มุมมอง force-directed แสดงกลุ่มก้อนตามธรรมชาติ, treemap แสดงว่ามวลของโค้ดอยู่ตรงไหน, matrix แสดงความหนาแน่นของการเชื่อมโยง, tree และ flow แสดงลำดับชั้นกับทิศทาง, cluster และ bundle แสดงการรวมกลุ่มและมัดเส้นเชื่อม ทุกมุมมองอ่านข้อมูลชุดเดียวกันและใช้ชุดสีเดียวกัน — และทุกมุมมองอ่าน edge จากตัวแปร <code>EDGES</code> ที่กรอง node เทสออกแล้ว ไม่ใช่จาก <code>GRAPH.edges</code> ดิบ ๆ ปุ่มติ๊ก Tests จึงเรนเดอร์ใหม่ได้ถูกต้องเสมอ",
     tech:["หนึ่งกราฟ เจ็ดเลย์เอาต์","สีชุดเดียวกันทุกมุมมอง","กรองเทสที่ชั้นข้อมูล"],
-    code:"# templates/viewer.html -- เจ็ดมุมมอง อ่านข้อมูลชุดเดียวกัน\nconst VIEWS = [[\"graph\", \"Graph\"], [\"treemap\", \"Treemap\"], [\"matrix\", \"Matrix\"],\n               [\"tree\", \"Tree\"], [\"flow\", \"Flow\"], [\"cluster\", \"Cluster\"],\n               [\"bundle\", \"Bundle\"]];\n\n# ทุกมุมมองต้องอ่าน edge จาก EDGES ที่กรอง node เทสออกแล้ว ไม่ใช่ GRAPH.edges ดิบ\n# ปุ่มติ๊ก Tests จึงเรนเดอร์ใหม่ได้ถูกต้องเสมอ\n\n# สีโฟลเดอร์มาจากดัชนีใน allFolders (ทุกโฟลเดอร์ในแผนที่) ไม่ใช่จากรายการที่มองเห็น\n# ถ้าไล่สีจากรายการที่มองเห็น การซ่อนโฟลเดอร์เทสจะทำให้ทุกโฟลเดอร์หลังจากนั้นเปลี่ยนสี\n# แล้วสีชมพูก็เลิกหมายถึงโฟลเดอร์เดิมจากภาพหนึ่งไปอีกภาพหนึ่ง",
+    code:"# templates/viewer.html -- เจ็ดมุมมอง อ่านข้อมูลชุดเดียวกัน\nconst VIEWS = [[\"graph\", \"Graph\"], [\"treemap\", \"Treemap\"], [\"matrix\", \"Matrix\"],\n               [\"tree\", \"Tree\"], [\"flow\", \"Flowchart\"], [\"cluster\", \"Cluster\"],\n               [\"bundle\", \"Bundle\"]];\n\n# ทุกมุมมองต้องอ่าน edge จาก EDGES ที่กรอง node เทสออกแล้ว ไม่ใช่ GRAPH.edges ดิบ\n# ปุ่มติ๊ก Tests จึงเรนเดอร์ใหม่ได้ถูกต้องเสมอ\n\n# สีโฟลเดอร์มาจากดัชนีใน allFolders (ทุกโฟลเดอร์ในแผนที่) ไม่ใช่จากรายการที่มองเห็น\n# ถ้าไล่สีจากรายการที่มองเห็น การซ่อนโฟลเดอร์เทสจะทำให้ทุกโฟลเดอร์หลังจากนั้นเปลี่ยนสี\n# แล้วสีชมพูก็เลิกหมายถึงโฟลเดอร์เดิมจากภาพหนึ่งไปอีกภาพหนึ่ง",
     cmd:"— เลือกจากแถบเครื่องมือใน explorer",
     qa:[
       ["ทำไมสีโฟลเดอร์ต้องมาจากรายการโฟลเดอร์ทั้งหมด","เพราะถ้าไล่สีจากรายการที่มองเห็นอยู่ การซ่อนโฟลเดอร์เทสจะทำให้ทุกโฟลเดอร์หลังจากนั้นเปลี่ยนสี แล้วสีชมพูก็จะไม่ได้หมายถึงโฟลเดอร์เดิมจากภาพหนึ่งไปอีกภาพหนึ่งอีกต่อไป"],
@@ -1069,6 +1071,8 @@ const FEATURES = [
 const LIMITS = [
   ["การ resolve การเรียกเป็นฮิวริสติก ไม่ใช่ type inference",
    "dynamic dispatch, duck typing, การฉีด dependency ด้วย string key และ monkey-patching มองไม่เห็นทั้งหมด ระบบเลือกความแม่น (precision) เหนือความครบ (recall): ทุก edge ที่แสดงเป็นของจริง แต่ edge จริงบางเส้นหายไป — พูดข้อนี้ก่อนที่คนอื่นจะไปเจอเอง"],
+  ["orphan แปลว่า “ไม่มีโค้ดอ้างถึง” ไม่ใช่ “ไม่มีวันทำงาน”",
+   "เป็นมาตรฐานเดียวกับที่ IDE ใช้ตัดสินว่า unused — ฟังก์ชันที่เฟรมเวิร์กหาเจอด้วย<em>ชื่อที่เก็บอยู่ในข้อมูล</em> เช่น tag ของ next-intl <code>t.rich</code> ที่ชื่อถูกเขียนไว้ใน <code>en.json</code>, bean ที่ผูกด้วย string key หรือ reflection จึงถูกรายงานเป็น orphan อย่างตั้งใจ สมาชิกของอ็อบเจกต์ที่ถูกส่งไปทั้งก้อน (<code>t.rich(key, { ...TAGS })</code>) ก็เช่นกัน เพราะสิ่งที่ถูกส่งคือตัวอ็อบเจกต์ ไม่ใช่สมาชิกแต่ละตัว ให้ไปดูไฟล์ข้อความและ config ก่อนลบเสมอ"],
   ["call edge เป็นขอบล่าง ในทุกภาษา",
    "ทั้งสิบเจ็ดภาษาถูกพาร์สด้วย tree-sitter การ<em>ประกาศ</em>จึงแม่นยำทุกที่ สิ่งที่ไม่ครบเหมือนกันทุกที่คือการ <em>resolve</em>: edge ถูกลากเมื่ออ่านชนิดข้อมูลของตัวรับจาก source ได้เท่านั้น กรณีอื่นถูกทิ้งไม่ใช่แต่งขึ้น เพราะ edge ผิดแย่กว่า edge ที่หาย caveat นี้ถูกพูดครั้งเดียวแบบครอบคลุม แทนที่จะไปแปะไว้บนสามภาษา — เดิมมันเป็นแฟล็ก <code>approx</code> บน Java/Go/C# ซึ่งซื่อสัตย์ตอนที่สามภาษานั้นถูกอ่านแบบข้อความล้วน และกลายเป็นการแบ่งแยกที่ไร้เหตุผลทันทีที่ทุกภาษาย้ายมาใช้พาร์สเซอร์เดียวกัน สิ่งที่ node พกแทนคือ <code>precision</code> — รายการความสูญเสียที่<em>เรียกชื่อได้</em>: <code>interface-dispatch</code>, <code>overloads</code> และ <code>name-matched</code>"],
   ["การเรียกไปยังชื่อที่หลายไฟล์นิยาม จะถูกทิ้งถ้าไฟล์ผู้เรียกไม่ได้นิยามเอง",

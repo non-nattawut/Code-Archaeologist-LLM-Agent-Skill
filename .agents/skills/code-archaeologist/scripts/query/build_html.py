@@ -73,7 +73,8 @@ def load_vendor_js() -> str:
             return fh.read()
     except FileNotFoundError:
         print(f"error: vendored graph library missing at {VENDOR_JS_PATH};"
-              " the explorer would render an empty canvas.")
+              " explorer.html was not written (the maps are built). Reinstall the skill"
+              " to restore templates/vendor/.")
         raise
 
 
@@ -143,9 +144,13 @@ def build(sources: dict[str, tuple[str, str]] | None = None, out_path: str = DEF
         print("error: no graph found - run `archaeologist.py project|flow|both` first.")
         return 1
 
+    try:
+        vendor_js = load_vendor_js()
+    except FileNotFoundError:
+        return 1            # named by load_vendor_js; the maps themselves are already built
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     html = (load_template()
-            .replace("__VENDOR_JS__", load_vendor_js())
+            .replace("__VENDOR_JS__", vendor_js)
             .replace("__TITLE__", title)
             .replace("__MAPS_DATA__", json.dumps(maps, separators=(",", ":"))))
     with open(out_path, "w", encoding="utf-8") as fh:
