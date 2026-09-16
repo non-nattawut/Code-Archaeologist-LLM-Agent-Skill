@@ -5872,3 +5872,23 @@ Checked for wording that assumed a position: every "above"/"below" in the file i
 link, `#language-support` from How it works, is an anchor and now points backwards instead of
 forwards; still resolves. Line endings verified unchanged (LF, 392 lines, same as HEAD) and
 `python tools/check_docs.py` -> `check_docs: OK`.
+
+---
+
+## [149] 2026-09-16 — Commit and push the README reorder
+
+**Prompt**
+> commit and push it
+
+**Response**
+Committed README.md + docs/prompt.md to main and pushed.
+
+The first commit (`00314ab`) went out with a broken subject: I wrote the message with PowerShell
+here-string syntax (`-m @'...'@`) inside the **Bash** tool, which does not know that form, so the
+literal `@` delimiters became the first and last lines of the message and the subject line was a
+bare `@`. Amended with `git commit --amend -F -` and a heredoc, and force-pushed with
+`--force-with-lease` -- one commit, 30 seconds old, no other work on top. Final: `eec714c`.
+
+The lesson is the shell, not the message: this repo's CLAUDE.md warns about heredocs mangling
+backslash-continuations, and the mirror of it is that `@'...'@` only works in the PowerShell tool.
+Multi-line strings through Bash take a heredoc, and `-F -` is the safer way to hand git one.
