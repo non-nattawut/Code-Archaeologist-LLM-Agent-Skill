@@ -161,7 +161,7 @@ flowchart TD
 | `scripts/extract/route_tables.py` | `scripts/core/grammars.py` | `parser_for(lang)` | Language identifier | Tree-sitter `Language` instances for backend table parsing |
 | `scripts/review/report.py` | `scripts/review/scan_security.py` | `scan(src, graph_path)` | Source roots, graph path | Security findings mapped to owning AST nodes (`security.json`) |
 | `scripts/review/report.py` | `scripts/review/git_insights.py` | `build(src, graph_path)` | Source roots, graph path | Git churn, author ownership, hotspot risk scores (`insights.json`) |
-| `scripts/review/report.py` | `scripts/review/analyze.py` | `report(graph_path, sec_summary)` | Graph path, security severity counts | Tarjan's SCC cycles, backwards layer calls, god objects, health grade |
+| `scripts/review/report.py` | `scripts/review/analyze.py` | `report(graph_path, sec_summary)` | Graph path, security severity counts | Tarjan's SCC cycles, backwards layer calls, coupling split by instability, god objects, health grade |
 | `scripts/review/report.py` | `scripts/review/metrics.py` | `build(src, graph_path, out_file, top_k)` | Source roots, graph path, output JSON | Cyclomatic complexity (McCabe), nesting depth, LOC census |
 | `scripts/review/report.py` | `scripts/review/debt.py` | `build(src, graph_path, out_file)` | Source roots, graph path, output JSON | Comment markers (TODO/FIXME/HACK) and orphan file inventory |
 | `scripts/review/report.py` | `scripts/review/tests_map.py` | `build(src, graph_path, out_file)` | Source roots, graph path, output JSON | Production nodes referenced by test files (`tests.json`) |
@@ -224,7 +224,7 @@ flowchart TD
 2. **Parallel Sub-Pass Execution:**
    - `scripts/review/scan_security.py:scan()`: Line-oriented regex scanning for secrets, SQL injections, and dangerous evals; maps lines to owning nodes via AST interval ranges (`owner_of()`).
    - `scripts/review/git_insights.py:build()`: Streams `git log --numstat` in a single subprocess to compute commit churn, file ownership, and hotspot risk ($\text{risk} = \text{commits} \times (1 + \text{fan\_in} + \text{fan\_out})$).
-   - `scripts/review/analyze.py:report()`: Computes circular dependencies via iterative Tarjan's SCC, backwards layer dependencies, hub degree coupling on `app_edges()`, and capped health score ($0-100 \to \text{A-F}$).
+   - `scripts/review/analyze.py:report()`: Computes circular dependencies via iterative Tarjan's SCC, backwards layer dependencies, coupling by Martin's instability $I = \text{fan\_out} / (\text{fan\_in} + \text{fan\_out})$ on `app_edges()` -- only hubs (high in both directions) and wrong-way dependencies are graded -- and a capped health score ($0-100 \to \text{A-F}$).
    - `scripts/review/metrics.py:build()`: Computes McCabe cyclomatic complexity and max nesting depth per node using Tree-sitter CST branch-point tables.
    - `scripts/review/debt.py:build()`: Scans TODO/FIXME markers and combines with `analyze.find_orphans()` to identify dead nodes and dead files.
    - `scripts/review/tests_map.py:build()`: Identifies test files via `taxonomy.is_test_path()` and maps test references to production nodes.
@@ -339,7 +339,7 @@ The extractors are kept in **three separate files** rather than one monolithic m
 
 | Script | Role | Technique / Algorithm | Key Invariant |
 | :--- | :--- | :--- | :--- |
-| `scripts/review/analyze.py` | Health & Smells | **Iterative Tarjan's SCC** for cycles, degree coupling, god objects, capped health score. | Coupling runs on `app_edges()` (excludes `layer: test`). |
+| `scripts/review/analyze.py` | Health & Smells | **Iterative Tarjan's SCC** for cycles, **Martin instability** for coupling, god objects, capped health score. | Coupling runs on `app_edges()` (excludes `layer: test`); a shared helper or coordinator is reported, never graded. |
 | `scripts/review/duplicates.py` | Code Clones | **1. Token Normalization** (ID/LIT) for whole bodies.<br>**2. Winnowing ($K=10, W=21$)** with rolling polynomial hash for blocks. | Deterministic rolling hash mod $(2^{61}-1)$. Skips declarations. |
 | `scripts/review/scan_security.py` | Vulnerability Scan | Line-oriented regex scanning mapped to innermost node range via `owner_of()`. | Module-level findings attributed to file, never preceding function. |
 | `scripts/review/git_insights.py` | Churn & Risk | Streaming `git log --numstat` parser. Computes $\text{risk} = \text{commits} \times (1 + \text{fan\_in} + \text{fan\_out})$. | Single git subprocess call; degrades gracefully if not git repo. |

@@ -968,7 +968,7 @@
             <div class="fc-review-grid">
               <div class="fc-box sm" data-script="analyze.py" onclick="openSidebar('analyze.py')">
                 <div class="fc-box-top"><span class="fc-box-name">analyze.py</span><span class="fc-node-badge cat-review">REVIEW</span></div>
-                <div class="fc-box-desc">Graph-only: cycles, orphans, layer violations, hubs, god objects, and the 0&ndash;100 / A&ndash;F health score. Degree checks run on <code>app_edges()</code>, which drops test edges.</div>
+                <div class="fc-box-desc">Graph-only: cycles, orphans, layer violations, hubs, shared helpers, coordinators, wrong-way dependencies, god objects, and the 0&ndash;100 / A&ndash;F health score. Degree checks run on <code>app_edges()</code>, which drops test edges.</div>
               </div>
               <div class="fc-box sm" data-script="scan_security.py" onclick="openSidebar('scan_security.py')">
                 <div class="fc-box-top"><span class="fc-box-name">scan_security.py</span><span class="fc-node-badge cat-review">REVIEW</span></div>
@@ -1624,11 +1624,11 @@ const SCRIPTS_DATA = [
     cat: "review",
     path: "scripts/review/analyze.py",
     role: "Detects architectural smells and computes the 0–100 / A–F health score.",
-    tech: "Tarjan's SCC & Degree Coupling Analysis",
-    algorithm: "Iterative Tarjan's Strongly Connected Components for cycles; in/out-degree for hubs (fan_in+out >= 10); god objects; health formula with category deduction caps.",
+    tech: "Tarjan's SCC &amp; Martin Instability Coupling",
+    algorithm: "Iterative Tarjan's Strongly Connected Components for cycles; Robert Martin's instability I = fan_out / (fan_in + fan_out) to split coupling by direction — hubs (fan_in and fan_out both >= 5) and wrong-way dependencies are graded, shared helpers and coordinators only reported; god objects; health formula with category deduction caps.",
     inputs: "graph.json or flow_graph.json",
-    outputs: "Analysis dictionary: cycles, orphans, hubs, god objects, health score",
-    invariant: "Degree calculations run on app_edges(), ignoring test nodes so test coverage doesn't inflate coupling.",
+    outputs: "Analysis dictionary: cycles, orphans, hubs, shared helpers, coordinators, wrong-way dependencies, god objects, health score",
+    invariant: "Degree calculations run on app_edges(), ignoring test nodes so test coverage doesn't inflate coupling. A shared helper and a coordinator are normal shapes and never cost grade points.",
     cli: "python scripts/review/analyze.py --graph data/flow/flow_graph.json",
     callers: [{ name: "report.py", fn: "report()" }, { name: "debt.py", fn: "find_dead()" }],
     callees: [{ name: "console.py", fn: "safe_stdout()" }]

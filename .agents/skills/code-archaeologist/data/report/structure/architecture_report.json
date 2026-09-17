@@ -151,6 +151,9 @@
     "overridden": [],
     "layer_violations": [],
     "hubs": [],
+    "shared_helpers": [],
+    "coordinators": [],
+    "wrong_way_deps": [],
     "god_objects": [],
     "patterns": {},
     "health": {
@@ -162,6 +165,7 @@
         "cycles": 0,
         "layer_violations": 0,
         "high_coupling": 0,
+        "wrong_way_deps": 0,
         "god_objects": 0,
         "security": 25
       }
@@ -174,6 +178,9 @@
       "overridden": 0,
       "layer_violations": 0,
       "hubs": 0,
+      "shared_helpers": 0,
+      "coordinators": 0,
+      "wrong_way_deps": 0,
       "god_objects": 0
     }
   },

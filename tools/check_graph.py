@@ -326,6 +326,9 @@ def c15_report_counts(c):
         "overridden": len(analyze.find_overridden(nodes, edges)),
         "layer_violations": len(analyze.find_layer_violations(nodes, edges)),
         "hubs": len(analyze.find_hubs(nodes, edges)),
+        "shared_helpers": len(analyze.find_shared_helpers(nodes, edges)),
+        "coordinators": len(analyze.find_coordinators(nodes, edges)),
+        "wrong_way_deps": len(analyze.find_wrong_way_deps(nodes, edges)),
         "god_objects": len(analyze.find_god_objects(nodes, edges)),
     }
     return [f"report says {k} = {summary.get(k)}, the graph gives {v}"
@@ -655,20 +658,76 @@ def d02_orphans(c):
     return out
 
 
+def _coupling_probe(nodes, fan_in, fan_out, caller_layer="service"):
+    """A node with `fan_in` callers and `fan_out` callees grafted onto the real graph."""
+    probe, extra = dict(nodes), []
+    probe["probe_hub"] = {"id": "probe_hub", "kind": "method", "layer": "service"}
+    for i in range(fan_in):
+        nid = f"probe_caller{i}"
+        probe[nid] = {"id": nid, "kind": "method", "layer": caller_layer}
+        extra.append((nid, "probe_hub", "calls"))
+    for i in range(fan_out):
+        nid = f"probe_callee{i}"
+        probe[nid] = {"id": nid, "kind": "method", "layer": "service"}
+        extra.append(("probe_hub", nid, "calls"))
+    return probe, extra
+
+
 def d03_hubs(c):
+    """Coupling is a direction, not a count: only a node high in *both* directions is a
+    graded hub. A shared helper (many callers, no callees) and a coordinator (many callees,
+    no callers) are normal shapes, reported in their own lists and never deducted for."""
     nodes, edges = c.analysis_shapes()
     out = []
-    for layer, expect in (("service", True), ("test", False)):
-        probe, extra = dict(nodes), []
-        probe["probe_hub"] = {"id": "probe_hub", "kind": "method", "layer": "service"}
-        for i in range(analyze.HUB_DEGREE):
-            nid = f"probe_caller{i}"
-            probe[nid] = {"id": nid, "kind": "method", "layer": layer}
-            extra.append((nid, "probe_hub", "calls"))
-        is_hub = any(h["node"] == "probe_hub" for h in analyze.find_hubs(probe, edges + extra))
-        if is_hub != expect:
-            out.append(f"{analyze.HUB_DEGREE} callers from layer {layer!r}: hub reported = {is_hub},"
-                       f" expected {expect}" + ("" if expect else " (test calls are coverage, not coupling)"))
+    cases = [
+        # fan_in, fan_out, finder,              should report, why
+        (analyze.HUB_FAN_IN, analyze.HUB_FAN_OUT, analyze.find_hubs, True,
+         "coupled in both directions"),
+        (analyze.HELPER_FAN_IN, 0, analyze.find_hubs, False,
+         "a shared helper is not a hub -- nothing depends on what it depends on"),
+        (analyze.HELPER_FAN_IN, 0, analyze.find_shared_helpers, True, "a shared helper"),
+        (0, analyze.COORD_FAN_OUT, analyze.find_hubs, False,
+         "a coordinator is not a hub -- nothing depends on it"),
+        (0, analyze.COORD_FAN_OUT, analyze.find_coordinators, True, "a coordinator"),
+    ]
+    for fan_in, fan_out, finder, expect, why in cases:
+        probe, extra = _coupling_probe(nodes, fan_in, fan_out)
+        got = any(x["node"] == "probe_hub" for x in finder(probe, edges + extra))
+        if got != expect:
+            out.append(f"in {fan_in} / out {fan_out}: {finder.__name__} reported = {got},"
+                       f" expected {expect} ({why})")
+    # A test calling production code is coverage, not coupling.
+    probe, extra = _coupling_probe(nodes, analyze.HUB_FAN_IN, analyze.HUB_FAN_OUT, "test")
+    if any(h["node"] == "probe_hub" for h in analyze.find_hubs(probe, edges + extra)):
+        out.append("callers from layer 'test' made a hub -- test calls are coverage, not coupling")
+    return out
+
+
+def d10_wrong_way(c):
+    """A stable node calling an unstable one is a dependency pointing the wrong way; the
+    same call in the other direction is how a dependency is supposed to point."""
+    nodes, edges = c.analysis_shapes()
+    probe, extra = dict(nodes), []
+    # probe_stable: many callers, one callee -> low instability.
+    # probe_unstable: no callers, many callees -> instability 1.0.
+    probe["probe_stable"] = {"id": "probe_stable", "kind": "method", "layer": "service"}
+    probe["probe_unstable"] = {"id": "probe_unstable", "kind": "method", "layer": "service"}
+    for i in range(analyze.WRONG_WAY_FAN_IN):
+        nid = f"probe_user{i}"
+        probe[nid] = {"id": nid, "kind": "method", "layer": "service"}
+        extra.append((nid, "probe_stable", "calls"))
+    for i in range(5):
+        nid = f"probe_leaf{i}"
+        probe[nid] = {"id": nid, "kind": "method", "layer": "service"}
+        extra.append(("probe_unstable", nid, "calls"))
+
+    out = []
+    bad = analyze.find_wrong_way_deps(probe, edges + extra + [("probe_stable", "probe_unstable", "calls")])
+    if not any(v["source"] == "probe_stable" for v in bad):
+        out.append("a stable node calling an unstable one was not reported as wrong-way")
+    good = analyze.find_wrong_way_deps(probe, edges + extra + [("probe_unstable", "probe_stable", "calls")])
+    if any(v["target"] == "probe_stable" and v["source"] == "probe_unstable" for v in good):
+        out.append("an unstable node calling a stable one was reported -- that is the right direction")
     return out
 
 
@@ -773,7 +832,7 @@ def d09_context_budget(c):
 
 
 DERIVED = [d01_cycles, d02_orphans, d03_hubs, d04_god_objects, d05_layer_violations, d06_health,
-           d07_paths, d08_duplicates_skip_declarations, d09_context_budget]
+           d07_paths, d08_duplicates_skip_declarations, d09_context_budget, d10_wrong_way]
 
 
 # --- running ---------------------------------------------------------------------
@@ -928,6 +987,14 @@ def _sabotage():
          (analyze, "find_orphans"),
          lambda n, e, real=analyze.find_orphans: real(n, [x for x in e if x[2] != "implements"])),
         ("d03_hubs", "flow", "find_hubs that finds none", (analyze, "find_hubs"), lambda n, e: []),
+        # The old rule: any node of total degree 10+. It must now fail d03, because it
+        # calls a shared helper and a coordinator hubs -- which is the whole point of r83.
+        ("d03_hubs", "flow", "find_hubs back on total degree alone", (analyze, "find_hubs"),
+         lambda n, e: [{"node": nid, **d} for nid, d in analyze.coupling(n, e).items() if d["degree"] >= 10]),
+        ("d03_hubs", "flow", "find_shared_helpers that finds none",
+         (analyze, "find_shared_helpers"), lambda n, e: []),
+        ("d03_hubs", "flow", "find_coordinators that finds none",
+         (analyze, "find_coordinators"), lambda n, e: []),
         ("d03_hubs", "flow", "app_edges that keeps test edges", (analyze, "app_edges"), lambda n, e: e),
         ("d04_god_objects", "flow", "find_god_objects that finds none",
          (analyze, "find_god_objects"), lambda n, e: []),
@@ -945,6 +1012,12 @@ def _sabotage():
                             for n in json.load(open(gp, encoding="utf-8"))["nodes"]]),
         ("d09_context_budget", "flow", "a render that ignores the budget",
          (context, "render"), lambda *a, **k: "x" * 10_000),
+        ("d10_wrong_way", "flow", "find_wrong_way_deps that finds none",
+         (analyze, "find_wrong_way_deps"), lambda n, e: []),
+        ("d10_wrong_way", "flow", "find_wrong_way_deps that ignores the direction",
+         (analyze, "find_wrong_way_deps"),
+         lambda n, e: [{"source": s, "target": t, "source_instability": 0.0,
+                        "target_instability": 1.0, "source_fan_in": 9} for s, t, _ in e]),
     ]
 
 

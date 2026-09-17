@@ -492,7 +492,23 @@ delete. Nothing else in `core/` may import a skill module.
 - `analyze.py` is graph-only: cycles, orphans, layer violations, hubs, god objects, name-based
   idioms, and the 0–100 / A–F `health()` score (accepts security counts). Degree-based checks run
   on `app_edges()`, which drops edges touching a `layer: test` node — test calls are coverage, not
-  coupling — and `renders` / `passes` / `implements` links. Cycles and layer violations ignore `implements`
+  coupling — and `renders` / `passes` / `implements` links.
+  **Coupling is a direction, not a count** (r83). `instability()` is Robert Martin's
+  `I = fan_out / (fan_in + fan_out)`, and `coupling()` carries it on every node, which splits what
+  a total-degree hub count folded into one: `find_hubs` is now fan-in **and** fan-out >= 5 --
+  changes arrive from every caller and spread to every callee, the only shape graded -- while
+  `find_shared_helpers` (fan-in >= 10, I <= 0.1: `GlobalResponse.success`, `DateUtil.now`) and
+  `find_coordinators` (fan-out >= 10, fan-in <= 2: a registration method) are reported and
+  **never deducted for**. A well-used utility used to score exactly as badly as a tangle: on a
+  real repository 42 of 46 hubs were one or the other, and the -12 was a false alarm; on the
+  skill's own scripts the old rule found 41 hubs where the new one finds 1 (`_annotations`, 5 in /
+  5 out) plus 14 helpers and 19 coordinators. Coordinators are left out of the score on purpose --
+  `god_objects` already penalises the class-level version, and counting both is counting twice.
+  `find_wrong_way_deps` is the fourth shape and *is* graded (`-2` each, capped at 8): a stable
+  node calling an unstable one (caller I < 0.3 with fan-in >= 5, callee I > 0.7), which is the
+  mistake `find_layer_violations` catches only when both ends carry a ranked layer.
+  `check_graph`'s `d03` asserts all three classes and `d10` the direction; the sample has none of
+  them, so `check_regressions` r83 is where the split is pinned. Cycles and layer violations ignore `implements`
   too: a decorator delegating to its own interface is not a cycle. `find_orphans` never lists an
   overload of a set some node names in `ambiguous` (`this::values`): one of them is called, the
   graph cannot say which, so the whole set is spared rather than one member guessed (r63). Nor a

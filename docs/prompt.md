@@ -6915,3 +6915,126 @@ down with a recommendation (delete `scripts/` and `templates/` only, preserve `v
 README line), because it changes what the installer destroys.
 
 Nothing about the skill's behaviour changed this turn.
+
+## [170] 2026-09-17 — Coupling has a direction: instability splits hubs from helpers
+
+**Prompt**
+> Counting callers alone can't separate good coupling from bad. The script also needs to look at which direction the dependencies point. The standard way to measure that is Robert Martin's instability metric:
+>
+> I = fan_out / (fan_in + fan_out)     0 = stable, 1 = unstable
+>
+> With that, there are four cases:
+>
+> Shape	Example	Verdict
+> Many callers, calls nothing (I ≈ 0)	GlobalResponse.success, DateUtil.now, errorAlert	Normal. A shared helper everything uses.
+> Few callers, calls a lot (I ≈ 1)	W1Service.registerResult (1 in / 16 out), ManagementPanel (0 / 15)	Watch. It coordinates many things, so it can grow into a god method. It's still low-risk because nothing depends on it.
+> Many callers and calls a lot	none today	Bad. Changes arrive from many directions and spread to many callers.
+> Stable code depending on unstable code	a heavily used helper calling a class that changes often	Bad. A dependency pointing the wrong way.
+>
+> Your flow graph today: of the 46 methods flagged as hubs, 20 have a fan-out of 0 or 1, so they're plain helpers. 22 are callers with a big fan-out and almost nothing calling them. None have both a fan-in and a fan-out of 5 or more. So on the rule that counts, the flow graph's high_coupling -12 is a false alarm. The structure graph is different: MaintenanceMasterDataService depends on 38 classes, which is the "coordinates too much" case at class level.
+>
+> Proposed rules for analyze.py:
+>
+> Shared helpers: flag nodes with fan-in of 10 or more and instability ≤ 0.1. Report them as information and don't deduct points.
+> Hubs (penalised): fan-in of 5 or more and fan-out of 5 or more. Only these count toward high_coupling.
+> Coordinators: fan-out of 10 or more and fan-in of 2 or less. Report them, but leave them out of the score, because god_objects already penalises the class-level version.
+> Wrong-direction dependencies (optional, penalised): a call where the caller is noticeably more stable than the method it calls (for example, caller I < 0.3 and callee I > 0.7, with the caller's fan-in ≥ 5).
+> Rate of change (optional): the skill already records git hotspots (risk = commits × (1 + fan_in + fan_out)). A method with many callers that also changes often is a real risk. One with many callers that never changes, like GlobalResponse, is not.
+>
+> The explorer's "High coupling" panel would then show hubs and wrong-direction dependencies. Shared helpers and coordinators would move to their own sections, so they stay visible without costing points.
+>
+> Rules 1–3 are a small change to find_hubs and health, plus one panel in explorer.html. Rules 4 and 5 are extra. Should I implement 1–3, or all five?
+>
+> -----------
+>
+> use this rules for analyze.py
+>
+> also think other that can consider good/bad practice but our skill may mistake mark as bad only
+
+**Response**
+
+**Scope decision.** Asked with AskUserQuestion whether to do 1-3, 1-4 or all five; the session is
+non-interactive so no answer came back. Went with the recommended middle: **rules 1-4 in
+`analyze.py`**, because all four are computable from the graph alone, and **rule 5 recorded rather
+than implemented**, because `analyze.py` is graph-only by design and reading git churn there would
+put a non-deterministic input inside the health grade — the same source fetched two ways gives
+different churn, which constraint 2 forbids. Its natural home is `report.py`, where `analyze` and
+`git_insights` already meet, and that is what the ROADMAP entry recommends.
+
+**Implemented** in `scripts/review/analyze.py`:
+
+- `instability(fan_in, fan_out)` — Martin's I, with an isolated node defined as 0.0 (it has no
+  direction to measure).
+- `coupling(nodes, edges)` — per-node fan-in / fan-out / degree / instability over `app_edges()`.
+- `find_hubs` — now fan-in **and** fan-out >= 5. Graded, as before, at -3 each capped at 12.
+- `find_shared_helpers` — fan-in >= 10, I <= 0.1. Reported, not graded.
+- `find_coordinators` — fan-out >= 10, fan-in <= 2. Reported, not graded (`god_objects` already
+  penalises the class-level shape; grading both counts it twice).
+- `find_wrong_way_deps` — caller I < 0.3 with fan-in >= 5 calling a callee with I > 0.7. Graded at
+  -2 each capped at 8. It de-duplicates by (source, target), since one call pair can appear twice.
+- `health()` gained a keyword-only `wrong_way`, so `check_graph`'s `health(*args)` still works.
+
+`report.py` gained four sections, `viewer.html` four PATTERNS lists (a shared `coupled` renderer,
+so the three degree lists cannot drift apart) plus an `I 0.00-1.00` row in the key overlay, and
+`renderTabs`' patterns count now includes the new lists.
+
+**Verification, and what it actually showed.** The sample has none of these shapes, so it proves
+nothing on its own — which is why the rule was measured on a real graph. Built both maps of the
+skill's own `scripts/` (483 flow nodes, 1,025 links), then restored the committed sample with
+`git checkout` + `git clean`:
+
+- old rule: **41 hubs**, -12 (maxed).
+- new rules: **1 hub** (`_annotations`, 5 in / 5 out, I=0.5), **14 shared helpers**
+  (`langs_extract._text` at 37 in / 0 out leading), **19 coordinators**, **0 wrong-way**.
+- The 7 that fall into no list are the mid-shaped remainder — 8 in / 3 out and similar — now
+  simply unreported, which is the noise the old count was made of.
+
+That is the user's 46/20/22 split reproduced independently on a different codebase. Wrong-way found
+nothing here, and I checked *why* rather than just recording the zero: of the 15 stable callers with
+fan-in >= 5, every callee had I = 0.0 — all leaves. So the rule is quiet for a reason, not broken;
+`d10` and `r83` inject a positive case to prove it can fire.
+
+Sample: both graphs **byte-identical**, grades unchanged at C(73) / C(70), only the two reports and
+the explorer moved. `check_graph` 34/34 per map, `--self-test` 55/55, `check_regressions` 83/83,
+`check_docs` OK, `check_langs` 21/21, `check_py_oracle` 0 disagreements, `bin/cli.js --self-test`
+OK, viewer script parses as a classic script.
+
+**Tests added.** `check_graph.d03_hubs` rewritten to assert all three classes rather than one
+threshold — a helper probe and a coordinator probe must *not* be hubs, and must appear in their own
+finder — plus a self-test row that restores the old total-degree rule and requires d03 to fail,
+which is the strongest available statement that the change is the point. New `d10_wrong_way`
+asserts the direction both ways. New `check_regressions.r83_coupling_has_a_direction` builds the
+three shapes synthetically and also asserts that a graph of only helpers and coordinators deducts
+**zero**.
+
+**Second half of the ask — where else the skill may call a good practice bad.** Checked each
+candidate against the code instead of asserting it, and recorded them as ROADMAP finding #42's
+"not implemented" list, since every one changes grades:
+
+1. Churn-weighted risk (rule 5) — belongs in `report.py`, ungraded.
+2. **Mutual recursion is graded as a cycle** (-8). Direct recursion is already safe — `build_flow`
+   drops a call to its own caller (`target != caller_id`), so `find_cycles`' self-loop branch never
+   fires on the flow map — but `ping -> pong -> ping` is a 2-node SCC. Verified on a scratch file.
+   Recursive-descent parsers and tree walkers are written this way; this skill's own
+   `call_ctx._if_arm` / `_is_else_if` are such a pair.
+3. **A declaration-only interface is a god object.** Verified: 14 `declaration: true` nodes on one
+   class give `methods 14`. It holds no code at all — the same reason `find_orphans` and
+   `duplicates.py` already skip declarations. A Spring Data repository or a MapStruct mapper hits
+   this immediately.
+4. A controller with 13 endpoints is a god object — same count, genuinely ambiguous, recommended
+   leaving as is.
+5. **Active Record is a backwards layer dependency.** `LAYER_RANK` puts `model` deepest, so
+   `User.save -> Db.insert` is reported `model -> repository`. Verified. That is exactly what Rails,
+   Eloquent and Django models do — and the skill reads all three frameworks' route tables.
+6. A library's public API reads as dead code — the deliberate IDE-style rule, right for an
+   application and wrong for a published package.
+
+**Docs moved in the same commit**: `CLAUDE.md` (the `analyze.py` bullet, with the 41 -> 1 numbers),
+`SKILL.md` Command 10, `README.md`, `docs/USAGE.md`, `ARCHITECTURE_GUIDE.{md,html,th.html}` (the
+"Degree Coupling Analysis" claim was now false in all three), and the Thai QA bank's two hand-kept
+answers — the health formula's category list (six -> seven) and the `HUB_DEGREE` definition.
+`fc-box` / `fc-cmd-chip` / `fc-phase` counts still match between the two HTML guides (133 / 14 / 20).
+
+This also answers **finding #37 item 5** ("grade calibration"), which had proposed a percentile hub
+threshold. A percentile would have kept grading the wrong thing, just less often; the shape, not
+the count, is what separates a helper from a tangle.

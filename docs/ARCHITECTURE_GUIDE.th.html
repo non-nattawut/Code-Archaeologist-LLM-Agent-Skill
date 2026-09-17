@@ -963,7 +963,7 @@
             <div class="fc-review-grid">
               <div class="fc-box sm" data-script="analyze.py" onclick="openSidebar('analyze.py')">
                 <div class="fc-box-top"><span class="fc-box-name">analyze.py</span><span class="fc-node-badge cat-review">REVIEW</span></div>
-                <div class="fc-box-desc">ใช้เฉพาะ graph: cycle, orphan, layer violation, hub, god object และ health score 0&ndash;100 / A&ndash;F การตรวจจาก degree รันบน <code>app_edges()</code>, ซึ่งตัด edge ของ test ทิ้ง</div>
+                <div class="fc-box-desc">ใช้เฉพาะ graph: cycle, orphan, layer violation, hub, shared helper, coordinator, wrong-way dependency, god object และ health score 0&ndash;100 / A&ndash;F การตรวจจาก degree รันบน <code>app_edges()</code>, ซึ่งตัด edge ของ test ทิ้ง</div>
               </div>
               <div class="fc-box sm" data-script="scan_security.py" onclick="openSidebar('scan_security.py')">
                 <div class="fc-box-top"><span class="fc-box-name">scan_security.py</span><span class="fc-node-badge cat-review">REVIEW</span></div>
@@ -1860,7 +1860,7 @@
      ""],
 
     ["review", "health score คำนวณอย่างไร",
-     "เริ่มที่ 100 แล้วหักหกหมวด ทุกหมวดมีเพดาน: <code>dead_code</code> min(20, round(%orphan × 0.5)) · <code>cycles</code> min(24, 8×n) · <code>layer_violations</code> min(16, 4×n) · <code>high_coupling</code> min(12, 3×n) · <code>god_objects</code> min(12, 3×n) · <code>security</code> min(30, 10×high + 4×medium + 1×low)",
+     "เริ่มที่ 100 แล้วหักเจ็ดหมวด ทุกหมวดมีเพดาน: <code>dead_code</code> min(20, round(%orphan × 0.5)) · <code>cycles</code> min(24, 8×n) · <code>layer_violations</code> min(16, 4×n) · <code>high_coupling</code> min(12, 3×n) · <code>wrong_way_deps</code> min(8, 2×n) · <code>god_objects</code> min(12, 3×n) · <code>security</code> min(30, 10×high + 4×medium + 1×low)",
      "โค้ดอยู่ใน <code>analyze.health()</code> ผลรวมเพดานคือ 114 คะแนนจึงถูก clamp ที่ 0 และรายงานแจกแจงรายการหักทุกครั้ง — ตัวเลขเปิดบทสนทนา ส่วนรายการหักคือเนื้อหาจริง"],
     ["review", "เกณฑ์เกรด A–F คืออะไร",
      "A ≥ 90 · B ≥ 80 · C ≥ 70 · D ≥ 60 · ต่ำกว่านั้น F",
@@ -1896,7 +1896,7 @@
      "การเรียกย้อนทิศทางของลำดับชั้น controller (0) → service (1) → repository/client (2) → model (3) เช่น repository เรียก service",
      "<code>LAYER_RANK</code> ใน <code>analyze.py</code> — edge ชนิด http และ edge ที่แตะ test node ไม่ถูกนับ"],
     ["review", "hub กับ god object นิยามอย่างไร",
-     "hub: fan_in + fan_out ≥ 10 (<code>HUB_DEGREE</code>) · god object: คลาสที่มีเมธอด ≥ 12 ตัวใน flow map (<code>GOD_METHODS</code>) หรืออ้างอิง entity อื่น ≥ 8 ตัวใน structure map (<code>GOD_FANOUT</code>)",
+     "hub: fan_in และ fan_out ตั้งแต่ 5 ขึ้นไป<em>ทั้งคู่</em> (<code>HUB_FAN_IN</code> / <code>HUB_FAN_OUT</code>) — ทิศทางสำคัญกว่าจำนวน · god object: คลาสที่มีเมธอด ≥ 12 ตัวใน flow map (<code>GOD_METHODS</code>) หรืออ้างอิง entity อื่น ≥ 8 ตัวใน structure map (<code>GOD_FANOUT</code>)",
      "ค่าคงที่ที่ตั้งชื่อไว้ในที่เดียว ตั้งไว้แบบระมัดระวังเพื่อให้รายงานน่าเชื่อถือแทนที่จะเป็นเสียงรบกวน"],
     ["review", "<code>app_edges()</code> คืออะไร",
      "ชุด edge ที่ตัด edge ซึ่งแตะ node <code>layer: test</code> ออก — ใช้คำนวณ degree ของ hub และ god object",
@@ -2809,8 +2809,8 @@ const SCRIPTS_DATA = [
     cat: "review",
     path: "scripts/review/analyze.py",
     role: "ตรวจจับ architectural smell และคำนวณ health score 0–100 / A–F",
-    tech: "Tarjan's SCC และ Degree Coupling Analysis",
-    algorithm: "หา cycle ด้วย Tarjan's Strongly Connected Components แบบ iterative ใช้ in/out-degree หา hub (fan_in+out >= 10) และ god object พร้อมสูตร health ที่จำกัดเพดานการหักคะแนนต่อ category",
+    tech: "Tarjan's SCC และ Martin Instability Coupling",
+    algorithm: "หา cycle ด้วย Tarjan's Strongly Connected Components แบบ iterative แยกความเกี่ยวพันตามทิศทางด้วย instability ของ Robert Martin I = fan_out / (fan_in + fan_out) โดย hub (fan_in และ fan_out ตั้งแต่ 5 ขึ้นไปทั้งคู่) และ wrong-way dependency เท่านั้นที่หักคะแนน ส่วน shared helper กับ coordinator แค่รายงาน รวมถึง god object และสูตร health ที่จำกัดเพดานการหักคะแนนต่อ category",
     inputs: "graph.json หรือ flow_graph.json",
     outputs: "analysis dictionary: cycles, orphans, hubs, god objects, health score",
     invariant: "การคำนวณ degree ทำบน app_edges() ซึ่งไม่นับ test node เพื่อไม่ให้ test coverage ไปพองค่า coupling",

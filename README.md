@@ -175,7 +175,8 @@ it or email it.
   Plus folder hulls, a blast-radius toggle, a **Freeze** toggle that holds the current view while
   you click through its nodes, and an overflow menu (`⋯`) holding zoom, fit and PNG export.
 - **Right** — **FILE** (what it does, blast radius, connections, git ownership, risks),
-  **PATTERNS** (cycles, layer violations, hubs, god objects, dead code), **SECURITY** (findings by
+  **PATTERNS** (cycles, layer violations, hubs, wrong-direction dependencies, shared helpers,
+  coordinators, god objects, dead code), **SECURITY** (findings by
   severity). All click through into each other.
 
 Both side panels drag to resize from their inner border. In the tree, `+`/`–` expands a folder and

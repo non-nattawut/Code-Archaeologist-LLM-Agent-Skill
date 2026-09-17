@@ -195,9 +195,26 @@ def to_markdown(data: dict) -> str:
     lines += [f"### Overridden everywhere (a body every subclass replaces, so it never runs) — {len(overridden)}", ""]
     lines += _table(["Node"], [[f"`{n}`"] for n in overridden[:TOP_ORPHANS]])
 
-    lines += ["## Anti-patterns & idioms", "", "### High coupling (hubs)", ""]
+    lines += ["## Anti-patterns & idioms", "",
+              "### High coupling (hubs) — depended on by many *and* depending on many", ""]
+    lines += _table(["Node", "Fan-in", "Fan-out", "Instability"],
+                    [[f"`{x['node']}`", x["fan_in"], x["fan_out"], x["instability"]]
+                     for x in smells["hubs"]])
+    lines += ["### Dependencies pointing the wrong way (stable → unstable)", ""]
+    lines += _table(["From", "To", "I (from → to)"],
+                    [[f"`{v['source']}`", f"`{v['target']}`",
+                      f"{v['source_instability']} → {v['target_instability']}"]
+                     for v in smells.get("wrong_way_deps") or []])
+    # Reported, not graded: both are normal shapes, and deducting for them made a
+    # codebase score worse for having a well-used utility (see analyze.health).
+    lines += ["### Shared helpers (used by many, depending on nothing) — not graded", ""]
     lines += _table(["Node", "Fan-in", "Fan-out"],
-                    [[f"`{x['node']}`", x["fan_in"], x["fan_out"]] for x in smells["hubs"]])
+                    [[f"`{x['node']}`", x["fan_in"], x["fan_out"]]
+                     for x in (smells.get("shared_helpers") or [])[:TOP_ORPHANS]])
+    lines += ["### Coordinators (calling many, called by almost nothing) — not graded", ""]
+    lines += _table(["Node", "Fan-in", "Fan-out"],
+                    [[f"`{x['node']}`", x["fan_in"], x["fan_out"]]
+                     for x in (smells.get("coordinators") or [])[:TOP_ORPHANS]])
     lines += ["### God objects", ""]
     lines += _table(["Entity", "Reason", "Count"],
                     [[f"`{g['name']}`", g["reason"], g["count"]] for g in smells["god_objects"]])

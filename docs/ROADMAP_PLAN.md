@@ -2861,3 +2861,84 @@ cheapest first:
 Recommendation: **1**, with `vendor/` explicitly preserved (it is expensive to rebuild and already
 excluded from the copy), plus the README line from 4. Not done here -- it changes what the
 installer destroys, which is exactly the class of change that should be chosen rather than assumed.
+
+### 42. Coupling has a direction -- 2026-09-17, implemented (r83)
+
+**What.** `find_hubs` was `fan_in + fan_out >= 10`, which folds three different shapes into one
+verdict and penalised all of them at 3 points each, capped at 12. Robert Martin's instability
+`I = fan_out / (fan_in + fan_out)` tells them apart:
+
+| Shape | Example | Verdict |
+| --- | --- | --- |
+| Many callers, calls nothing (I ~ 0) | `GlobalResponse.success`, `DateUtil.now` | Normal. A shared helper. |
+| Few callers, calls many (I ~ 1) | `W1Service.registerResult` (1 in / 16 out) | Watch, don't grade. |
+| Many callers **and** calls many | -- | Bad: changes arrive from every direction and spread. |
+| A stable node depending on an unstable one | a heavy-used helper calling a class that churns | Bad: the dependency points the wrong way. |
+
+On the reviewer's repository, 20 of 46 flagged hubs had a fan-out of 0 or 1 and 22 were
+coordinators with almost nothing calling them; **none** had both a fan-in and a fan-out of 5 or
+more, so the whole `high_coupling -12` was a false alarm. Reproduced on the skill's own scripts:
+the old rule finds **41** hubs, the new one finds **1** (`_annotations`, 5 in / 5 out) plus 14
+shared helpers (`langs_extract._text` at 37 in / 0 out) and 19 coordinators.
+
+**Implemented.** `analyze.instability()` / `analyze.coupling()`, then four finders:
+`find_hubs` (fan-in and fan-out both >= 5, **graded**), `find_shared_helpers` (fan-in >= 10,
+I <= 0.1, reported), `find_coordinators` (fan-out >= 10, fan-in <= 2, reported -- `god_objects`
+already penalises the class-level version, so grading it would count it twice) and
+`find_wrong_way_deps` (caller I < 0.3 with fan-in >= 5 calling a callee with I > 0.7, **graded**
+at -2 each, capped at 8). `report.py` gains four sections, the explorer's PATTERNS tab four
+lists and the key overlay an `I` row. `check_graph` d03 now asserts all three classes and d10 the
+direction, with a self-test row that puts the old total-degree rule back and requires d03 to fail.
+The sample graphs are byte-identical and both grades are unchanged (C/C) -- it has none of these
+shapes, which is why `check_regressions` r83 is where the split is pinned.
+
+This is the answer to **finding #37 item 5** ("grade calibration"), which proposed making the hub
+threshold a percentile of the graph. A percentile would have kept grading the wrong thing, just
+less often; the shape, not the count, is what distinguishes a helper from a tangle.
+
+**Not implemented -- each needs a decision:**
+
+1. **Churn-weighted risk (the proposal's rule 5).** `git_insights.py` already computes
+   `risk = commits * (1 + fan_in + fan_out)`. A node with many callers that *also* changes often is
+   a real risk; one with many callers that never changes (`GlobalResponse`) is not. Joining the two
+   is a genuine improvement, and it cannot live in `analyze.py`: that script is graph-only by
+   design (CLAUDE.md), and reading git there would put a non-deterministic input inside the health
+   grade -- the same clone of the same source gives different churn depending on how it was
+   fetched, which constraint 2 forbids. **Recommendation:** a `risky_hubs` section in `report.py`,
+   where `analyze` and `git_insights` already meet, reported and **not** folded into the grade.
+2. **Mutual recursion is graded as a cycle.** Direct recursion is already safe --
+   `build_flow` drops a call to its own caller (`target != caller_id`), so `find_cycles`' self-loop
+   branch never fires on the flow map -- but `ping -> pong -> ping` is a 2-node SCC and costs 8
+   points. Mutual recursion is how recursive-descent parsers and tree walkers are written; this
+   skill's own `call_ctx._if_arm` / `_is_else_if` are a pair. Verified on a scratch file: two
+   mutually recursive functions produce `cycles: [['ping', 'pong']]`. **Recommendation:** report a
+   2-node SCC whose members sit in the same file as `recursion` rather than `cycles`, and grade
+   only cycles that cross a file. Not obvious enough to do silently -- it drops a deduction that
+   has been in every grade this tool has printed.
+3. **A declaration-only interface is a god object.** `find_god_objects` counts every node with a
+   `cls`, including `declaration: true` ones. A Spring Data repository with 14 derived queries, or
+   a MapStruct mapper with 14 mappings, is reported as `methods 14` -- but it holds no code at all,
+   which is the same reason `find_orphans` and `duplicates.py` already skip declarations.
+   Verified: 14 declaration nodes on one class give
+   `[{'name': 'UserRepository', 'reason': 'methods', 'count': 14}]`. **Recommendation:** skip
+   declarations, consistent with the two passes that already do. Left open because it silently
+   raises grades on every Spring/MapStruct repository.
+4. **A controller with many endpoints is a god object.** The same count, with the opposite
+   argument: 13 endpoints on one controller may genuinely be a class doing too much, or may be one
+   REST resource. Verified: a 13-endpoint controller is reported. **Recommendation:** leave as is
+   and mention the shape in the report's wording; unlike #3 there is no rule elsewhere in the
+   skill that already answers it.
+5. **Active Record is a backwards layer dependency.** `LAYER_RANK` puts `model` deepest (3), so a
+   model calling a repository or a client is a violation -- which is precisely what Rails,
+   Eloquent and Django models do by design, and the skill reads all three frameworks' route
+   tables. Verified: `User.save -> Db.insert` is reported `model -> repository`. **Recommendation:**
+   no automatic exemption (a DTO calling a repository *is* the smell the rule is for), but the
+   ranks assume a layered architecture and the report should say so where it prints them. Which of
+   the two -- exempt or explain -- is the user's call.
+6. **A library's public API reads as dead code.** An exported function no in-repo caller uses is an
+   orphan, which is the deliberate rule (judged the way an IDE's *unused* hint is, and stated in
+   SKILL.md's Command 10). For an application that is right; for a published package the exported
+   surface *is* the product, and every entry in `index.ts` is dead by this standard.
+   **Recommendation:** if anything, a note on the orphan section when the root `package.json` has
+   `"main"`/`"exports"` and no `"private": true` -- detection, not an exemption. Not a code change
+   worth making on speculation; recorded so the next person meeting it has the analysis.

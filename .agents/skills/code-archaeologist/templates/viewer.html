@@ -1666,7 +1666,9 @@ const TABS = [["file", "File"], ["patterns", "Patterns"], ["security", "Security
 function renderTabs() {
   const counts = {
     patterns: (ANALYSIS.cycles || []).length + (ANALYSIS.layer_violations || []).length
-      + (ANALYSIS.hubs || []).length + (ANALYSIS.god_objects || []).length
+      + (ANALYSIS.hubs || []).length + (ANALYSIS.wrong_way_deps || []).length
+      + (ANALYSIS.shared_helpers || []).length + (ANALYSIS.coordinators || []).length
+      + (ANALYSIS.god_objects || []).length
       + (ANALYSIS.orphans || []).length + (DUPES || []).length + (BLOCKS || []).length
       + Object.values(ANALYSIS.patterns || {}).reduce((s, v) => s + v.length, 0),
     security: FINDINGS.length,
@@ -1878,9 +1880,18 @@ function renderPatterns() {
   push("Backwards layer dependencies", ANALYSIS.layer_violations || [], (v) =>
     `<div class="item" data-goto="${esc(v.source)}"><span class="mono link">${esc(nameOf(v.source))} → ${esc(nameOf(v.target))}</span>
       <span class="grow"><span class="badge med">${esc(v.from)}→${esc(v.to)}</span></span></div>`);
-  push("High coupling (hubs)", ANALYSIS.hubs || [], (h) =>
-    `<div class="item" data-goto="${esc(h.node)}"><span class="mono link">${esc(nameOf(h.node))}</span>
-      <span class="grow"><span class="badge">${h.fan_in} in</span><span class="badge">${h.fan_out} out</span></span></div>`);
+  // Three shapes a total-degree count folds into one. Only hubs and wrong-way
+  // dependencies cost grade points; the other two are reported to stay visible.
+  const coupled = (x) =>
+    `<div class="item" data-goto="${esc(x.node)}"><span class="mono link">${esc(nameOf(x.node))}</span>
+      <span class="grow"><span class="badge">${x.fan_in} in</span><span class="badge">${x.fan_out} out</span>
+      <span class="badge">I ${x.instability}</span></span></div>`;
+  push("High coupling (hubs)", ANALYSIS.hubs || [], coupled);
+  push("Wrong-direction dependencies", ANALYSIS.wrong_way_deps || [], (v) =>
+    `<div class="item" data-goto="${esc(v.source)}"><span class="mono link">${esc(nameOf(v.source))} → ${esc(nameOf(v.target))}</span>
+      <span class="grow"><span class="badge med">I ${v.source_instability}→${v.target_instability}</span></span></div>`);
+  push("Shared helpers (not graded)", ANALYSIS.shared_helpers || [], coupled);
+  push("Coordinators (not graded)", ANALYSIS.coordinators || [], coupled);
   push("God objects", ANALYSIS.god_objects || [], (g) =>
     `<div class="item"><span class="mono">${esc(g.name)}</span>
       <span class="grow"><span class="badge med">${g.count} ${esc(g.reason)}</span></span></div>`);
@@ -2022,7 +2033,8 @@ const BADGE_KEY = [
   ["N int", "Links out of this node that stay inside the graph."],
   ["N ext", "Call sites in this node that became no link: a library, the stdlib, or a receiver whose type the source never states. A place to look, never a link."],
   ["L42", "The line the node starts on - its first decorator, annotation or attribute, not its name line."],
-  ["N in / N out", "Links in and links out (fan-in / fan-out), in the hubs list."],
+  ["N in / N out", "Links in and links out (fan-in / fan-out), in the coupling lists."],
+  ["I 0.00-1.00", "Instability: fan-out / (fan-in + fan-out). 0 = everything depends on it and it depends on nothing (a shared helper); 1 = it depends on everything and nothing depends on it (a coordinator). Only a node high in both directions is graded as a hub."],
   ["Blast radius", "How many nodes depend on this one, directly or through others, as a share of the map. MEDIUM from 10%, HIGH from 25%, CRITICAL from 50%."],
   ["Churn", "Commits that touched the file. Empty unless the report ran inside a git repository."],
   ["Risk", "Churn x links: how often it changes, weighted by how connected it is."],

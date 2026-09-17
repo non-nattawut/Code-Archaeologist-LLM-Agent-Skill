@@ -312,7 +312,15 @@ you get `source root(s) not found from here` rather than a false "everything was
 ### 10. Architectural smells & health grade
 Cycles, orphans/dead nodes, backwards layer violations, high-coupling hubs, god objects,
 name-based idioms, and a 0-100 / A-F health score (`--security <security.json>` folds risk
-findings into the grade). A method whose body every subclass replaces is listed under
+findings into the grade). **Coupling is a direction, not a count.** Each node's instability
+is `I = fan_out / (fan_in + fan_out)`, and the three shapes a plain degree count folds
+together are reported apart: a **hub** (fan-in and fan-out both >= 5) is the one that hurts
+and the only one graded; a **shared helper** (fan-in >= 10, I <= 0.1 -- `DateUtil.now`) and a
+**coordinator** (fan-out >= 10, fan-in <= 2 -- a registration method) are normal shapes,
+reported so they stay visible and never deducted for. Say "40 things depend on this, and it
+depends on nothing" -- not "high coupling". A **wrong-direction dependency** (a stable node
+calling an unstable one) is graded: what everything relies on should not rest on what keeps
+changing. A method whose body every subclass replaces is listed under
 **overridden**, not as an orphan: say "never runs today", not "dead" -- removing it changes what a
 new subclass inherits. Code a framework calls is never an orphan: a node carrying `entry`
 (`@Scheduled`, `@Bean`, `@Override`, `main`, a Next.js `next:page` / `next:route`, `module` for

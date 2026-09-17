@@ -186,7 +186,9 @@ python .agents/skills/code-archaeologist/scripts/archaeologist.py check
 python .agents/skills/code-archaeologist/scripts/query/trace_path.py \
   --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json --impact-of-diff
 
-# smells + health grade: cycles, orphans, layer violations, hubs, god objects, idioms
+# smells + health grade: cycles, orphans, layer violations, coupling, god objects, idioms
+#   coupling is split by direction (Martin's instability): only a node depended on by many
+#   *and* depending on many is graded as a hub; shared helpers and coordinators are listed
 python .agents/skills/code-archaeologist/scripts/review/analyze.py \
   --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json
 

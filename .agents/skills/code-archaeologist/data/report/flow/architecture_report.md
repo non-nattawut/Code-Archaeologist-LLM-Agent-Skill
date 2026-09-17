@@ -120,7 +120,19 @@ _None._
 
 ## Anti-patterns & idioms
 
-### High coupling (hubs)
+### High coupling (hubs) — depended on by many *and* depending on many
+
+_None._
+
+### Dependencies pointing the wrong way (stable → unstable)
+
+_None._
+
+### Shared helpers (used by many, depending on nothing) — not graded
+
+_None._
+
+### Coordinators (calling many, called by almost nothing) — not graded
 
 _None._
 

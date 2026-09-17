@@ -2268,6 +2268,60 @@ def r82_either_or_arms():
         return f"arms wrong (got, want): {wrong}"
 
 
+def r83_coupling_has_a_direction():
+    """Counting callers alone could not tell a shared helper from a tangle. `GlobalResponse.success`
+    (40 callers, calls nothing) scored exactly as badly as a method called from everywhere that also
+    calls everything, so on a real repository 42 of 46 "high coupling" hubs were plain helpers or
+    plain coordinators and the -12 deduction was a false alarm. Robert Martin's instability
+    I = fan_out / (fan_in + fan_out) splits them: only a node high in *both* directions is graded."""
+    nodes, edges = {}, []
+
+    def node(nid):
+        nodes[nid] = {"id": nid, "kind": "method", "layer": "service"}
+        return nid
+
+    # A shared helper: 40 callers, calls nothing.  I = 0.0
+    node("Resp.success")
+    for i in range(40):
+        edges.append((node(f"caller{i}"), "Resp.success", "calls"))
+    # A coordinator: calls 15 things, nothing calls it.  I = 1.0
+    node("Panel.register")
+    for i in range(15):
+        edges.append(("Panel.register", node(f"step{i}"), "calls"))
+    # The real thing: 6 in, 6 out.
+    node("Tangle.run")
+    for i in range(6):
+        edges.append((node(f"up{i}"), "Tangle.run", "calls"))
+        edges.append(("Tangle.run", node(f"down{i}"), "calls"))
+
+    hubs = {h["node"] for h in analyze.find_hubs(nodes, edges)}
+    helpers = {h["node"] for h in analyze.find_shared_helpers(nodes, edges)}
+    coords = {h["node"] for h in analyze.find_coordinators(nodes, edges)}
+    if hubs != {"Tangle.run"}:
+        return f"hubs should be exactly the both-directions node, got {sorted(hubs)}"
+    if "Resp.success" not in helpers or "Panel.register" not in coords:
+        return (f"helper/coordinator not classified: helpers={sorted(helpers)},"
+                f" coordinators={sorted(coords)}")
+    if helpers & hubs or coords & hubs:
+        return "a helper or a coordinator was also graded as a hub"
+
+    # ...and neither costs a point. A graph of only helpers and coordinators deducts 0.
+    calm = {k: v for k, v in nodes.items() if not k.startswith(("Tangle", "up", "down"))}
+    calm_edges = [e for e in edges if not (e[0].startswith("Tangle") or e[1].startswith("Tangle"))]
+    ded = analyze.health(len(calm), [], [], [], analyze.find_hubs(calm, calm_edges), [],
+                         None, analyze.find_wrong_way_deps(calm, calm_edges))["deductions"]
+    if ded["high_coupling"] or ded["wrong_way_deps"]:
+        return f"a graph of only helpers and coordinators was penalised: {ded}"
+
+    # Rule 4: a stable node calling an unstable one points the wrong way; the reverse does not.
+    bad = analyze.find_wrong_way_deps(nodes, edges + [("Resp.success", "Panel.register", "calls")])
+    if not any(v["source"] == "Resp.success" and v["target"] == "Panel.register" for v in bad):
+        return "a stable node calling an unstable one was not reported as wrong-way"
+    good = analyze.find_wrong_way_deps(nodes, edges + [("Panel.register", "Resp.success", "calls")])
+    if any(v["source"] == "Panel.register" for v in good):
+        return "an unstable node calling a stable one was reported -- that is the right direction"
+
+
 CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_append,
          r05_duplicates_declarations, r06_orphan_guard, r07_flask_routes,
          r08_missing_parser_is_visible, r09_no_absolute_paths, r10_brief_agrees_with_check,
@@ -2297,7 +2351,8 @@ CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_app
          r71_pattern_variables, r72_typed_hook_fields, r73_type_refs_are_references,
          r74_extended_classes_are_used, r75_structure_entry_points, r76_type_position_imports,
          r77_same_file_references, r78_layer_words_end_where_the_word_ends,
-         r79_layer_from_the_folder, r80_one_doc_rule, r81_call_sites, r82_either_or_arms]
+         r79_layer_from_the_folder, r80_one_doc_rule, r81_call_sites, r82_either_or_arms,
+         r83_coupling_has_a_direction]
 
 
 def main() -> int:

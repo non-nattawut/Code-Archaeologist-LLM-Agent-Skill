@@ -12,8 +12,13 @@ nearly free (no parsing, no tokens, stdlib only):
   layer_violations  edges that call "upward" against the standard layering
                     (controller -> service -> repository/client -> model), e.g. a
                     repository calling a controller — a backwards dependency.
-  hubs              nodes whose total degree is very high — a change there ripples
-                    everywhere (high coupling).
+  hubs              nodes depended on by many *and* depending on many — changes arrive
+                    from every direction and spread to every caller (high coupling).
+  shared_helpers    used by many, depending on nearly nothing. Normal, and reported
+                    rather than graded — see `health`.
+  coordinators      calling many, called by almost nothing. Worth watching, also not graded.
+  wrong_way_deps    a stable node calling an unstable one — a dependency pointing the
+                    wrong way, which layer ranks only catch when both ends are ranked.
   god_objects       classes with too many methods, or entities referencing too many
                     others — the classic "does everything" anti-pattern.
   patterns          name-based recognition of singleton / factory / observer /
@@ -47,9 +52,25 @@ from taxonomy import CLASS_KINDS, INHERITANCE_LINKS, call_direction  # noqa: E40
 LAYER_RANK = {"controller": 0, "service": 1, "repository": 2, "client": 2, "model": 3}
 
 # Anti-pattern thresholds (tune here; they are deliberately conservative).
-HUB_DEGREE = 10       # fan_in + fan_out at or above this = high coupling
 GOD_METHODS = 12      # methods on one class (flow graph)
 GOD_FANOUT = 8        # entities one entity references (structure graph)
+
+# Coupling is a direction, not a count. Robert Martin's instability
+#     I = fan_out / (fan_in + fan_out)      0 = stable, 1 = unstable
+# separates three shapes that a total-degree count folds into one, only one of which
+# is a problem. `GlobalResponse.success` with 40 callers and no callees scored exactly
+# as badly as a method that is called from everywhere *and* calls everything.
+HELPER_FAN_IN = 10            # used by many...
+HELPER_INSTABILITY = 0.1      # ...and depending on nearly nothing: a shared helper.
+HUB_FAN_IN = 5                # depended on by many *and*
+HUB_FAN_OUT = 5               # depending on many: the shape that actually hurts.
+COORD_FAN_OUT = 10            # calls many...
+COORD_FAN_IN = 2              # ...and almost nothing calls it: a coordinator.
+# A stable node depending on an unstable one is a dependency pointing the wrong way:
+# the thing everything relies on is built on the thing that keeps changing.
+WRONG_WAY_CALLER_I = 0.3      # the caller is stable...
+WRONG_WAY_CALLEE_I = 0.7      # ...the callee is not, and
+WRONG_WAY_FAN_IN = 5          # enough depends on the caller for it to matter.
 
 # Name-based idiom recognition. Heuristic: it reports what the naming claims.
 PATTERN_RULES = [
@@ -219,12 +240,77 @@ def app_edges(nodes: dict, edges: list[tuple[str, str, str]]) -> list[tuple[str,
             and e[2] not in ("renders", "passes") and e[2] not in INHERITANCE_LINKS]
 
 
+def instability(fan_in: int, fan_out: int) -> float:
+    """Robert Martin's I = fan_out / (fan_in + fan_out). 0 = stable (everything depends
+    on it, it depends on nothing), 1 = unstable (it depends on everything, nothing on it).
+    A node with no edges at all has no direction to measure, and is 0.0 by convention."""
+    total = fan_in + fan_out
+    return round(fan_out / total, 3) if total else 0.0
+
+
+def coupling(nodes: dict, edges: list[tuple[str, str, str]]) -> dict[str, dict]:
+    """Per-node fan-in / fan-out / instability, over application edges only."""
+    return {nid: {**d, "degree": d["fan_in"] + d["fan_out"],
+                  "instability": instability(d["fan_in"], d["fan_out"])}
+            for nid, d in degrees(nodes, app_edges(nodes, edges)).items()}
+
+
+def _by_degree(found: list[dict]) -> list[dict]:
+    return sorted(found, key=lambda x: (-x["degree"], x["node"]))
+
+
 def find_hubs(nodes: dict, edges: list[tuple[str, str, str]]) -> list[dict]:
-    """Highly coupled nodes — everything routes through them."""
-    deg = degrees(nodes, app_edges(nodes, edges))
-    hubs = [{"node": nid, **d, "degree": d["fan_in"] + d["fan_out"]}
-            for nid, d in deg.items() if d["fan_in"] + d["fan_out"] >= HUB_DEGREE]
-    return sorted(hubs, key=lambda h: (-h["degree"], h["node"]))
+    """Nodes many things depend on that *also* depend on many things.
+
+    Both directions at once is the shape that hurts: changes arrive from every caller
+    and spread to every callee. A node with only one of the two is a shared helper or a
+    coordinator — reported below, not deducted for. Counting total degree alone folded all
+    three together, so a codebase with a well-used `GlobalResponse.success` scored as badly
+    as one that is genuinely tangled."""
+    return _by_degree([{"node": nid, **d} for nid, d in coupling(nodes, edges).items()
+                       if d["fan_in"] >= HUB_FAN_IN and d["fan_out"] >= HUB_FAN_OUT])
+
+
+def find_shared_helpers(nodes: dict, edges: list[tuple[str, str, str]]) -> list[dict]:
+    """Used by many, depending on nearly nothing — `DateUtil.now`, `errorAlert`.
+
+    This is what a shared helper is supposed to look like, so it is reported to be
+    visible (a change there still reaches everyone) and never graded."""
+    return _by_degree([{"node": nid, **d} for nid, d in coupling(nodes, edges).items()
+                       if d["fan_in"] >= HELPER_FAN_IN and d["instability"] <= HELPER_INSTABILITY])
+
+
+def find_coordinators(nodes: dict, edges: list[tuple[str, str, str]]) -> list[dict]:
+    """Calls a great many things, and almost nothing calls it — a registration method,
+    a top-level panel. Worth watching (it can grow into a god method) but low risk while
+    nothing depends on it, and `god_objects` already penalises the class-level version,
+    so this is reported without a deduction rather than counted twice."""
+    return _by_degree([{"node": nid, **d} for nid, d in coupling(nodes, edges).items()
+                       if d["fan_out"] >= COORD_FAN_OUT and d["fan_in"] <= COORD_FAN_IN])
+
+
+def find_wrong_way_deps(nodes: dict, edges: list[tuple[str, str, str]]) -> list[dict]:
+    """Calls from a stable node into an unstable one — a dependency pointing the wrong way.
+
+    A helper that much of the codebase depends on should depend on little itself; when it
+    reaches into something that depends on everything, every change to the unstable end
+    travels out through the stable one's callers. Layer violations catch the same mistake
+    only where both ends carry a ranked layer; this catches it from the shape alone."""
+    coup = coupling(nodes, edges)
+    found = [{"source": s, "target": t,
+              "source_instability": coup[s]["instability"],
+              "target_instability": coup[t]["instability"],
+              "source_fan_in": coup[s]["fan_in"]}
+             for s, t, kind in app_edges(nodes, edges)
+             if s != t and coup[s]["fan_in"] >= WRONG_WAY_FAN_IN
+             and coup[s]["instability"] < WRONG_WAY_CALLER_I
+             and coup[t]["instability"] > WRONG_WAY_CALLEE_I]
+    seen, unique = set(), []
+    for v in found:                     # one edge may be written twice (two call sites)
+        if (v["source"], v["target"]) not in seen:
+            seen.add((v["source"], v["target"]))
+            unique.append(v)
+    return sorted(unique, key=lambda v: (v["source"], v["target"]))
 
 
 def find_god_objects(nodes: dict, edges: list[tuple[str, str, str]]) -> list[dict]:
@@ -258,9 +344,14 @@ def detect_patterns(nodes: dict) -> dict[str, list[str]]:
 
 
 def health(node_count: int, cycles: list, orphans: list, violations: list,
-           hubs: list, god_objects: list, security: dict | None = None) -> dict:
+           hubs: list, god_objects: list, security: dict | None = None,
+           wrong_way: list | None = None) -> dict:
     """0-100 score and A-F grade. Every deduction is capped so one bad category
-    can't sink the grade on its own; `security` is `{"high": n, "medium": n, "low": n}`."""
+    can't sink the grade on its own; `security` is `{"high": n, "medium": n, "low": n}`.
+
+    Shared helpers and coordinators are reported but never deducted for: both are
+    normal shapes, and grading them made a codebase score worse for having a well-used
+    utility. Only `hubs` (coupled in both directions) and `wrong_way` count."""
     sec = security or {}
     dead_pct = round(100 * len(orphans) / node_count, 1) if node_count else 0.0
     deductions = {
@@ -268,6 +359,7 @@ def health(node_count: int, cycles: list, orphans: list, violations: list,
         "cycles": min(24, 8 * len(cycles)),
         "layer_violations": min(16, 4 * len(violations)),
         "high_coupling": min(12, 3 * len(hubs)),
+        "wrong_way_deps": min(8, 2 * len(wrong_way or [])),
         "god_objects": min(12, 3 * len(god_objects)),
         "security": min(30, 10 * sec.get("high", 0) + 4 * sec.get("medium", 0) + sec.get("low", 0)),
     }
@@ -283,6 +375,9 @@ def report(graph_path: str, security: dict | None = None) -> dict:
     overridden = find_overridden(nodes, edges)
     violations = find_layer_violations(nodes, edges)
     hubs = find_hubs(nodes, edges)
+    helpers = find_shared_helpers(nodes, edges)
+    coordinators = find_coordinators(nodes, edges)
+    wrong_way = find_wrong_way_deps(nodes, edges)
     gods = find_god_objects(nodes, edges)
     patterns = detect_patterns(nodes)
     return {
@@ -291,13 +386,18 @@ def report(graph_path: str, security: dict | None = None) -> dict:
         "overridden": overridden,
         "layer_violations": violations,
         "hubs": hubs,
+        "shared_helpers": helpers,
+        "coordinators": coordinators,
+        "wrong_way_deps": wrong_way,
         "god_objects": gods,
         "patterns": patterns,
-        "health": health(len(nodes), cycles, orphans, violations, hubs, gods, security),
+        "health": health(len(nodes), cycles, orphans, violations, hubs, gods, security, wrong_way),
         "summary": {"nodes": len(nodes), "edges": len(edges), "cycles": len(cycles),
                     "orphans": len(orphans), "overridden": len(overridden),
                     "layer_violations": len(violations),
-                    "hubs": len(hubs), "god_objects": len(gods)},
+                    "hubs": len(hubs), "shared_helpers": len(helpers),
+                    "coordinators": len(coordinators), "wrong_way_deps": len(wrong_way),
+                    "god_objects": len(gods)},
     }
 
 
@@ -311,7 +411,15 @@ def to_text(d: dict) -> str:
     out += ["  cycle     " + " > ".join(c) for c in d["cycles"]]
     out += [f"  violation {v['source']} -> {v['target']} ({v['from']} -> {v['to']})"
             for v in d["layer_violations"]]
-    out += [f"  hub       {x['node']} in {x['fan_in']} / out {x['fan_out']}" for x in d["hubs"]]
+    out += [f"  hub       {x['node']} in {x['fan_in']} / out {x['fan_out']} I={x['instability']}"
+            for x in d["hubs"]]
+    out += [f"  wrong-way {v['source']} -> {v['target']} "
+            f"(I {v['source_instability']} -> {v['target_instability']})"
+            for v in d.get("wrong_way_deps", [])]
+    out += [f"  helper    {x['node']} in {x['fan_in']} / out {x['fan_out']} (not graded)"
+            for x in d.get("shared_helpers", [])]
+    out += [f"  coord     {x['node']} in {x['fan_in']} / out {x['fan_out']} (not graded)"
+            for x in d.get("coordinators", [])]
     out += [f"  god       {g['name']} {g['reason']} {g['count']}" for g in d["god_objects"]]
     out += [f"  idiom     {k}: " + ", ".join(v) for k, v in d["patterns"].items()]
     out += [f"  orphan    {n}" for n in d["orphans"]]
