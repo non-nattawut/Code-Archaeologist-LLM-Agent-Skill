@@ -1,217 +1,246 @@
 <p align="center">
-  <img src="docs/images/mascot.png" alt="Code Archaeologist mascot: a mole in an explorer hat holding a tablet of code" width="240">
+  <img src="docs/images/mascot.png" alt="Code Archaeologist Mascot" width="220">
 </p>
 
 <h1 align="center">Code Archaeologist</h1>
 
-**A codebase map your AI agent can query instead of reading your whole repo.**
+<p align="center">
+  <strong>Deterministic, zero-RAG codebase navigation and architecture mapping for AI agents.</strong>
+</p>
 
-It scans your code once, builds two graphs plus one note per class/method, and answers
-architecture questions by walking those graphs — not by grepping source. Everything is
-deterministic — real parsers plus graph traversal, no embeddings, no vector DB. Every language,
-Python included, needs one parser wheel installed into the skill folder, and any that is missing
-is **named and skipped**, never silently dropped.
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue.svg?logo=python&logoColor=white" alt="Python 3.10+"></a>
+  <a href="https://tree-sitter.github.io/"><img src="https://img.shields.io/badge/parser-tree--sitter-green.svg" alt="Tree-sitter"></a>
+  <a href="#the-two-maps"><img src="https://img.shields.io/badge/maps-structure%20%2B%20flow-blueviolet.svg" alt="Two Maps"></a>
+  <a href="#the-explorer"><img src="https://img.shields.io/badge/explorer-100%25%20offline-success.svg" alt="100% Offline"></a>
+  <a href="#installation"><img src="https://img.shields.io/badge/harnesses-agents%20%7C%20claude%20%7C%20cursor%20%7C%20windsurf%20%7C%20zed-orange.svg" alt="Harnesses"></a>
+</p>
 
-```
-"How does a request reach the database?"
-
-  trace  ->  submitOrder > createOrder > OrderController.create_order
-             > OrderService.place_order > OrderRepository.save
-  read   ->  5 notes (~1,500 tokens)     instead of the whole repo
-```
-
-The same question in the explorer: pick `OrderRepository.save` in the **Flowchart** view and it
-shows every path that reaches it, plus its blast radius (built from the bundled `sample_src/`):
-
-![Explorer Flowchart view: the flow through OrderService.place_order from submitOrder and orders, with call-order badges 1 and 2 on its calls and its blast radius in the side panel](docs/images/explorer-flowchart.png)
+<p align="center">
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-requirements">Requirements</a> •
+  <a href="#-installation">Installation</a> •
+  <a href="#-what-it-can-tell-you">What It Can Tell You</a> •
+  <a href="#️-the-two-maps">The Two Maps</a> •
+  <a href="#-the-interactive-explorer">Interactive Explorer</a> •
+  <a href="#-language-support">Language Support</a> •
+  <a href="#-why-not-rag">Why Not RAG?</a> •
+  <a href="docs/USAGE.md">Usage Guide</a>
+</p>
 
 ---
 
-## Quick start
+Code Archaeologist scans your codebase once, builds **two precise dependency graphs** (structure & execution flow) plus a Markdown note per class and method, and answers architectural questions by walking those graphs—**not by grepping source or guessing with embeddings**.
+
+Everything is **100% deterministic**: real tree-sitter AST parsers + graph traversal algorithms. No vector database, no embedding drift, and zero hallucinations. Every language (Python included) uses a pinned parser wheel; missing grammars are **explicitly named and skipped**, never silently ignored.
+
+```text
+"How does a request reach the database?"
+
+  📍 Trace  ➜  submitOrder > createOrder > OrderController.create_order
+               > OrderService.place_order > OrderRepository.save
+  📖 Read   ➜  5 notes (~1,500 tokens) instead of reading the whole repo
+```
+
+The same question explored visually: select `OrderRepository.save` in the **Flowchart** view to see all execution paths reaching it, its call ordering, and its blast radius:
+
+<p align="center">
+  <img src="docs/images/explorer-flowchart.png" alt="Explorer Flowchart view" width="100%">
+  <br>
+  <em>Interactive Flowchart: Call-order sequence badges (1, 2) on paths leading to <code>OrderRepository.save</code>, with impact analysis in the inspector.</em>
+</p>
+
+---
+
+## ⚡ Quick Start
 
 ```bash
-# 1. install the skill into your project (no clone, no npm account)
+# 1. Install the skill into your project (no clone, no npm account required)
 npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --harness claude
 
-# 2. build both maps
+# 2. Build both maps (Structure + Flow)
 python .claude/skills/code-archaeologist/scripts/archaeologist.py both --src ./src
 
-# 3. review them
+# 3. Generate the review report & interactive explorer
 python .claude/skills/code-archaeologist/scripts/archaeologist.py report --src ./src
 ```
 
-Then open `data/explorer.html` — one self-contained page, both maps, works offline from `file://`.
+Open `data/explorer.html` in any browser — a single, self-contained file with both maps that works **completely offline** from `file://`.
 
-> Install each language's grammar first — **Python included** — into the skill rather than your
-> Python, at pinned versions: `python .claude/skills/code-archaeologist/scripts/core/grammars.py
-> --install` (or name languages: `--install python typescript`).
-> Skip one and those files are left out — the build says so loudly, and names the wheel.
-
----
-
-## Requirements
-
-| | |
-| --- | --- |
-| **Python 3.10+** | required — it runs the pipeline |
-| **`tree-sitter` + a grammar wheel per language** | for **every** language including Python — `python scripts/core/grammars.py --install [langs]`, which runs `pip install --only-binary :all: --no-cache-dir --target vendor` at the pinned versions. Wheels, no compiler; install only the languages you have. Lands in `<skill>/vendor`, **not** in your Python — delete the skill folder and it is gone |
-| **git** | optional — only for churn / ownership / hotspots |
-| **A browser** | to open the explorer — no network needed |
+> [!TIP]
+> **Automatic Grammar Setup**:
+> When your AI agent activates this skill, it automatically installs the pinned `tree-sitter` parser wheels for your repository into `<skill>/vendor`.
+> If running manually via the CLI, you can pre-fetch them anytime with:
+> ```bash
+> python .claude/skills/code-archaeologist/scripts/core/grammars.py --install
+> # or specify languages:
+> python .claude/skills/code-archaeologist/scripts/core/grammars.py --install python typescript
+> ```
+> If a language grammar is ever missing, its files are safely skipped and the wheel is loudly announced.
 
 ---
 
-## Installation
+## 📋 Requirements
+
+| Requirement | Details |
+| :--- | :--- |
+| **Python 3.10+** | Required on your machine to run the extraction and analysis pipeline. |
+| **Git** | *Optional* — only needed for churn, authorship ownership, and hotspot analysis. |
+| **Modern Browser** | For opening `data/explorer.html` (runs 100% offline from `file://`). |
+
+> [!NOTE]
+> **Zero Parser Setup Required**: You don't need to manually configure parsers beforehand. Your AI agent automatically manages pinned binary `tree-sitter` wheels inside the skill's isolated `<skill>/vendor` directory (`scripts/core/grammars.py --install`). No compiler is needed and nothing touches your global Python environment.
+
+---
+
+## 📦 Installation
+
+Install directly with `npx` into your preferred agent environment:
 
 ```bash
-npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill                    # pick a harness
-npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --harness claude   # or name it
-npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --self-test        # install, fetch the demo's grammars, build it
+npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill                    # Interactive prompt to pick harness
+npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --harness claude   # Direct installation
+npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill --self-test        # Install, fetch demo grammars, and build
 ```
 
-| Harness | Installs to |
-| --- | --- |
-| `agents` (default) | `.agents/skills/code-archaeologist` |
-| `claude` | `.claude/skills/code-archaeologist` |
-| `cursor` | `.cursor/skills/code-archaeologist` |
-| `windsurf` | `.windsurf/skills/code-archaeologist` |
-| `zed` | `.zed/skills/code-archaeologist` |
+### Supported Harnesses
 
-Use `--dir <path>` for anywhere else. Other flags: `--target <dir>`, `--force`, `--help`.
+| Harness | Flag | Installation Target |
+| :--- | :--- | :--- |
+| **Agents** *(default)* | `--harness agents` | `.agents/skills/code-archaeologist` |
+| **Claude** | `--harness claude` | `.claude/skills/code-archaeologist` |
+| **Cursor** | `--harness cursor` | `.cursor/skills/code-archaeologist` |
+| **Windsurf** | `--harness windsurf` | `.windsurf/skills/code-archaeologist` |
+| **Zed** | `--harness zed` | `.zed/skills/code-archaeologist` |
 
-The installer checks for Python 3.10+, copies the skill in, and creates an empty `data/` workspace.
-It has no npm dependencies of its own.
+Use `--dir <path>` for custom directories. Additional options: `--target <dir>`, `--force`, `--help`.
 
-It also installs a second, single-purpose skill beside the first, `code-archaeologist-explorer`
-(e.g. `.claude/skills/code-archaeologist-explorer`). Ask for **`/code-archaeologist-explorer`**
-when all you want is the page: it builds both maps and the review report, then creates or replaces
-`data/explorer.html`. Pass folders to map a different root:
-`/code-archaeologist-explorer ./backend ./frontend`. It has no scripts of its own; it runs the main
-skill's.
+The installer checks for Python 3.10+, copies the skill in, and creates an empty `data/` workspace with no external npm dependencies.
+
+> [!NOTE]
+> **Companion Explorer Skill**:
+> The installer also deploys `code-archaeologist-explorer` (e.g. `.claude/skills/code-archaeologist-explorer`).
+> Invoke **`/code-archaeologist-explorer`** when you want an agent to regenerate the maps and review report in one step:
+> ```bash
+> /code-archaeologist-explorer ./backend ./frontend
+> ```
+> It has no scripts of its own; it runs the main skill's pipeline to produce `data/explorer.html`.
 
 ---
 
-## What it can tell you
+## 🧭 What It Can Tell You
 
-Every item below is a command, and every answer is computed from the graphs — never from an LLM
-guessing. Full syntax lives in **[USAGE.md](docs/USAGE.md)**.
+Every answer is deterministically computed from AST graphs—**never guessed by an LLM**. Full command reference is available in **[USAGE.md](docs/USAGE.md)**.
 
-### Navigate
+### 🔍 Navigate & Trace
 
 | Question | Command |
-| --- | --- |
-| Where is X handled? | `search.py --name X` (also `--calls`, `--called-by`, `--orphans`) |
-| How do A and B connect? | `trace_path.py --from A --to B` |
-| What breaks if I change X? | `trace_path.py --impact-of X` |
-| What does my current PR affect? | `trace_path.py --impact-of-diff` |
-| Everything about one node, in one call | `context.py --node X` |
-| Orient me on this repo (~35 lines) | `archaeologist.py brief` |
+| :--- | :--- |
+| **Where is X handled?** | `search.py --name X` *(also `--calls`, `--called-by`, `--orphans`)* |
+| **How do A and B connect?** | `trace_path.py --from A --to B` |
+| **What breaks if I change X?** | `trace_path.py --impact-of X` |
+| **What does my current PR affect?** | `trace_path.py --impact-of-diff` |
+| **Everything about one node, in one call** | `context.py --node X` |
+| **Orient me on this repo (~35 lines)** | `archaeologist.py brief` |
 
-### Review
-
-| Question | Command |
-| --- | --- |
-| Is this codebase healthy? (0–100, A–F) | `analyze.py` |
-| Any secrets / SQL injection / XSS sinks? | `scan_security.py` |
-| What's rotting? (TODOs, dead code) | `debt.py` |
-| What's tested — and what isn't? | `tests_map.py` |
-| What's been copy-pasted? (whole functions, and blocks pasted into different ones) | `duplicates.py` |
-| Where's the churn and who owns it? | `git_insights.py` |
-| How big / complex is each piece? | `metrics.py` |
-| All of it, as one report | `archaeologist.py report` |
-
-### Trust
+### 🛡️ Review & Audit
 
 | Question | Command |
-| --- | --- |
-| Are the maps still current? | `archaeologist.py check` |
+| :--- | :--- |
+| **Is this codebase healthy? (0–100, A–F)** | `analyze.py` |
+| **Any secrets / SQL injection / XSS sinks?** | `scan_security.py` |
+| **What's rotting? (TODOs, dead code)** | `debt.py` |
+| **What's tested — and what isn't?** | `tests_map.py` |
+| **What's been copy-pasted?** | `duplicates.py` *(exact & block duplication across functions)* |
+| **Where is the churn and who owns it?** | `git_insights.py` |
+| **How big / complex is each piece?** | `metrics.py` |
+| **Generate full audit report** | `archaeologist.py report` |
 
-The maps drift the moment code changes. `check` hashes every source file and reports exactly what
-moved, so an agent rebuilds *before* answering rather than confidently citing a stale graph. It
-needs no arguments — a build records the roots it scanned, and `check` and `brief` re-use them.
+### 🔄 Trust & Freshness
 
----
+| Question | Command |
+| :--- | :--- |
+| **Are the maps still current?** | `archaeologist.py check` |
 
-## The two maps
-
-Both are built from the same scan and answer different questions.
-
-| | **Structure map** | **Flow map** |
-| --- | --- | --- |
-| **Node** | a class, React component or module | a method / function |
-| **Edge** | references, imports | calls |
-| **Answers** | "how is this organized?", "who uses X?" | "how does a request travel?", "what calls what?" |
-| **Output** | `data/structure/` | `data/flow/` |
-
-Both cover backend and frontend: a `.tsx` React component is a structure node next to a Python
-service class, and a function that returns JSX is typed `component` rather than lumped into its
-file's module page.
-
-They cross the stack. Frontend `fetch`/`axios` calls are matched to backend route handlers by HTTP
-method + normalized path, so **one trace runs from a button click to the database**. Routes are
-read from seven framework shapes — FastAPI, Flask, Express, Nest, Spring, ASP.NET and the Go
-routers (gin/chi/mux) — so a React click can be traced into Java or Go, not just Python. Where the
-path does not match exactly, a unique suffix still links (so an `/api` mount prefix works) and an
-ambiguous one is left alone — in both directions, so a prefix held in the client's axios
-`baseURL` works as well as one mounted on the server. An axios instance created once and imported
-everywhere (`services/api.ts` exporting `axios.create(...)`, directly or from a factory) is
-followed across files, and a same-file `const API_BASE_URL = "/orders"` is read as its value
-inside `${API_BASE_URL}/list`. A call whose URL is otherwise a variable (`get(ENDPOINT[section])`)
-links nowhere, because it says nothing about where it goes.
+> [!IMPORTANT]
+> The maps drift the moment code changes. `archaeologist.py check` hashes every source file against the manifest and reports moved or modified files, allowing agents to rebuild *before* answering rather than citing stale graphs. It requires no arguments—reusing previously scanned roots recorded during build.
 
 ---
 
-## The explorer
+## 🗺️ The Two Maps
 
-One self-contained HTML file with both maps embedded. No server, no repo access, and **no network
-— the graph library is vendored and inlined**, so it opens from `file://` with the wifi off. Commit
-it or email it.
+Both maps are extracted from the same scan to answer complementary architectural questions:
 
-- **Header** — the map switch, the grade, and a **`?`** that opens the legend: what every line
-  style, node colour, shape and badge means, with a live count of which link types *this* map
-  actually has. Press `?` from anywhere, Escape to close.
-- **Left** — health ring (A–F), color-by (layer / folder / churn / risk), stat tiles, language
-  mix, and a file tree that filters the canvas.
-- **Center** — seven views of the same graph: Flowchart (the one it opens on), Graph, Treemap, Matrix, Tree, Cluster, Bundle. Nodes are labelled by name (the path is in the side panel); clicking a file or folder hides every node it does not link to directly, and the Flowchart narrows to a selected node's chain. In the Flowchart a box wraps a long name onto two lines, and a badge before each call's arrowhead numbers a node's calls in the order they are written (not the order they run) -- `3a` / `3b` for the sides of one if / else, only one of which runs -- with a diamond for a call made only inside a branch and a ring for one inside a loop (where several callers meet at one box, the badge shown is the hovered or selected node's); the **Order** toggle hides them. Every link type has its own colour and dash.
-  Plus folder hulls, a blast-radius toggle, a **Freeze** toggle that holds the current view while
-  you click through its nodes, and an overflow menu (`⋯`) holding zoom, fit and PNG export.
-- **Right** — **FILE** (what it does, blast radius, connections, git ownership, risks),
-  **PATTERNS** (cycles, layer violations, hubs, wrong-direction dependencies, shared helpers,
-  coordinators, god objects, dead code), **SECURITY** (findings by
-  severity). All click through into each other.
+| Dimension | 🏛️ Structure Map | ⚡ Flow Map |
+| :--- | :--- | :--- |
+| **Node** | Class, React component, or module | Method or function |
+| **Edge** | References, imports, inheritance | Direct calls, passes, renders, routes |
+| **Answers** | *"How is this codebase organized? Who uses X?"* | *"How does a request execute? What calls what?"* |
+| **Output Directory** | `data/structure/` | `data/flow/` |
 
-Both side panels drag to resize from their inner border. In the tree, `+`/`–` expands a folder and
-clicking its name filters the canvas — two separate controls. The explorer fills whatever the
-panels above it leave, so fold one from its heading to give the tree more room. Dragging a node
-pins it where you drop it, so the **reset** button in the toolbar throws the layout away and
-re-runs it from scratch — along with the current selection and filter. Clicking empty canvas
-does not clear a selection; reset does.
+Both maps cover backend and frontend: a `.tsx` React component is a structure node alongside a Python service class, and a function returning JSX is typed `component` rather than lumped into its file's module page.
 
----
+### Cross-Stack & Framework Bridging
 
-## How an agent uses it
-
-`SKILL.md` tells the agent to:
-
-1. **Check freshness first** — rebuild if the source moved, then orient with `brief`.
-2. **Never read raw source** for architecture questions.
-3. **Find** nodes with `search.py`, **trace** with `trace_path.py`, **load** them with `context.py`.
-4. Read individual notes only when it needs more.
-5. Keep `[[wikilinks]]` in answers so replies stay navigable.
-6. For "is this healthy?", answer from the generated report.
+- **End-to-End Tracing**: Frontend `fetch` and `axios` calls link directly to backend route handlers via HTTP method and normalized path matching. **One trace spans from a button click to the database**.
+- **Supported Frameworks**: Route endpoints are extracted across 7 backend frameworks:
+  - **Python**: FastAPI, Flask, Django `urlpatterns` *(including `include()` and class-based views)*
+  - **JavaScript / TypeScript**: Express, NestJS, Next.js API routes & pages
+  - **Java / Kotlin**: Spring Web (`@GetMapping`, `@PostMapping`, `@Scheduled`, etc.)
+  - **C#**: ASP.NET Core controllers
+  - **Go**: `net/http`, Gin, Chi, Mux
+  - **Ruby / PHP / Elixir**: Rails `routes.rb`, Laravel `routes/*.php`, Phoenix routers
+- **Smart Path & Instance Resolution**: Handles prefix mounts (e.g. `/api`), client `baseURL` configurations, and exported axios instances across files. Where paths do not match exactly, unique suffixes still link while ambiguous ones are left alone.
 
 ---
 
-## Language support
+## 🔍 The Interactive Explorer
 
-| Capability | Languages |
-| --- | --- |
-| **Graphs** — nodes, call edges, structure, per-node metrics, tests | Python, JavaScript/TypeScript/JSX/TSX, Java, Go, C#, Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir — all tree-sitter, each with its own fixture |
-| **Lines, risk scan, debt markers, test detection** | all of the above |
-| **Routes read** | *on the handler:* FastAPI, Flask, Express, NestJS, Spring (Java and Kotlin), ASP.NET, Go `net/http`, actix-web / Rocket — *from a route table:* Django `urlpatterns` (with `include()` and class-based views), Rails `routes.rb`, Laravel `routes/*.php`, Phoenix routers |
+A self-contained, offline-first visualization dashboard (`data/explorer.html`). **Zero server dependencies, zero external network requests**—the graph engine (`force-graph.min.js`) is vendored and inlined, allowing it to open from `file://` with Wi-Fi off.
 
-Seventeen languages, one engine. A language is a pinned grammar wheel plus a row of node types,
-never a new parser. This is which file calls which on the way from source to graph (the full
-diagram is in the [architecture guide](docs/ARCHITECTURE_GUIDE.md#2-exact-inter-script-call-graph--invocation-hierarchy)):
+- 🎛️ **Header Bar**: Quick map switcher (Structure / Flow), overall health letter grade (A–F), and an interactive **`?` Visual Legend** detailing every node shape, color, badge, and edge style with live link counts.
+- 📂 **Left Sidebar**:
+  - **Health & Metrics**: Overall health ring (A–F), stat tiles, and language composition breakdown.
+  - **Color Overlays**: Switch color-coding by Architectural Layer, Folder, Git Churn, or Risk Level.
+  - **File Tree Filter**: Expand/collapse folders to filter canvas nodes in real time.
+- 🕸️ **Center Canvas**: 7 distinct layout perspectives:
+  - **Flowchart**: Primary execution view with **call-order badges** (numbered in authoring sequence), branch callouts (`3a`/`3b`), conditional diamonds, and loop rings.
+  - **Graph, Treemap, Matrix, Tree, Cluster, Bundle**: Specialized structural views for coupling, clustering, and hierarchy.
+  - **Canvas Controls**: Folder bounding hulls, **Blast Radius** toggle, **Freeze** layout lock, and `⋯` export menu (Zoom, Fit, High-Res PNG).
+- 📋 **Right Inspector Panel**:
+  - **FILE / NODE**: Full node context, incoming/outgoing connections, blast radius list, git ownership, and active code risks.
+  - **PATTERNS**: Architectural cycles, layer violations, hub nodes, wrong-direction dependencies, god objects, and unreferenced dead code.
+  - **SECURITY**: Findings categorized by severity (Critical, High, Medium, Low).
+
+Side panels drag to resize from their inner borders. Folder headings in the tree expand with `+`/`-`, while clicking the folder name filters the canvas. Dragging a node pins it in place; the **Reset** button restores the original layout, selection, and filter.
+
+---
+
+## 🤖 How An Agent Uses It
+
+The bundled `SKILL.md` instructs your agent to follow a zero-hallucination workflow:
+
+1. **Verify Freshness First**: Run `archaeologist.py check`. If files changed, rebuild maps and orient using `archaeologist.py brief`.
+2. **Never Grep Raw Source**: Avoid reading raw files for architectural queries.
+3. **Traverse the Graph**: Locate nodes via `search.py`, trace call paths with `trace_path.py`, and inspect node details via `context.py`.
+4. **Targeted Reading**: Read specific markdown notes only when detailed logic is needed.
+5. **Navigable Answers**: Preserve `[[wikilinks]]` in answers so references remain linkable.
+6. **Code Reviews**: Cite findings directly from the generated review report (`report.py`).
+
+---
+
+## 🌐 Language Support
+
+| Feature | Supported Languages |
+| :--- | :--- |
+| **Dependency Graphs**<br>*(Nodes, call edges, structure, metrics, test mapping)* | **17 Languages**: Python, JavaScript, TypeScript, JSX, TSX, Java, Go, C#, Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir *(all parsed via tree-sitter)* |
+| **Review & Security**<br>*(LOC, risk scan, debt markers, test detection)* | All 17 supported languages |
+| **Route Extraction** | **On Handlers**: FastAPI, Flask, Express, NestJS, Spring (Java/Kotlin), ASP.NET, Go `net/http`, Actix-web, Rocket<br>**From Route Tables**: Django (`urlpatterns`), Rails (`routes.rb`), Laravel (`routes/*.php`), Phoenix |
+
+### Extraction Architecture
+
+Seventeen languages, one engine. A language is a pinned grammar wheel plus a row of node types, never a new parser. (The full diagram is available in the [Architecture Guide](docs/ARCHITECTURE_GUIDE.md#2-exact-inter-script-call-graph--invocation-hierarchy)):
 
 ```mermaid
 flowchart LR
@@ -227,172 +256,119 @@ flowchart LR
     BW & BF --> TAX["taxonomy.py<br>layers, test files, precision"]
 ```
 
-What that means for the edges:
+### Edge Semantics & Integrity Guarantees
 
-- **A call is drawn only when the receiver's type is in the source** — a field, a parameter,
-  `new Foo()`, an annotation — so every call graph is a lower bound. Typed languages resolve like
-  Java; a node that drops a call through an untyped receiver — common in Ruby, PHP, Elixir, Groovy
-  and JS/TS — is `name-matched`.
-- **What cannot be resolved is dropped, never guessed.** An interface call stops at the interface
-  (`OrderWorkflow.place → PricingRule.price`), and each implementation carries an `implements` link
-  to it, so traces reach every implementation without claiming which one runs — unless the source settles
-  which Spring bean is injected, and then the call links to that bean; each overload is its own node, and a call that still
-  fits two is dropped (`overloads`); a name defined in several files is qualified by its file. The
-  node names its loss, and the explorer shows it as a chip.
-- **A missing grammar is named, not silent**: its files are skipped with the exact `pip install`.
-- **Test files are recognized in every language** and tagged `layer: test`, so test code is never
-  dead code and its calls never count as coupling.
-- **The object model is in the graph**: classes are `interface`, `abstract` or `class`; a class
-  `implements` an interface or `extends` a class; a method `implements` a declaration or
-  `overrides` a body; and a default body every subclass replaces is reported as **overridden**
-  (never runs today), not as dead code. A class name two applications share is settled by package
-  and imports, an inherited helper called with no receiver reaches its base class, and a local's
-  declared type (`Dto d = read()`) types its calls.
-- **Code a framework calls is never dead code**: Spring `@Scheduled` / `@Bean` / `@EventListener` /
-  aspect methods, `@Override` / `override` methods, `main`, and Next.js pages, layouts and route
-  handlers carry a named `entry`, and so does a function a module calls as it loads or a field
-  initializer, initializer block, constructor or Go package var calls. Java method
-  references (`this::clearBin`) are calls, a call on another call's result is typed from declared
-  return types (Lombok getters included), a call through a global resolves (a Python module-level
-  or imported instance, a Kotlin top-level `val`, a Go package `var`, `Registry.STORE.save()`),
-  `api.x()` resolves through an imported instance, a
-  barrel re-export, an object of functions (imported under any name, chosen by a `const`, or
-  returned by a hook: `const api = useApi()`), a typed hook field (`const { api } = useVariant()`
-  where the return type or `createContext<T>` says `api: typeof service`), and `<Child />` is a
-  `renders` edge in the flow map; `forwardRef` / `memo` components are components. A Java or C#
-  pattern variable (`x instanceof UserSecurity us`) types its calls.
-  A `const save = id ? update : create` call links to both, and a function handed over
-  (`onClick={fn}`, `rows.map(fn)`) gets a `passes` link. One reached through a prop still has no
-  caller.
-- **A class is referenced by every type its users name**: field, parameter and return types, each
-  generic argument inside them (`GlobalResponse<PaginationResponse<UserResponse>>` is three
-  references), local declarations, `X.class`, the class a static constant is read from, and a name
-  the same file defines (a component calling a helper beside it). A base
-  class is used by whatever extends it, and a class a framework builds and calls into
-  (`@SpringBootApplication`, `@Configuration`, `@Aspect`, or one with a `@Scheduled` method) is
-  never dead — but `@Component` / `@Service` alone does not spare one.
-- **Dead code means "no code references it"**, the standard an IDE's *unused* hint uses — not "it
-  never runs". A function a framework finds by a name held in data (a next-intl `t.rich` tag named
-  inside a translation JSON, a string-keyed bean, reflection) is listed as an orphan on purpose;
-  so is a member of an object passed whole (`t.rich(key, { ...TAGS })`), which hands over the
-  object, not its members. Check message and config files before deleting one.
-- **Proven on real repositories:** Python, JS/TS (Next.js included) and Java. The other languages and the four route
-  tables pass hand-written fixtures only.
+- **Deterministic Typed Calls**: Edges are drawn only when receiver types exist in source (fields, params, `new Foo()`, annotations). Untyped receivers (common in Ruby, PHP, Elixir, JS/TS) fall back to explicit `name-matched` tags.
+- **Unresolved Calls Dropped, Never Guessed**: Interface calls link to the interface definition; implementations carry `implements` edges. Ambiguous overloads are explicitly flagged as `overloads` rather than hallucinated.
+- **Framework Entry Points Protected**: Spring `@Scheduled` / `@Bean` / `@EventListener`, Next.js pages/routes, CLI entrypoints, module-level executions, and Go package vars are classified as `entry` points, protecting them from false dead-code flags.
+- **Modern UI & Framework Constructs**: React components, hooks (`useApi()`), `<Child />` `renders` edges, and higher-order wrappers (`memo`, `forwardRef`) are first-class nodes.
+- **Precise Orphan Detection**: Dead code indicates "no code references it" (matching IDE *unused* inspections). Unreferenced config beans or reflection-based calls are reported as orphans for intentional human review.
+- **Proven on Real Repositories**: Validated against production Python, JS/TS (Next.js included), and Java codebases; remaining languages pass comprehensive test fixtures.
 
 ---
 
-## How it works
+## ⚙️ How It Works
 
-```
-   your source                         two graphs                    one page
-  ┌───────────┐                     ┌──────────────┐   analysis   ┌──────────────┐
-  │ .py .ts   │  tree-sitter        │ structure    │ ───────────▶ │ explorer.html│
-  │ .jsx .tsx │                     │ flow         │   + report   │ (both maps)  │
+```text
+   Source Code                         Two Graphs                    One Page
+  ┌───────────┐                     ┌──────────────┐   Analysis   ┌──────────────┐
+  │ .py .ts   │  tree-sitter        │ Structure    │ ───────────▶ │ explorer.html│
+  │ .jsx .tsx │                     │ Flow         │   + Report   │ (both maps)  │
   │ .java .go │ ─────────────────▶  └──────────────┘              └──────────────┘
-  │ .cs       │      extract              │
-  └───────────┘                           ▼  one Markdown note per node
-                                    [[wikilinked]] vault
+  │ .cs       │      extract               │
+  └───────────┘                            ▼  One Markdown note per node
+                                     [[wikilinked]] vault
 ```
 
-The pieces that make it cheap and repeatable:
-
-- **Deterministic extraction.** One real parser for every language: tree-sitter, Python included.
-  It is deterministic — the same input always yields the same graph. A parser that is not installed is named in the output
-  and its files are skipped, so a smaller graph never passes for a smaller codebase (see [Language
-  support](#language-support)).
-- **Call resolution without a type checker.** `self.<dep>.method()` is resolved through `__init__`
-  type hints and assignments, typed params/locals, and same-class `self.method()` calls.
-  Unresolvable external calls are dropped rather than guessed.
-- **AI writes prose, never structure.** Descriptions come cheapest-first: docstring → cached AI
-  summary → deterministic fallback. Summaries are keyed by the method's source hash, so only
-  *new or changed and undocumented* methods ever cost a token.
-- **Findings attach to nodes.** A security hit, a TODO, a churn number and a complexity score all
-  land on the graph node that owns that line — so any of them can be traced and blast-radiused
-  like anything else.
+1. **Deterministic AST Extraction**: Single engine for all languages using tree-sitter. Identical input guarantees identical graph output every run. Uninstalled parsers are explicitly reported.
+2. **Lightweight Type Resolution**: Infers receiver types through constructor parameters, typed variable declarations, and return signatures without the overhead of a full compiler.
+3. **Zero Token Waste**: Node descriptions resolve docstrings first, cached summaries second, and heuristic fallbacks third. Only undocumented, changed code ever uses LLM tokens.
+4. **Node-Attached Findings**: Security vulnerabilities, technical debt, and git churn attach directly to the corresponding graph node, enabling immediate blast-radius inspection.
 
 ---
 
-## Why not RAG?
+## ⚡ Why Not RAG?
 
-RAG chops code into ~500-token chunks and retrieves by similarity. That destroys the two things
-architecture questions are *about*: scope and call hierarchy.
+Standard vector RAG splits files into arbitrary ~500-token chunks, destroying the two fundamental aspects of software architecture: **lexical scope** and **call hierarchies**.
 
-| | Standard RAG | Code Archaeologist |
-| --- | --- | --- |
-| **Unit** | arbitrary ~500-token chunk | one whole class / method per note |
-| **Relationships** | lost | explicit graph edges |
-| **Retrieval** | similarity search, non-deterministic | BFS traversal, same answer every time |
-| **Cost per query** | re-reads large context | only the nodes on the path |
-| **Infra** | embeddings + vector DB | a JSON file |
+| Aspect | Standard Vector RAG | Code Archaeologist |
+| :--- | :--- | :--- |
+| **Unit of Code** | Arbitrary ~500-token text slice | Whole class or method Markdown note |
+| **Relationships** | Lost in vector similarity space | Explicit, traversable graph edges |
+| **Retrieval** | Approximate nearest-neighbor search | Deterministic graph traversal (BFS / DFS) |
+| **Token Cost** | Large context windows re-read per query | Only nodes on the exact execution path (~1.5k tokens) |
+| **Infrastructure** | Vector database + embedding model API | Local JSON graphs + Markdown notes |
 
 ---
 
-## Project structure
+## 📁 Project Structure
 
-```
+```text
 .agents/skills/code-archaeologist/
-├── SKILL.md              agent instructions
+├── SKILL.md              Agent instruction manual
 ├── scripts/
-│   ├── archaeologist.py  entrypoint: project | flow | both | check | report | brief
-│   ├── paths.py          one definition of where the skill's files live
+│   ├── archaeologist.py  Main CLI: project | flow | both | check | report | brief
+│   ├── paths.py          Path resolver for skill data and scripts
 │   │
-│   ├── core/             vocabulary every other script shares
-│   │   ├── taxonomy.py     the one source of truth for kind/layer values
-│   │   ├── manifest.py     what counts as a source file + freshness hashes
-│   │   ├── grammars.py     which tree-sitter grammars are installed, and a parser for each
-│   │   ├── ids.py          node ids: bare, or file-qualified where two files share a name
-│   │   ├── doc_text.py     the one rule for turning a doc comment into a node's description
-│   │   ├── call_ctx.py     where a call is written: its line, and whether a loop or branch holds it
-│   │   └── console.py      stdout that survives a non-UTF-8 console
+│   ├── core/             Shared vocabulary and runtime utilities
+│   │   ├── taxonomy.py     Source of truth for kind and layer classifications
+│   │   ├── manifest.py     File scanner and SHA-256 freshness tracking
+│   │   ├── grammars.py     Tree-sitter grammar wheel manager and parsers
+│   │   ├── ids.py          Disambiguated node identifier generator
+│   │   ├── doc_text.py     Docstring extractor and comment cleaner
+│   │   ├── call_ctx.py     Call site context extractor (loops, branches, line numbers)
+│   │   └── console.py      Cross-platform Unicode-safe console logger
 │   │
-│   ├── extract/          source -> graphs + notes
-│   │   ├── build_wiki.py
-│   │   ├── build_graph.py
-│   │   ├── build_flow.py
-│   │   ├── py_extract.py   Python, parsed with tree-sitter (ast is kept as the oracle)
-│   │   ├── js_ts_extract.py JS/JSX/TS/TSX, parsed with tree-sitter
-│   │   ├── langs_extract.py   Java/Go/C# and eleven more languages, parsed with tree-sitter
-│   │   ├── route_tables.py Django / Rails / Laravel / Phoenix route tables, read into routes
-│   │   └── apply_descriptions.py
+│   ├── extract/          Source code -> Graphs + Notes
+│   │   ├── build_wiki.py   Builds the Structure map and Markdown notes
+│   │   ├── build_graph.py  Graph builder and adjacency indexer
+│   │   ├── build_flow.py   Builds the Flow map and call hierarchy
+│   │   ├── py_extract.py   Python tree-sitter AST extractor
+│   │   ├── js_ts_extract.py JS / TS / JSX / TSX extractor
+│   │   ├── langs_extract.py Java, Go, C#, Rust, and 12 other language extractors
+│   │   ├── route_tables.py Framework route table parsers (Django, Rails, Laravel, Phoenix)
+│   │   └── apply_descriptions.py Docstring and summary synchronizer
 │   │
-│   ├── review/           graphs -> findings
-│   │   ├── analyze.py
-│   │   ├── scan_security.py
-│   │   ├── git_insights.py
-│   │   ├── metrics.py
-│   │   ├── debt.py
-│   │   ├── tests_map.py
-│   │   ├── duplicates.py
-│   │   ├── brief.py
-│   │   └── report.py
+│   ├── review/           Graphs -> Findings & Reports
+│   │   ├── analyze.py      Architecture health scoring and smell analysis
+│   │   ├── scan_security.py Static security sink and secret detector
+│   │   ├── git_insights.py Churn, hotspot, and author ownership analyzer
+│   │   ├── metrics.py      Cyclomatic complexity and LOC calculator
+│   │   ├── debt.py         Technical debt and TODO tracker
+│   │   ├── tests_map.py    Test mapping and coverage correlation
+│   │   ├── duplicates.py   Exact and block code clone detector
+│   │   ├── brief.py        Compact repository overview generator (~35 lines)
+│   │   └── report.py       Consolidated markdown audit report generator
 │   │
-│   └── query/            ask questions, render the page
-│       ├── trace_path.py
-│       ├── context.py
-│       ├── search.py
-│       └── build_html.py  -> data/explorer.html
+│   └── query/            Graph query tools and HTML renderer
+│       ├── trace_path.py   Path tracing, impact analysis, and blast radius
+│       ├── context.py      Single-node comprehensive context extractor
+│       ├── search.py       Node and call hierarchy search
+│       └── build_html.py   Generates the standalone data/explorer.html
 ├── templates/            viewer.html · wiki_page_template.md · TAXONOMY.md
-│   └── vendor/           force-graph.min.js, inlined so the explorer needs no network
+│   └── vendor/           force-graph.min.js (inlined for offline browser access)
 └── data/
-    ├── explorer.html     both maps, one page
-    ├── structure/  flow/  report/  cache/
+    ├── explorer.html     Standalone interactive architecture explorer
+    ├── structure/        Structure map notes and graph.json
+    ├── flow/             Flow map notes and graph.json
+    ├── report/           Audit reports and security findings
+    └── cache/            Source hash caches for incremental builds
 
 .agents/skills/code-archaeologist-explorer/
-└── SKILL.md              /code-archaeologist-explorer: build, report, render explorer.html
+└── SKILL.md              Slash command: /code-archaeologist-explorer
 ```
 
-Alongside the skill, in the repo but never installed:
+### Development & Verification Tools
 
-```
-tests/fixtures/langs/      one small fixture per graphed language + expected.json
-tests/fixtures/ts_imports/ a minimal Next.js app: tsconfig aliases, import bindings, file conventions
+```text
+tests/fixtures/langs/      Test fixtures per graphed language + expected.json
+tests/fixtures/ts_imports/ Next.js app fixture: aliases, bindings, and conventions
 tools/                     check_docs.py · check_langs.py · check_py_oracle.py
-                           check_graph.py (the graph's invariants) · check_regressions.py
-                           time_build.py (wall time per stage, corpora read-only)
+                           check_graph.py · check_regressions.py · time_build.py
 ```
 
 ---
 
-## License
+## 📄 License
 
-See [LICENSE](LICENSE).
+Distributed under the [MIT License](LICENSE).
