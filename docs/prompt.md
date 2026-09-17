@@ -7038,3 +7038,45 @@ answers — the health formula's category list (six -> seven) and the `HUB_DEGRE
 This also answers **finding #37 item 5** ("grade calibration"), which had proposed a percentile hub
 threshold. A percentile would have kept grading the wrong thing, just less often; the shape, not
 the count, is what separates a helper from a tangle.
+
+## [171] 2026-09-17 — Two files the coupling change had left behind
+
+**Prompt**
+> also dont forget to rephrase other file that relate to this script
+> after that commit and push
+
+**Response**
+Swept for anything still describing the old behaviour rather than trusting turn 170's own list of
+what it had updated: grepped `hub` / `high_coupling` / `HUB_DEGREE` / `coupling` across every
+`.md`, `.html`, `.py` and `.json` outside the append-only logs and the generated `data/`. Most of
+it was already correct -- `CLAUDE.md`, `SKILL.md`, `README.md`, `docs/USAGE.md`, all three
+`ARCHITECTURE_GUIDE` files including the Thai QA bank's `HUB_FAN_IN` / `HUB_FAN_OUT` answer and its
+seven-category health formula. Two were not.
+
+**1. `brief.py` was hiding a graded deduction.** Its smells line prints cycles, orphans, layer
+violations, hubs and god objects -- and the implicit rule behind that list is *the graded
+categories*, because a reader adds them up to account for the grade. `wrong_way_deps` is graded
+(-2 each, capped at 8) and was missing, so a session could open on a brief, see nothing wrong, and
+have no way to explain the points that were gone. Added it, and wrote the rule into a comment so
+the next person knows why `shared_helpers` and `coordinators` are deliberately *not* there: they
+cost nothing, and putting them on a line that means "this is what the grade is made of" would be
+the same category error the whole change was about.
+
+This is the one thing turn 170 genuinely missed rather than just not mentioning: it updated every
+doc that *describes* the feature and overlooked the one script that *reports* it.
+
+**2. `TAXONOMY.md` had no entry for the new fields.** It is the mirror-truth doc for field values
+and its review-pass table already documents `severity`, `rule`, `grade`, `reason`. Added three
+rows: the four coupling section names with which two are graded, `fan_in` / `fan_out` with the note
+that they are counted over `app_edges()` (so test, `renders`, `passes` and `implements` links are
+excluded -- otherwise the numbers look wrong against the explorer), and `instability` with both
+ends of the scale named and the isolated-node case, which is the one value that needs a definition
+rather than a formula.
+
+**Verified:** `compileall`, `check_docs` OK, `check_regressions` 83/83, `check_graph` 34/34 per map,
+`--self-test` 55/55, and the new brief line reads
+`cycles 0, orphans 5, layer violations 0, hubs 0, wrong-way 0, god objects 0`. No artifact moved --
+`git diff` on `data/` is empty, which is the expected result and a small confirmation of CLAUDE.md's
+claim that `brief` only reads what other scripts wrote.
+
+Committed and pushed.

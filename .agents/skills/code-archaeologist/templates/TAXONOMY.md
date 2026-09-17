@@ -101,6 +101,9 @@ Order follows `taxonomy.PRECISION_REASONS`, so the field is deterministic (const
 | `node` | node id or `null` | The graph node owning the flagged line (`null` = module level). |
 | `grade` | `A`, `B`, `C`, `D`, `F` | Health grade for the 0-100 score (`analyze.py`). |
 | `reason` (god objects) | `methods`, `references` | Why the entity was flagged. |
+| coupling sections | `hubs`, `shared_helpers`, `coordinators`, `wrong_way_deps` | The four shapes a single degree count used to fold into one. Only `hubs` and `wrong_way_deps` are **graded**; the other two are reported so they stay visible and cost nothing. |
+| `fan_in` / `fan_out` | integers | Callers and callees over `app_edges()` — test, `renders`, `passes` and `implements` links excluded. |
+| `instability` | `0.00`-`1.00` | Martin's `I = fan_out / (fan_in + fan_out)`. `0` = everything depends on it and it depends on nothing (a shared helper); `1` = it depends on everything and nothing depends on it (a coordinator). An isolated node is `0.0` — it has no direction to measure. |
 | idiom keys | `singleton`, `factory`, `observer`, `react_hook` | Name-based pattern detection. |
 
 ## Test code

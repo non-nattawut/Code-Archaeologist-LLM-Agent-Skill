@@ -172,8 +172,12 @@ def to_text(d: dict) -> str:
     s = d["summary"]
     out += ["", f"{d['focus'].upper()} MAP"]
     if s:
+        # The graded categories, and only those: a reader works out the grade from this
+        # line, so a deduction that is not on it is a grade nobody can account for.
+        # Shared helpers and coordinators are deliberately absent -- they cost no points.
         out.append(f"  smells     cycles {s.get('cycles', 0)}, orphans {s.get('orphans', 0)}, "
                    f"layer violations {s.get('layer_violations', 0)}, hubs {s.get('hubs', 0)}, "
+                   f"wrong-way {s.get('wrong_way_deps', 0)}, "
                    f"god objects {s.get('god_objects', 0)}")
 
     def block(label: str, rows: list[str]) -> None:
