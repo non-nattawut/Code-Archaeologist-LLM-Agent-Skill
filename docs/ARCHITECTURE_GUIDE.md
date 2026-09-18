@@ -1,46 +1,51 @@
-# Code Archaeologist — Complete Architecture & Workflow Guide
+# Code Archaeologist — Complete Architectural, Algorithmic & Scientific Reference Guide
 
-A deterministic, Zero-RAG codebase documentation engine that builds two queryable maps of a target codebase (Structure & Flow), audits them with graph algorithms, and renders a self-contained offline viewer.
+> [!NOTE]
+> 🇹🇭 **คู่มือภาษาไทย (Thai Edition):** สำหรับเอกสารภาษาไทยฉบับสมบูรณ์พร้อมหลักการและสูตรคำนวณทั้งหมด สามารถอ่านได้ที่ [**ARCHITECTURE_GUIDE.th.md**](ARCHITECTURE_GUIDE.th.md) หรือเปิดเวอร์ชันเว็บแบบอินเทอร์แอ็กทิฟที่ [**ARCHITECTURE_GUIDE.th.html**](ARCHITECTURE_GUIDE.th.html)
 
 ---
 
-## 1. Visual Pipeline Architecture & Data Flow
+A deterministic, Zero-RAG codebase documentation and architecture intelligence engine. Code Archaeologist constructs two mathematically rigorous, queryable graph models of a target software system (a **Structure Map** of classes, components, and module namespaces; and an execution-level **Flow Map** of methods, functions, and cross-stack routes), verifies their structural integrity with graph algorithms, computes software health metrics, and compiles an offline, self-contained interactive viewer.
+
+---
+
+## 1. Visual Pipeline Architecture & High-Level Data Flow
+
+The pipeline is partitioned into two strictly separated stages: **Build Phase** (ingests source code, computes ASTs, resolves types, and emits deterministic JSON/Markdown artifacts) and **Query/Review Phase** (traverses graphs, calculates topological graph metrics, and packs context without scanning source files).
 
 ```
 archaeologist.py  project | flow | both | check | report | brief   (Entrypoint)
   project  -> build_wiki -> build_graph ------------------\
   flow     -> build_flow ---------------------------------+--> render_explorer()
-      both extract through: py_extract.py     (Python,        tree-sitter)
-                            js_ts_extract.py  (JS/TS/JSX/TSX, tree-sitter)
-                            langs_extract.py  (14 languages,  tree-sitter)
-            flow also reads: route_tables.py   (Django/Rails/Laravel/Phoenix tables -> handlers)
+       both extract through: py_extract.py     (Python,        tree-sitter)
+                             js_ts_extract.py  (JS/TS/JSX/TSX, tree-sitter)
+                             langs_extract.py  (14 languages,  tree-sitter)
+             flow also reads: route_tables.py   (Django/Rails/Laravel/Phoenix tables -> handlers)
   report   -> report.py (scan_security + git_insights + analyze + metrics + debt + tests_map
                          + duplicates)
                                                                     -> data/report/<map>/
-  brief    -> brief.py (reads computed JSON artifacts, zero computation)
-  check    -> manifest.py (source hashes vs last build; detects staleness)
+  brief    -> brief.py (reads pre-computed JSON artifacts, zero computation)
+  check    -> manifest.py (content-addressed source hashes vs last build; detects drift)
                                                             \-> build_html.py -> data/explorer.html
 ```
 
 ---
 
-## 2. Exact Inter-Script Call Graph & Invocation Hierarchy
-
-### 2.1 Complete Inter-Script Invocation Diagram
+## 2. Complete Inter-Script Invocation Graph
 
 ```mermaid
 flowchart TD
     CLI["scripts/archaeologist.py<br>(CLI Dispatcher)"]
 
     %% Core Subsystems
-    PATHS["scripts/paths.py<br>(Root & sys.path bootstrap)"]
-    CONSOLE["scripts/core/console.py<br>(Safe encoding output)"]
-    IDS["scripts/core/ids.py<br>(SharedNames case-insensitive)"]
-    TAXONOMY["scripts/core/taxonomy.py<br>(Layers, Kinds, Precision)"]
-    GRAMMARS["scripts/core/grammars.py<br>(Tree-sitter runtime & wheels)"]
-    MANIFEST["scripts/core/manifest.py<br>(Source freshness SHA-1)"]
-    DOCTEXT["scripts/core/doc_text.py<br>(One doc-comment rule)"]
-    CALLCTX["scripts/core/call_ctx.py<br>(Where a call is written)"]
+    PATHS["scripts/paths.py<br>(Path Resolver & Bootstrap)"]
+    CONSOLE["scripts/core/console.py<br>(Unicode/CP874 Safe Stream)"]
+    IDS["scripts/core/ids.py<br>(SharedNames Disambiguation)"]
+    TAXONOMY["scripts/core/taxonomy.py<br>(Taxonomy, Layers & Precision)"]
+    GRAMMARS["scripts/core/grammars.py<br>(Tree-Sitter GLR Wheels)"]
+    MANIFEST["scripts/core/manifest.py<br>(Merkle SHA-1 Freshness)"]
+    DOCTEXT["scripts/core/doc_text.py<br>(Universal Docstring Cleaner)"]
+    CALLCTX["scripts/core/call_ctx.py<br>(CFG Call-Site Lattice)"]
 
     %% Extractors
     BW["scripts/extract/build_wiki.py"]
@@ -69,7 +74,7 @@ flowchart TD
     CTX["scripts/query/context.py"]
     SEARCH["scripts/query/search.py"]
 
-    %% Archaeologist Dispatch
+    %% Dispatch
     CLI -->|"run_project() -> build()"| BW
     CLI -->|"run_project() -> build()"| BG
     CLI -->|"run_flow() -> build()"| BF
@@ -87,7 +92,6 @@ flowchart TD
     BW -->|"find_lang_files(), extract_lang_files()"| LANGS
     BW -->|"SharedNames((name, source))"| IDS
     BW -->|"infer_layer(), is_test_path()"| TAXONOMY
-    BG -->|"Reads Markdown vault"| BG
 
     %% Flow Pipeline
     BF -->|"find_py_files(), extract_py_files()"| PX
@@ -97,11 +101,8 @@ flowchart TD
     BF -->|"SharedNames, bare()"| IDS
     BF -->|"infer_layer(), precision_of()"| TAXONOMY
 
-    %% Grammar usages
-    PX -->|"grammars.parser_for('python')"| GRAMMARS
-    JS -->|"grammars.parser_for('javascript'|'typescript'|'tsx')"| GRAMMARS
-    LANGS -->|"grammars.parser_for(lang)"| GRAMMARS
-    ROUTES -->|"grammars.parser_for(lang)"| GRAMMARS
+    %% Grammars
+    PX & JS & LANGS & ROUTES -->|"parser_for(lang)"| GRAMMARS
 
     %% Review Suite Calls
     REP -->|"scan(src, graph_path)"| SEC
@@ -130,241 +131,749 @@ flowchart TD
 
 ---
 
-### 2.2 Caller-to-Callee Cross-Reference Matrix
+## 3. Deep-Dive File Catalog: Algorithms, Mathematics & Theoretical Foundations
 
-| Caller Script | Callee Script | Function / Symbol Invoked | Arguments / Data Passed | Returned Result / Side Effect |
-| :--- | :--- | :--- | :--- | :--- |
-| `scripts/archaeologist.py` | `scripts/extract/build_wiki.py` | `build(src, vault_dir)` | `src` roots list, output vault path | Scans source files, emits Markdown notes to `vault/*.md` |
-| `scripts/archaeologist.py` | `scripts/extract/build_graph.py` | `build(vault_dir, out_dir)` | Vault directory, structure directory | Parses wikilinks & metadata, writes `graph.json` & `registry.json` |
-| `scripts/archaeologist.py` | `scripts/extract/build_flow.py` | `build(src, notes_dir, graph_path)` | `src` roots list, notes dir, graph JSON path | Resolves two-pass calls, writes `notes/*.md` & `flow_graph.json` |
-| `scripts/archaeologist.py` | `scripts/review/report.py` | `build(src, graph_path, out_dir)` | `src` roots, map's graph JSON, output dir | Runs 7 review passes, generates `architecture_report.md` & `.json` |
-| `scripts/archaeologist.py` | `scripts/review/brief.py` | `main(argv)` | CLI args (`--src ...`) | Formats and prints fixed-size token digest of repo state |
-| `scripts/archaeologist.py` | `scripts/core/manifest.py` | `compare(src)` | `src` roots list | Dict of modified/added/deleted files & grammar drift |
-| `scripts/archaeologist.py` | `scripts/core/manifest.py` | `write(src)` | `src` roots list | Computes and saves SHA-1 hashes into `manifest.json` |
-| `scripts/archaeologist.py` | `scripts/query/build_html.py` | `build(sources, out_path)` | Map dict: `{name: (graph, report)}`, output HTML path | Bundles graphs + reports + vendored D3 script into `explorer.html` |
-| `scripts/extract/build_wiki.py` | `scripts/extract/py_extract.py` | `find_py_files()`, `extract_py_files()` | Python source root | Classes with their methods, docstrings, bases and the names the file imports or defines |
-| `scripts/extract/build_wiki.py` | `scripts/extract/js_ts_extract.py` | `find_js_files()`, `extract_js_files()`, `frontend_degraded()` | Source roots | List of class and component definitions with types |
-| `scripts/extract/build_wiki.py` | `scripts/extract/langs_extract.py` | `find_lang_files()`, `extract_lang_files()` | Source roots | List of class/struct/interface and method definitions for 14 langs |
-| `scripts/extract/build_wiki.py` | `scripts/core/ids.py` | `SharedNames((name, source))` | Name/file pairs | Disambiguates duplicate names case-insensitively (`stem/path`) |
-| `scripts/extract/build_wiki.py` | `scripts/core/taxonomy.py` | `infer_layer()`, `is_test_path()`, `container_entry()` | File path, kind, name | Architectural layer assignment (`controller`, `model`, `test`, etc.) |
-| `scripts/extract/build_wiki.py` | `scripts/paths.py` | `long_path()`, `DATA_DIR`, `TEMPLATES_DIR` | File path strings | Prepends `\\?\` past Windows 260-character limit |
-| `scripts/extract/build_flow.py` | `scripts/extract/py_extract.py` | `find_py_files()`, `extract_py_files()` | Python source root | Methods and functions with their routes, ranges and `{name, type}` call sites |
-| `scripts/extract/build_flow.py` | `scripts/extract/js_ts_extract.py` | `find_js_files()`, `extract_js_files()` | Source roots | Frontend methods, route endpoints, Axios/fetch API calls |
-| `scripts/extract/build_flow.py` | `scripts/extract/langs_extract.py` | `find_lang_files()`, `extract_lang_files()` | Source roots, candidate methods, caller arg count | Methods, call sites, and exact overload resolution |
-| `scripts/extract/build_flow.py` | `scripts/extract/route_tables.py` | `read(roots)` | Source roots, table file paths | Routes from Django `urlpatterns`, Rails `routes.rb`, Laravel, Phoenix |
-| `scripts/extract/build_flow.py` | `scripts/core/ids.py` | `SharedNames`, `bare(id)` | Method name/file pairs, qualified node ID | Disambiguates method IDs; strips path qualifier for matching |
-| `scripts/extract/build_flow.py` | `scripts/core/taxonomy.py` | `infer_layer()`, `precision_of()`, `ROUTE_DECORATOR_RE` | Method properties, resolved call dict | Computes named precision loss (`interface-dispatch`, `unresolved`, etc.) |
-| `scripts/extract/apply_descriptions.py` | `scripts/paths.py` | `DATA_DIR` | Path resolution | Merges agent summaries into `data/cache/descriptions.json` |
-| `scripts/extract/py_extract.py` | `scripts/core/grammars.py` | `parser_for("python")` | Grammar identifier | Tree-sitter `Language` instance for Python |
-| `scripts/extract/js_ts_extract.py` | `scripts/core/grammars.py` | `parser_for("javascript" \| "typescript" \| "tsx")` | Grammar identifier | Tree-sitter `Language` instances for frontend |
-| `scripts/extract/langs_extract.py` | `scripts/core/grammars.py` | `parser_for(lang)` | Language identifier | Tree-sitter `Language` instances for Java, Go, Rust, C#, etc. |
-| `scripts/extract/route_tables.py` | `scripts/core/grammars.py` | `parser_for(lang)` | Language identifier | Tree-sitter `Language` instances for backend table parsing |
-| `scripts/review/report.py` | `scripts/review/scan_security.py` | `scan(src, graph_path)` | Source roots, graph path | Security findings mapped to owning AST nodes (`security.json`) |
-| `scripts/review/report.py` | `scripts/review/git_insights.py` | `build(src, graph_path)` | Source roots, graph path | Git churn, author ownership, hotspot risk scores (`insights.json`) |
-| `scripts/review/report.py` | `scripts/review/analyze.py` | `report(graph_path, sec_summary)` | Graph path, security severity counts | Tarjan's SCC cycles, backwards layer calls, coupling split by instability, god objects, health grade |
-| `scripts/review/report.py` | `scripts/review/metrics.py` | `build(src, graph_path, out_file, top_k)` | Source roots, graph path, output JSON | Cyclomatic complexity (McCabe), nesting depth, LOC census |
-| `scripts/review/report.py` | `scripts/review/debt.py` | `build(src, graph_path, out_file)` | Source roots, graph path, output JSON | Comment markers (TODO/FIXME/HACK) and orphan file inventory |
-| `scripts/review/report.py` | `scripts/review/tests_map.py` | `build(src, graph_path, out_file)` | Source roots, graph path, output JSON | Production nodes referenced by test files (`tests.json`) |
-| `scripts/review/report.py` | `scripts/review/duplicates.py` | `build(src, graph_path, out_file)` | Source roots, graph path, output JSON | Cloned bodies (token normalization) and blocks (Winnowing $K=10, W=21$) |
-| `scripts/review/debt.py` | `scripts/review/analyze.py` | `find_orphans(nodes, edges)` | Graph nodes dict, edge list | Identifies uncalled nodes and dead files |
-| `scripts/review/debt.py` | `scripts/review/scan_security.py` | `iter_source_files()`, `owner_of()` | Source roots, line interval ranges | Finds source files and attributes comment markers to AST nodes |
-| `scripts/review/metrics.py` | `scripts/review/scan_security.py` | `iter_source_files(src)` | Source roots | Single shared definition of source file iteration |
-| `scripts/review/metrics.py` | `scripts/core/grammars.py` | `parser_for(lang)` | Language string | Loads Tree-sitter grammar to count decision points |
-| `scripts/review/tests_map.py` | `scripts/review/scan_security.py` | `iter_source_files(src)` | Source roots | Shared source file discovery |
-| `scripts/review/tests_map.py` | `scripts/core/ids.py` | `bare(id)` | Method identifier | Strips path qualification for test name matching |
-| `scripts/review/duplicates.py` | `scripts/review/scan_security.py` | `iter_source_files(src)` | Source roots | Shared source file discovery |
-| `scripts/review/brief.py` | `scripts/core/manifest.py` | `compare(src)` | Recorded source roots | Checks if working tree has diverged from last build |
-| `scripts/query/context.py` | `scripts/query/trace_path.py` | `_changed_files()`, `_nodes_for_files()` | Git diff flags, node sources dict | Maps modified git files back to graph node IDs |
-| `scripts/query/build_html.py` | `scripts/paths.py` | `DATA_DIR`, `TEMPLATES_DIR` | Template file locations | Reads `viewer.html` and `force-graph.min.js` |
+This section documents every file across all subsystems, presenting the exact algorithms, libraries, mathematical formulations, concrete operational mechanics, and historical academic origins.
 
----
-
-### 2.3 Step-by-Step Execution Sequences
-
-#### Flow 1: Build Structure Map (`archaeologist.py project --src <roots>`)
-1. **Entrypoint Dispatch:** `scripts/archaeologist.py:run_project()` is invoked with source directories.
-2. **Extraction (`scripts/extract/build_wiki.py:build()`):**
-   - Discovers source files across all supported languages via `py_extract.find_py_files()`, `js_ts_extract.find_js_files()`, and `langs_extract.find_lang_files()`.
-   - Parses AST/CST trees using pinned Tree-sitter grammars via `scripts/core/grammars.py`.
-   - Disambiguates duplicate class/component names case-insensitively using `scripts/core/ids.py:SharedNames`.
-   - Infers architectural layers (`controller`, `service`, `ui`, `model`) via `scripts/core/taxonomy.py:infer_layer()`.
-   - Emits Markdown notes with Obsidian wikilinks `[[Target]]` into `data/structure/vault/<id>.md`.
-3. **Graph Assembly (`scripts/extract/build_graph.py:build()`):**
-   - Scans all notes in `data/structure/vault/*.md`.
-   - Extracts wikilinks, references, and front-matter metadata.
-   - Deterministically writes `data/structure/graph.json` and `data/structure/registry.json`.
-4. **Explorer Bundling (`scripts/query/build_html.py:build()`):**
-   - Reads `templates/viewer.html` and `templates/vendor/force-graph.min.js`.
-   - Inlines graph JSONs and review reports directly into `data/explorer.html`.
-5. **Manifest Snapshot (`scripts/core/manifest.py:write()`):**
-   - Hashes all source files (SHA-1, truncated to 12 hex chars) and records installed grammar versions into `data/cache/manifest.json`.
-
-#### Flow 2: Build Flow Map (`archaeologist.py flow --src <roots>`)
-1. **Entrypoint Dispatch:** `scripts/archaeologist.py:run_flow()` is invoked.
-2. **Behavior Extraction & Resolution (`scripts/extract/build_flow.py:build()`):**
-   - **Pass 1 (Registration):** Collects all function/method signatures, classes, and receivers across Python, JS/TS, and 15 Tree-sitter languages into `scripts/core/ids.py:SharedNames`.
-   - **External Route Tables:** Reads Django `urls.py`, Rails `routes.rb`, Laravel, and Phoenix route definitions via `scripts/extract/route_tables.py` and attaches them to target handler nodes.
-   - **Pass 2 (Call Resolution):**
-     - Python: Resolves `self.attr.m()`, `param.m()`, and `local.m()` using local AST assignment scopes.
-     - JS/TS: Resolves typed receivers (`new X()`, `this.<field>`, typed parameters).
-     - 14 Languages: Resolves declared receiver types and picks overloaded methods using `scripts/extract/build_flow.py:_pick_overload()`.
-     - Cross-Stack Linking: Binds frontend HTTP calls (`fetch`, `axios.get/post`) to backend route definitions.
-     - Precision & Dropped Tracking: Computes named precision losses via `scripts/core/taxonomy.py:precision_of()`. Unresolved calls matching entities that exist in the graph are preserved in `unresolved` (never guessed as edges).
-     - Docstring & AI Waterfall: Loads docstrings or hash-cached summaries from `data/cache/descriptions.json` (unsummarized nodes written to `data/cache/pending_descriptions.json`).
-   - Writes Markdown notes into `data/flow/notes/<id>.md` and adjacency graph into `data/flow/flow_graph.json`.
-3. **Explorer Bundling & Manifest Snapshot:** Invokes `build_html.build()` and `manifest.write()`.
-
-#### Flow 3: Build Both Maps (`archaeologist.py both --src <roots>`)
-1. Sequentially executes **Flow 1 (`run_project`)** then **Flow 2 (`run_flow`)**.
-2. Renders unified `data/explorer.html` containing both maps selectable via header toggle.
-3. Records all file hashes via `scripts/core/manifest.py:write()`.
-
-#### Flow 4: Architecture Review & Health Audit (`archaeologist.py report --src <roots>`)
-1. **Entrypoint Dispatch:** `scripts/archaeologist.py:run_report()` iterates over all existing graphs (`structure`, `flow`) and calls `scripts/review/report.py:build()`.
-2. **Parallel Sub-Pass Execution:**
-   - `scripts/review/scan_security.py:scan()`: Line-oriented regex scanning for secrets, SQL injections, and dangerous evals; maps lines to owning nodes via AST interval ranges (`owner_of()`).
-   - `scripts/review/git_insights.py:build()`: Streams `git log --numstat` in a single subprocess to compute commit churn, file ownership, and hotspot risk ($\text{risk} = \text{commits} \times (1 + \text{fan\_in} + \text{fan\_out})$).
-   - `scripts/review/analyze.py:report()`: Computes circular dependencies via iterative Tarjan's SCC, backwards layer dependencies, coupling by Martin's instability $I = \text{fan\_out} / (\text{fan\_in} + \text{fan\_out})$ on `app_edges()` -- only hubs (high in both directions) and wrong-way dependencies are graded -- and a capped health score ($0-100 \to \text{A-F}$).
-   - `scripts/review/metrics.py:build()`: Computes McCabe cyclomatic complexity and max nesting depth per node using Tree-sitter CST branch-point tables.
-   - `scripts/review/debt.py:build()`: Scans TODO/FIXME markers and combines with `analyze.find_orphans()` to identify dead nodes and dead files.
-   - `scripts/review/tests_map.py:build()`: Identifies test files via `taxonomy.is_test_path()` and maps test references to production nodes.
-   - `scripts/review/duplicates.py:build()`: Performs token normalization (whole-body clones) and Winnowing ($K=10, W=21$ rolling polynomial hash) to find copied blocks.
-3. **Synthesis & Storage:** Writes `data/report/<map>/architecture_report.md` and `.json`.
-4. **Viewer Refresh:** Calls `build_html.build()` to embed the new review reports into `data/explorer.html`.
-
-#### Flow 5: Staleness Check (`archaeologist.py check [--src <roots>]`)
-1. `scripts/archaeologist.py:main()` calls `scripts/core/manifest.py:compare()`.
-2. Re-scans recorded roots, hashes every source file via SHA-1, and checks Tree-sitter grammar versions via `scripts/core/grammars.py:drift()`.
-3. Emits JSON listing added, modified, deleted files, and grammar drift. Zero graph parsing required.
-
-#### Flow 6: Orientation Brief (`archaeologist.py brief`)
-1. `scripts/archaeologist.py:main()` calls `scripts/review/brief.py:main()`.
-2. Reads pre-computed artifacts (`manifest.json`, `graph.json`, `architecture_report.json`).
-3. Formats and prints a fixed-size token digest (census, health grade, top hotspots, entry points). Zero computation.
-
-#### Flow 7: Agent Zero-RAG Retrieval & Query Flows
-- **Path Tracing & Blast Radius (`scripts/query/trace_path.py`):**
-  - Loads graph JSON into forward adjacency `adj` and reverse adjacency `radj`.
-  - Forward BFS (`bfs_path`): Computes shortest execution sequence from `--from <A>` to `--to <B>`.
-  - Reverse BFS (`blast_radius`): Traverses incoming caller edges to calculate upstream blast radius for `--impact-of <node>` or `--impact-of-diff` (via `git diff`).
-- **Context Packing (`scripts/query/context.py`):**
-  - Gathers node signature, callers, callees, metrics, security findings, and precision loss notes.
-  - Automatically contracts neighbor lists using `NEIGHBOR_CAPS = (12, 6, 3, 1)` to fit strictly within the `--max-chars` token budget.
-- **Node Search (`scripts/query/search.py`):**
-  - Performs multi-parameter conjunctive filtering over `graph.json` without regex-grepping source files.
-- **AI Summary Enrichment (`scripts/extract/apply_descriptions.py`):**
-  - Takes pending method descriptions generated by the LLM and merges them into `data/cache/descriptions.json` indexed by node ID and code SHA-1 hash.
-
----
-
-## 3. Practical Operational Scenarios
-
-### Scenario 1: Codebase Ingestion & Graph Building
-Scans target source roots, parses every file via Tree-sitter, resolves calls against declared receiver types, and writes deterministic graph JSONs and Markdown notes.
-
-```bash
-# Build both structure and flow maps
-python .agents/skills/code-archaeologist/scripts/archaeologist.py both --src ./sample_src
 ```
-
-**Key Artifacts:**
-- `data/structure/graph.json` & `vault/*.md` — Classes, React components, and module groups.
-- `data/flow/flow_graph.json` & `notes/*.md` — Methods, functions, and cross-stack HTTP call edges.
-- `data/explorer.html` — Standalone offline viewer.
-
-### Scenario 2: Zero-RAG Architecture Query & Blast Radius
-AI agents answer architecture and impact questions by querying the graph using BFS and reading only the returned notes, avoiding multi-hundred-thousand token source dumps.
-
-```bash
-# Trace execution path between components
-python .agents/skills/code-archaeologist/scripts/query/trace_path.py \
-  --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json \
-  --from submitOrder --to OrderRepository.save
-
-# Blast radius: all upstream callers affected by modifying a node
-python .agents/skills/code-archaeologist/scripts/query/trace_path.py \
-  --graph .agents/skills/code-archaeologist/data/flow/flow_graph.json \
-  --impact-of OrderRepository.save
-```
-
-### Scenario 3: Code Health & Risk Audit
-Runs 7 analysis passes to compute an A–F health grade, detect circular dependencies, locate copy-pasted blocks, and rank git churn hotspots.
-
-```bash
-# Generate architecture reports
-python .agents/skills/code-archaeologist/scripts/archaeologist.py report --src ./sample_src
-
-# Orientation brief (fixed token size digest)
-python .agents/skills/code-archaeologist/scripts/archaeologist.py brief
+Subsystems:
+  1. Entrypoint & Runtime Bootstrap (scripts/archaeologist.py, scripts/paths.py)
+  2. Core Infrastructure (scripts/core/*)
+  3. AST Extraction Engine (scripts/extract/*)
+  4. Code Review & Graph Intelligence (scripts/review/*)
+  5. Query, Retrieval & Presentation (scripts/query/*)
+  6. Visualization & Client Runtime (templates/viewer.html, bin/cli.js)
 ```
 
 ---
 
-## 4. Directory of All 28 Scripts: Mechanics & Algorithms
+### Group 1: Entrypoint & Runtime Bootstrap
 
-### Core & Bootstrapping
-
-| Script | Role | Technique / Algorithm | Key Invariant |
-| :--- | :--- | :--- | :--- |
-| `scripts/archaeologist.py` | CLI Dispatcher | Subcommand routing (`project`, `flow`, `both`, `check`, `report`, `brief`). | Single entrypoint at `scripts/` root. |
-| `scripts/paths.py` | System Paths | MAX_PATH normalization (`\\?\` prefix) and `sys.path` bootstrap. | Sits below categories; imports nothing from skill. |
-| `scripts/core/ids.py` | ID Generation | **SharedNames:** Groups by `name.lower()` to prevent case collisions on Windows/macOS. Qualifies by stem/path. | Node IDs stay bare unless defined in 2+ files. |
-| `scripts/core/taxonomy.py` | Taxonomy Rules | Defines kinds, layers, skip directories, and `is_test_file()` detection. Computes `precision_of()`. | Single source of truth; never re-implemented inline. |
-| `scripts/core/grammars.py` | Grammar Wheels | Manages pinned Tree-sitter wheels, lazy loading, and `drift()` detection. | Wheels installed on demand into `<skill>/vendor/`. |
-| `scripts/core/manifest.py` | Staleness Check | Computes SHA-1 source and grammar version hashes into `manifest.json`. | Deterministic: no wall-clock timestamps. |
-| `scripts/core/console.py` | Output Encoding | Safe stdout/stderr wrapper protecting non-UTF-8 terminals (e.g. Windows cp874). | Must be called before echoing external repo strings. |
-
-### Extraction Engine (Why 3 Extractor Files?)
-
-The extractors are kept in **three separate files** rather than one monolithic module because the file boundary is the **graceful degradation boundary** required by Constraint 1:
-- `py_extract.py` (Python) — degrades via `python skipped`.
-- `js_ts_extract.py` (JS/TS/JSX/TSX) — degrades via `frontend skipped` (needs both `javascript` and `typescript` grammars).
-- `langs_extract.py` (14 languages: Java, Go, C#, Rust, Kotlin, etc.) — degrades on a per-language basis.
-
-| Script | Role | Technique / Algorithm | Key Invariant |
-| :--- | :--- | :--- | :--- |
-| `scripts/extract/build_wiki.py` | Structure Wiki | Extracts classes, JSX components, and module-level functions into Markdown notes. | JSX functions become `kind: component` / `layer: ui`. |
-| `scripts/core/call_ctx.py` | Call sites | Where a call is written: `site()` walks from a call node up to its definition and returns `line`, plus `loop` / `cond`; `arms` names each either/or branch the call is on one side of (`"line:col/arm"`, outermost first) -- an else-if chain, a ternary chain, a `match`/`when`, a switch without fall-through. `merge()` folds a call's sites (first line, loop if any, branch only if all, the arms every site shares). | Only a body counts -- a `for` iterable runs once, an `if` condition always runs. Node types are named per grammar; an unnamed one reports nothing (a lower bound). Pure; imports nothing. |
-| `scripts/core/doc_text.py` | Doc comments | The one rule for turning a doc comment into a node's `doc`: the block above the declaration, markers stripped, joined to one line (`clean()`, or `join()` for a Python docstring). | Pure string work; imports nothing, so it sits below every producer. |
-| `scripts/extract/build_wiki.py` | Structure Vault | One entity builder for Python and the Java family (`extract_backend_entities`), with the one thing that differs -- what an entity references -- in `_refs_of`; JS/TS keeps `extract_js_entities`, since a specifier names a file. | Python references come from the import list plus same-file names; the Java family's come from stated types plus `class_locator`. |
-| `scripts/extract/build_graph.py` | Structure Graph | Assembles `graph.json` from vault notes and type references. | Edges are references; carry no precision. |
-| `scripts/extract/build_flow.py` | Flow Graph | Two-pass caller resolution per producer (`_analyze_py` + `_py_targets` for Python, `_analyze_lang` for the Java family, `_analyze_js` for JS/TS), overload picking (`_pick_overload`), cross-stack linking, and **`unresolved` dropped-call tracking** (`_record_dropped`, `_split_dropped`). | Lower bound: calls resolved only through declared types. Interface calls stop at `declaration: true`. Dropped calls matching known graph nodes are tracked in `unresolved` (never guessed as edges). |
-| `scripts/extract/py_extract.py` | Python | Classes, functions, routes, imports and `{name, type}` call sites; `_attr_types` builds `self.<attr> -> Class` from `__init__`, and `read_source()` normalizes CRLF so hashes match across OS. | Validated against stdlib `ast` via `check_py_oracle.py`. A receiver the source never types is emitted as `?` and dropped, never guessed. |
-| `scripts/extract/js_ts_extract.py` | JS/TS CST | Multi-grammar parsing (`javascript`, `typescript`, `tsx`), routes, axios/fetch calls. | Emits `{type, name}` calls for typed receivers (`new X()`, `this.<field>`, typed params). |
-| `scripts/extract/langs_extract.py` | 14 Lang Extractor | Table-driven CST extraction via `SPEC` and `SHAPES` tables; handles `OVERLOADING`. | Range starts at first annotation/decorator (`source..end`). |
-| `scripts/extract/route_tables.py` | Route Tables | Parses external routing tables (Django `urlpatterns`, Rails `routes.rb`, Laravel, Phoenix). | Dropped if route matches 0 or >1 target handler. |
-| `scripts/extract/apply_descriptions.py` | Descriptions | Waterfall: 1. Docstring, 2. Hash-cached AI summary (`descriptions.json`), 3. Fallback. | Sole entrypoint for AI text; deterministic at runtime. |
-
-### Review & Code Health
-
-| Script | Role | Technique / Algorithm | Key Invariant |
-| :--- | :--- | :--- | :--- |
-| `scripts/review/analyze.py` | Health & Smells | **Iterative Tarjan's SCC** for cycles, **Martin instability** for coupling, god objects, capped health score. | Coupling runs on `app_edges()` (excludes `layer: test`); a shared helper or coordinator is reported, never graded. |
-| `scripts/review/duplicates.py` | Code Clones | **1. Token Normalization** (ID/LIT) for whole bodies.<br>**2. Winnowing ($K=10, W=21$)** with rolling polynomial hash for blocks. | Deterministic rolling hash mod $(2^{61}-1)$. Skips declarations. |
-| `scripts/review/scan_security.py` | Vulnerability Scan | Line-oriented regex scanning mapped to innermost node range via `owner_of()`. | Module-level findings attributed to file, never preceding function. |
-| `scripts/review/git_insights.py` | Churn & Risk | Streaming `git log --numstat` parser. Computes $\text{risk} = \text{commits} \times (1 + \text{fan\_in} + \text{fan\_out})$. | Single git subprocess call; degrades gracefully if not git repo. |
-| `scripts/review/metrics.py` | Complexity | CST decision-point counter per language table (McCabe cyclomatic complexity & depth). | Keyed by graph node ID by construction across all languages. |
-| `scripts/review/debt.py` | Debt Markers | Heuristic comment scanner for TODO/FIXME/HACK + orphan file detection. | Review prompt only; does not penalize health score. |
-| `scripts/review/tests_map.py` | Test Mapping | Scans test files to map tests to production node names. | Coverage indicator; test nodes tagged `layer: test`. |
-| `scripts/review/report.py` | Report Generator | Aggregates all review passes into markdown and JSON architecture reports. | One report per map; node IDs are never mixed. |
-| `scripts/review/brief.py` | Orientation Brief | Zero-computation digest reading existing JSON artifacts. | Fixed-size output; identical token cost on small and large repos. |
-
-### Query & Visualization
-
-| Script | Role | Technique / Algorithm | Key Invariant |
-| :--- | :--- | :--- | :--- |
-| `scripts/query/trace_path.py` | Path Tracing | **Forward BFS** for shortest path (`--from/--to`), **Reverse BFS** for blast radius (`--impact-of`). | Pure stdlib (no NetworkX); deterministic ordering. |
-| `scripts/query/search.py` | Node Search | Indexed multi-filter query (`--name`, `--doc`, `--layer`, `--calls`, etc.). | Replaces grepping source files to find node IDs. |
-| `scripts/query/context.py` | Context Pack | Packs node facts, callers, callees, metrics, and security into a strict `--max-chars` budget. | Trims under budget; includes precision caveats. |
-| `scripts/query/build_html.py` | HTML Bundler | Inlines graph JSONs, CSS, and vendored `force-graph.js` into single `data/explorer.html`. | Zero network calls; opens directly via `file://`. |
-| `templates/viewer.html` | Frontend UI | Responsive 3-pane desktop app; 7 visualization views; D3 force-graph physics. | Quiet chrome (`#08090b`), test nodes green (`#57ab5a`), no emojis. |
+#### 1. `scripts/archaeologist.py`
+- **Role in Pipeline**: The single user-facing and harness-facing CLI dispatcher. It routes high-level subcommands (`project`, `flow`, `both`, `check`, `report`, `brief`) directly to in-process module functions, preventing subprocess spawning overhead and ensuring unified parameter propagation.
+- **Techniques & Libraries**:
+  - Command Dispatcher / Front Controller Pattern.
+  - Subprocess-free in-memory execution using Python standard library `argparse`.
+- **Algorithms & Mathematical Formulation**:
+  - **Finite State Command Mapping**:
+    $$\text{Dispatch}: \mathcal{C} \times \mathcal{A} \to \mathbb{Z}, \quad \text{where } \mathcal{C} = \{\texttt{project}, \texttt{flow}, \texttt{both}, \texttt{check}, \texttt{report}, \texttt{brief}\}$$
+    Let $\text{Cmd} \in \mathcal{C}$ and arguments $A \in \mathcal{A}$. The dispatcher looks up a deterministic handler function $f_{\text{Cmd}} \in \mathcal{F}$ in an associative dispatch table $\mathcal{T}$:
+    $$f_{\text{Cmd}} = \mathcal{T}[\text{Cmd}], \quad \text{ExitCode} = f_{\text{Cmd}}(A)$$
+- **How It Works**:
+  Inspects `sys.argv[1]`. If omitted or unrecognized, displays concise command help. For `project` or `flow`, normalizes input source roots, invokes `build_wiki.build()` or `build_flow.build()`, triggers `build_html.build()`, and snapshots source hashes via `manifest.write()`. For `report`, iterates through all generated graphs (`structure`, `flow`) and delegates to `report.build()`.
+- **Historical Origin & Inventors**:
+  - **Command Pattern & Front Controller**: Formalized by Erich Gamma, Richard Helm, Ralph Johnson, and John Vlissides (**Gang of Four / GoF**, 1994, *Design Patterns: Elements of Reusable Object-Oriented Software*).
+  - **POSIX CLI Conventions**: IEEE Std 1003.1 (POSIX.1), standardizing flag conventions (`--src`, `--graph`) and exit code statuses ($0 = \text{success}, \ne 0 = \text{error}$).
 
 ---
 
-## 5. Key Architectural Invariants
+#### 2. `scripts/paths.py`
+- **Role in Pipeline**: Central filesystem anchor and path resolution foundation. Initializes `SKILL_ROOT`, `DATA_DIR`, and `TEMPLATES_DIR`, bootstraps `sys.path` to allow uniform bare imports across sibling directories, and provides cross-platform path normalization.
+- **Techniques & Libraries**:
+  - Extended-Length Path Prefixing (`\\?\`).
+  - Python `sys.path` injection and dynamic module resolution.
+- **Algorithms & Mathematical Formulation**:
+  - **Windows Extended-Length Path Mapping**:
+    Standard Windows Win32 APIs restrict file paths to $\text{MAX\_PATH} = 260$ characters. Deeply nested file-qualified node notes (`data/structure/vault/<long_id>.md`) easily violate this limit. The normalization function $\phi(p)$ is defined as:
+    $$\phi(p) = \begin{cases} 
+    \texttt{"\textbackslash\textbackslash?\textbackslash"} + \text{abspath}(p) & \text{if } \text{os.name} = \texttt{"nt"} \land |\text{abspath}(p)| \ge 260 \land \neg \text{abspath}(p).\text{startswith}(\texttt{"\textbackslash\textbackslash"}) \\
+    p & \text{otherwise}
+    \end{cases}$$
+  - **Cross-Volume Drive Relativity (`skill_rel`)**:
+    Given source path $p_s$ on drive $D(p_s)$ and target path $p_t$ on drive $D(p_t)$:
+    $$\text{skill\_rel}(p_s, p_t) = \begin{cases}
+    \text{relpath}(p_s, p_t) & \text{if } D(p_s) = D(p_t) \\
+    \text{abspath}(p_s) & \text{if } D(p_s) \ne D(p_t)
+    \end{cases}$$
+- **How It Works**:
+  Evaluates `__file__` to establish absolute root references. Dynamically appends `scripts/`, `scripts/core/`, `scripts/extract/`, `scripts/review/`, `scripts/query/`, and `vendor/` into `sys.path`. This enables scripts to execute standalone from any working directory while guaranteeing that the vendored `tree-sitter` runtime takes precedence over system-level packages.
+- **Historical Origin & Inventors**:
+  - **Win32 MAX_PATH Limitation**: Originates from Microsoft MS-DOS 2.0 (1983) and early Windows NT architecture designed by **David Cutler** (1993). The `\\?\` prefix bypasses the Win32 subsystem string-parsing layer, routing path buffers directly to the NT Object Manager (supporting up to 32,767 characters).
 
-1. **Deterministic Byte-for-Byte Output:** Given the same source files, every generated graph, note, and report produces identical bytes across runs. No wall-clock timestamps or process-salted hashes.
-2. **Lower-Bound Call Precision:** Call edges are drawn only when the receiver's type is declared in the source. Ambiguous or dynamic dispatch is dropped rather than guessed, and named in `precision`.
-3. **Standalone Offline Explorer:** The HTML viewer inlines all data and JavaScript libraries, ensuring full functionality with network access completely disabled.
-4. **Windows & CP874 Console Safety:** Standard output is guarded by encoding-safe wrappers, preventing crashes from unprintable characters or non-UTF-8 Windows consoles.
-5. **Dropped Calls Keep Their Names (`unresolved`):** Dropped calls are split into true external calls (`ext`) vs calls naming entities that exist in the graph (`unresolved`). The system records them as investigation clues without guessing or inventing false edges (guarded by `check_graph.py` rule `c19` and regression test `r35`).
+---
+
+### Group 2: Core Subsystems (`scripts/core/`)
+
+#### 3. `scripts/core/taxonomy.py`
+- **Role in Pipeline**: The single source of truth for architectural classification: defines allowed `kind` and `layer` values, path exclusion filters (`SKIP_DIRS`), reverse-link semantics, test path heuristics, and calculates named precision losses.
+- **Techniques & Libraries**:
+  - Abstract Algebraic Ordering of Tiers.
+  - Regular Expression Negative Lookahead Word Boundaries.
+  - Multi-Criteria Decision Analysis for Architectural Layers.
+- **Algorithms & Mathematical Formulation**:
+  - **Tiered Architectural Ordering**:
+    The system defines an ordered tier poset $(\mathcal{L}, \le)$:
+    $$\mathcal{L} = \{ \text{ui} < \text{controller} < \text{service} < \text{repository} < \text{model} \}$$
+    A directed call edge $e = (u, v)$ is valid if and only if $L(u) \le L(v)$. An architectural **Layer Violation** occurs when:
+    $$\text{Violation}(u, v) \iff L(u) > L(v) \quad \text{where } L(u), L(v) \in \mathcal{L}$$
+  - **Inverse Edge Traversal for Inheritance / Implementation**:
+    In object-oriented programming, class $C$ implements interface $I$ ($C \xrightarrow{\text{implements}} I$). However, runtime control flow enters through $I$ and dispatches down to $C$. To correctly simulate blast radius and call discovery, the graph walker reverses the edge:
+    $$\mathcal{R}_{\text{reversed}} = \{ \texttt{"implements"}, \texttt{"extends"}, \texttt{"overrides"} \}$$
+    $$\text{direction}(u, v, \text{kind}) = \begin{cases} (v, u) & \text{if } \text{kind} \in \mathcal{R}_{\text{reversed}} \\ (u, v) & \text{otherwise} \end{cases}$$
+  - **Named Precision Loss Vector**:
+    Instead of an uninformative binary approximation flag, precision is modeled as a power set of discrete, named dynamic losses:
+    $$\text{Precision}(u) \subseteq \{ \texttt{"interface-dispatch"}, \texttt{"overloads"}, \texttt{"name-matched"}, \texttt{"unresolved"} \}$$
+- **How It Works**:
+  Contains static lookup dictionaries and regexes. `infer_layer()` inspects decorator annotations (e.g., `@RestController` $\to$ `controller`), path conventions (e.g., `/service/` $\to$ `service`), and class naming tokens. `is_test_path()` identifies test suites via path substrings and framework annotations.
+- **Historical Origin & Inventors**:
+  - **Layered Architecture & Separation of Concerns**: Formulated by **Edsger W. Dijkstra** (1968, *The Structure of the 'THE'-Multiprogramming System*) and **David Parnas** (1972, *On the Criteria To Be Used in Decomposing Systems into Modules*).
+  - **Liskov Substitution Principle (LSP)**: Introduced by **Barbara Liskov** (1987, OOPSLA Keynote), forming the mathematical basis for treating interface implementations as subtype dispatch targets.
+  - **Dependency Inversion Principle**: Formulated by **Robert C. Martin** (1996), dictating that high-level modules should depend on abstractions rather than details.
+
+---
+
+#### 4. `scripts/core/ids.py`
+- **Role in Pipeline**: Generates disambiguated, deterministic node identifiers across both Structure and Flow maps. Ensures node IDs remain short and clean by default, applying path qualifiers only when multiple files define identical names.
+- **Techniques & Libraries**:
+  - Equivalence Class Partitioning.
+  - Case-Insensitive String Normalization.
+- **Algorithms & Mathematical Formulation**:
+  - **Canonical Disambiguation Partitioning (`SharedNames`)**:
+    Let $\mathcal{D} = \{ (n_i, f_i) \}_{i=1}^N$ be the set of all declarations, where $n_i$ is the symbol name and $f_i$ is the relative file path. We partition $\mathcal{D}$ into equivalence classes under case-insensitive name equivalence:
+    $$[(n, f)]_{\sim} = \{ (n', f') \in \mathcal{D} \mid \text{lower}(n') = \text{lower}(n) \}$$
+    The disambiguated identifier function $\text{ID}(n, f)$ is defined as:
+    $$\text{ID}(n, f) = \begin{cases}
+    n & \text{if } |\{ f' \mid (\cdot, f') \in [(n, f)]_{\sim} \}| = 1 \\
+    \text{stem}(f) + \texttt{"."} + n & \text{if } \forall (\cdot, f') \in [(n, f)]_{\sim} \, [f' \ne f \implies \text{stem}(f') \ne \text{stem}(f)] \\
+    \text{norm\_path}(f) + \texttt{"."} + n & \text{otherwise}
+    \end{cases}$$
+- **How It Works**:
+  `SharedNames` scans all definitions across Python, JS/TS, and the other 14 languages before constructing any graph nodes. It indexes definitions by lowercase name in a hash map. When building notes and edges, calling `ids.id(name, file)` outputs the bare name if unique across the entire project; otherwise, it qualifies by filename stem, or by full normalized directory path if stems also collide.
+- **Historical Origin & Inventors**:
+  - **Equivalence Partitioning**: Classical set theory concept applied to identifier resolution; designed to resolve case-preserving but case-insensitive namespace collisions on Windows (NTFS/FAT) and macOS (HFS+/APFS) filesystems.
+
+---
+
+#### 5. `scripts/core/call_ctx.py`
+- **Role in Pipeline**: Extracts call-site execution context directly from concrete parse trees: determines the line number where a call is written, whether it executes inside a loop body, whether it is governed by a conditional branch, and labels mutually exclusive branch arms ($3a$ vs $3b$).
+- **Techniques & Libraries**:
+  - AST / CST Ancestor Invariant Traversal.
+  - Bounded Semilattice Join for Multi-Site Call Merging.
+- **Algorithms & Mathematical Formulation**:
+  - **Upward Ancestor AST Predicate Walk**:
+    Given a call expression node $C$ in CST tree $T$ and the enclosing function definition $F$:
+    $$\text{Ancestors}(C, F) = (P_0 = C, P_1 = \text{parent}(C), \dots, P_k = F)$$
+    A call site is classified as a loop execution if any ancestor is a loop container and the child was entered through a repetitive field:
+    $$\text{is\_loop}(C) \iff \exists i \mid \text{type}(P_i) \in \text{LOOP\_NODES} \land \text{field\_role}(P_{i-1}, P_i) \in \{ \texttt{"body"}, \texttt{"condition"}, \texttt{"update"} \}$$
+    $$\text{is\_cond}(C) \iff \exists i \mid \text{type}(P_i) \in \text{BRANCH\_NODES} \land \text{field\_role}(P_{i-1}, P_i) \in \{ \texttt{"consequence"}, \texttt{"alternative"}, \texttt{"body"} \}$$
+  - **Mutually Exclusive Branch Arm Labeling**:
+    For disjoint arms (e.g., `if` consequence vs `else` block, non-fallthrough `switch`/`match` cases), the algorithm computes an arm coordinate string:
+    $$\text{ArmCoord}(P_i) = \text{line}(P_i) : \text{col}(P_i) / \text{arm\_index}$$
+  - **Multi-Site Semi-Lattice Merge**:
+    When a function invokes the same target at multiple call sites $\{s_1, s_2, \dots, s_m\}$, the merged metadata represents a lower bound:
+    $$\text{line}(s) = \min_{j} \text{line}(s_j)$$
+    $$\text{loop}(s) = \bigvee_{j=1}^m \text{loop}(s_j), \quad \text{cond}(s) = \bigwedge_{j=1}^m \text{cond}(s_j), \quad \text{arms}(s) = \bigcap_{j=1}^m \text{arms}(s_j)$$
+- **How It Works**:
+  `site(call_node, stop_node)` climbs parent pointers until it reaches the function declaration. It queries grammar tables prodding 17 Tree-sitter languages for loop and branch field names. `merge()` folds duplicate invocations, ensuring that line ordering reflects where code was authored while branch arm coordinates allow the explorer to render alternative branch badges ($3a$, $3b$).
+- **Historical Origin & Inventors**:
+  - **Control Flow Analysis (CFA) & Dominance**: Developed by **Frances E. Allen** (1970, *Control Flow Analysis*, ACM SIGPLAN Notices) and **Robert Tarjan** (1974, *Finding Dominators in Directed Graphs*).
+  - **Static Program Slicing**: Introduced by **Mark Weiser** (1981, *Program Slicing*, IEEE Transactions on Software Engineering).
+
+---
+
+#### 6. `scripts/core/doc_text.py`
+- **Role in Pipeline**: Enforces a single universal doc-comment extraction rule across all 17 supported programming languages, stripping comment markers, collapsing multi-line whitespace, and normalizing docstrings to exactly one line.
+- **Techniques & Libraries**:
+  - Regular Text Normalization & Token Stripping.
+  - Syntax-Aware XML / Javadoc Doc-Tag Filtering.
+- **Algorithms & Mathematical Formulation**:
+  - **Contiguous Upward Comment Accumulation**:
+    Let $N$ be a declaration node with line position $L$. Comment nodes $K = \{k_1, k_2, \dots, k_r\}$ are accumulated such that:
+    $$k_r \text{ is immediately above } N, \quad \text{line}(k_{i}) = \text{line}(k_{i-1}) - 1 \quad (\text{blank lines transparent})$$
+  - **Normalization Operator**:
+    Doc text $S$ is stripped of comment delimiters ($\texttt{/**}, \texttt{*/}, \texttt{///}, \texttt{//}, \texttt{\#}, \texttt{*}$), XML tags are stripped if enabled ($\text{clean}(\text{xml}=\text{True})$ for C# and TypeScript), and whitespace runs are collapsed:
+    $$\text{norm}(S) = \text{re.sub}(r\texttt{"\textbackslash s+"}, \texttt{" "}, \text{strip\_markers}(S)).\text{strip}()$$
+- **How It Works**:
+  Exposes `clean(text, xml=False)` for C-family, Go, Rust, and scripting comments, and `join(text)` for Python docstrings. Strips XML tags (`<summary>`, `<param>`) only for C# and TypeScript, preserving generic bracket tokens like `Vec<String>` in Rust or C++.
+- **Historical Origin & Inventors**:
+  - **Regular String Rewriting**: Rooted in formal language theory and semi-Thue string rewriting systems (**Axel Thue**, 1914).
+  - **Documentation Comment Standards**: Pioneered by **James Gosling** and Sun Microsystems (1995, Javadoc specification) and standardized in ECMA-334 (C# XML Documentation Comments, 2001).
+
+---
+
+#### 7. `scripts/core/grammars.py`
+- **Role in Pipeline**: Manages binary `tree-sitter` parser wheels, dynamic library loading, isolated local vendor caching, grammar version pinning, and installation drift detection.
+- **Techniques & Libraries**:
+  - Incremental Concrete Syntax Tree (CST) Parser Generation.
+  - GLR (Generalized LR) Parsing Runtime.
+  - Dynamic C Shared Library Loader (`ctypes` / Python C-API).
+- **Algorithms & Mathematical Formulation**:
+  - **Generalized LR (GLR) Parsing**:
+    Standard deterministic parsers (LR(1), LALR) fail on ambiguous context-free grammars (such as C++ template brackets vs comparisons). Tree-sitter implements GLR parsing: when a grammar conflict (shift-reduce or reduce-reduce) is encountered, the parser splits its execution stack into a Graph-Structured Stack (GSS):
+    $$\text{Stack Split}: S \to \{ S_1, S_2, \dots, S_k \}$$
+    All candidate interpretations are pursued in parallel. Paths that fail lexical or structural invariants die off, while successful paths rejoin.
+  - **Version Drift Metric**:
+    $$\text{drift}(g) \iff \text{installed\_version}(g) \ne \text{PINNED\_VERSION}(g)$$
+- **How It Works**:
+  Defines `PINS` mapping language identifiers to exact binary wheel versions. When `parser_for(lang)` is called, it inspects `<skill>/vendor/` first, followed by system site-packages. If uninstalled, it returns `None`, allowing callers to gracefully degrade without terminating execution. `drift()` warns if a user's machine is running unpinned grammars.
+- **Historical Origin & Inventors**:
+  - **Tree-sitter**: Created by **Max Brunsfeld** (2017) at GitHub.
+  - **Generalized LR (GLR) Algorithm**: Invented by **Bernard Lang** (1974) and generalized for practical parsing by **Masaru Tomita** (1984, *Efficient Parsing for Natural Language*).
+  - **Incremental Parsing**: Pioneered by **Tim A. Wagner and Susan L. Graham** (1998, *Efficient and Flexible Incremental Parsing*, ACM TOPLAS).
+
+---
+
+#### 8. `scripts/core/manifest.py`
+- **Role in Pipeline**: Provides deterministic source-code freshness verification and staleness detection, recording content hashes and installed grammar versions into `data/cache/manifest.json`.
+- **Techniques & Libraries**:
+  - Content-Addressable Cryptographic Digests (SHA-1).
+  - Merkle Tree State Snapshots.
+- **Algorithms & Mathematical Formulation**:
+  - **Truncated SHA-1 Source Digest**:
+    For source file $f$ with normalized bytes $B = \text{read\_source}(f)$:
+    $$H(f) = \text{SHA-1}(B)[:12] \in \{0, \dots, 9, a, \dots, f\}^{12}$$
+  - **State Transition & Staleness Detection**:
+    Let $\mathcal{M}_{\text{cached}}$ be the stored manifest dictionary $\{ f: H(f) \}$ and $\mathcal{M}_{\text{current}}$ be the recomputed dictionary over recorded roots $\mathcal{R}$:
+    $$\text{Added} = \{ f \in \mathcal{M}_{\text{current}} \mid f \notin \mathcal{M}_{\text{cached}} \}$$
+    $$\text{Modified} = \{ f \in \mathcal{M}_{\text{current}} \cap \mathcal{M}_{\text{cached}} \mid \mathcal{M}_{\text{current}}(f) \ne \mathcal{M}_{\text{cached}}(f) \}$$
+    $$\text{Deleted} = \{ f \in \mathcal{M}_{\text{cached}} \mid f \notin \mathcal{M}_{\text{current}} \}$$
+    $$\text{Stale} \iff (\text{Added} \ne \emptyset \lor \text{Modified} \ne \emptyset \lor \text{Deleted} \ne \emptyset \lor \text{Drift} \ne \emptyset)$$
+- **How It Works**:
+  `write(roots)` walks source directories, hashes all matching extensions, captures grammar versions from `grammars.installed()`, and writes JSON without timestamps (ensuring idempotency). `compare(roots)` re-hashes the workspace and returns structured diff lists.
+- **Historical Origin & Inventors**:
+  - **SHA-1 Cryptographic Hash**: Designed by the United States **National Security Agency (NSA)** and published as FIPS PUB 180-1 (1995) by **NIST**, building upon the Merkle-Damgård construction (**Ralph Merkle**, 1979; **Ivan Damgård**, 1989).
+  - **Content-Addressable Storage**: Invented by **Ralph Merkle** (1979, *Secrecy, Authentication, and Public Key Systems*).
+
+---
+
+#### 9. `scripts/core/console.py`
+- **Role in Pipeline**: Safe output stream wrapper that intercepts standard stdout and stderr writes, guaranteeing that logging and node descriptions will not crash on non-UTF-8 terminals (e.g., Windows Thai CP874 or Western CP1252).
+- **Techniques & Libraries**:
+  - Character Encoding Transcoding with Replacement Fallbacks.
+  - Standard I/O Stream Proxying.
+- **Algorithms & Mathematical Formulation**:
+  - **Lossless-Degrading Transcoding Operator**:
+    Let $S$ be a Unicode string and $\mathcal{E}$ be the target console character encoding (e.g., `cp874`, `ascii`, `utf-8`):
+    $$\text{transcode}(S, \mathcal{E}) = S.\text{encode}(\mathcal{E}, \text{errors}=\texttt{"replace"}).\text{decode}(\mathcal{E})$$
+    Characters outside the active code page are deterministically mapped to the substitution character `?` ($0\text{x}3F$) without raising `UnicodeEncodeError`.
+- **How It Works**:
+  Replaces `sys.stdout` and `sys.stderr` text buffers with an encoding-safe stream wrapper if the underlying terminal does not declare native UTF-8 support.
+- **Historical Origin & Inventors**:
+  - **The Unicode Standard**: Created by the **Unicode Consortium** (founded by Joe Becker, Lee Collins, and Mark Davis, 1991).
+  - **Code Page Systems**: Developed by **IBM** (1960s) and adapted by **Microsoft** for MS-DOS and Windows OEM terminal environments.
+
+---
+
+### Group 3: Extraction Engine (`scripts/extract/`)
+
+#### 10. `scripts/extract/build_wiki.py`
+- **Role in Pipeline**: Constructs the **Structure Map** and synthesizes the Obsidian-compatible Markdown documentation vault (`data/structure/vault/*.md`). Captures classes, React components, and module groups, binding their structural references into bidirectional wikilinks.
+- **Techniques & Libraries**:
+  - Unified Backend Entity Builder (`extract_backend_entities`).
+  - Bidirectional Wikilink Graph Compilation.
+- **Algorithms & Mathematical Formulation**:
+  - **Unified Backend Entity Extraction**:
+    Classes and module namespaces across Python and the Java family share a structural isomorphism:
+    $$\text{Entity}(E) = \langle \text{Name}, \text{Kind}, \text{Source}, \text{Range}, \text{Bases}, \text{Decorators}, \text{Doc}, \text{Methods}, \text{References} \rangle$$
+    The only divergence is the reference discovery strategy:
+    $$\text{Refs}_{\text{Python}}(E) = \text{Imports}(E) \cup \text{SameFileNames}(E)$$
+    $$\text{Refs}_{\text{JavaFamily}}(E) = \text{StatedBases}(E) \cup \text{FieldTypes}(E) \cup \text{ParamTypes}(E) \cup \text{TypeRefs}(E)$$
+  - **Wikilink Resolution Operator**:
+    For each reference name $r \in \text{Refs}(E)$:
+    $$\text{Link}(r) = \begin{cases}
+    \texttt{"[["} + \text{Target}(r) + \texttt{"]]"} & \text{if } \text{Target}(r) \in \mathcal{V}_{\text{known}} \\
+    \texttt{"\`"} + r + \texttt{"\`"} & \text{otherwise}
+    \end{cases}$$
+- **How It Works**:
+  Calls `extract_backend_entities(roots, "py")`, `extract_js_entities(roots)`, and `extract_backend_entities(roots, "lang")` in exact collision-precedence order. Resolves node IDs via `SharedNames`. Populates front-matter YAML headers and renders template sections for bases, methods, and cross-references.
+- **Historical Origin & Inventors**:
+  - **Wiki & Hypertext Concepts**: Invented by **Ward Cunningham** (1995, WikiWikiWeb).
+  - **Module Decomposition**: Formulated by **David L. Parnas** (1972, *On the Criteria To Be Used in Decomposing Systems into Modules*).
+
+---
+
+#### 11. `scripts/extract/build_graph.py`
+- **Role in Pipeline**: Reads the Markdown vault generated by `build_wiki.py`, parses Obsidian wikilinks and YAML front-matter, and constructs the structural directed graph (`data/structure/graph.json`) and node registry.
+- **Techniques & Libraries**:
+  - Directed Graph Construction from Structured Text.
+  - In-Degree and Out-Degree Topology Indexing.
+- **Algorithms & Mathematical Formulation**:
+  - **Directed Graph Synthesis**:
+    Constructs graph $G_S = (V_S, E_S)$:
+    $$V_S = \{ \text{note ID for each } f \in \texttt{data/structure/vault/*.md} \}$$
+    $$E_S = \{ (u, v) \mid u \in V_S \land \exists \text{ Wikilink } [[v]] \text{ in note body of } u \}$$
+  - **Node Degree Calculation**:
+    $$\text{Fan-In}(v) = |\{ u \in V_S \mid (u, v) \in E_S \}|, \quad \text{Fan-Out}(u) = |\{ v \in V_S \mid (u, v) \in E_S \}|$$
+- **How It Works**:
+  Iterates over all `.md` files in `data/structure/vault/`, extracts front-matter metadata (kind, layer, source file, line ranges), finds all regex patterns `r"\[\[(.*?)\]\]"`, and writes `graph.json` and `registry.json`.
+- **Historical Origin & Inventors**:
+  - **Graph Theory & Adjacency Representations**: Founded by **Leonhard Euler** (1736, *Seven Bridges of Königsberg*).
+
+---
+
+#### 12. `scripts/extract/build_flow.py`
+- **Role in Pipeline**: The core execution engine for the **Flow Map**. Performs two-pass caller-to-callee resolution, disambiguates method overloads, binds frontend API requests to backend controller routes, and tracks dropped calls.
+- **Techniques & Libraries**:
+  - Two-Pass Symbol Resolution & Class Hierarchy Analysis (CHA).
+  - Multi-Dimensional Overload Matching.
+  - Normalized Route Template Matching.
+- **Algorithms & Mathematical Formulation**:
+  - **Two-Pass Call Graph Construction**:
+    - **Pass 1 (Registration)**: Traverses all ASTs to build universal method symbol table $V_F = \bigcup_{f} \text{defs}(f)$ and registers inheritance relations $C \xrightarrow{\text{implements}} B$.
+    - **Pass 2 (Resolution)**: For each call site $c = (u, \text{name}, \text{recv})$:
+      $$\text{Target}(c) = \begin{cases}
+      \text{local\_names}(u, \text{name}) & \text{if } \text{recv} = \texttt{""} \\
+      \text{method}(\text{recv}, \text{name}) & \text{if } \text{recv} \in \text{Classes}(V_F) \\
+      \text{ancestor\_defining}(\text{recv}, \text{name}) & \text{if } \text{recv} \text{ inherits } \text{name} \\
+      \emptyset & \text{otherwise (dropped)}
+      \end{cases}$$
+  - **Overload Selection Metric (`_pick_overload`)**:
+    Given candidate overloads $\mathcal{O} = \{ m_1, m_2, \dots, m_k \}$ with parameter type tuples $\mathbf{p}(m)$ and invocation argument types $\mathbf{a}$:
+    $$\text{Score}(m) = \sum_{i=1}^{|\mathbf{a}|} \mathbf{1}_{[\mathbf{p}_i(m) = \mathbf{a}_i]}$$
+    $$m^* = \arg\max_{m \in \mathcal{O}, |\mathbf{p}(m)| = |\mathbf{a}|} \text{Score}(m)$$
+    If the maximal score is ambiguous, the call is dropped and tagged with `precision: overloads`.
+  - **Dropped Call Categorization**:
+    $$\text{ext} = \{ c \notin E_F \mid \text{name}(c) \notin V_F \}$$
+    $$\text{unresolved} = \{ c \notin E_F \mid \text{name}(c) \in V_F \}$$
+  - **Cross-Stack Route Binding**:
+    Let frontend call be $(M_f, P_f)$ and backend endpoint be $(M_b, P_b)$. An edge is formed if:
+    $$M_f = M_b \land \text{normalize\_path}(P_f) = \text{normalize\_path}(P_b)$$
+- **How It Works**:
+  Executes `_analyze_py`, `_analyze_js`, and `_analyze_lang`. Attaches external routes from `route_tables.py`. Emits individual method notes to `data/flow/notes/<id>.md` and writes `data/flow/flow_graph.json`.
+- **Historical Origin & Inventors**:
+  - **Call Graph Algorithms**: Developed by **David Grove and Craig Chambers** (2001, *A Call Graph Construction Framework*, ACM TOPLAS).
+  - **Class Hierarchy Analysis (CHA)**: Introduced by **Jeffrey Dean, David Grove, and Craig Chambers** (1995, *Optimization of Object-Oriented Programs Using Static Class Hierarchy Analysis*, ECOOP).
+  - **RESTful API Matching**: Defined by **Roy Fielding** (2000, Ph.D. Dissertation, *Architectural Styles and the Design of Network-based Software Architectures*).
+
+---
+
+#### 13. `scripts/extract/py_extract.py`
+- **Role in Pipeline**: Concrete Syntax Tree extractor for Python source files using the pinned `tree-sitter-python` grammar. Extracts classes, methods, docstrings, routes, and call sites.
+- **Techniques & Libraries**:
+  - Tree-Sitter CST Querying.
+  - Abstract Interpretation for Intra-Procedural Attribute Type Inference.
+  - Universal Newline Normalization.
+- **Algorithms & Mathematical Formulation**:
+  - **Intra-Procedural Attribute Type Inference**:
+    Python classes lack static field type declarations. `_attr_types` infers field types by analyzing `__init__` parameter annotations and constructor instantiations:
+    $$\Gamma(\text{self}.x) = \begin{cases}
+    \tau(p) & \text{if } \text{assignment } \text{self}.x = p \land p \in \text{params}(\texttt{\_\_init\_\_}) \land \text{annotated}(p, \tau) \\
+    C & \text{if } \text{assignment } \text{self}.x = C(\dots) \land C \text{ is capitalized identifier}
+    \end{cases}$$
+  - **Newline Normalization**:
+    To eliminate OS-dependent git CRLF hash deviations:
+    $$\text{norm}(B) = B.\text{replace}(b\texttt{"\textbackslash r\textbackslash n"}, b\texttt{"\textbackslash n"}).\text{replace}(b\texttt{"\textbackslash r"}, b\texttt{"\textbackslash n"})$$
+- **How It Works**:
+  `find_py_files(root)` locates `.py` files. `extract_py_files(paths)` parses files into CSTs, discovers cross-file imported globals, parses decorators for Flask/FastAPI routes, extracts call sites as `{name, type, line, loop, cond, arms}`, and emits normalized dictionaries.
+- **Historical Origin & Inventors**:
+  - **Abstract Interpretation**: Formalized by **Patrick Cousot and Radhia Cousot** (1977, *Abstract Interpretation: A Unified Lattice Model for Static Analysis of Programs by Construction or Approximation of Fixpoints*, ACM POPL).
+
+---
+
+#### 14. `scripts/extract/js_ts_extract.py`
+- **Role in Pipeline**: Concrete Syntax Tree extractor for JavaScript, TypeScript, JSX, and TSX files. Handles ES6 imports, tsconfig path mappings, React components, JSX rendering links, and Express/NestJS route decorators.
+- **Techniques & Libraries**:
+  - Multi-Grammar CST Parsing (`javascript`, `typescript`, `tsx`).
+  - Path Suffix Resolution & Tsconfig Alias Backtracking.
+  - React Component AST Pattern Matching.
+- **Algorithms & Mathematical Formulation**:
+  - **JSX Virtual DOM Component Link Detection**:
+    Identifies JSX element nodes within a render function:
+    $$\text{JSXElement}(N) \implies (\text{EnclosingComponent} \xrightarrow{\text{renders}} \text{ChildName})$$
+  - **Tsconfig Path Alias Resolution**:
+    Given import specifier $S$ and tsconfig alias mapping $\{ \alpha_i \mapsto \beta_i \}$:
+    $$\text{resolve}(S) = \begin{cases}
+    \text{replace}(S, \alpha_i, \beta_i) & \text{if } S \text{ starts with prefix } \alpha_i \\
+    \text{backtrack\_suffix}(S) & \text{otherwise}
+    \end{cases}$$
+- **How It Works**:
+  Pre-scans all JS/TS files to resolve export bindings and axios/fetch client instances. Recognizes functions returning JSX as `kind: component`. Discovers Express router calls (`router.get`, `app.post`) and NestJS decorators (`@Get`, `@Post`).
+- **Historical Origin & Inventors**:
+  - **TypeScript Type System & AST**: Designed by **Anders Hejlsberg** (Microsoft, 2012).
+  - **React JSX & Component Trees**: Invented by **Jordan Walke** (Facebook/Meta, 2013).
+
+---
+
+#### 15. `scripts/extract/langs_extract.py`
+- **Role in Pipeline**: Multi-language table-driven CST extractor supporting 14 languages: Java, Go, C#, Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, and Elixir.
+- **Techniques & Libraries**:
+  - Table-Driven Syntax-Directed Translation.
+  - Canonical `SPEC` & `SHAPES` CST Dispatch Tables.
+  - Object-Oriented Type Resolution via Return Chains (`via`).
+- **Algorithms & Mathematical Formulation**:
+  - **Table-Driven CST Role Mapping**:
+    Instead of implementing 14 separate parsing engines, node types are mapped to abstract semantic roles:
+    $$\text{RoleMap}: \mathcal{L} \times \text{NodeType} \to \{ \texttt{container}, \texttt{method}, \texttt{field}, \texttt{param}, \texttt{comment}, \texttt{call}, \texttt{bases} \}$$
+  - **Chained Call Return Type Resolution (`via`)**:
+    For chained call expressions $o.m_1().m_2()$:
+    $$\tau(o.m_1().m_2()) = \text{return\_type}(m_2 \text{ in class } \tau(m_1 \text{ in class } \tau(o)))$$
+- **How It Works**:
+  `find_lang_files(root)` indexes files by extension. `extract_lang_files(paths)` queries `SPEC` for Java/Go/C# and `SHAPES` for Kotlin, Rust, Swift, etc. Emits structured records containing parameter types, call sites, annotations, and package definitions.
+- **Historical Origin & Inventors**:
+  - **Syntax-Directed Translation**: Formalized by **Alfred V. Aho, Ravi Sethi, and Jeffrey D. Ullman** (1986, *Compilers: Principles, Techniques, and Tools* / "The Dragon Book").
+  - **Formal Object-Oriented Type Systems**: Developed by **Luca Cardelli and Peter Wegner** (1985, *On Understanding Types, Data Abstraction, and Polymorphism*, ACM Computing Surveys).
+
+---
+
+#### 16. `scripts/extract/route_tables.py`
+- **Role in Pipeline**: Static route table extractor for backend frameworks where routes are declared in detached routing tables rather than inline annotations (Django, Ruby on Rails, PHP Laravel, Elixir Phoenix).
+- **Techniques & Libraries**:
+  - Static Routing Table AST Walkers.
+  - Declarative Route Tree Prefix Evaluation.
+- **Algorithms & Mathematical Formulation**:
+  - **Nested Route Prefix Composition**:
+    Let route group $G$ have prefix $P_G$ and inner route $R$ have path $P_R$ and HTTP verb $M$:
+    $$\text{ComposedPath}(G, R) = \text{normalize}(P_G + \texttt{"/"} + P_R)$$
+- **How It Works**:
+  Parses Django `urls.py` (`urlpatterns = [path(...), include(...)]`), Rails `config/routes.rb` (`resources`, `namespace`), Laravel `routes/web.php` (`Route::get`, `prefix()->group`), and Phoenix `router.ex` (`scope`). Emits handler references attached to target nodes during flow building.
+- **Historical Origin & Inventors**:
+  - **Declarative Web Framework Routing**: Pioneered by **David Heinemeier Hansson** (Ruby on Rails, 2004) and **Adrian Holovaty & Simon Willison** (Django, 2005).
+
+---
+
+#### 17. `scripts/extract/apply_descriptions.py`
+- **Role in Pipeline**: Merges AI-generated method summaries into the local hash-indexed cache (`data/cache/descriptions.json`). Ensures zero token waste by guaranteeing that unchanged methods never re-invoke an LLM.
+- **Techniques & Libraries**:
+  - Content-Addressable Memoization.
+  - Three-Stage Fallback Waterfall.
+- **Algorithms & Mathematical Formulation**:
+  - **Content-Addressable Cache Indexing**:
+    $$\text{CacheKey}(u) = (\text{NodeID}(u), \, \text{SHA-1}(\text{code}(u))[:12])$$
+  - **Description Resolution Waterfall**:
+    $$\text{Doc}(u) = \begin{cases}
+    \text{docstring}(u) & \text{if } \text{docstring}(u) \ne \texttt{""} \\
+    \text{Cache}[\text{CacheKey}(u)] & \text{if } \text{CacheKey}(u) \in \text{Cache} \\
+    \text{signature}(u) & \text{otherwise (heuristic fallback)}
+    \end{cases}$$
+- **How It Works**:
+  Reads pending methods awaiting descriptions from `data/cache/pending_descriptions.json`. Once summaries are supplied by an agent, updates `data/cache/descriptions.json` indexed by node ID and code hash.
+- **Historical Origin & Inventors**:
+  - **Memoization**: Coined by **Donald Michie** (1968, *Memo Functions and Machine Learning*, Nature).
+  - **Content-Addressable Storage (CAS)**: Invented by **Ralph Merkle** (1979).
+
+---
+
+### Group 4: Code Review & Graph Intelligence (`scripts/review/`)
+
+#### 18. `scripts/review/analyze.py`
+- **Role in Pipeline**: The core graph analysis engine. Detects circular dependencies via Tarjan's Strongly Connected Components (SCC) algorithm, computes directional coupling using Robert C. Martin's instability metric, identifies architectural layer violations, and computes an overall codebase health grade ($0-100 \to \text{A-F}$).
+- **Techniques & Libraries**:
+  - Strongly Connected Components (Tarjan's DFS Algorithm).
+  - Martin's Package Coupling & Instability Theory.
+  - Deductive Category-Capped Software Quality Scoring.
+- **Algorithms & Mathematical Formulation**:
+  - **Tarjan's Strongly Connected Components (SCC) Algorithm**:
+    Traverses graph $G = (V, E)$ using Depth-First Search. Each node $u$ is assigned discovery index $\text{dfn}(u)$ and low-link value $\text{lowlink}(u)$:
+    $$\text{lowlink}(u) = \min \begin{cases}
+    \text{dfn}(u) \\
+    \text{lowlink}(v) & \text{for each tree edge } (u, v) \\
+    \text{dfn}(v) & \text{for each back edge } (u, v) \text{ where } v \in \text{stack}
+    \end{cases}$$
+    When $\text{lowlink}(u) = \text{dfn}(u)$, $u$ is the root of an SCC. An architectural cycle is an SCC with $|C| > 1$ or a self-loop $(u, u) \in E$.
+    Time Complexity: $\mathcal{O}(|V| + |E|)$.
+  - **Robert C. Martin's Instability Metric**:
+    For node $u$ with afferent couplings $C_a = \text{Fan-In}(u)$ and efferent couplings $C_e = \text{Fan-Out}(u)$:
+    $$I(u) = \frac{C_e}{C_a + C_e} = \frac{\text{Fan-Out}}{\text{Fan-In} + \text{Fan-Out}} \in [0, 1]$$
+    - $I = 0$: Maximally stable (depended upon by many, depends on none).
+    - $I = 1$: Maximally unstable (depends on many, depended upon by none).
+    - **Stable Dependencies Principle (SDP)**: A dependency should point in the direction of stability ($I_{\text{callee}} \le I_{\text{caller}}$).
+    - **Wrong-Way Dependency**:
+      $$\text{WrongWay}(u, v) \iff I(u) < 0.3 \land \text{Fan-In}(u) \ge 5 \land I(v) > 0.7$$
+    - **Tangled Hub**:
+      $$\text{Hub}(u) \iff \text{Fan-In}(u) \ge 5 \land \text{Fan-Out}(u) \ge 5$$
+    - **Shared Helper**: $\text{Fan-In}(u) \ge 10 \land I(u) \le 0.1$ (not deducted).
+    - **Coordinator**: $\text{Fan-Out}(u) \ge 10 \land \text{Fan-In}(u) \le 2$ (not deducted).
+  - **Health Score Formulation**:
+    $$\text{Score} = 100 - (\Delta_{\text{cycles}} + \Delta_{\text{layers}} + \Delta_{\text{hubs}} + \Delta_{\text{wrong\_way}} + \Delta_{\text{god\_objects}} + \Delta_{\text{security}})$$
+    $$\text{Grade} = \begin{cases} \text{A} & \text{Score} \ge 90 \\ \text{B} & 80 \le \text{Score} < 90 \\ \text{C} & 70 \le \text{Score} < 80 \\ \text{D} & 60 \le \text{Score} < 70 \\ \text{F} & \text{Score} < 60 \end{cases}$$
+- **How It Works**:
+  Runs degree checks on `app_edges()` (excluding test nodes and inheritance edges). Ignores shared helpers and coordinators from deductions while penalizing tangled hubs and wrong-way dependencies.
+- **Historical Origin & Inventors**:
+  - **Robert E. Tarjan** (1972, *Depth-First Search and Linear Graph Algorithms*, SIAM Journal on Computing), Turing Award laureate (1986).
+  - **Robert C. Martin ("Uncle Bob")** (1994, *OO Design Quality Metrics: An Analysis of Dependencies*).
+
+---
+
+#### 19. `scripts/review/duplicates.py`
+- **Role in Pipeline**: Code clone detection engine: locates identical function bodies (Type-2 clones) using token normalization and discovers copy-pasted blocks (Type-3 clones) using the Winnowing local fingerprinting algorithm.
+- **Techniques & Libraries**:
+  - Token Normalization (Baxter AST Clone Methodology).
+  - Winnowing Local Fingerprinting Algorithm.
+  - Karp-Rabin Rolling Polynomial Hashing.
+- **Algorithms & Mathematical Formulation**:
+  - **Type-2 Whole-Body Token Normalization**:
+    All identifiers and literal values are mapped to generic sentinel tokens `ID` and `LIT`, preserving keyword operators and grammar punctuation:
+    $$\text{Body} \xrightarrow{\text{tokenize}} \mathbf{T} \xrightarrow{\text{normalize}} \mathbf{T}' \xrightarrow{\text{hash}} \text{MD5}(\mathbf{T}')$$
+  - **Winnowing Algorithm (Schleimer, Wilkerson, Aiken)**:
+    Given normalized token stream $t_1, t_2, \dots, t_N$, compute rolling $K$-gram hashes ($K = 10$):
+    $$h_i = \left( \sum_{j=0}^{K-1} t_{i+j} \cdot b^{K-1-j} \right) \bmod M$$
+    where base $b = 31$ and modulus $M = 2^{61} - 1$ (the Mersenne prime $M_{61}$).
+    In each sliding window of size $W = 21$ consecutive hashes:
+    $$w_i = (h_i, h_{i+1}, \dots, h_{i+W-1})$$
+    Select the minimum hash value $\min(w_i)$ (breaking ties by picking the rightmost minimum).
+    **Guaranteed Detection Threshold**:
+    Any duplicate token sequence of length $L \ge (W + K - 1) = 21 + 10 - 1 = 30$ tokens is mathematically guaranteed to share at least one selected fingerprint hash.
+- **How It Works**:
+  Iterates over source files via `scan_security.iter_source_files()`. Discards comments and strings. Computes whole-body hashes and winnowed block fingerprints, clusters matching hashes, and writes duplicate clusters to `duplicates.json`.
+- **Historical Origin & Inventors**:
+  - **Winnowing Algorithm**: Invented by **Saul Schleimer, Daniel S. Wilkerson, and Alex Aiken** (2003, *Winnowing: Local Algorithms for Document Fingerprinting*, ACM SIGMOD), the core algorithm powering the Stanford MOSS plagiarism detection system.
+  - **Karp-Rabin Rolling Hash**: Formulated by **Richard M. Karp and Michael O. Rabin** (1987, *Efficient Randomized Pattern-Matching Algorithms*, IBM Journal of Research and Development).
+
+---
+
+#### 20. `scripts/review/scan_security.py`
+- **Role in Pipeline**: Static application security testing (SAST) and secret scanner. Scans source code for vulnerabilities and maps findings to owning graph nodes using 1D interval range searching.
+- **Techniques & Libraries**:
+  - SAST Pattern Matching (SQL Injection, Hardcoded Secrets, Insecure Deserialization, Command Injection).
+  - 1D Interval Range Point Enclosure (`owner_of`).
+- **Algorithms & Mathematical Formulation**:
+  - **1D Interval Range Containment (`owner_of`)**:
+    Let finding line be $L$ and the set of graph nodes in file $F$ have intervals $[s_u, e_u]$:
+    $$\text{Candidates}(L) = \{ u \in V_F \mid s_u \le L \le e_u \}$$
+    $$\text{owner}(L) = \begin{cases}
+    \arg\min_{u \in \text{Candidates}(L)} (e_u - s_u) & \text{if } \text{Candidates}(L) \ne \emptyset \\
+    \text{FileNamespace} & \text{otherwise}
+    \end{cases}$$
+  - **Credential Value vs Name Suppressor (`_names_not_holds`)**:
+    Prevents false positives when a variable name merely describes a secret rather than storing one:
+    $$\text{is\_false\_secret}(\text{key}, \text{val}) \iff \text{val} \in \{ \text{key}, \texttt{""} \} \lor \text{val}.\text{startswith}(\texttt{"/"}) \lor \text{re.fullmatch}(r\texttt{"[a-z0-9]+(-[a-z0-9]+)+"},\text{val})$$
+- **How It Works**:
+  Executes regex rules against source files. Binds line numbers to the smallest enclosing AST node via `owner_of()`, so findings attach directly to specific methods rather than floating at the file level.
+- **Historical Origin & Inventors**:
+  - **1D Interval Enclosure / Interval Trees**: Invented by **Herbert Edelsbrunner** (1980, *Dynamic Rectangle Intersection Searching*, Institute for Information Processing Graz).
+  - **Static Security Analysis & Vulnerability Taxonomies**: Standardized by the **MITRE Corporation** (Common Weakness Enumeration / CWE, 2006) and **OWASP** (Top 10 Application Security Risks).
+
+---
+
+#### 21. `scripts/review/git_insights.py`
+- **Role in Pipeline**: Analyzes repository git commit history, computing file churn, author ownership entropy, and compound hotspot risk scores by intersecting git churn with graph topological coupling.
+- **Techniques & Libraries**:
+  - Streaming Subprocess Parsing (`git log --numstat`).
+  - Compound Hotspot Risk Metric.
+- **Algorithms & Mathematical Formulation**:
+  - **Compound Hotspot Risk Formula**:
+    Let $\text{Commits}(u)$ be the commit churn count for the file defining node $u$, and $\text{Degree}(u)$ be its combined coupling in the graph:
+    $$\text{Risk}(u) = \text{Commits}(u) \times (1 + \text{Fan-In}(u) + \text{Fan-Out}(u))$$
+  - **Author Ownership Dominance**:
+    For file $f$ with commit distributions across authors $A = \{ a_1, a_2, \dots \}$:
+    $$\text{PrimaryOwner}(f) = \arg\max_{a \in A} \text{Commits}(a, f)$$
+- **How It Works**:
+  Executes `git log --numstat --pretty=format:COMMIT:%H|%an` in a single streaming subprocess. Aggregates additions, deletions, and commits per file. Merges with graph JSON degrees to rank the top 20 architectural hotspots.
+- **Historical Origin & Inventors**:
+  - **Code Churn as a Defect Predictor**: Demonstrated empirically by **Nachiappan Nagappan and Thomas Ball** (Microsoft Research, 2005, *Use of Relative Code Churn Measures to Predict System Defect Density*, ICSE).
+  - **Behavioral Code Analysis & Hotspot Mining**: Developed by **Adam Tornhill** (2015, *Your Code as a Crime Scene*).
+
+---
+
+#### 22. `scripts/review/metrics.py`
+- **Role in Pipeline**: Computes software sizing and complexity metrics for every graphed class and method across all 17 languages: lines of code (LOC), McCabe cyclomatic complexity, maximum nesting depth, and parameter counts.
+- **Techniques & Libraries**:
+  - Tree-Sitter CST Decision-Point Counting.
+  - McCabe Cyclomatic Complexity Model.
+- **Algorithms & Mathematical Formulation**:
+  - **McCabe Cyclomatic Complexity**:
+    For a program control-flow graph $G = (V, E)$ with $P = 1$ connected component:
+    $$M = E - V + 2P$$
+    Equivalently, computed over concrete syntax tree predicate branch points $\pi$:
+    $$M = \pi + 1$$
+    where $\pi$ counts tokens: `if`, `elif`, `else if`, `for`, `while`, `catch`, `case`, ternary `?`, `&&`, `||`, `and`, `or`.
+  - **Maximum Nesting Depth**:
+    $$\text{Depth}(u) = \max_{n \in \text{CST}(u)} \text{level}(n)$$
+- **How It Works**:
+  Maintains grammar tables (`TABLES`) defining decision and block types per language. For each node, extracts the CST slice matching `source` line ranges, counts decision points, computes nesting depth by tracking block depth, and writes `metrics.json`.
+- **Historical Origin & Inventors**:
+  - **Thomas J. McCabe** (1976, *A Complexity Measure*, IEEE Transactions on Software Engineering).
+  - **Maurice H. Halstead** (1977, *Elements of Software Science*, Elsevier).
+
+---
+
+#### 23. `scripts/review/debt.py`
+- **Role in Pipeline**: Technical debt scanner: aggregates comment debt markers (`TODO`, `FIXME`, `HACK`, `BUG`) and combines with `analyze.find_orphans()` to identify dead nodes and unreferenced files.
+- **Techniques & Libraries**:
+  - Regular Expression Comment Pattern Scanning.
+  - Dead Code Elimination (DCE) Graph Analysis.
+- **Algorithms & Mathematical Formulation**:
+  - **Dead Code / Orphan Predicate**:
+    Let $G = (V, E)$ be the Flow Map. Node $u$ is an Orphan if:
+    $$\text{Orphan}(u) \iff \text{Fan-In}(u) = 0 \land u \notin \text{EntryPoints} \land \text{layer}(u) \ne \texttt{"test"}$$
+- **How It Works**:
+  Scans all source files for debt markers and attributes them to enclosing methods via `owner_of()`. Queries `analyze.find_orphans()` to detect uncalled functions and classes, outputting findings to `debt.json`.
+- **Historical Origin & Inventors**:
+  - **Technical Debt Metaphor**: Coined by **Ward Cunningham** (1992, OOPSLA Experience Report).
+  - **Dead Code Elimination (DCE)**: Formalized by **Frances E. Allen and John Cocke** (1972, *A Catalogue of Optimizing Transformations*).
+
+---
+
+#### 24. `scripts/review/tests_map.py`
+- **Role in Pipeline**: Maps automated test files to the production code symbols they verify, computing test coverage correlation and highlighting untested production methods.
+- **Techniques & Libraries**:
+  - Test File Identification Heuristics.
+  - Cross-File Symbol Mention Correlation.
+- **Algorithms & Mathematical Formulation**:
+  - **Test-to-Production Symbol Mapping**:
+    Given test files $\mathcal{T}$ and production graph nodes $V_P$:
+    $$\text{Tested}(u) \iff \exists t \in \mathcal{T} \mid \text{mentions}(t, \text{bare}(u)) \lor (t \xrightarrow{\text{calls}} u \in E)$$
+- **How It Works**:
+  Discovers test files using `taxonomy.is_test_path()`. Scans test ASTs and bodies for calls or textual references to production node names, recording testing relationships in `tests.json`.
+- **Historical Origin & Inventors**:
+  - **Software Traceability & Test Mapping**: Standardized in IEEE Std 1012 (Standard for System, Software, and Hardware Verification and Validation).
+
+---
+
+#### 25. `scripts/review/report.py`
+- **Role in Pipeline**: The review aggregator: executes all 7 review passes, normalizes findings, computes overall health metrics, and renders comprehensive markdown and JSON architecture reports (`architecture_report.md`).
+- **Techniques & Libraries**:
+  - Quality Model Aggregation & Normalization.
+  - ISO/IEC 25010 Software Quality Measurement.
+- **Algorithms & Mathematical Formulation**:
+  - **Compound Quality Aggregation**:
+    Synthesizes vectors from security, debt, git insights, metrics, and analyze passes into unified quality grade:
+    $$\mathcal{Q} = \langle \text{Grade}, \text{Score}, \text{Smells}, \text{SecuritySummary}, \text{Hotspots}, \text{Duplicates} \rangle$$
+- **How It Works**:
+  Iterates over requested graph paths, invokes `scan_security`, `git_insights`, `analyze`, `metrics`, `debt`, `tests_map`, and `duplicates`. Consolidates outputs into `data/report/<map>/`.
+- **Historical Origin & Inventors**:
+  - **Software Quality Measurement Frameworks**: Formalized in ISO/IEC 25010 (System and Software Quality Models, 2011) and the SQALE methodology (**Jean-Louis Letouzey**, 2012).
+
+---
+
+#### 26. `scripts/review/brief.py`
+- **Role in Pipeline**: Generates a compact, zero-computation repository orientation brief (~35 lines, ~500 tokens) designed for rapid AI agent consumption.
+- **Techniques & Libraries**:
+  - Zero-Computation Artifact Ingestion.
+  - Token-Budget Bounded Formatting.
+- **Algorithms & Mathematical Formulation**:
+  - **Fixed-Cost Digest Function**:
+    $$\text{Brief}: \mathcal{M}_{\text{artifacts}} \to \text{String}_{\le 35 \text{ lines}}$$
+- **How It Works**:
+  Reads pre-computed JSON files (`manifest.json`, `graph.json`, `architecture_report.json`). Formats repository census, health grade, top hotspots, and key entry points. Performs zero parsing or graph traversal at runtime.
+- **Historical Origin & Inventors**:
+  - **LLM Context Optimization**: Engineered to address large context window token economics and prompt saturation in modern agentic pair programming (**Google DeepMind / Anthropic**, 2023).
+
+---
+
+### Group 5: Query, Retrieval & Presentation (`scripts/query/`)
+
+#### 27. `scripts/query/trace_path.py`
+- **Role in Pipeline**: The primary interactive graph query tool. Calculates shortest execution paths between components, computes upstream blast radius, and maps git pull-request diffs to impacted nodes.
+- **Techniques & Libraries**:
+  - Breadth-First Search (BFS) on Directed Graphs.
+  - Transposed Reverse BFS for Blast Radius.
+- **Algorithms & Mathematical Formulation**:
+  - **Breadth-First Search (BFS) Shortest Path**:
+    Given graph $G = (V, E)$, source node $s$, and destination $t$:
+    Initializes queue $Q \leftarrow [s]$, visited set $S \leftarrow \{s\}$, predecessor map $\Pi$.
+    $$\text{Time Complexity}: \mathcal{O}(|V| + |E|)$$
+    Computes shortest path $P = (s, v_1, v_2, \dots, t)$ minimizing edge count.
+  - **Reverse BFS (Blast Radius / Impact Analysis)**:
+    Transposes graph $G^T = (V, E^T)$ where $(u, v) \in E \iff (v, u) \in E^T$. Traverses $G^T$ starting from node $u$:
+    $$\text{BlastRadius}(u) = \{ v \in V \mid v \rightsquigarrow u \text{ in } G \}$$
+  - **Git Diff Impact Set**:
+    $$\text{TotalImpact}(\Delta_{\text{git}}) = \bigcup_{u \in \text{ModifiedNodes}(\Delta_{\text{git}})} \text{BlastRadius}(u)$$
+- **How It Works**:
+  Loads `flow_graph.json` or `graph.json`. `--from/--to` executes forward BFS. `--impact-of` executes reverse BFS. `--impact-of-diff` runs `git diff`, maps modified line numbers to node intervals using `owner_of()`, and computes the union of blast radii.
+- **Historical Origin & Inventors**:
+  - **Breadth-First Search**: Formulated by **Edward F. Moore** (1959, *The Shortest Path Through a Maze*, Proceedings of an International Symposium on the Theory of Switching) and independently by **C. Y. Lee** (1961, *An Algorithm for Path Connections and Its Applications*, IRE Transactions on Electronic Computers).
+
+---
+
+#### 28. `scripts/query/context.py`
+- **Role in Pipeline**: Single-node context pack generator. Gathers all facts about a node (signature, docstring, metrics, security findings, incoming callers, outgoing callees) and packs them into a strict character budget (`--max-chars`).
+- **Techniques & Libraries**:
+  - Greedy Bounded Knapsack Packing.
+  - Dynamic Neighbor List Compression.
+- **Algorithms & Mathematical Formulation**:
+  - **Stepped Bounded Context Compression**:
+    Neighbor arrays are iteratively contracted using stepped capacity vectors:
+    $$\text{CAPS} = (12, 6, 3, 1)$$
+    If length exceeds `--max-chars`, the algorithm steps down neighbor caps and truncates code bodies, guaranteeing output fits strictly within budget.
+- **How It Works**:
+  Loads graph JSON and review reports. Assembles node summary and iteratively applies contraction rules until character count falls below `--max-chars`.
+- **Historical Origin & Inventors**:
+  - **Bounded Knapsack & Greedy Approximations**: Formulated by **George Dantzig** (1957, *Discrete-Variable Extremum Problems*, Operations Research).
+
+---
+
+#### 29. `scripts/query/search.py`
+- **Role in Pipeline**: Multi-attribute graph search utility. Allows agents to locate classes, methods, or endpoints by querying metadata attributes rather than scanning source files.
+- **Techniques & Libraries**:
+  - Multi-Predicate Inverted Index Filtering.
+- **Algorithms & Mathematical Formulation**:
+  - **Conjunctive Boolean Search**:
+    Given query filters $\mathcal{F} = \{ f_1, f_2, \dots, f_k \}$:
+    $$\text{Results} = \{ u \in V \mid \bigwedge_{j=1}^k f_j(u) = \text{True} \}$$
+- **How It Works**:
+  Filters nodes in `graph.json` by flags: `--name`, `--doc`, `--layer`, `--kind`, `--calls`, `--called-by`, and `--orphans`.
+- **Historical Origin & Inventors**:
+  - **Information Retrieval & Boolean Querying**: Pioneered by **Gerard Salton** (1968, *Automatic Information Organization and Retrieval*, McGraw-Hill).
+
+---
+
+#### 30. `scripts/query/build_html.py`
+- **Role in Pipeline**: Standalone offline HTML explorer compiler. Compiles graphs, review reports, and vendored visualization scripts into a single, offline-first HTML file (`data/explorer.html`).
+- **Techniques & Libraries**:
+  - Single-File Web Asset Inlining.
+  - Air-Gapped Zero-Dependency Packaging.
+- **Algorithms & Mathematical Formulation**:
+  - **Data Injection Operator**:
+    $$\text{Bundle}(T, G, R, J) = T.\text{replace}(\texttt{"__GRAPHS__"}, \text{json}(G)).\text{replace}(\texttt{"__REPORTS__"}, \text{json}(R)).\text{replace}(\texttt{"__FORCE\_GRAPH\_JS__"}, J)$$
+- **How It Works**:
+  Reads `templates/viewer.html`, inlines `templates/vendor/force-graph.min.js`, injects graph JSONs and review reports, and writes self-contained `data/explorer.html`.
+- **Historical Origin & Inventors**:
+  - **Single-Page Application (SPA) Architecture**: Formalized in early web specifications and standalone HTML packaging standards.
+
+---
+
+### Group 6: Visualization & Client Runtime
+
+#### 31. `templates/viewer.html`
+- **Role in Pipeline**: The offline browser dashboard (`data/explorer.html`). Provides 7 visualization views (Flowchart, Graph, Treemap, Matrix, Tree, Cluster, Bundle), interactive color overlays, call-order sequence badges ($1, 2, 3a, 3b$), and inspector panels.
+- **Techniques & Libraries**:
+  - Force-Directed Graph Layout Simulation (D3 / Force-Graph).
+  - Velocity Verlet Numerical Integration.
+  - Barnes-Hut $N$-Body Quadtree Simulation.
+  - Topological Execution Rank Layout.
+  - Graham Scan / Monotone Chain Convex Hulls.
+- **Algorithms & Mathematical Formulation**:
+  - **Force-Directed Graph Physics Simulation**:
+    Nodes behave as charged particles repulsive under Coulomb's law; edges behave as springs under Hooke's law:
+    $$\mathbf{F}_i = \sum_{j \ne i} \frac{k_{\text{rep}}^2}{\|\mathbf{r}_i - \mathbf{r}_j\|^2} \frac{\mathbf{r}_i - \mathbf{r}_j}{\|\mathbf{r}_i - \mathbf{r}_j\|} + \sum_{(i, j) \in E} k_{\text{spring}} (\|\mathbf{r}_i - \mathbf{r}_j\| - L_0) \frac{\mathbf{r}_j - \mathbf{r}_i}{\|\mathbf{r}_i - \mathbf{r}_j\|}$$
+  - **Barnes-Hut Quadtree Approximation**:
+    Instead of calculating all $O(N^2)$ pairwise repulsive forces, nodes are partitioned into a quadtree. For a cell of size $s$ and distance $d$ to particle:
+    $$\text{If } \frac{s}{d} < \theta \quad (\theta \approx 0.9), \quad \text{treat cluster as single center of mass}$$
+    Reduces complexity to $\mathcal{O}(N \log N)$.
+  - **Velocity Verlet Integration**:
+    $$\mathbf{r}(t + \Delta t) = \mathbf{r}(t) + \mathbf{v}(t)\Delta t + \frac{1}{2}\mathbf{a}(t)\Delta t^2$$
+    $$\mathbf{v}(t + \Delta t) = \mathbf{v}(t) + \frac{\mathbf{a}(t) + \mathbf{a}(t + \Delta t)}{2}\Delta t$$
+  - **Topological Sequence Layout (Flowchart)**:
+    Computes topological execution ranks using Kahn's algorithm, rendering orthogonal links annotated with authoring sequence badges ($1, 2, 3a, 3b$), conditional diamonds, and loop rings.
+- **How It Works**:
+  Runs completely inside the browser without external network requests. Renders canvas graphics using HTML5 Canvas API and `force-graph.min.js`.
+- **Historical Origin & Inventors**:
+  - **Force-Directed Layouts**: Invented by **Peter Eades** (1984, *A Heuristic for Graph Drawing*, Congressus Numerantium) and refined by **Thomas Fruchterman and Edward Reingold** (1991, *Graph Drawing by Force-Directed Placement*, Software: Practice and Experience).
+  - **Barnes-Hut Algorithm**: Developed by **Josh Barnes and Piet Hut** (1986, *A Hierarchical O(N log N) Force-Calculation Algorithm*, Nature).
+  - **Verlet Integration**: Formulated by **Loup Verlet** (1967, *Computer "Experiments" on Classical Fluids*, Physical Review).
+
+---
+
+#### 32. `bin/cli.js`
+- **Role in Pipeline**: The zero-dependency Node.js distribution and installation CLI. Deployed via `npx github:non-nattawut/Code-Archaeologist-LLM-Agent-Skill`, it installs the skill into agent harness environments (Agents, Claude, Cursor, Windsurf, Zed).
+- **Techniques & Libraries**:
+  - Node.js Filesystem Recursion & Interpreter Path Discovery.
+  - Zero External npm Dependencies.
+- **Algorithms & Mathematical Formulation**:
+  - **Target Directory Mapping**:
+    Given harness selection $H$:
+    $$\text{Dest}(H) = \begin{cases}
+    \texttt{".agents/skills/code-archaeologist"} & \text{if } H = \texttt{"agents"} \\
+    \texttt{".claude/skills/code-archaeologist"} & \text{if } H = \texttt{"claude"} \\
+    \texttt{".cursor/skills/code-archaeologist"} & \text{if } H = \texttt{"cursor"} \\
+    \texttt{".windsurf/skills/code-archaeologist"} & \text{if } H = \texttt{"windsurf"} \\
+    \texttt{".zed/skills/code-archaeologist"} & \text{if } H = \texttt{"zed"}
+    \end{cases}$$
+- **How It Works**:
+  Checks for Python 3.10+, copies scripts and templates, rewrites relative command prefixes, and provisions empty `data/` directories.
+- **Historical Origin & Inventors**:
+  - **Node.js CLI Ecosystem**: Developed by **Ryan Dahl** (2009) and npm (**Isaac Z. Schlueter**, 2010).
+
+---
+
+## 4. Key Architectural & Algorithmic Invariants
+
+1. **100% Deterministic Byte-Identical Output**:
+   Given identical source code, every generated graph JSON, Markdown note, and review report produces identical bytes across runs. No wall-clock timestamps, randomized seeds, or process-salted hashes are permitted.
+2. **Lower-Bound Precision Guarantee**:
+   Call edges are drawn if and only if the receiver's type is declared in source code or inferred through static constructors. Ambiguous dispatch is dropped and explicitly recorded in `precision` rather than guessed.
+3. **True Offline Execution**:
+   The interactive dashboard (`data/explorer.html`) inlines all data, styles, and libraries. It functions completely offline from `file://` with network interfaces disabled.
+4. **Dropped Call Integrity (`unresolved` vs `ext`)**:
+   Dropped calls are partitioned into external library calls (`ext`) vs internal calls whose target exists in the graph (`unresolved`). They are tracked as audit clues and never converted into speculative edges.

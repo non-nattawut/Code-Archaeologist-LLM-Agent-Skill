@@ -240,7 +240,7 @@ The bundled `SKILL.md` instructs your agent to follow a zero-hallucination workf
 
 ### Extraction Architecture
 
-Seventeen languages, one engine. A language is a pinned grammar wheel plus a row of node types, never a new parser. (The full diagram is available in the [Architecture Guide](docs/ARCHITECTURE_GUIDE.md#2-exact-inter-script-call-graph--invocation-hierarchy)):
+Seventeen languages, one engine. A language is a pinned grammar wheel plus a row of node types, never a new parser. (The full diagram is available in the [Architecture Guide](docs/ARCHITECTURE_GUIDE.md#2-exact-inter-script-call-graph--invocation-hierarchy) / [คู่มือสถาปัตยกรรมภาษาไทย](docs/ARCHITECTURE_GUIDE.th.md)):
 
 ```mermaid
 flowchart LR
