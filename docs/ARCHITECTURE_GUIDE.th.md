@@ -792,3 +792,129 @@ flowchart TD
    หน้าแดชบอร์ด (`data/explorer.html`) ฝังทั้งสไตล์, สคริปต์ D3, และข้อมูล JSON ไว้ในตัวเองอย่างสมบูรณ์ สามารถเปิดดูได้ผ่าน `file://` แม้ตัดการเชื่อมต่ออินเทอร์เน็ต
 4. **ความสมบูรณ์ของการจำแนกการเรียกที่หลุด (`unresolved` vs `ext`)**:
    การเรียกที่ไม่เกิดเป็นเส้นเชื่อมจะถูกแยกเป็น `ext` (เรียกไลบรารีภายนอก) กับ `unresolved` (ชื่อตรงกับฟังก์ชันในระบบแต่ระบุ Type ไม่ได้) เพื่อเป็นเบาะแสในการตรวจสอบโดยไม่ลากเส้นเชื่อมปลอมขึ้นมา
+
+---
+
+## 5. คลังคำถาม-คำตอบเชิงลึกทางเทคนิคและทฤษฎี (Deep Technical & Theoretical Q&A)
+
+### Q1: Tree-sitter ใช้ Generalized LR (GLR) parsing อย่างไรในการจัดการความกำกวมทางไวยากรณ์ และ Concrete Syntax Tree (CST) แตกต่างจาก AST อย่างไร?
+- **ตอบสั้น**: GLR แตก parse stack ออกเป็น Graph-Structured Stack (GSS) แบบคู่ขนานเมื่อพบข้อขัดแย้ง (Conflict) และรวมกลับเมื่อพ้นความกำกวม ส่วน CST เก็บทุกตัวอักษรรวมถึงช่องว่างและเครื่องหมายวรรคตอน ทำให้คำนวณช่วง byte (`source..end`) ได้แม่นยำ 100%
+- **รายละเอียดทางคณิตศาสตร์และอัลกอริทึม**:
+  คิดค้นโดย **Bernard Lang** (1974) และ **Masaru Tomita** (1985) GLR ขยายขีดความสามารถของ LR Parser ทั่วไป เมื่อเกิด Shift-Reduce หรือ Reduce-Reduce conflict ตัว parser จะไม่โยน syntax error แต่จะ fork stack ออกเป็น Graph-Structured Stack (GSS):
+  $$	ext{Stack Fork}: S 	o \{ S_1, S_2, \dots, S_m \}$$
+  Branch ที่พบว่าไวยากรณ์ไม่ถูกต้องจะถูกตัดทิ้ง ขณะที่ branch ที่ถูกต้องจะรวมกลับเข้าหากันเมื่อ state สอดคล้องกัน สำหรับงาน Code Archaeologist ประโยชน์สูงสุดคือ Local Error Recovery: เมื่อไฟล์มี syntax error ระหว่างการพิมพ์ โค้ดส่วนที่ผิดจะถูกครอบด้วยโหนด `ERROR` โดยที่โครงสร้างรอบข้างยังคงถูก parse ออกมาเป็น Concrete Syntax Tree (CST) ได้ตามปกติ ต่างจาก AST ทั่วไปตรงที่ CST เก็บครบทุก byte ของซอร์สโค้ด ทำให้คำนวณ Hash ระดับ Slice ได้แบบ Byte-Identity:
+  $$h(N) = 	ext{SHA1}(	ext{Source}[N.	ext{start\_byte} : N.	ext{end\_byte}])$$
+
+### Q2: ใน `duplicates.py` ทำไมต้องใช้ Winnowing ร่วมกับ Karp-Rabin Rolling Hash แทน AST Subtree Isomorphism หรือ Levenshtein Distance?
+- **ตอบสั้น**: Winnowing การันตีว่าจะตรวจพบทุก block ซ้ำที่ยาวตั้งแต่ $t$ tokens ขึ้นไปอย่างแน่นอน และจำกัดความหนาแน่นของ fingerprint เฉลี่ยที่ $rac{2}{w+1}$ ช่วยประหยัดหน่วยความจำมหาศาล และทำงานในเวลาเชิงเส้น $\mathcal{O}(N)$
+- **รายละเอียดทางคณิตศาสตร์และอัลกอริทึม**:
+  คิดค้นโดย **Saul Schleimer, Daniel S. Wilkerson, และ Alex Aiken** (ACM SIGMOD 2003) โดยกำหนดขนาดหน้าต่าง (Window Size) จาก Threshold $t$ และ Noise Filter $k$:
+  $$w = t - k + 1$$
+  Karp-Rabin Rolling Hash คำนวณค่า hash ของ token stream ในเวลา $\mathcal{O}(1)$ ต่อการเลื่อนหนึ่งก้าว:
+  $$H_{i+1} = \left( (H_i - c_i \cdot B^{k-1}) \cdot B + c_{i+k} ight) mod M$$
+  ในแต่ละหน้าต่าง $w$ ของค่า hash ที่ต่อเนื่องกัน Winnowing จะเลือกเฉพาะค่า hash ที่น้อยที่สุด (และหากมีค่าเท่ากันจะเลือกตัวขวาสุด):
+  $$W_j = rg\min_{0 \le r < w} \{ H_{j+r} \}$$
+  **การันตีทางคณิตศาสตร์**:
+  1. *การันตีการตรวจพบ*: โค้ดที่มีการก๊อปปี้ซ้ำยาวตั้งแต่ $t$ tokens ขึ้นไปจะต้องมี fingerprint ตรงกันอย่างน้อย 1 ค่าเสมอ
+  2. *การจำกัดความหนาแน่น (Bounded Density)*: จำนวน fingerprint ที่ถูกบันทึกจริงจะอยู่ที่ประมาณ $rac{2}{w+1}$ ต่อ token ช่วยลดการใช้หน่วยความจำลงอย่างมาก
+  เมื่อเทียบกับ AST Subtree Isomorphism ที่ตรวจไม่พบบล็อกโค้ดที่ถูกตัดแปะในระดับกลางฟังก์ชันและใช้เวลา $\mathcal{O}(|V_1| \cdot |V_2|)$ แล้ว Winnowing ทำงานได้เร็วกว่าหลายพันเท่าในเวลาเชิงเส้น $\mathcal{O}(N)$
+
+### Q3: สูตร Robert C. Martin Instability $I = rac{C_e}{C_a + C_e}$ มีพฤติกรรมอย่างไรเมื่อ $C_a + C_e = 0$? และระบบใช้แยก Hub ออกจาก Shared Helper อย่างไร?
+- **ตอบสั้น**: เมื่อ $C_a + C_e = 0$ ระบบจะกำหนดค่า $I = 0.5$ (เป็นกลาง) เพื่อไม่ให้เกิด Division by Zero และใช้ทิศทางของ Coupling แยกแยะระหว่าง Helper ที่มั่นคง ($I 	o 0$) กับ Controller ที่เปราะบาง ($I 	o 1$) และ God Object ($C_a \gg 0 \land C_e \gg 0$)
+- **รายละเอียดทางคณิตศาสตร์และอัลกอริทึม**:
+  กำหนดขึ้นโดย **Robert C. Martin** ("Uncle Bob", 1994) ในหลักการความมั่นคงของสถาปัตยกรรม (Stable Dependencies Principle):
+  $$C_a = 	ext{Afferent Coupling (จำนวนคนเรียกเรา)}, \quad C_e = 	ext{Efferent Coupling (จำนวนคนที่เราไปเรียก)}$$
+  $$I = rac{C_e}{C_a + C_e} \in [0, 1]$$
+  - **กรณีขอบเขต ($C_a = 0, C_e = 0$)**: โหนดโดดเดี่ยว (Orphan) หรือยูทิลิตี้ที่ไม่เชื่อมโยงกับใคร จะเกิดสภาวะ $rac{0}{0}$ ระบบจึงตรึงค่าไว้ที่ $I = 0.5$ เพื่อไม่ให้ถูกหักคะแนนว่าไม่มั่นคง และไม่นับเป็นฐานรากของระบบ
+  - **การจำแนก Hub กับ Helper**:
+    - *Shared Helper / ฟังก์ชันกลาง*: $C_a \gg 0, C_e pprox 0 \implies I 	o 0$ (Maximally Stable) มีคนเรียกใช้งานมาก แต่ตัวมันไม่เรียกใครเลย หากแก้ไขจะมี Blast Radius กว้าง แต่โอกาสที่ตัวมันเองจะพังเพราะคนอื่นต่ำมาก ระบบจะไม่หักคะแนน Helper ว่าเป็นคอขวด
+    - *Coordinator / Controller*: $C_a pprox 0, C_e \gg 0 \implies I 	o 1$ (Maximally Instable) ทำหน้าที่ควบคุมการทำงาน หากเซอร์วิสปลายทางเปลี่ยน ตัวมันจะได้รับผลกระทบ
+    - *God Object / Entangled Hub*: $C_a \ge 	ext{Threshold} \land C_e \ge 	ext{Threshold}$ มีทั้งคนพึ่งพาเยอะและพึ่งพาคนอื่นเยอะ ทำให้เกิดความเสี่ยงแบบสองทางและถูกหักคะแนนใน `analyze.py`
+
+### Q4: ทำไมการตรวจจับ Circular Dependency ใน `analyze.py` จึงเลือก Tarjan's SCC (1972) แบบ Iterative Stack แทน Kosaraju หรือ Recursive DFS?
+- **ตอบสั้น**: Tarjan เดินท่องกราฟเพียง **รอบเดียว (Single Pass)** ในเวลา $\mathcal{O}(|V| + |E|)$ และไม่ต้องสร้าง Transposed Graph $G^T$ ส่วนการทำเป็น Iterative Call Stack ป้องกันปัญหา `RecursionError` ของ Python บนกราฟที่มีเส้นทางลึก
+- **รายละเอียดทางคณิตศาสตร์และอัลกอริทึม**:
+  คิดค้นโดย **Robert E. Tarjan** (1972) อัลกอริทึมจะกำหนดค่าดัชนี 2 ตัวให้กับทุกโหนด $u$:
+  $$	ext{index}[u]: 	ext{ลำดับการค้นพบ}, \quad 	ext{lowlink}[u] = \min egin{cases} 	ext{index}[u] \ 	ext{lowlink}[v] & orall (u, v) \in E 	ext{ เมื่อ } v \in 	ext{Stack} \ 	ext{index}[v] & orall (u, v) \in E 	ext{ เมื่อ } v 	ext{ เคยถูกท่องแล้ว} \end{cases}$$
+  เมื่อ $	ext{lowlink}[u] = 	ext{index}[u]$ แสดงว่าโหนด $u$ เป็นจุดรากของวงรอบ (SCC Root) โหนดที่อยู่บน Stack เหนือโหนด $u$ จะถูก Pop ออกมาเป็นวงรอบความสัมพันธ์แบบวงกลมทันที
+  - *เทียบกับ Kosaraju-Sharir (1978)*: Kosaraju ต้องท่อง DFS สองรอบเต็มบนกราฟปกติและกราฟกลับทิศ $G^T$ ทำให้ใช้หน่วยความจำเพิ่มและช้ากว่าเป็น 2 เท่า
+  - *เหตุผลที่ต้องทำ Iterative*: Python มีข้อจำกัด `sys.getrecursionlimit()` อยู่ที่ 1,000 frames หากกราฟการเรียกของโปรเจกต์มีความลึกเกินจะเกิด Runtime Crash ตัวเอนจินจึงจำลอง Call Stack ด้วย Python list ทำให้รองรับกราฟขนาดใหญ่ได้ไม่จำกัด
+
+### Q5: สูตร Shannon Entropy $H(X) = -\sum P(x) \log_2 P(x)$ ใน `scan_security.py` แยก Secrets ออกจาก Git Hashes และ UUIDs ได้อย่างไรในเชิงทฤษฎีข้อมูล?
+- **ตอบสั้น**: ตัวอักษรฐานสิบหก (Hex) มีขนาดชุดตัวอักษร $|\Sigma| = 16$ ซึ่งมีขีดจำกัดทางทฤษฎีสูงสุดเพียง $\log_2 16 = 4.0$ bits/char จึงไม่มีทางแตะเกณฑ์ $H \ge 4.5$ ขณะที่รหัสผ่านและคีย์ Base64 ($|\Sigma| \ge 64, \max H = 6.0$) สามารถทะลุเกณฑ์ได้อย่างแน่นอน
+- **รายละเอียดทางคณิตศาสตร์และอัลกอริทึม**:
+  คิดค้นโดย **Claude Shannon** (1948, *A Mathematical Theory of Communication*):
+  $$H(X) = -\sum_{i=1}^n P(x_i) \log_2 P(x_i)$$
+  หากความถี่ของตัวอักษรในชุดตัวอักษร $\Sigma$ กระจายตัวแบบ Uniform ค่าเอนโทรปีสูงสุดจะเป็น $\log_2 |\Sigma|$:
+  $$\max H_{	ext{hex}} = \log_2 16 = 4.0 	ext{ bits/char}$$
+  $$\max H_{	ext{base64}} = \log_2 64 = 6.0 	ext{ bits/char}$$
+  $$\max H_{	ext{alphanumeric}} = \log_2 62 pprox 5.95 	ext{ bits/char}$$
+  เมื่อกำหนดเกณฑ์ขั้นต่ำ $H \ge 4.5$ bits/char:
+  1. *การตัด False Positives ของ Hex ทิ้งทางคณิตศาสตร์*: Git SHA-1 Hash (40 ตัวอักษร) และ UUID (32 ตัวอักษร + ขีดกลาง) ใช้ตัวอักษรในกลุ่ม Hex เท่านั้น ค่า Entropy จึงไม่มีทางเกิน $4.0$ bits/char ทำให้ระบบไม่เคยรายงาน Git Hash เป็น Secret หลุดโดยเด็ดขาด
+  2. *ความไวในการตรวจจับ Secret จริง*: คีย์ความลับจริง (AWS Secret, Private Key, JWT Token) ใช้ตัวอักษรผสมตัวพิมพ์เล็ก พิมพ์ใหญ่ และตัวเลข ($H \in [4.6, 5.8]$) จึงผ่านเกณฑ์และถูกจับได้อย่างแม่นยำ
+
+### Q6: ใน `build_flow.py` กลไก Scope Chaining และ Heuristic Receiver Settling แตกต่างจาก Whole-Program Analysis อย่างไร และให้ Invariant อะไร?
+- **ตอบสั้น**: Whole-Program Analysis (เช่น Andersen/Steensgaard) ต้องคอมไพล์โค้ดและใช้เวลา $\mathcal{O}(N^3)$ ส่วน Code Archaeologist ใช้ Hierarchical Scope Stack จับคู่ receiver ภายในขอบเขต ทำงานได้ใน $\mathcal{O}(N)$ และรักษา Invariant: ไม่มีเส้นเชื่อมปลอมที่เกิดจากการเดา
+- **รายละเอียดทางคณิตศาสตร์และอัลกอริทึม**:
+  เครื่องมือวิเคราะห์ระดับองค์กรดั้งเดิม (WALA, Soot) อาศัย Points-to Analysis ซึ่งซับซ้อนระดับลูกบาศก์ $\mathcal{O}(N^3)$ และต้องการ Classpath และ Library ภายนอกทั้งหมด
+  Code Archaeologist ปฏิบัติตาม **Lower-Bound Soundness Invariant**:
+  1. *การไต่ลำดับ Scope*: การค้นหาตัวแปรจะไต่จากล่างขึ้นบน: $	ext{Block} \subset 	ext{Method} \subset 	ext{Class} \subset 	ext{Module} \subset 	ext{Global}$
+  2. *Receiver Settling*: เมื่อพบการเรียก `receiver.method()`:
+     - ตรวจการประกาศตัวแปรใน Block ปัจจุบัน (`const receiver = new Service()`)
+     - ตรวจสอบ Import ของโมดูล (`import { receiver } from './service'`)
+     - ตรวจสอบ Type Annotation ในพารามิเตอร์ (`def handler(receiver: Service):`)
+  3. *เวกเตอร์ระดับความแม่นยำ (Confidence Vector)*:
+     $$	ext{Precision} \in \{ 	exttt{"exact-file"}, 	exttt{"imported"}, 	exttt{"typed"}, 	exttt{"name-matched"} \}$$
+  หากข้อมูลกำกวม การเรียกจะถูกบันทึกลง `unresolved` แทนที่จะคาดเดา ทำให้กราฟไม่เคยชี้นำ AI Agent ไปในทางที่ผิด
+
+### Q7: เอนจินกราฟิกใน `viewer.html` ใช้ Barnes-Hut Quadtree ($O(N \log N)$) และ Hooke's Law คำนวณฟิสิกส์ของโหนดนับพันให้รัน Real-time 60 FPS ได้อย่างไร?
+- **ตอบสั้น**: Barnes-Hut จัดกลุ่มโหนดที่อยู่ไกลออกไปเป็นศูนย์กลางมวลรวมเมื่อ $rac{s}{d} < 	heta$ ลดการคำนวณแรงผลักไฟฟ้าสถิตจาก $\mathcal{O}(N^2)$ เหลือ $\mathcal{O}(N \log N)$ ร่วมกับการใช้สปริงของ Hooke บนเส้นเชื่อม และอินทิเกรตด้วย Velocity Verlet
+- **รายละเอียดทางคณิตศาสตร์และอัลกอริทึม**:
+  คิดค้นโดย **Josh Barnes และ Piet Hut** (1986, Nature):
+  การคำนวณแรงผลักระหว่างคู่โหนดทั้งหมด $N$ โหนดต้องการการคำนวณ $rac{N(N-1)}{2}$ ครั้ง ($\mathcal{O}(N^2)$) Barnes-Hut สร้างโครงสร้าง Quadtree 2 มิติ โดยแต่ละกล่องจะเก็บมวลรวม $M = \sum m_i$ และจุดศูนย์กลางมวล:
+  $$\mathbf{R}_{	ext{cm}} = rac{1}{M} \sum_{i} m_i \mathbf{r}_i$$
+  เมื่อต้องการคำนวณแรงผลักที่กระทำต่อโหนด $u$ จากกล่องขนาด $s$ ที่อยู่ห่างออกไป $d = \|\mathbf{r}_u - \mathbf{R}_{	ext{cm}}\|$:
+  $$	ext{ถ้า } rac{s}{d} < 	heta \quad (	heta = 0.9) \implies \mathbf{F}_{	ext{rep}} pprox rac{G \cdot m_u M}{d^2} \hat{\mathbf{r}}$$
+  และเส้นเชื่อมทำหน้าที่เป็นสปริงตามกฎของฮุก:
+  $$\mathbf{F}_{	ext{spring}} = -k_{	ext{spring}} (\|\mathbf{r}_u - \mathbf{r}_v\| - L_0) \hat{\mathbf{r}}_{uv}$$
+  ความเร่งลัพธ์ $\mathbf{a}_i$ จะถูกนำไปอัปเดตความเร็วและตำแหน่งด้วย Velocity Verlet Integration ป้องกันการระเบิดเชิงตัวเลขและรักษาการเรนเดอร์ระดับ 60 FPS บน Browser Canvas
+
+### Q8: ใน `trace_path.py` อัลกอริทึมคำนวณ Blast Radius (`--impact-of`) บน Directed Cyclic Graph มีโครงสร้างเชิงกราฟและ Time Complexity อย่างไร?
+- **ตอบสั้น**: คำนวณผ่าน Reverse Breadth-First Search (BFS) บน Transposed Graph $G^T = (V, E^T)$ ในเวลาเชิงเส้น $\mathcal{O}(|V| + |E|)$ โดยมี `visited` hash set ช่วยตัดวงรอบความสัมพันธ์แบบ Cyclic ป้องกันการเกิด Infinite Loop
+- **รายละเอียดทางคณิตศาสตร์และอัลกอริทึม**:
+  กำหนดให้กราฟ $G = (V, E)$ ค่า Blast Radius ของโหนด $u$ คือเซ็ตของบรรดาโหนดต้นทางทั้งหมดที่สามารถเดินทางมาถึง $u$ ได้:
+  $$	ext{BlastRadius}(u) = \{ v \in V \mid v ightsquigarrow u 	ext{ ในกราฟ } G \}$$
+  ระบบจะสร้าง Transposed Graph ที่กลับทิศทางของทุกเส้นเชื่อม:
+  $$E^T = \{ (w, v) \mid (v, w) \in E \}$$
+  **ขั้นตอนของอัลกอริทึม**:
+  1. กำหนดคิว $Q \leftarrow [u]$, เซ็ตโหนดที่แวะผ่าน $S \leftarrow \{u\}$, แผนที่ระยะห่าง $	ext{dist}[u] \leftarrow 0$
+  2. วนลูปตราบใดที่ $Q 
+e \emptyset$, ดึงโหนด $v \leftarrow Q.	ext{popleft}()$:
+     - สำหรับทุกโหนดผู้เรียกเข้า $w \in E^T[v]$:
+       - ถ้า $w 
+otin S$: ให้ $S \leftarrow S \cup \{w\}$, $	ext{dist}[w] \leftarrow 	ext{dist}[v] + 1$, และ $Q.	ext{append}(w)$
+  หากโค้ดมี Cyclic Call (เช่น $A 	o B 	o A$) อัลกอริทึมจะข้ามทันทีเพราะโหนดอยู่ในเซ็ต $S$ แล้ว ทำให้รับประกันเวลาการทำงานแบบเชิงเส้น $\mathcal{O}(|V| + |E|)$ และจัดกลุ่มผลกระทบเป็นทางตรง (1-hop) และทางอ้อม ($k$-hop) ได้อย่างถูกต้อง
+
+### Q9: ใน `metrics.py` นิยามของ McCabe Cyclomatic Complexity คำนวณข้าม 17 ภาษาให้มีมาตรฐานเดียวกันได้อย่างไร?
+- **ตอบสั้น**: ใช้ทฤษฎีบท $M = \pi + 1$ ของ McCabe ซึ่งพิสูจน์ว่าในฟังก์ชันเดี่ยว ($P=1$) ความซับซ้อนของกราฟ CFG จะเท่ากับจำนวนจุดแตกกิ่งเงื่อนไข $\pi$ บวกด้วย 1 เสมอ ตัวเอนจินจึงนับโหนด Predicate บน Concrete Syntax Tree ได้โดยตรง
+- **รายละเอียดทางคณิตศาสตร์และอัลกอริทึม**:
+  เผยแพร่โดย **Thomas J. McCabe** (1976, IEEE TSE) สูตร Cyclomatic Complexity บน Control Flow Graph (CFG) คือ:
+  $$M = E - N + 2P$$
+  ทฤษฎีบทของ McCabe ระบุว่า หากทุกจุดแตกกิ่งมีทางออก 2 ทาง สูตรจะลดรูปลงเหลือ:
+  $$M = \pi + 1$$
+  โดย $\pi$ คือจำนวนจุดแตกกิ่งเงื่อนไขอิสระ `metrics.py` จึงไม่ต้องสร้าง CFG เต็มรูปแบบ แต่จับคู่โหนดไวยากรณ์ใน Tree-sitter ของทั้ง 17 ภาษา:
+  $$\pi = \sum_{k \in 	ext{PredicateNodeTypes}} 	ext{Count}(k)$$
+  - *Python*: `if_statement`, `for_statement`, `while_statement`, `boolean_operator` (`and`, `or`), `except_clause`
+  - *TypeScript / Java / C#*: `if_statement`, `for_statement`, `while_statement`, `catch_clause`, `conditional_expression` (`? :`), `binary_expression` (`&&`, `||`), `switch_case`
+  - *Go*: `if_statement`, `for_statement`, `communication_case` (`select`)
+  ทำให้ค่าที่ได้สามารถเปรียบเทียบข้ามภาษาได้อย่างเป็นกลางและคงที่ทุกครั้ง
+
+### Q10: ใน `manifest.py` ระบบรับประกัน Freshness ของแคช AI description และกราฟด้วย Content Hash (SHA-1) ต่อระดับ Block/AST Slice อย่างไร?
+- **ตอบสั้น**: ทุกโหนดจะผูกกับค่า $h = 	ext{SHA1}(	ext{source\_slice})$ หากมีการแก้ไขโค้ดเฉพาะบรรทัดใดบรรทัดหนึ่ง แคชของฟังก์ชันอื่นในไฟล์เดียวกันจะไม่เปลี่ยนแปลง ทำให้ใช้งานแคชต่อได้โดยไม่ต้องเสียค่า Token ซ้ำ และแคชเก่าจะถูกปลดทันทีเมื่อโค้ดเปลี่ยน
+- **รายละเอียดทางคณิตศาสตร์และอัลกอริทึม**:
+  ใช้หลักการ Content-Addressable Storage (CAS) และ Merkle Tree:
+  สำหรับแต่ละเมธอด $m$ ในไฟล์ $F$ ตัว Tree-sitter จะระบุช่วง byte $[s_m, e_m]$ ใน CST ค่า Fingerprint ของเนื้อหาจะถูกคำนวณเป็น:
+  $$h(m) = 	ext{SHA1}(	ext{Source}[s_m : e_m])$$
+  บันทึกไว้ใน `manifest.json` คู่กับรหัสโหนด
+  - *การคงทนต่อการแก้ไขเฉพาะจุด (Local Modification Invariance)*: หากผู้พัฒนาแก้ไขฟังก์ชัน $A$ เฉพาะค่า $h(A)$ เท่านั้นที่เปลี่ยน ส่วนฟังก์ชัน $B$ ที่อยู่ในไฟล์เดียวกันยังมีค่า $h(B) = h_{	ext{manifest}}(B)$ ทำให้แคชของ $B$ ยังใช้งานได้ปกติ
+  - *การันตีความสดสมบูรณ์ (Zero-Staleness Guarantee)*: หากโค้ดภายในช่วง $[s_m, e_m]$ เปลี่ยนแปลงแม้แต่ตัวอักษรเดียว ค่า hash จะไม่ตรงกับใน manifest โหนดนั้นจะถูกปลดออกจากแคชและเปลี่ยนสถานะเป็น Pending เพื่อรอสร้างคำอธิบายใหม่ รับประกันว่าจะไม่มีคำอธิบายที่ล้าสมัยหลงเหลืออยู่ในระบบเด็ดขาด

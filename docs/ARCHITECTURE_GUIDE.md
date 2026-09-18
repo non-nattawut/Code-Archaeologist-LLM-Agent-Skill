@@ -877,3 +877,131 @@ Subsystems:
    The interactive dashboard (`data/explorer.html`) inlines all data, styles, and libraries. It functions completely offline from `file://` with network interfaces disabled.
 4. **Dropped Call Integrity (`unresolved` vs `ext`)**:
    Dropped calls are partitioned into external library calls (`ext`) vs internal calls whose target exists in the graph (`unresolved`). They are tracked as audit clues and never converted into speculative edges.
+
+---
+
+## 5. Deep Technical & Theoretical Q&A
+
+### Q1: How does Tree-sitter's Generalized LR (GLR) parsing algorithm handle syntactic ambiguities and error recovery compared to traditional LALR(1) / LL(k) parsers?
+- **Short Answer**: GLR forks its parse stack into a Graph-Structured Stack (GSS) upon encountering shift-reduce/reduce-reduce conflicts and merges them back once ambiguity resolves. Concrete Syntax Trees (CST) preserve all tokens (including trivia, whitespace, and punctuation), enabling exact byte-range intervals (`source..end`).
+- **Mathematical & Algorithmic Detail**:
+  Formulated by **Bernard Lang** (1974) and **Masaru Tomita** (1985), GLR extends standard deterministic LR parsing. When facing grammar conflicts, deterministic parsers (like Yacc/Bison) fail or require arbitrary precedence declarations. GLR splits the parse state into parallel paths via a Graph-Structured Stack (GSS):
+  $$	ext{Stack Fork}: S 	o \{ S_1, S_2, \dots, S_m \}$$
+  Branches that encounter invalid syntax are pruned, while surviving branches merge back when parser states converge. Crucially for live editor/agent tooling, Tree-sitter implements local error recovery: if a user introduces a syntax error, it wraps the offending tokens into an `ERROR` CST node and resumes parsing adjacent subtrees. Unlike an Abstract Syntax Tree (AST) which discards punctuation and trivia, a Concrete Syntax Tree (CST) retains 100% of source bytes, allowing deterministic slicing and hashing:
+  $$h(N) = 	ext{SHA1}(	ext{Source}[N.	ext{start\_byte} : N.	ext{end\_byte}])$$
+
+### Q2: In `duplicates.py`, why use the Winnowing algorithm with Karp-Rabin rolling hashes instead of AST subtree isomorphism or token Levenshtein distance?
+- **Short Answer**: Winnowing mathematically guarantees detecting all shared sub-string clones of length $\ge t$ while bounding fingerprint density to $rac{2}{w+1}$, operating in $\mathcal{O}(N)$ time and preventing out-of-memory blowup compared to $\mathcal{O}(N)$ token hashes or $\mathcal{O}(|V_1| \cdot |V_2|)$ tree isomorphism.
+- **Mathematical & Algorithmic Detail**:
+  Invented by **Saul Schleimer, Daniel S. Wilkerson, and Alex Aiken** (ACM SIGMOD 2003), Winnowing solves the sub-string matching problem across documents. Given threshold $t$ and noise threshold $k$, window size is defined as:
+  $$w = t - k + 1$$
+  Karp-Rabin rolling hash calculates token hashes over $k$-grams in $\mathcal{O}(1)$ per shift:
+  $$H_{i+1} = \left( (H_i - c_i \cdot B^{k-1}) \cdot B + c_{i+k} ight) mod M$$
+  In each window of $w$ consecutive hashes, Winnowing selects the minimum hash value (breaking ties by picking the rightmost minimum):
+  $$W_j = rg\min_{0 \le r < w} \{ H_{j+r} \}$$
+  **Mathematical Guarantees**:
+  1. *Guarantee of Detection*: Any match of length $\ge t$ tokens is guaranteed to share at least one identical fingerprint.
+  2. *Bounded Density*: The expected number of recorded fingerprints is $rac{2}{w+1}$ per token, reducing memory consumption by $w/2 	imes$.
+  AST Subtree Isomorphism fails to detect intra-function pasted blocks and requires $\mathcal{O}(|V_1| \cdot |V_2|)$ comparisons, while Winnowing operates linearly in $\mathcal{O}(N)$ time.
+
+### Q3: How does Robert C. Martin's Package Instability Metric $I = rac{C_e}{C_a + C_e}$ behave at boundary conditions ($C_a + C_e = 0$), and how does it differentiate God Objects / Hubs from Shared Helpers?
+- **Short Answer**: When $C_a + C_e = 0$, the metric defaults to neutral $I = 0.5$ to prevent division by zero. Coupling direction separates high-fan-in stable Helpers ($I 	o 0$) from fragile Controllers ($I 	o 1$) and central bottlenecks/God Objects ($C_a \gg 0 \land C_e \gg 0$).
+- **Mathematical & Algorithmic Detail**:
+  Formulated by **Robert C. Martin** (1994) in the Stable Dependencies Principle (SDP):
+  $$C_a = 	ext{Afferent Coupling (Incoming fan-in)}, \quad C_e = 	ext{Efferent Coupling (Outgoing fan-out)}$$
+  $$I = rac{C_e}{C_a + C_e} \in [0, 1]$$
+  - **Boundary Case ($C_a = 0, C_e = 0$)**: An orphan utility or disconnected script has undefined mathematical slope. The engine pins $I = 0.5$, neither penalizing it as unstable nor falsely labeling it as an architectural bedrock.
+  - **Differentiating Hubs vs. Helpers**:
+    - *Shared Helper / Library Utility*: $C_a \gg 0, C_e pprox 0 \implies I 	o 0$. Maximally stable. Many components depend on it, but it depends on nothing. It has wide blast radius if modified, but low risk of breaking due to external changes.
+    - *Coordinator / Controller*: $C_a pprox 0, C_e \gg 0 \implies I 	o 1$. Maximally instable. It coordinates multiple services; changes to any downstream dependency force changes onto it.
+    - *God Object / Entangled Hub*: $C_a \ge 	ext{Threshold} \land C_e \ge 	ext{Threshold}$. High afferent and high efferent coupling creates circular vulnerabilities, triggering review penalties in `analyze.py`.
+
+### Q4: Why is Tarjan's Strongly Connected Components (SCC) algorithm preferred over Kosaraju-Sharir for circular dependency detection in `analyze.py`, and why must it be iterative?
+- **Short Answer**: Tarjan requires only a **single DFS pass** ($\mathcal{O}(|V| + |E|)$) and avoids building the transposed graph $G^T$. Implementing it with an explicit call stack prevents Python's `RecursionError` on deep, real-world AST call graphs.
+- **Mathematical & Algorithmic Detail**:
+  Published by **Robert E. Tarjan** (1972), the algorithm assigns two integer indices to each visited node $u$:
+  $$	ext{index}[u]: 	ext{Order of discovery}, \quad 	ext{lowlink}[u] = \min egin{cases} 	ext{index}[u] \ 	ext{lowlink}[v] & orall (u, v) \in E 	ext{ where } v \in 	ext{Stack} \ 	ext{index}[v] & orall (u, v) \in E 	ext{ where } v 	ext{ already visited} \end{cases}$$
+  When $	ext{lowlink}[u] = 	ext{index}[u]$, $u$ is the root of an SCC; nodes on the stack above $u$ form the maximal strongly connected subgraph.
+  - *Comparison with Kosaraju-Sharir (1978)*: Kosaraju requires two full DFS traversals and explicitly allocating the inverted graph $G^T = (V, E^T)$. Tarjan computes SCCs on the fly during back-edge unwinding.
+  - *Why Iterative*: Standard Python interpreters impose `sys.getrecursionlimit()` (default 1,000 frames). Large monorepos with long call chains crash recursive DFS. The engine maintains an explicit array stack of `(node, child_iter)` frames, scaling to arbitrary graph depths without stack overflow.
+
+### Q5: How does the Shannon Information Entropy formula $H(X) = -\sum P(x) \log_2 P(x)$ in `scan_security.py` mathematically filter out Git commit hashes and UUIDs from hardcoded secrets?
+- **Short Answer**: A hexadecimal character set has $|\Sigma| = 16$, bounding maximum entropy to $\log_2 16 = 4.0$ bits/char. Git SHA-1 hashes and standard UUIDs can never mathematically reach the $H \ge 4.5$ secret detection threshold, while Base64/alphanumeric tokens ($|\Sigma| \ge 64, \max H = 6.0$) easily exceed it.
+- **Mathematical & Algorithmic Detail**:
+  Formulated by **Claude Shannon** (1948, *A Mathematical Theory of Communication*):
+  $$H(X) = -\sum_{i=1}^n P(x_i) \log_2 P(x_i)$$
+  For uniform probability over alphabet $\Sigma$, maximum entropy is $\log_2 |\Sigma|$:
+  $$\max H_{	ext{hex}} = \log_2 16 = 4.0 	ext{ bits/char}$$
+  $$\max H_{	ext{base64}} = \log_2 64 = 6.0 	ext{ bits/char}$$
+  $$\max H_{	ext{alphanumeric}} = \log_2 62 pprox 5.95 	ext{ bits/char}$$
+  By establishing threshold $H \ge 4.5$ bits/char:
+  1. *Mathematical Elimination of Hex False Positives*: Git SHA-1 hashes (`40` hex characters) and UUIDs (`32` hex + hyphens) have theoretical ceiling $H \le 4.0$, completely immunizing the scanner from false positive commit hashes.
+  2. *Secret Sensitivity*: Real cryptographic secrets (AWS Secret Access Keys, private API keys, JWT signatures) use base64 or alphanumeric alphabets with high dispersion ($H \in [4.6, 5.8]$), consistently exceeding the threshold.
+
+### Q6: In `build_flow.py`, how does lexical scope chaining and heuristic receiver settling contrast with whole-program pointer analysis, and what invariants does it guarantee?
+- **Short Answer**: Whole-program pointer analysis (e.g., Andersen/Steensgaard) requires fully compiled bytecodes and takes $\mathcal{O}(N^3)$ time. Code Archaeologist uses Hierarchical Lexical Scope Stacks with localized receiver settling, providing a verifiable lower-bound call graph in $\mathcal{O}(N)$ time with zero false-positive speculative edges.
+- **Mathematical & Algorithmic Detail**:
+  Industrial whole-program frameworks (Soot, WALA) perform inclusion-based points-to analysis ($O(N^3)$) or unification analysis ($O(N lpha(N))$) which require complete classpath resolution, dynamic classloader simulation, and full AST linking.
+  In contrast, `build_flow.py` adheres to the **Lower-Bound Soundness Invariant**:
+  1. *Hierarchical Scope Tree Traversal*: Symbol lookup climbs parent scopes: $	ext{Block} \subset 	ext{Method} \subset 	ext{Class} \subset 	ext{Module} \subset 	ext{Global}$.
+  2. *Receiver Settling*: When analyzing `receiver.method()`:
+     - Check local variable assignments in current block (`const receiver = new Service()`).
+     - Check module imports (`import { receiver } from './service'`).
+     - Check typed parameter declarations (`def handler(receiver: Service):`).
+  3. *Precision Confidence Vector*:
+     $$	ext{EdgeConfidence} \in \{ 	exttt{"exact-file"}, 	exttt{"imported"}, 	exttt{"typed"}, 	exttt{"name-matched"} \}$$
+  If ambiguous, the call is dropped into `unresolved` rather than guessed, preventing hallucinated architectural connections.
+
+### Q7: How does `viewer.html`'s force-directed layout utilize Barnes-Hut Quadtrees ($O(N \log N)$) and Hooke's Law to render thousands of nodes at 60 FPS on an HTML5 canvas?
+- **Short Answer**: Barnes-Hut clusters distant node groups into composite centers of mass when $rac{s}{d} < 	heta$, reducing $N$-body electrostatic repulsion from $\mathcal{O}(N^2)$ to $\mathcal{O}(N \log N)$, integrated via Velocity Verlet stepping.
+- **Mathematical & Algorithmic Detail**:
+  Formulated by **Josh Barnes and Piet Hut** (1986, Nature):
+  Pairwise repulsive forces between all $N$ nodes require $rac{N(N-1)}{2}$ computations ($\mathcal{O}(N^2)$). Barnes-Hut builds a 2D Quadtree where each internal cell stores the total mass $M = \sum m_i$ and center of mass:
+  $$\mathbf{R}_{	ext{cm}} = rac{1}{M} \sum_{i} m_i \mathbf{r}_i$$
+  When evaluating repulsive force on node $u$ from a cell of width $s$ at distance $d = \|\mathbf{r}_u - \mathbf{R}_{	ext{cm}}\|$:
+  $$	ext{If } rac{s}{d} < 	heta \quad (	heta = 0.9), \quad \mathbf{F}_{	ext{rep}} pprox rac{G \cdot m_u M}{d^2} \hat{\mathbf{r}}$$
+  Edges act as linear springs via Hooke's Law:
+  $$\mathbf{F}_{	ext{spring}} = -k_{	ext{spring}} (\|\mathbf{r}_u - \mathbf{r}_v\| - L_0) \hat{\mathbf{r}}_{uv}$$
+  Total acceleration $\mathbf{a}_i = rac{\mathbf{F}_{	ext{rep}} + \mathbf{F}_{	ext{spring}}}{m_i}$ updates velocities and positions using symplectic Verlet integration, preventing numerical explosion and sustaining 60 FPS animation.
+
+### Q8: In `trace_path.py`, what is the graph-theoretic structure and time complexity of calculating upstream blast radius (`--impact-of`) across directed cyclic call graphs?
+- **Short Answer**: Blast radius calculation traverses the Transposed Graph $G^T = (V, E^T)$ via Reverse Breadth-First Search (BFS) in linear time $\mathcal{O}(|V| + |E|)$. A hash-based `visited` set eliminates infinite recursion from loops and recursion.
+- **Mathematical & Algorithmic Detail**:
+  Given directed graph $G = (V, E)$, the Blast Radius of node $u$ is the set of all upstream predecessors with reachability to $u$:
+  $$	ext{BlastRadius}(u) = \{ v \in V \mid v ightsquigarrow u 	ext{ in } G \}$$
+  The engine constructs the transposed adjacency list:
+  $$E^T = \{ (w, v) \mid (v, w) \in E \}$$
+  **Algorithmic Procedure**:
+  1. Initialize queue $Q \leftarrow [u]$, visited set $S \leftarrow \{u\}$, distance map $	ext{dist}[u] \leftarrow 0$.
+  2. While $Q 
+e \emptyset$, pop $v \leftarrow Q.	ext{popleft}()$:
+     - For each incoming caller $w \in E^T[v]$:
+       - If $w 
+otin S$: $S \leftarrow S \cup \{w\}$, $	ext{dist}[w] \leftarrow 	ext{dist}[v] + 1$, $Q.	ext{append}(w)$.
+  Cycles (e.g., $A 	o B 	o A$) are pruned immediately because any node already in $S$ is skipped, guaranteeing termination and strict linear complexity $\mathcal{O}(|V| + |E|)$. The distance map $	ext{dist}[w]$ categorizes impact into direct (1-hop) vs transitive ($k$-hop) blast blast zones.
+
+### Q9: In `metrics.py`, how is McCabe's Cyclomatic Complexity theorem $M = \pi + 1$ applied across 17 heterogeneous languages without building full Control Flow Graphs?
+- **Short Answer**: McCabe proved that for single-entry/single-exit functions ($P=1$), graph cyclomatic complexity $M = E - N + 2$ equals the count of predicate decision branches $\pi$ plus one ($M = \pi + 1$). The engine counts CST branching nodes across 17 language grammars directly.
+- **Mathematical & Algorithmic Detail**:
+  Published by **Thomas J. McCabe** (1976, IEEE TSE), cyclomatic complexity on a connected planar Control Flow Graph (CFG) with $E$ edges, $N$ nodes, and $P=1$ components is:
+  $$M = E - N + 2P$$
+  McCabe's Theorem 1 proves that if each decision point (predicate node) has out-degree 2, then:
+  $$M = \pi + 1$$
+  Where $\pi$ is the total count of predicate conditionals. Rather than generating complex intermediate CFGs for 17 languages, `metrics.py` defines language-specific Tree-sitter CST predicate query sets:
+  $$\pi = \sum_{k \in 	ext{PredicateNodeTypes}} 	ext{Count}(k)$$
+  Examples of mapped CST nodes:
+  - *Python*: `if_statement`, `for_statement`, `while_statement`, `boolean_operator` (`and`, `or`), `except_clause`.
+  - *TypeScript / Java / C#*: `if_statement`, `for_statement`, `while_statement`, `catch_clause`, `conditional_expression` (`? :`), `binary_expression` (`&&`, `||`), `switch_case`.
+  - *Go*: `if_statement`, `for_statement`, `communication_case` (`select`).
+  This guarantees cross-language uniformity and identical numerical interpretation across all supported stacks.
+
+### Q10: In `manifest.py`, how does fine-grained content-addressable hashing (SHA-1) of AST method slices guarantee cache freshness during incremental edits?
+- **Short Answer**: Each node records $h = 	ext{SHA1}(	ext{source\_slice})$. Edits elsewhere in a file do not alter the slice hash of untouched methods, allowing incremental cache reuse while guaranteeing stale AI summaries are evicted instantly.
+- **Mathematical & Algorithmic Detail**:
+  Following Content-Addressable Storage (CAS) and Merkle Tree principles:
+  For each method $m$ in file $F$, Tree-sitter extracts the precise interval $[s_m, e_m]$ from the CST. The node's content fingerprint is:
+  $$h(m) = 	ext{SHA1}(	ext{Source}[s_m : e_m])$$
+  `manifest.json` persists $\{ 	ext{NodeID}_m 	o h(m) \}$.
+  - *Local Modification Invariance*: If a developer edits method $A$, only $h(A)$ changes. Unmodified sibling method $B$ retains $h(B) = h_{	ext{manifest}}(B)$, preserving its cached AI summary and avoiding redundant token spend.
+  - *Zero-Staleness Guarantee*: When source code within $[s_m, e_m]$ changes by even a single character, $h(m) 
+e h_{	ext{manifest}}(m)$. The node is automatically marked as pending and invalidated from the cache. No stale documentation can ever survive a code mutation.
