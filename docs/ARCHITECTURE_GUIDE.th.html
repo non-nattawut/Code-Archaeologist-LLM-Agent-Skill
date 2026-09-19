@@ -471,6 +471,154 @@
   .step-body { flex: 1; }
   .step-title { font-family: var(--mono); font-size: 13.5px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
   .step-desc { font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+
+  /* Reading Checklist & File-by-File Q&A Section */
+  .checklist-section { padding: 48px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+  .cl-progress-card {
+    background: var(--panel); border: 1px solid var(--rule-lit); border-radius: 8px;
+    padding: 20px 24px; margin: 20px 0 24px; display: flex; flex-direction: column; gap: 14px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+  .cl-progress-top {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+  }
+  .cl-progress-title {
+    font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--ink);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .cl-progress-pct {
+    font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--accent);
+  }
+  .cl-progress-track {
+    width: 100%; height: 8px; background: var(--ground); border: 1px solid var(--rule);
+    border-radius: 4px; overflow: hidden; position: relative;
+  }
+  .cl-progress-bar {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--ok));
+    border-radius: 4px; width: 0%; transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .cl-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .cl-btn {
+    background: var(--ground); border: 1px solid var(--rule-lit); border-radius: 5px;
+    padding: 6px 12px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-2);
+    cursor: pointer; transition: all .15s ease; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .cl-btn:hover { border-color: var(--accent); color: var(--ink); background: var(--raised); }
+  .cl-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+  /* Toolbar & Filter Bar */
+  .cl-toolbar {
+    display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;
+  }
+  .cl-search-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .cl-filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .cl-chip {
+    background: var(--panel); border: 1px solid var(--rule); border-radius: 14px;
+    padding: 5px 12px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-2);
+    cursor: pointer; transition: all .12s;
+  }
+  .cl-chip:hover { border-color: var(--rule-lit); color: var(--ink); }
+  .cl-chip.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .cl-chip small { color: var(--ink-3); margin-left: 4px; }
+  .cl-chip.active small { color: var(--accent); }
+
+  /* File item card */
+  .cl-file-card {
+    background: var(--panel); border: 1px solid var(--rule); border-radius: 8px;
+    margin-bottom: 12px; transition: border-color .15s, background .15s;
+    overflow: hidden;
+  }
+  .cl-file-card.completed {
+    border-color: rgba(63, 185, 80, 0.4);
+    background: rgba(63, 185, 80, 0.02);
+  }
+  .cl-file-card:hover { border-color: var(--rule-lit); }
+  .cl-file-card.completed:hover { border-color: var(--ok); }
+
+  .cl-file-header {
+    padding: 14px 18px; display: flex; align-items: flex-start; gap: 14px;
+    cursor: pointer; user-select: none; background: var(--panel);
+  }
+  .cl-file-check-box {
+    margin-top: 3px; display: flex; align-items: center; justify-content: center; flex: none;
+  }
+  .cl-custom-checkbox {
+    width: 20px; height: 20px; border: 1.5px solid var(--rule-lit); border-radius: 4px;
+    background: var(--ground); cursor: pointer; display: flex; align-items: center;
+    justify-content: center; transition: all .15s ease; font-size: 13px; font-weight: bold;
+    color: transparent;
+  }
+  .cl-custom-checkbox:hover { border-color: var(--accent); }
+  .cl-file-card.completed .cl-custom-checkbox {
+    background: var(--ok); border-color: var(--ok); color: #08090b;
+  }
+  .cl-file-meta { flex: 1; }
+  .cl-file-title-row {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 4px;
+  }
+  .cl-file-name {
+    font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--ink);
+  }
+  .cl-file-card.completed .cl-file-name { color: var(--ok); }
+  .cl-file-path {
+    font-family: var(--mono); font-size: 11px; color: var(--ink-3);
+  }
+  .cl-file-role { font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
+
+  .cl-file-toggle-icon {
+    font-family: var(--mono); font-size: 15px; color: var(--ink-3);
+    transition: transform 0.2s ease; margin-left: 8px; margin-top: 2px; flex: none;
+  }
+  .cl-file-card.open .cl-file-toggle-icon { transform: rotate(180deg); color: var(--accent); }
+
+  /* File Q&A & Algorithm Details */
+  .cl-file-body {
+    padding: 0 18px 18px 52px; display: none; flex-direction: column; gap: 14px;
+    border-top: 1px solid var(--rule); background: rgba(0,0,0,0.18);
+  }
+  .cl-file-card.open .cl-file-body { display: flex; }
+
+  .cl-qa-block {
+    background: var(--ground); border: 1px solid var(--rule); border-radius: 6px;
+    padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; margin-top: 14px;
+  }
+  .cl-q-title {
+    font-family: var(--sans); font-size: 13.5px; font-weight: 600; color: var(--ink);
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .cl-q-badge {
+    font-family: var(--mono); font-size: 10px; font-weight: 700; text-transform: uppercase;
+    color: var(--accent); background: var(--accent-dim); border-radius: 3px; padding: 2px 6px;
+  }
+  .cl-a-short {
+    border-left: 2.5px solid var(--accent); padding: 6px 12px; background: rgba(217, 159, 74, 0.06);
+    border-radius: 0 4px 4px 0; color: var(--ink); font-size: 13px; line-height: 1.6;
+  }
+  .cl-algo-box {
+    background: var(--raised); border: 1px solid var(--rule-lit); border-radius: 6px;
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;
+  }
+  .cl-algo-title {
+    font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--blue); display: flex; align-items: center; gap: 6px;
+  }
+  .cl-formula-display {
+    background: var(--ground); border: 1px solid var(--rule); border-radius: 4px;
+    padding: 10px 14px; font-family: var(--mono); font-size: 12px; color: var(--accent);
+    overflow-x: auto; white-space: pre-wrap; line-height: 1.6; margin: 4px 0;
+  }
+  .cl-algo-desc { font-size: 12.5px; color: var(--ink-2); line-height: 1.6; }
+  .cl-meta-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px;
+    font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin-top: 4px;
+  }
+  .cl-meta-item strong { color: var(--ink-2); }
+  .cl-inv-box {
+    background: rgba(227, 179, 65, 0.06); border-left: 2.5px solid var(--warn);
+    padding: 6px 12px; border-radius: 0 4px 4px 0; font-size: 12px; color: var(--ink-2);
+  }
+  .cl-inv-box strong { color: var(--warn); }
+
 </style>
 </head>
 <body>
@@ -532,8 +680,9 @@
     <!-- Jump Navigation -->
     <div class="hero-nav" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px;">
       <a href="#callgraph" class="cl-btn" style="text-decoration: none;">&darr; Flowchart &amp; Matrix การทำงาน</a>
-      <a href="#scripts-catalog" class="cl-btn" style="text-decoration: none;">&darr; สารบัญ Script &amp; Invariants</a>
-      <a href="#judge-qa" class="cl-btn" style="text-decoration: none; border-color: var(--accent); color: var(--accent); background: var(--accent-dim);">&darr; Checklist รายไฟล์ &amp; คลัง Q&amp;A เทคนิค</a>
+      <a href="#reading-checklist" class="cl-btn" style="text-decoration: none; border-color: var(--accent); color: var(--accent); background: var(--accent-dim);">&darr; Checklist รายไฟล์ &amp; สูตรคำนวณ (<span id="heroClCount">32</span>)</a>
+      <a href="#scripts-catalog" class="cl-btn" style="text-decoration: none;">&darr; สารบัญ Script &amp; Invariants (28)</a>
+      <a href="#judge-qa" class="cl-btn" style="text-decoration: none;">&darr; คลังข้อสอบ Q&amp;A กรรมการ (50)</a>
     </div>
 
     <!-- Visual Pipeline -->
@@ -1333,6 +1482,62 @@
         </table>
       </div>
     </div>
+  </section>
+
+
+
+  <!-- ===================================================================
+       Checklist รายไฟล์สำหรับการศึกษาและตรวจสอบสถาปัตยกรรม (Reading Checklist & Q&A)
+       =================================================================== -->
+  <section class="checklist-section" id="reading-checklist">
+    <div class="section-eyebrow">หลักสูตรการศึกษาและตรวจสอบโค้ด</div>
+    <h2>Checklist รายไฟล์สำหรับการศึกษาและตรวจสอบสถาปัตยกรรม (<span id="clTotalCount">32</span> ไฟล์)</h2>
+    <p style="color: var(--ink-2); max-width: 90ch; margin-bottom: 20px;">
+      Checklist การอ่านและทำความเข้าใจทีละไฟล์อย่างเป็นระบบสำหรับสถาปนิก, ผู้ตรวจสอบ (Auditor), และ AI Agent ในการสำรวจ codebase ของ Code Archaeologist
+      ทุกไฟล์มาพร้อมคำถามเชิงสถาปัตยกรรมที่ตอบ, กฎ Invariant ที่ห้ามละเมิด, ตลอดจน <strong>สูตรคำนวณทางคณิตศาสตร์และอัลกอริทึมจริง</strong> ที่ถูกอิมพลีเมนต์ไว้ในไฟล์นั้น
+      ทำเครื่องหมายถูกเมื่ออ่านเข้าใจแล้วเพื่อบันทึกสถานะลงในเครื่องแบบถาวร (Local Storage)
+    </p>
+
+    <!-- Progress Card -->
+    <div class="cl-progress-card">
+      <div class="cl-progress-top">
+        <div class="cl-progress-title">
+          <span>&#128214; ความคืบหน้าการศึกษา:</span>
+          <span class="cl-progress-pct" id="clProgressSummary">0 / 32 ไฟล์ (0%)</span>
+        </div>
+        <div class="cl-actions">
+          <button class="cl-btn" onclick="clToggleAll(true)">&#9660; ขยาย Q&amp;A ทั้งหมด</button>
+          <button class="cl-btn" onclick="clToggleAll(false)">&#9650; ยุบ Q&amp;A ทั้งหมด</button>
+          <button class="cl-btn" onclick="clMarkAll(true)">&#10003; ทำเครื่องหมายอ่านแล้วทั้งหมด</button>
+          <button class="cl-btn" onclick="clMarkAll(false)">&#8634; รีเซ็ตความคืบหน้า</button>
+        </div>
+      </div>
+      <div class="cl-progress-track">
+        <div class="cl-progress-bar" id="clProgressBar" style="width: 0%;"></div>
+      </div>
+    </div>
+
+    <!-- Toolbar: Search & Category Filters -->
+    <div class="cl-toolbar">
+      <div class="cl-search-row">
+        <input type="text" id="clSearchInput" class="search-input"
+               placeholder="ค้นหาชื่อไฟล์, หัวข้อ หรืออัลกอริทึม (เช่น Tarjan, Winnowing, Shannon, McCabe, Instability, BFS)..."
+               oninput="clApplyFilter()">
+        <button class="cl-btn" id="clStatusToggle" onclick="clToggleStatusFilter()">แสดง: ทุกไฟล์ (32)</button>
+      </div>
+      <div class="cl-filter-chips" id="clFilterChips">
+        <button class="cl-chip active" onclick="clSetCategory('all', this)">ทุกกลุ่มงาน <small>(32)</small></button>
+        <button class="cl-chip" onclick="clSetCategory('entry', this)">Entrypoint &amp; Paths <small>(2)</small></button>
+        <button class="cl-chip" onclick="clSetCategory('core', this)">โครงสร้าง Core <small>(7)</small></button>
+        <button class="cl-chip" onclick="clSetCategory('extract', this)">การสกัด AST <small>(8)</small></button>
+        <button class="cl-chip" onclick="clSetCategory('review', this)">การรีวิว &amp; ตรวจสอบ <small>(9)</small></button>
+        <button class="cl-chip" onclick="clSetCategory('query', this)">การสืบค้น &amp; UI <small>(4)</small></button>
+        <button class="cl-chip" onclick="clSetCategory('runtime', this)">รันไทม์ &amp; ติดตั้ง <small>(2)</small></button>
+      </div>
+    </div>
+
+    <!-- Dynamic Checklist Items Container -->
+    <div id="checklistContainer"></div>
   </section>
 
 
@@ -3139,6 +3344,724 @@ function filterMatrix() {
 
 // Initial render
 renderCards(SCRIPTS_DATA);
+renderChecklist();
+
+// =====================================================================
+// Complete 32-File Architecture Reading Checklist Dataset & Q&A (Thai)
+// =====================================================================
+const CHECKLIST_FILES_DATA = [
+  {
+    "id": "archaeologist_py",
+    "file": "archaeologist.py",
+    "path": "scripts/archaeologist.py",
+    "group": "entry",
+    "groupName": "Entrypoint",
+    "role": "ตัวกระจายคำสั่ง CLI (Dispatcher) เพียงจุดเดียวสำหรับทั้งมนุษย์และ AI Agent โดยไม่ spawn subprocess เพิ่มเติม",
+    "question": "archaeologist.py กระจายคำสั่ง CLI in-process โดยไม่เกิด overhead ของ subprocess ได้อย่างไร?",
+    "shortAnswer": "ใช้ Associative Dispatch Table แมปคำสั่งย่อยเข้าสู่ฟังก์ชันโมดูลโดยตรงผ่าน argparse ควบคุมพารามิเตอร์และ exit code ได้อย่างแม่นยำและไร้ overhead",
+    "algorithmName": "Finite State Command Mapping & Short-Circuit Dispatch",
+    "formula": "Dispatch: C x A -> Z โดยที่ C = {project, flow, both, check, report, brief}\nf_Cmd = DispatchTable[Cmd]\nExitCode = f_Cmd(Args)\nShort-circuit: run_project() หรือ run_flow() จะหยุดทันทีเมื่อ ExitCode != 0",
+    "algorithmDesc": "ตรวจสอบ sys.argv[1] เทียบกับตารางคำสั่งที่ลงทะเบียนไว้ หากเป็น 'project' หรือ 'flow' จะ normalize path, เรียก build_wiki หรือ build_flow, สร้าง viewer HTML และบันทึก manifest ส่วน 'report' จะสั่งรัน review passes บนทุกกราฟ",
+    "complexity": "เวลา: O(1) สำหรับการ lookup คำสั่ง, พื้นที่: O(1) process overhead",
+    "boundary": "คำสั่งไม่ถูกต้องหรือไม่ระบุจะแสดงวิธีใช้แบบ POSIX CLI; หาก argument ขาดจะคืนค่า exit code != 0",
+    "invariant": "เป็นไฟล์เดียวที่อยู่ที่ root ของ scripts/ ห้ามมีสคริปต์อื่นทำหน้าที่เป็น entrypoint ซ้ำซ้อน"
+  },
+  {
+    "id": "paths_py",
+    "file": "paths.py",
+    "path": "scripts/paths.py",
+    "group": "entry",
+    "groupName": "Entrypoint",
+    "role": "รากฐานการจัดการ Path ของระบบ, bootstrap sys.path และแก้ปัญหาขีดจำกัด MAX_PATH บน Windows",
+    "question": "paths.py เลี่ยงข้อจำกัด MAX_PATH (260 ตัวอักษร) บน Windows สำหรับ path ลึกของ vault ได้อย่างไร?",
+    "shortAnswer": "เติม Prefix Extended-length '\\\\?\\' อัตโนมัติเมื่อ path บน Windows ยาว >= 260 ตัวอักษร เพื่อส่งตรงถึง NT Object Manager และคำนวณ path ข้ามไดรฟ์ผ่าน skill_rel()",
+    "algorithmName": "Windows Extended-Length Path Mapping & Cross-Drive Relativity",
+    "formula": "phi(p) = \"\\\\\\\\?\\\\\" + abspath(p)  ถ้า os.name == 'nt' และ len(abspath(p)) >= 260 และไม่เริ่มด้วย '\\\\\\\\'\n         p                        กรณีอื่น\n\nskill_rel(src, target) = relpath(src, target)  ถ้า Drive(src) == Drive(target)\n                         abspath(src)          กรณีไดรฟ์ต่างกัน",
+    "algorithmDesc": "ประเมิน __file__ เพื่อกำหนดค่าคงที่ SKILL_ROOT, DATA_DIR, และ TEMPLATES_DIR ทำการ inject โฟลเดอร์ scripts/, core/, extract/, review/, query/, vendor/ เข้าสู่ sys.path ทำให้ import แบบ bare ได้ และดึง tree-sitter ใน vendor/ ก่อนเสมอ",
+    "complexity": "เวลา: O(1) ต่อ path, พื้นที่: O(1)",
+    "boundary": "Windows network share (UNC path ที่ขึ้นต้นด้วย \\\\) จะคงเดิมไว้ ไม่เติม prefix ซ้ำซ้อน",
+    "invariant": "อยู่ใต้สุดของทุกเลเยอร์ ห้าม import จากโมดูลอื่นใน skill เพื่อ bootstrap sys.path ให้พร้อมใช้งาน"
+  },
+  {
+    "id": "taxonomy_py",
+    "file": "taxonomy.py",
+    "path": "scripts/core/taxonomy.py",
+    "group": "core",
+    "groupName": "Core",
+    "role": "แหล่งนิยามความจริงหนึ่งเดียว (Single Source of Truth) สำหรับการจัดเลเยอร์, ชนิดโหนด, และเวกเตอร์ Precision Loss",
+    "question": "จัดลำดับชั้นทางสถาปัตยกรรม (Tier Poset) และบันทึกการสูญเสียความแม่นยำอย่างไร?",
+    "shortAnswer": "นิยามเลเยอร์เป็น Poset (ui < controller < service < repository < model) หากเรียกย้อนกลับจะถือเป็น Layer Violation และบันทึก Named Precision Loss Vector เมื่อมีความคลุมเครือ",
+    "algorithmName": "Tiered Architectural Poset & Lower-Bound Precision Vector",
+    "formula": "Poset: L = { ui < controller < service < repository < model }\nLayer Violation: Violation(u, v) <=> L(u) > L(v)\nReversed Relations: R_reversed = { \"implements\", \"extends\", \"overrides\" }\ndirection(u, v, kind) = (v, u) ถ้า kind in R_reversed มิฉะนั้นเป็น (u, v)\nPrecision Vector: Precision(u) subset of { \"interface-dispatch\", \"overloads\", \"name-matched\", \"unresolved\" }",
+    "algorithmDesc": "ใช้ตาราง lookup และ regex ประเมิน infer_layer() จาก decorator (@RestController -> controller) และชื่อโฟลเดอร์ ใช้ is_test_path() คัดแยกชุดทดสอบ และคำนวณเวกเตอร์ความสูญเสียความแม่นยำแบบแจกแจงชัดเจน",
+    "complexity": "เวลา: O(1) ต่อการ lookup, พื้นที่: O(1)",
+    "boundary": "Entrypoint ของเฟรมเวิร์กและไฟล์ทดสอบได้รับการยกเว้นจากการคิดคะแนนโค้ดที่ไม่ได้ถูกเรียก (orphan/dead code)",
+    "invariant": "ทุกสคริปต์ต้องดึงข้อมูลผ่าน taxonomy.py ห้ามฮาร์ดโค้ด layer, kind หรือ skip directories ซ้ำซ้อนในโค้ด"
+  },
+  {
+    "id": "ids_py",
+    "file": "ids.py",
+    "path": "scripts/core/ids.py",
+    "group": "core",
+    "groupName": "Core",
+    "role": "สร้าง Node ID แบบเฉพาะเจาะจงและ deterministic ข้ามทั้งแผนที่ Structure และ Flow",
+    "question": "แก้ปัญหาชื่อไฟล์และสัญลักษณ์ซ้ำข้ามไฟล์โดยคง Bare ID ไว้ให้สั้นที่สุดได้อย่างไร?",
+    "shortAnswer": "Pre-scan การประกาศทั้งหมดข้าม 17 ภาษาจัดเข้า Equivalence Classes หากชื่อไม่ซ้ำในระบบจะใช้ Bare Name หากซ้ำจะเติมชื่อไฟล์ (stem) หรือ normalized path",
+    "algorithmName": "Canonical Disambiguation Partitioning via Equivalence Classes",
+    "formula": "[(n, f)]_~ = { (n', f') in Definitions | lower(n') == lower(n) }\nID(n, f) = n                       ถ้า |{ f' | (*, f') in [(n, f)]_~ }| == 1\n           stem(f) + \".\" + n       ถ้าชื่อ stem ในคลาสเทียบเท่าไม่ซ้ำกัน\n           norm_path(f) + \".\" + n  กรณีอื่น ๆ",
+    "algorithmDesc": "SharedNames กวาดอ่านชื่อสัญลักษณ์ทั้งหมดก่อนเริ่มสร้างโหนด เก็บ index ใน hash map เมื่อเรียก ids.id(name, file) จะคืนค่า Bare Name ถ้าไม่ซ้ำ หากซ้ำจะระบุด้วยชื่อไฟล์ เพื่อป้องกันไฟล์ทับกันบนระบบไฟล์ Case-Insensitive (NTFS/APFS)",
+    "complexity": "เวลา: O(N) pre-scan + O(1) ต่อการ query, พื้นที่: O(N) ดัชนีสัญลักษณ์",
+    "boundary": "ชื่อที่ต่างกันแค่ตัวพิมพ์เล็ก-ใหญ่ในคนละไฟล์จะถูกแมปไปยังคนละโน้ต ป้องกันการเขียนทับกันบนดิสก์",
+    "invariant": "Node ID จะสั้น (bare) เสมอเว้นแต่ถูกนิยามซ้ำใน >= 2 ไฟล์ และการเรียกชื่อซ้ำจะผูกเฉพาะกับไฟล์ของผู้เรียกเท่านั้น"
+  },
+  {
+    "id": "call_ctx_py",
+    "file": "call_ctx.py",
+    "path": "scripts/core/call_ctx.py",
+    "group": "core",
+    "groupName": "Core",
+    "role": "สกัดบริบทการเรียกจาก AST (เลขบรรทัด, การอยู่ใน Loop, กิ่ง Branch ที่ทำงาน)",
+    "question": "แยกแยะ Loop ซ้ำซากออกจาก Branch ทางเลือกเดี่ยวจาก Concrete Syntax Tree (CST) อย่างไร?",
+    "shortAnswer": "ท่องย้อน CST Ancestor จากจุดเรียกไปยังนิยามฟังก์ชัน ตั้งค่า loop เฉพาะฟิลด์ที่ทำซ้ำ (body, update) และ cond สำหรับกิ่งเงื่อนไข (consequence, alternative) พร้อมติดแท็ก 3a/3b",
+    "algorithmName": "CST Ancestor Invariant Walk & Branch Lattice Meet Operator",
+    "formula": "Ancestor Walk: Call -> Parent -> ... -> Definition\nLattice Meet ข้ามจุดเรียก S = {s_1, ..., s_k}:\n  Line = min(s_i.line)\n  Loop = OR(s_i.loop)      (ถ้าการเรียกอยู่ใน repeating field: body, condition, update)\n  Cond = AND(s_i.cond)     (ถ้าทุกจุดเรียกอยู่ในผลลัพธ์ของ branch: consequence, alternative)\n  Arms = Intersection(s_i.arms)  (\"<line>:<col>/<arm>\" แท็กระบุกิ่งที่ไม่เกิดพร้อมกัน)",
+    "algorithmDesc": "ใช้ตารางประเภทโหนดข้าม 17 ภาษาแยกแยะ while/for/comprehension ออกจาก if/switch/match มีเพียง body ที่วนซ้ำเท่านั้นที่จะติดแท็ก loop เมื่อมีการเรียกหลายครั้งจะนำมารวมกัน (merge) โดยเลือกบรรทัดแรกและ intersection ของ arms",
+    "complexity": "เวลา: O(depth) โดย depth <= 30 ใน AST ทั่วไป, พื้นที่: O(1)",
+    "boundary": "ประเภทโหนดที่ไม่ได้อยู่ในตารางที่ตรวจสอบจะไม่ถูกติดแท็ก (ยึดหลัก Lower-bound soundness ไม่เดา)",
+    "invariant": "Lower-bound soundness: ไวยากรณ์ที่ไม่รู้จักจะไม่ติดแฟล็ก ดีกว่าการคาดเดาแฟล็กผิด ๆ"
+  },
+  {
+    "id": "doc_text_py",
+    "file": "doc_text.py",
+    "path": "scripts/core/doc_text.py",
+    "group": "core",
+    "groupName": "Core",
+    "role": "ทำความสะอาด Doc Comment สากลและรวมคำอธิบายให้อยู่ในบรรทัดเดียว",
+    "question": "ทำไมการตัดแท็ก XML จึงจำกัดเฉพาะ C# และ JSDoc ไม่ใช้กับทุกภาษา?",
+    "shortAnswer": "Regex ตัดแท็ก XML แบบทั่วไประบุความต่างระหว่างแท็ก HTML กับ Generic Type Parameter (เช่น List<T>, Map<K, V>) ไม่ได้ หากตัดกับทุกภาษาจะทำลายชนิดข้อมูล",
+    "algorithmName": "Marker Peeling & Single-Line Block Joining",
+    "formula": "Marker Peeling: ลบตัวคั่นบล็อก /*, */ แล้วลบ prefix หน้าบรรทัด //, ///, //!, *, #\nNormalized Join: desc = ' '.join(line.strip() for line in lines if line.strip())\nXML Stripping: re.sub(r'<[^>]+>', '', text) เปิดใช้เฉพาะเมื่อ xml=True (C#, JSDoc)",
+    "algorithmDesc": "ฟังก์ชัน clean() ลบเครื่องหมายคอมเมนต์และเครื่องหมายหัวข้อย่อยข้ามภาษา join() ยุบ docstring หลายบรรทัดให้เป็นประโยคเดี่ยวคั่นด้วยเว้นวรรค และตัดแท็ก XML เฉพาะเมื่อ xml=True เพื่อคง generic types ในภาษาอื่นไว้",
+    "complexity": "เวลา: O(L) โดย L คือความยาวคอมเมนต์ทั้งหมด, พื้นที่: O(L)",
+    "boundary": "คอมเมนต์ที่ว่างเปล่าหรือมีเฉพาะ whitespace จะถูกตัดทิ้งอย่างปลอดภัย ไม่ทำให้เกิด description ว่าง",
+    "invariant": "คำอธิบายโหนดทุกตัวรับประกันว่าจะเป็นข้อความบรรทัดเดียวที่ผ่านการตัดช่องว่างเรียบร้อย"
+  },
+  {
+    "id": "grammars_py",
+    "file": "grammars.py",
+    "path": "scripts/core/grammars.py",
+    "group": "core",
+    "groupName": "Core",
+    "role": "จัดการ Tree-sitter Generalized LR (GLR) Parser, ตรึงเวอร์ชัน ABI และโหลดแบบ Lazy",
+    "question": "GLR Parser ของ Tree-sitter จัดการข้อผิดพลาดทางไวยากรณ์และความคลุมเครืออย่างไร?",
+    "shortAnswer": "แยก Parser Stack เป็น Graph-Structured Stack (GSS) เมื่อไวยากรณ์กำกวม รวมกิ่งที่ถูกต้องกลับเข้าหากัน และหุ้มช่วงไบต์ที่ผิดพลาดไว้ในโหนด CST ERROR เพื่อกู้คืนข้อผิดพลาดเฉพาะจุด",
+    "algorithmName": "GLR Graph-Structured Stack (GSS) & Dynamic Parser Cache",
+    "formula": "GLR Stack Fork: S -> { S_1, S_2, ..., S_m } ผ่าน Graph-Structured Stack (GSS)\nLocal Error Recovery: ช่วงไบต์ที่มีข้อผิดพลาดจะถูกครอบด้วยโหนด CST ERROR\nGrammar Drift: Delta_unpinned = InstalledGrammars \\ PINS",
+    "algorithmDesc": "ดูแลตารางตรึงเวอร์ชัน PINS โหลดโมดูลไวยากรณ์จาก vendor/ ก่อนในระบบ parser_for(lang) สร้างและแคชอ็อบเจกต์ Parser เมื่อถูกเรียก ตรวจสอบความเข้ากันได้ของ ABI และแจ้งเตือนเมื่อพบ unpinned wheel",
+    "complexity": "เวลา: O(N) ต่อการ parse ไฟล์ผ่าน incremental Tree-sitter engine, พื้นที่: O(1) ต่อ parser",
+    "boundary": "หากไม่มีชุดไวยากรณ์ จะแสดงคำเตือนระบุชื่อภาษาพร้อมคำสั่ง pip install อย่างชัดเจน และข้ามไฟล์อย่างปลอดภัย",
+    "invariant": "เมื่อขาดชุดไวยากรณ์ต้องเตือนพร้อมระบุคำสั่ง pip install ตรงเป้าหมาย ห้ามล้มเหลวแบบเงียบ ๆ"
+  },
+  {
+    "id": "manifest_py",
+    "file": "manifest.py",
+    "path": "scripts/core/manifest.py",
+    "group": "core",
+    "groupName": "Core",
+    "role": "ตรวจสอบความสดใหม่และความล้าสมัยของกราฟด้วย Merkle Tree SHA-1 Content Hash",
+    "question": "ทำไมการเปลี่ยนชุด Tree-sitter Grammar จึงนับว่า codebase เก่า/ล้าสมัย (stale)?",
+    "shortAnswer": "กราฟที่สร้างโดยไม่มี grammar wheel จะขาดโหนดของภาษานั้นไปทั้งภาษา ทำให้ดูเสมือนเป็นโค้ดเบสที่เล็กลง การเปลี่ยน grammar จึงต้องคำนวณกราฟใหม่ทั้งหมด",
+    "algorithmName": "Content-Addressed Merkle Tree Source Hashing",
+    "formula": "H_repo = SHA1( concat( (f, SHA1(read(f))) for f in Sources ) + InstalledGrammars )\nStaleness Check: stale = (H_repo != H_cached) or (Grammars != CachedGrammars)\nOutput: { stale: bool, added: list, changed: list, removed: list }",
+    "algorithmDesc": "ท่องไฟล์ซอร์สโค้ดทั้งหมดตาม root ที่บันทึกไว้ คำนวณ SHA-1 ของแต่ละไฟล์ นำมารวมกับเวอร์ชันของ grammar แล้วเปรียบเทียบกับ data/cache/manifest.json คำสั่ง check จะส่งผลลัพธ์เป็น JSON แล้วจบการทำงานทันที",
+    "complexity": "เวลา: O(Total Source Bytes) ในการคำนวณ hash, พื้นที่: O(จำนวนไฟล์)",
+    "boundary": "ไฟล์ที่เพิ่ม ลบ หรือแก้ไข จะเปลี่ยนค่า stale เป็น true หากเนื้อหาไม่เปลี่ยนจะคืนค่า stale: false",
+    "invariant": "เป็นคำสั่งเดียวที่อ่านซอร์สโค้ดแต่ไม่เขียนข้อมูลใด ๆ การเปลี่ยน grammar จะถือว่า stale เสมอ"
+  },
+  {
+    "id": "console_py",
+    "file": "console.py",
+    "path": "scripts/core/console.py",
+    "group": "core",
+    "groupName": "Core",
+    "role": "ตัวหุ้ม Stream Transcoding เพื่อความปลอดภัยบน Terminal ที่ไม่ใช่ UTF-8 (เช่น CP874 บน Windows)",
+    "question": "ป้องกันไม่ให้ข้อความและชื่อผู้เขียนใน git crash คอนโซล CP874 ของ Windows ได้อย่างไร?",
+    "shortAnswer": "หุ้ม sys.stdout และ sys.stderr ด้วย error handler แบบแทนที่ (replace) หรือ surrogateescape ทำให้ตัวอักษรที่ไม่อยู่ใน codepage ไม่ระเบิด UnicodeEncodeError",
+    "algorithmName": "Surrogate-Safe Encoding Stream Transcoding",
+    "formula": "sys.stdout.reconfigure(encoding=stream.encoding, errors='replace')\nFallback: io.TextIOWrapper(stream.buffer, encoding=stream.encoding, errors='surrogateescape')",
+    "algorithmDesc": "ตรวจสอบและหุ้มสตรีมเอาต์พุต ตัวอักษรที่ไม่สามารถแสดงผลใน encoding ปัจจุบันของคอนโซลผู้ใช้ (เช่น Windows CP874 ภาษาไทยหรือ OEM codepages เก่า) จะถูกแทนที่ด้วยอักขระ fallback แทนที่จะ throw ข้อยกเว้น",
+    "complexity": "เวลา: O(1) การติดตั้ง wrapper, พื้นที่: O(1)",
+    "boundary": "คอนโซลที่เป็น UTF-8 จะทำงานปกติโดยไม่มีการสูญเสียข้อมูล คอนโซลที่ไม่ใช่ UTF-8 จะแสดงผลอย่างปลอดภัย",
+    "invariant": "ต้องหุ้ม stdout ก่อนพิมพ์ข้อความภายนอก (path โค้ด, ผู้เขียน git, ข้อความคอมเมนต์) เสมอ"
+  },
+  {
+    "id": "build_wiki_py",
+    "file": "build_wiki.py",
+    "path": "scripts/extract/build_wiki.py",
+    "group": "extract",
+    "groupName": "Extraction",
+    "role": "สกัดเอนทิตีสำหรับแผนที่โครงสร้าง (Classes, React Components, Module Functions)",
+    "question": "ระบุ Component ของ React ข้าม JSX, TSX, JS และ TypeScript ได้อย่างไร?",
+    "shortAnswer": "ตรวจสอบคำสั่ง return ใน AST ว่าส่งค่ากลับเป็น JSX Element หรือ Fragment หากพบจะจัดหมวดเป็น kind: component, layer: ui ทันที",
+    "algorithmName": "Component Classification Predicate & Vault Note Generation",
+    "formula": "IsComponent(f) = (ReturnsJSX(f) หรือ HasJSXElement(f)) และ (f.name[0].isupper() หรือ IsArrow(f))\nVault Note: data/structure/vault/<id>.md\nFrontmatter: { kind, layer, source: [start, end], container }\nWikilink Reference: [[target_id]]",
+    "algorithmDesc": "กวาดอ่านไฟล์ซอร์สโค้ดผ่าน py_extract, js_ts_extract, langs_extract สร้างโน้ต Markdown สำหรับคลาสและคอมโพเนนต์ ระบุ UI components ของ React เขียน registry.json และล้างโน้ตเก่าที่ค้างอยู่",
+    "complexity": "เวลา: O(Total AST Nodes), พื้นที่: O(Entities) ในหน่วยความจำ",
+    "boundary": "ลบโฟลเดอร์ vault เดิมทิ้งทั้งหมดก่อนเริ่มสกัดเสมอ เพื่อป้องกันโน้ตที่ตกค้างจากการลบไฟล์ในอดีต",
+    "invariant": "ล้าง data/structure/vault/ ก่อนสร้างใหม่เสมอเพื่อป้องกันเพจขยะตกค้าง"
+  },
+  {
+    "id": "build_graph_py",
+    "file": "build_graph.py",
+    "path": "scripts/extract/build_graph.py",
+    "group": "extract",
+    "groupName": "Extraction",
+    "role": "สร้างกราฟความสัมพันธ์โครงสร้าง (Dependency Graph) จากโน้ต Markdown ใน vault",
+    "question": "ทำไมจึงสร้างกราฟจากโน้ต Markdown แทนที่จะ parse โค้ดต้นฉบับซ้ำ?",
+    "shortAnswer": "แยกขั้นตอนการสกัด AST ออกจากการประกอบกราฟ ลิงก์ [[target]] ใน Markdown คือการอ้างอิงที่ยืนยันแล้ว ทำให้การสร้างกราฟใช้เวลา O(|V| + |E|) เพียงรอบเดียว",
+    "algorithmName": "Wikilink Reference Parsing & Adjacency List Construction",
+    "formula": "Wikilink Regex: r'\\[\\[([^\\]]+)\\]\\]'\nAdjacency Edge: e = (u, v) in E <=> '[[v]]' in VaultNote(u)\nEmits: data/structure/graph.json (nodes, edges) + registry.json",
+    "algorithmDesc": "อ่านโน้ต Markdown ใน vault ที่สร้างโดย build_wiki แปลง [[wikilinks]] เป็นเส้นเชื่อมกำกับทิศทางระหว่างคลาส คอมโพเนนต์ และโมดูล ประกอบเป็น graph.json ที่มี metadata ของโหนดและรายการเส้นเชื่อมครบถ้วน",
+    "complexity": "เวลา: O(|V| + |E|) บนไฟล์ Markdown, พื้นที่: O(|V| + |E|)",
+    "boundary": "ลิงก์ที่ชี้ไปยังโหนดที่ไม่มีอยู่จริงจะถูกตัดทิ้งหรือทำเครื่องหมายเป็นการอ้างอิงภายนอกที่ไม่สามารถ resolve ได้",
+    "invariant": "อ่านเฉพาะโน้ตใน vault เท่านั้น ห้ามแตะต้องซอร์สโค้ดต้นฉบับโดยตรงในขั้นตอนนี้"
+  },
+  {
+    "id": "build_flow_py",
+    "file": "build_flow.py",
+    "path": "scripts/extract/build_flow.py",
+    "group": "extract",
+    "groupName": "Extraction",
+    "role": "สร้างกราฟโฟลว์การเรียกฟังก์ชัน/เมธอด และเอนจิน Resolve Overload",
+    "question": "Resolve เมธอด Overload โดยไม่มี classpath ของ compiler ได้อย่างไร?",
+    "shortAnswer": "ใช้ Overload Ranking Lattice ตามความสอดคล้องของจำนวนพารามิเตอร์และชนิด argument หากผลคะแนนเสมอกันจะตัดทิ้งและบันทึกไว้ใน unresolved อย่างโปร่งใส",
+    "algorithmName": "Hierarchical Scope Resolution & Overload Ranking Lattice",
+    "formula": "Scope Hierarchy: Scope(s) = Block subset of Method subset of Class subset of Module\nOverload Ranking Lattice: Rank(m) = ( Delta_args, Score_types )\nโดยที่ Delta_args = |len(m.params) - len(call.args)|\nScore_types = sum(1 for (p_t, a_t) in zip(params, args) if p_t == a_t)",
+    "algorithmDesc": "สกัดเมธอดและการเรียกข้าม 17 ภาษา ทำการระบุตัวผู้รับ (receiver) ผ่านการกำหนดค่าตัวแปร, การ import, และ type annotation ผูกตาราง routing และเชื่อม API call ฝั่งหน้าบ้านเข้ากับ handler หลังบ้าน",
+    "complexity": "เวลา: O(Methods + Calls), พื้นที่: O(|V_flow| + |E_flow|)",
+    "boundary": "การเรียกที่คลุมเครือหรือไม่สามารถ resolve ได้จะถูกเก็บลงในรายการ unresolved พร้อมชื่อสัญลักษณ์เพื่อการตรวจสอบ",
+    "invariant": "การเรียกที่กำกวมจะถูกเก็บใน unresolved พร้อมคงชื่อไว้ ห้ามเดาเป้าหมายส่งเดช"
+  },
+  {
+    "id": "py_extract_py",
+    "file": "py_extract.py",
+    "path": "scripts/extract/py_extract.py",
+    "group": "extract",
+    "groupName": "Extraction",
+    "role": "Parser สกัด Concrete Syntax Tree (CST) ของภาษา Python และตัว Normalize Newline",
+    "question": "ทำไมต้อง normalize CRLF newlines ก่อนคำนวณ hash ของโหนด?",
+    "shortAnswer": "การ checkout โค้ดแบบ CRLF บน Windows จะเปลี่ยน byte offset ดิบ ซึ่งจะทำให้ hash ของโหนดเปลี่ยน และทำลายแคชคำอธิบาย AI ทั้งหมดโดยไม่ตั้งใจ",
+    "algorithmName": "Byte-Level CRLF Normalization & CST Slicing",
+    "formula": "S_norm = re.sub(b'\\r\\n', b'\\n', S_raw)\nNode Interval: [OuterDecoratorLine, EndByte]\nDocstring: AST string literal จาก expression statement แรก (ตาม PEP 257)\nh(N) = SHA1(S_norm[N.start_byte : N.end_byte])",
+    "algorithmDesc": "อ่านไฟล์ Python ปรับ newline ให้เป็น Unix LF วิเคราะห์ CST ด้วย tree-sitter-python สกัดคลาส ฟังก์ชัน decorator และตำแหน่งเรียก คำนวณ SHA-1 slice hash เพื่อความคงที่ของแคชข้ามระบบปฏิบัติการ",
+    "complexity": "เวลา: O(File Size) ในการ parse, พื้นที่: O(AST size)",
+    "boundary": "รวม decorator เข้าไปในช่วงไบต์ของโหนด เพื่อให้ annotation เป็นส่วนหนึ่งของฟังก์ชันนั้นอย่างถูกต้อง",
+    "invariant": "การตัดชิ้นไบต์ต้อง deterministic: h = SHA1(S_norm[start_byte : end_byte])"
+  },
+  {
+    "id": "js_ts_extract_py",
+    "file": "js_ts_extract.py",
+    "path": "scripts/extract/js_ts_extract.py",
+    "group": "extract",
+    "groupName": "Extraction",
+    "role": "ตัวสกัด AST สำหรับ JavaScript, TypeScript, JSX และ TSX",
+    "question": "ทำไมต้องใช้ grammar แยกกัน 3 ตัวสำหรับไฟล์ JS และ TS?",
+    "shortAnswer": ".tsx ต้องใช้ grammar tsx โดยเฉพาะเนื่องจากความกำกวมระหว่าง JSX <tag> กับ TypeScript <type> ส่วน .ts ใช้ typescript และ .js/.jsx ใช้ javascript",
+    "algorithmName": "Multi-Grammar CST Parsing & Route Pattern Recognition",
+    "formula": "Grammar Dispatch:\n  ext == '.tsx' -> 'tsx'\n  ext == '.ts'  -> 'typescript'\n  อื่น ๆ         -> 'javascript'\nRoute Patterns: app.(get|post|put|delete)(path, handler) | @Get(path)\nClient Endpoints: fetch(url) | axios.(get|post)(url)",
+    "algorithmDesc": "วิเคราะห์โครงสร้างไวยากรณ์ JS/TS สมัยใหม่ ค้นพบคลาส เมธอด คอมโพเนนต์แบบ ArrowFunction รูทของ Express/Nest ตลอดจนการเรียก Axios/fetch ฝั่ง client",
+    "complexity": "เวลา: O(File Size) ในการ parse, พื้นที่: O(AST size)",
+    "boundary": "แยกแยะระหว่าง Type Assertion ของ TS กับ JSX Tag ผ่าน TSX grammar เฉพาะตัว",
+    "invariant": "ฟังก์ชันที่คืนค่า JSX จะถูกติดป้ายเป็น kind: component, layer: ui เสมอ"
+  },
+  {
+    "id": "langs_extract_py",
+    "file": "langs_extract.py",
+    "path": "scripts/extract/langs_extract.py",
+    "group": "extract",
+    "groupName": "Extraction",
+    "role": "ตัวสกัด CST ครอบจักรวาลสำหรับ 14 ภาษาทั้งแบบคอมไพล์และสคริปต์",
+    "question": "โค้ดชุดเดียวรองรับภาษาที่แตกต่างกันถึง 14 ภาษาได้อย่างไร?",
+    "shortAnswer": "ใช้การอ้างอิงชื่อฟิลด์มาตรฐานของ Tree-sitter (name, body, parameters, return_type) ผ่านตารางนิยาม SPEC และ SHAPES ครอบไวยากรณ์ที่ต่างกัน",
+    "algorithmName": "Field-Name Abstraction & Multi-Language CST Driver",
+    "formula": "SPEC[lang] -> { 'name': field_name, 'body': field_body }\nSHAPES[lang] -> การจำแนกประเภทโหนด (class, interface, method, struct)\nรองรับ: Java, Go, C#, Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir",
+    "algorithmDesc": "ท่องไฟล์ซอร์สโค้ดของ 14 ภาษา ใช้ dictionary ของ grammar SPEC เพื่อดึงโหนดตามฟิลด์แทนที่จะยึดติดกับชื่อโหนดเฉพาะภาษา สกัดการนิยาม พารามิเตอร์ ชนิดคืนค่า และจุดเรียก",
+    "complexity": "เวลา: O(Source Volume), พื้นที่: O(AST size)",
+    "boundary": "ภาษาที่ไม่มี Type ชัดเจน (Ruby, Elixir) จะระบุตัวผู้รับผ่านการกำหนดค่าทาง lexical",
+    "invariant": "การเพิ่มภาษาใหม่ต้องการเพียง grammar wheel และการลงทะเบียนใน SPEC/SHAPES โดยไม่ต้องเขียนสคริปต์ extractor ใหม่"
+  },
+  {
+    "id": "route_tables_py",
+    "file": "route_tables.py",
+    "path": "scripts/extract/route_tables.py",
+    "group": "extract",
+    "groupName": "Extraction",
+    "role": "อ่านตาราง Route เชิงประกาศ (Django, Rails, Laravel, Phoenix)",
+    "question": "ทำไม route_tables.py จึงทำงานหลังจากโหนดถูกสร้างใน build_flow?",
+    "shortAnswer": "ตาราง route มักประกาศแยกจากนิยามฟังก์ชัน สคริปต์นี้เพียงแค่อ่านตาราง จากนั้น build_flow จะนำ route ไปผูกกับโหนด (class, method) ที่มีอยู่จริง",
+    "algorithmName": "Declarative Route Table Extraction & Action Binding",
+    "formula": "Route Binding: (HTTP_Method, Route_Path) -> (Controller, Action)\nAttachment Rule: เชื่อมกับโหนด N ก็ต่อเมื่อ |{ N in Nodes | Matches(N, Controller, Action) }| == 1",
+    "algorithmDesc": "ค้นหา urlpatterns ของ Django, routes.rb ของ Rails, routes/*.php ของ Laravel และ router ของ Phoenix สกัด (HTTP verb, path, action) แล้วส่งให้ build_flow ผูกกับเมธอดเป้าหมาย",
+    "complexity": "เวลา: O(Route Lines), พื้นที่: O(Routes)",
+    "boundary": "Route ที่ชี้ไปยัง handler ที่หาไม่พบหรือชื่อซ้ำกันจะถูกบันทึกลง stderr และตัดทิ้งอย่างปลอดภัย",
+    "invariant": "ทำหน้าที่อ่าน route เท่านั้น ห้ามสร้างโหนดกราฟด้วยตนเอง"
+  },
+  {
+    "id": "apply_descriptions_py",
+    "file": "apply_descriptions.py",
+    "path": "scripts/extract/apply_descriptions.py",
+    "group": "extract",
+    "groupName": "Extraction",
+    "role": "ระบบรวมคำอธิบายเอกสารและแคชคำอธิบายจาก AI",
+    "question": "ป้องกันไม่ให้สรุป AI ค้างเก่าหลังโค้ดถูกแก้ไขได้อย่างไร?",
+    "shortAnswer": "เก็บแคชด้วย Composite Key (node_id, SHA1(node_source)) เมื่อโค้ดเปลี่ยน hash จะเปลี่ยนทันที ทำให้แคชเดิมหลุดและไม่ถูกนำมาใช้ซ้ำ",
+    "algorithmName": "Three-Tier Description Precedence Cascade",
+    "formula": "Desc(m) = Docstring(m)                 ถ้ามี Docstring ในโค้ด\n          Cache[m.id, SHA1(m.source)]  ถ้าตรงกับแคชที่มีอยู่\n          DeterministicFallback(m)      กรณีอื่น ๆ",
+    "algorithmDesc": "ผสาน docstring, แคช AI และคำอธิบายเริ่มต้นเข้าสู่โหนด อ่าน pending_descriptions.json ตรวจสอบ SHA-1 กับ descriptions.json และบันทึก metadata รวม",
+    "complexity": "เวลา: O(Nodes) hash lookup, พื้นที่: O(Descriptions Cache)",
+    "boundary": "หากไม่มีทั้งคำอธิบาย AI และ docstring จะสร้างข้อความบอก signature อัตโนมัติ",
+    "invariant": "กระบวนการ build ต้องไม่รอบริการ AI จากภายนอก และทำงานแบบ Offline 100% ได้เสมอ"
+  },
+  {
+    "id": "report_py",
+    "file": "report.py",
+    "path": "scripts/review/report.py",
+    "group": "review",
+    "groupName": "Review",
+    "role": "ผู้ประสานงานและรวบรวมผลการรีวิวโค้ดแบบครบวงจร",
+    "question": "ทำไมต้องแยกรีวิวเป็น 1 ฉบับต่อ 1 แผนที่ ห้ามปนกัน?",
+    "shortAnswer": "แผนที่ Structure (ระดับคลาส) และ Flow (ระดับเมธอด) มีขนาดและ Node ID แยกขาดจากกันโดยสิ้นเชิง การรวมรายงานจะทำให้ผลการวิเคราะห์ปนเปื้อน",
+    "algorithmName": "Multi-Pass Review Pipeline & Map Isolation",
+    "formula": "Report(M) = Aggregate(Security, Insights, Analyze, Metrics, Debt, TestsMap, Duplicates)\nInvariant: NodeIDs(Structure) intersect NodeIDs(Flow) == empty_set",
+    "algorithmDesc": "ท่องแผนที่ที่สร้างขึ้น รันการตรวจ 7 ด้าน สร้าง architecture_report.md และ .json ใน data/report/<map>/ และสั่ง build_html ฝังรายงานลงใน explorer.html",
+    "complexity": "เวลา: ผลรวมของทั้ง 7 passes, พื้นที่: O(ขนาด Report JSON)",
+    "boundary": "จะ error ทันทีหากยังไม่มีการสร้างกราฟมาก่อน เนื่องจากต้องการทั้ง graph JSON และซอร์สโค้ด",
+    "invariant": "หนึ่งรายงานต่อหนึ่งแผนที่ ห้ามฝังรายงานข้ามแผนที่กันเด็ดขาด"
+  },
+  {
+    "id": "analyze_py",
+    "file": "analyze.py",
+    "path": "scripts/review/analyze.py",
+    "group": "review",
+    "groupName": "Review",
+    "role": "วิเคราะห์โครงสร้างกราฟ ตรวจจับ Cycle และคำนวณเกรดสุขภาพ (Health Score)",
+    "question": "ตรวจจับ Strongly Connected Components (Cycles) และคำนวณเกรดสุขภาพโดยไม่เกิด Recursion Error ได้อย่างไร?",
+    "shortAnswer": "ใช้อัลกอริทึม Tarjan's SCC แบบ Iterative บน Stack คำนวณความไม่เสถียร (Instability) ของ Robert C. Martin และตัดคะแนนสุขภาพเป็นเกรด 0-100 (A-F)",
+    "algorithmName": "Tarjan's Iterative SCC & Martin's Package Instability",
+    "formula": "Tarjan's SCC lowlink: lowlink[u] = min(index[u], lowlink[v] (บน Stack), index[v] (visited))\nPackage Instability: I = C_e / (C_a + C_e), กำหนด I = 0.5 เมื่อ C_a + C_e == 0\nComposite Health Score: H = 100 - sum(Penalties) ในช่วง [0, 100]\nGrades: A (>=90), B (>=80), C (>=70), D (>=60), F (<60)",
+    "algorithmDesc": "ท่องกราฟหา cycle ด้วย Tarjan DFS แบบไม่พึ่งพา recursion คำนวณ In-degree (Ca) และ Out-degree (Ce) ตรวจจับ Layer Violation, God Objects, และ Dead Code นำมาหักคะแนนสุขภาพ",
+    "complexity": "เวลา: O(|V| + |E|) การท่องกราฟเชิงเส้น, พื้นที่: O(|V| + |E|)",
+    "boundary": "การตรวจ Degree จะรันบน app_edges() เพื่อกรองเส้นเชื่อมของชุดทดสอบออก ไม่ให้ distort ตัวชี้วัด",
+    "invariant": "ใช้ Iterative Stack ป้องกัน RecursionError บนโปรเจกต์ขนาดใหญ่ และใช้ app_edges() ตรวจ Degree"
+  },
+  {
+    "id": "scan_security_py",
+    "file": "scan_security.py",
+    "path": "scripts/review/scan_security.py",
+    "group": "review",
+    "groupName": "Review",
+    "role": "สแกนความปลอดภัย ตรวจจับ Secret และระบุเจ้าของตามพิกัด AST",
+    "question": "Shannon Entropy กรอง git commit hash และ UUID ออกจาก Secret ได้อย่างไร?",
+    "shortAnswer": "เลขฐาน 16 มีค่า Entropy สูงสุด log2(16) = 4.0 bits/char การตั้งเกณฑ์ขั้นต่ำ H >= 4.5 จึงคัดกรอง hex hash และ UUID ออกได้อย่างแม่นยำ 100% ทางคณิตศาสตร์",
+    "algorithmName": "Shannon Information Entropy & AST Coordinate Containment",
+    "formula": "Shannon Entropy: H(X) = -sum( P(x_i) * log2(P(x_i)) ) >= 4.5 bits/char\nMax Hex Entropy: log2(16) = 4.0 bits/char  (ปลอดจาก False Positives ของ Hash)\nMax Base64 Entropy: log2(64) = 6.0 bits/char\nAST Range Ownership: Owner(L) = argmin_N { len(N) | N.start <= L <= N.end }",
+    "algorithmDesc": "ตรวจจับช่องโหว่ด้วย Regex (SQL Injection, Secret, XSS Sink) หากพบโทเค็นต้องสงสัยจะวัด Shannon Entropy และระบุเจ้าของไปยังโหนด AST ชั้นในสุดที่ครอบบรรทัดนั้นอยู่",
+    "complexity": "เวลา: O(Source Lines), พื้นที่: O(จำนวนข้อค้นพบ)",
+    "boundary": "สตริงที่สั้นกว่า 16 ตัวอักษรหรือ Entropy < 4.5 จะถูกตัดทิ้งเพื่อเลี่ยงการแจ้งเตือนพร่ำเพรื่อ",
+    "invariant": "ข้อค้นพบต้องผูกกับโหนด AST ชั้นในสุดที่ครอบบรรทัดนั้น ไม่ใช่โหนดที่อยู่ใกล้เคียง"
+  },
+  {
+    "id": "metrics_py",
+    "file": "metrics.py",
+    "path": "scripts/review/metrics.py",
+    "group": "review",
+    "groupName": "Review",
+    "role": "คำนวณ Cyclomatic Complexity ของ McCabe, ความลึกการซ้อน (Nesting), และ LOC",
+    "question": "คำนวณ McCabe Cyclomatic Complexity ข้าม 17 ภาษาโดยไม่ต้องสร้าง CFG เต็มรูปแบบได้อย่างไร?",
+    "shortAnswer": "ทฤษฎีบทของ McCabe พิสูจน์ว่าฟังก์ชันเดี่ยว M = pi + 1 เอนจินจึงนับโหนด CST ที่เป็นจุดตัดสินใจ (Predicate) ข้าม 17 ไวยากรณ์โดยตรง",
+    "algorithmName": "McCabe Cyclomatic Complexity Theorem & CST Predicate Counting",
+    "formula": "M = pi + 1\npi = sum( Count(k) for k in PredicateNodeTypes ข้าม 17 ภาษา )\nNesting Depth = ความลึกสูงสุดของ branch CST จากรากของฟังก์ชัน\nLOC = EndLine - StartLine + 1",
+    "algorithmDesc": "วัด LOC, Cyclomatic Complexity, ความลึกการซ้อน และจำนวนพารามิเตอร์บนท่อน AST [source..end] นับจุดตัดสินใจ (if, for, while, catch, binary logic, switch cases)",
+    "complexity": "เวลา: O(AST Nodes ในฟังก์ชัน), พื้นที่: O(จำนวนฟังก์ชัน)",
+    "boundary": "ฟังก์ชันว่างเปล่าที่ไม่มีเงื่อนไขจะได้ค่า M = 1 (เส้นทางตรงทางเดียว)",
+    "invariant": "ตัวชี้วัดจะถูกผูกเข้ากับ Graph Node ID โดยตรงตั้งแต่ต้น"
+  },
+  {
+    "id": "git_insights_py",
+    "file": "git_insights.py",
+    "path": "scripts/review/git_insights.py",
+    "group": "review",
+    "groupName": "Review",
+    "role": "วิเคราะห์ Git Churn, สัดส่วนความเป็นเจ้าของของผู้เขียน และคะแนนความเสี่ยง Hotspot",
+    "question": "คำนวณคะแนนความเสี่ยง Hotspot Risk Score สำหรับแต่ละโหนดอย่างไร?",
+    "shortAnswer": "รวมค่า Churn ที่ normalize แล้ว (บรรทัดเพิ่ม + ลบ), ความซับซ้อน Cyclomatic Complexity, และ Fan-In (จำนวนผู้เรียก)",
+    "algorithmName": "Streaming Git Log Numstat Parsing & Composite Risk Score",
+    "formula": "Churn(f) = AddedLines(f) + DeletedLines(f)\nHotspot Risk Score:\nR(n) = Norm(Churn(n)) * Norm(Complexity(n)) * Norm(FanIn(n))\nAuthor Ownership: Owner(f) = argmax_A { Commits(A, f) }",
+    "algorithmDesc": "รัน git log --numstat แบบสตรีมโดยไม่โหลดประวัติทั้งหมดเข้า RAM สรุปยอด churn และการ commit ของผู้เขียน นำค่าระดับไฟล์ไปแมปเข้ากับโหนดและคำนวณความเสี่ยง",
+    "complexity": "เวลา: O(Git Commits), พื้นที่: O(จำนวนไฟล์) แบบสตรีม",
+    "boundary": "โปรเจกต์ที่ไม่ได้ใช้ git จะคืนค่าตัวชี้วัดว่างเปล่าโดยไม่ทำให้ pipeline พัง",
+    "invariant": "การอ่าน log แบบสตรีมช่วยจำกัดหน่วยความจำบน repo ที่มีประวัติ commit มากกว่า 50,000 ครั้ง"
+  },
+  {
+    "id": "debt_py",
+    "file": "debt.py",
+    "path": "scripts/review/debt.py",
+    "group": "review",
+    "groupName": "Review",
+    "role": "สำรวจหนี้ทางเทคนิค (Technical Debt) และค้นหาไฟล์กำพร้า (Orphan)",
+    "question": "ทำไมจึงแยก TODO/FIXME ออกจากเกรดสุขภาพอัตโนมัติ?",
+    "shortAnswer": "หนี้ทางเทคนิคเป็นบันทึกข้อความของมนุษย์ การนำไปหักคะแนนจะทำให้นักพัฒนาหลีกเลี่ยงการเขียน TODO อย่างตรงไปตรงมา",
+    "algorithmName": "Debt Marker Density & Orphan File Cross-Referencing",
+    "formula": "Debt Density = sum( Count({TODO, FIXME, HACK, XXX}) ) / Total_LOC\nOrphan Detection: เชื่อมโยงกับผลลัพธ์ของ analyze.find_orphans(nodes, edges)",
+    "algorithmDesc": "ค้นหาแท็ก TODO, FIXME, HACK, XXX ในคอมเมนต์ ค้นหาไฟล์กำพร้าและฟังก์ชันที่ไม่ถูกเรียก และรวบรวมเป็น debt.json เพื่อให้มนุษย์นำไปพิจารณาปรับปรุง",
+    "complexity": "เวลา: O(Source Lines), พื้นที่: O(จำนวนข้อค้นพบ)",
+    "boundary": "แท็กหนี้ในโฟลเดอร์เทสจะถูกแยกรายงานต่างหากเพื่อไม่ให้ fixture บิดเบือนยอดรวม",
+    "invariant": "รายงานหนี้มีไว้ให้มนุษย์วิเคราะห์ และต้องไม่นำไปตัดเกรดสุขภาพอัตโนมัติ"
+  },
+  {
+    "id": "tests_map_py",
+    "file": "tests_map.py",
+    "path": "scripts/review/tests_map.py",
+    "group": "review",
+    "groupName": "Review",
+    "role": "จับคู่ไฟล์เทสเข้ากับโค้ดจริง และคำนวณอัตราความครอบคลุม (Coverage Heuristic)",
+    "question": "tests_map.py แมปไฟล์ทดสอบเข้ากับเอนทิตีในระบบจริงอย่างไร?",
+    "shortAnswer": "สแกนไฟล์ทดสอบเพื่อค้นหาการอ้างอิงสัญลักษณ์ไปยัง Node ID ในโค้ดจริง แล้วสร้างเป็น Bipartite Coverage Graph",
+    "algorithmName": "Bipartite Symbol Reference Coverage Mapping",
+    "formula": "Coverage Ratio = |{ u in ProductionNodes | มี t ใน Tests: t -> u }| / |ProductionNodes|\nBipartite Mapping: TestFile -> Set ของ Referenced Production Node IDs",
+    "algorithmDesc": "ตรวจสอบไฟล์เทสที่ระบุโดย taxonomy.is_test_path() ดึงการอ้างอิงถึงคลาสและเมธอดจริง ส่งออก tests.json เพื่อแสดงว่าโหนดใดมีชุดทดสอบรองรับบ้าง",
+    "complexity": "เวลา: O(Test File Volume), พื้นที่: O(Test-to-Node Edges)",
+    "boundary": "ไม่นำอัตรานี้ไปตัดเกรดสุขภาพ เพื่อไม่ให้เสียคะแนนในโปรเจกต์ต้นแบบ (Prototype)",
+    "invariant": "การประเมินแบบฮิวริสติกนี้ต้องอยู่นอกการคำนวณเกรดสุขภาพเสมอ"
+  },
+  {
+    "id": "duplicates_py",
+    "file": "duplicates.py",
+    "path": "scripts/review/duplicates.py",
+    "group": "review",
+    "groupName": "Review",
+    "role": "ตรวจจับโค้ดซ้ำซ้อนด้วย Winnowing Algorithm และ Karp-Rabin Hashing",
+    "question": "ทำไมจึงเลือกใช้ Winnowing (K=10, W=21) แทน AST Subtree Isomorphism สำหรับหาโค้ดซ้ำ?",
+    "shortAnswer": "รับประกันว่าจะตรวจพบโค้ดซ้ำที่มีความยาว >= 30 โทเค็นในเวลาเชิงเส้น O(N) พร้อมจำกัดความหนาแน่นของ Fingerprint ไว้ที่ไม่เกิน 2/(w+1)",
+    "algorithmName": "Winnowing Local Minimum Fingerprinting & Karp-Rabin Hashing",
+    "formula": "Window Size: w = t - k + 1 = 30 - 10 + 1 = 21\nKarp-Rabin Hash: H_{i+1} = ( (H_i - c_i * B^{k-1}) * B + c_{i+k} ) mod M\nWindow Minimum: W_j = argmin_{0 <= r < w} { H_{j+r} }\nExpected Density: E[density] <= 2 / (w + 1)",
+    "algorithmDesc": "แปลงโทเค็นให้อยู่ในรูปมาตรฐาน (ตัวแปร -> ID, ค่าคงที่ -> LIT) คำนวณ Rolling Hash ของ 10-gram เลือก hash ค่าน้อยที่สุดในหน้าต่างเลื่อนขนาด 21 แล้วจับคู่ fingerprint ที่ตรงกัน",
+    "complexity": "เวลา: O(N) โทเค็น, พื้นที่: O(N / 11) fingerprints",
+    "boundary": "ส่วนที่ตรงกันน้อยกว่า 30 โทเค็นจะถูกคัดทิ้งเป็นสัญญาณรบกวน การเปลี่ยนชื่อตัวแปรไม่สามารถหลบเลี่ยงการตรวจจับได้",
+    "invariant": "การแปลงตัวแปรเป็น ID รับประกันการตรวจพบการก๊อปปี้แม้จะถูกเปลี่ยนชื่อตัวแปร"
+  },
+  {
+    "id": "brief_py",
+    "file": "brief.py",
+    "path": "scripts/review/brief.py",
+    "group": "review",
+    "groupName": "Review",
+    "role": "สรุปข้อมูลขนาดกะทัดรัด (Fixed-Budget Digest) สำหรับเริ่มเซสชันของ LLM",
+    "question": "ทำไม brief.py จึงทำงานที่ความซับซ้อน O(1) เทียบกับขนาด codebase เสมอ?",
+    "shortAnswer": "อ่านเฉพาะไฟล์สรุป JSON ที่คำนวณไว้ล่วงหน้า ไม่ประมวลผลซ้ำและไม่ parse ซอร์สโค้ด ทำให้ผลลัพธ์มีขนาดคงที่ ~4.3 KB เสมอไม่ว่าโค้ดเบสจะใหญ่เพียงใด",
+    "algorithmName": "Fixed-Budget Digest Serialization & Staleness Check",
+    "formula": "Size(Brief) ~ 4.3 KB  (O(1) เทียบกับขนาดโค้ดเบส)\nToken Compression: บีบอัดลง 3,212 เท่าเทียบกับซอร์สโค้ด 13.6 MB\nFreshness Check: manifest.compare() ยืนยันความสดใหม่ของข้อมูล",
+    "algorithmDesc": "เปิดเซสชันให้ AI Agent ด้วยสรุปสั้น ๆ จัดรูปแบบเกรดสถาปัตยกรรม, จำนวนโหนด/เส้นเชื่อม, HTTP endpoints, hotspots และคำเตือนต่าง ๆ จากไฟล์ JSON ในเครื่อง",
+    "complexity": "เวลา: O(1) การอ่านไฟล์, พื้นที่: O(1) บัฟเฟอร์ stdout ~4.3 KB",
+    "boundary": "หาก manifest ระบุว่า stale: true จะแสดงคำเตือนเตือนให้รันคำสั่งอัปเดตก่อน",
+    "invariant": "ต้องไม่คำนวณงานหนักใด ๆ งานที่กินทรัพยากรต้องทำล่วงหน้าใน pipeline เสมอ"
+  },
+  {
+    "id": "search_py",
+    "file": "search.py",
+    "path": "scripts/query/search.py",
+    "group": "query",
+    "groupName": "Query",
+    "role": "เครื่องมือค้นหากราฟแบบหลายตัวกรองความเร็วสูง",
+    "question": "ค้นหาจุดเริ่มต้นโดยไม่ต้องกวาดอ่านไฟล์ใน repository ได้อย่างไร?",
+    "shortAnswer": "สืบค้นจากไฟล์ graph.json หรือ flow_graph.json ในหน่วยความจำโดยตรง กรองโหนดตามชื่อ, doc, layer, kind, calls, called-by หรือ orphan ได้ทันที",
+    "algorithmName": "In-Memory Boolean Predicate Filtering",
+    "formula": "Q = { v in V | MatchName(v) & MatchDoc(v) & MatchLayer(v) & MatchKind(v) & MatchDegree(v) }",
+    "algorithmDesc": "ให้อินเทอร์เฟซ CLI สำหรับค้นหากราฟ รองรับ regex, docstring, เลเยอร์ และความสัมพันธ์ (--calls, --called-by, --orphans) โดยไม่ต้องเปิดอ่านไฟล์ใน repo ซ้ำซ้อน",
+    "complexity": "เวลา: O(|V|) สแกนโหนดในหน่วยความจำ, พื้นที่: O(|V|)",
+    "boundary": "ส่งกลับรายการว่างเปล่าอย่างปลอดภัยหากไม่พบโหนดที่ตรงเงื่อนไข รองรับเอาต์พุต JSON",
+    "invariant": "ไม่ต้องสแกนไฟล์ซอร์สโค้ด ช่วยให้ Agent ค้นหาตำแหน่งที่สนใจได้โดยไม่ต้อง grep"
+  },
+  {
+    "id": "trace_path_py",
+    "file": "trace_path.py",
+    "path": "scripts/query/trace_path.py",
+    "group": "query",
+    "groupName": "Query",
+    "role": "ท่องกราฟ คำนวณเส้นทางสั้นสุดด้วย BFS และหารัศมีผลกระทบ (Blast Radius)",
+    "question": "อัลกอริทึมและ Time Complexity ของการคำนวณรัศมีผลกระทบย้อนกลับ (--impact-of) คืออะไร?",
+    "shortAnswer": "ท่องกราฟทรานสโพส G^T ด้วย Reverse BFS ในเวลาเชิงเส้น O(|V| + |E|) โดยใช้ visited set ป้องกันวงวน",
+    "algorithmName": "Transposed Graph Reverse BFS & Shortest Path Traversal",
+    "formula": "Transposed Graph: E^T = { (w, v) | (v, w) in E }\nBlast Radius: BlastRadius(u) = { v in V | v เข้าถึง u ได้ใน G } ผ่าน Reverse BFS ในเวลา O(|V| + |E|)\nShortest Path: Forward BFS ในเวลา O(|V| + |E|)",
+    "algorithmDesc": "ค้นหาเส้นทางการเรียกที่สั้นที่สุดระหว่างสองโหนดด้วย BFS คำนวณรัศมีผลกระทบของการแก้ไขโค้ดด้วยการท่องย้อนกลับบนกราฟทรานสโพส G^T และแมป git diff hunk เข้าสู่โหนดที่ได้รับผลกระทบ",
+    "complexity": "เวลา: O(|V| + |E|) การท่องกราฟเชิงเส้น, พื้นที่: O(|V|) สำหรับคิวและ visited set",
+    "boundary": "กราฟที่มีการเรียกเป็นวงรอบจะถูกตัดตอนด้วย visited set ไม่เกิด loop ไม่สิ้นสุด",
+    "invariant": "Visited Hash Set ป้องกันการติด Loop บนกราฟที่มี Cycle"
+  },
+  {
+    "id": "context_py",
+    "file": "context.py",
+    "path": "scripts/query/context.py",
+    "group": "query",
+    "groupName": "Query",
+    "role": "จัดแพ็กเกจบริบทของโหนดให้อยู่ในงบจำกัดสำหรับ Prompt ของ LLM",
+    "question": "context.py รับประกันว่าจะไม่เกินขีดจำกัด Token ของ LLM ได้อย่างไร?",
+    "shortAnswer": "บรรจุข้อมูลของโหนด, ตัวชี้วัด, คะแนนความเสี่ยง และเพื่อนบ้านให้อยู่ภายใต้งบ --max-chars อย่างเข้มงวดด้วยการจัดลำดับแบบ Priority Knapsack",
+    "algorithmName": "Priority Knapsack Context Budgeting",
+    "formula": "max sum( Priority(c_i) )  ภายใต้เงื่อนไข  sum( len(c_i) ) <= max_chars\nลำดับความสำคัญ: target node > direct callers > direct callees > metrics/security findings",
+    "algorithmDesc": "รวบรวมบริบททางสถาปัตยกรรมของโหนดที่กำหนด แทรก metrics, ผลตรวจความปลอดภัย, git churn และ signature ของเพื่อนบ้าน โดยจะหยุดทันทีก่อนที่ความยาวตัวอักษรจะเกินขีดจำกัด --max-chars",
+    "complexity": "เวลา: O(Degree ของโหนดเป้าหมาย), พื้นที่: ถูกจำกัดโดย max_chars",
+    "boundary": "ตัดตอนที่รอยต่อของหัวข้ออย่างเรียบร้อย ไม่ตัดกลางบรรทัดของ JSON หรือ Markdown",
+    "invariant": "งบตัวอักษรเป็นขีดจำกัดตายตัว (hard budget) เอาต์พุตจะไม่ถูกตัดครึ่ง ๆ กลาง ๆ"
+  },
+  {
+    "id": "build_html_py",
+    "file": "build_html.py",
+    "path": "scripts/query/build_html.py",
+    "group": "query",
+    "groupName": "Query",
+    "role": "คอมไพเลอร์สร้าง Dashboard ตรวจสอบสถาปัตยกรรมแบบไฟล์เดียวออฟไลน์",
+    "question": "build_html.py สร้าง Dashboard ที่ทำงานแบบ Offline 100% จาก file:// ได้อย่างไร?",
+    "shortAnswer": "ฝังเทมเพลต templates/viewer.html, ไลบรารี force-graph.min.js และข้อมูล JSON ของกราฟลงใน data/explorer.html เป็นไฟล์เดียว ไม่มีการเรียกเน็ตเวิร์กภายนอก",
+    "algorithmName": "Template Substitution & Zero-Network Bundling",
+    "formula": "HTML = ViewerTemplate.replace('__TITLE__', title)\n                     .replace('__MAPS_DATA__', json_data)\n                     .replace('__VENDOR_JS__', vendor_js)\nผลลัพธ์: data/explorer.html (ไฟล์เดี่ยวใช้ offline ได้ทันที)",
+    "algorithmDesc": "โหลด HTML template จาก templates/viewer.html แทนที่ตัวแปร placeholder ด้วยข้อมูลกราฟ JSON, รายงานการรีวิว และสคริปต์ force-graph ที่อยู่ใน vendor/ สร้างเป็นไฟล์ explorer.html ที่สมบูรณ์ในตัว",
+    "complexity": "เวลา: O(ขนาด Template + ขนาด Data), พื้นที่: O(ขนาด Data)",
+    "boundary": "ตรวจสอบว่ามีไฟล์ JS ใน vendor ครบถ้วน หากขาดจะแจ้งเตือนพร้อม exit code != 0",
+    "invariant": "ไม่มีการใช้แท็กสคริปต์เชื่อมโยงภายนอก ทำงานได้สมบูรณ์ในระบบปิด (Air-gapped)"
+  },
+  {
+    "id": "viewer_html",
+    "file": "viewer.html",
+    "path": "templates/viewer.html",
+    "group": "runtime",
+    "groupName": "Runtime & UI",
+    "role": "ผืนผ้าใบ Canvas แสดงผลกราฟแบบใช้แรงจำลอง (Force-Directed) และแดชบอร์ดออฟไลน์",
+    "question": "viewer.html เรนเดอร์โหนดหลายพันจุดที่ 60 FPS บน HTML5 Canvas แบบออฟไลน์ได้อย่างไร?",
+    "shortAnswer": "ใช้อัลกอริทึม Barnes-Hut Quadtree (O(N log N)) สำหรับแรงผลักทางไฟฟ้าสถิต และกฎของฮุก (Hooke's Law) สำหรับแรงดึงสปริง ควบคู่กับการอินทิเกรตแบบ Velocity Verlet",
+    "algorithmName": "Barnes-Hut Quadtree (O(N log N)) & Velocity Verlet Integration",
+    "formula": "Barnes-Hut: ถ้า s / d < theta (theta = 0.9), F_rep = (G * m_u * M) / d^2 * r_hat\nHooke's Law: F_spring = -k * ( ||r_u - r_v|| - L_0 ) * r_hat_uv\nVerlet Integration: x_{t+dt} = x_t + v_t * dt + 0.5 * a_t * dt^2",
+    "algorithmDesc": "แสดงผล 7 มุมมอง (Flowchart, Graph, Treemap, Matrix, Tree, Cluster, Bundle) จำลองฟิสิกส์ด้วย D3/force-graph บน Canvas รองรับการลากตรึงโหนด, การกรอง, ไฮไลต์รัศมีผลกระทบ และการค้นหา",
+    "complexity": "เวลา: O(N log N) ต่อแอนิเมชันเฟรม, พื้นที่: O(N) quadtree บน canvas",
+    "boundary": "ลดจำนวนรอบการคำนวณฟิสิกส์ลงโดยอัตโนมัติเมื่อโหนดเกิน 5,000 จุด เพื่อคงความลื่นไหลของ UI",
+    "invariant": "โหนดทดสอบใช้สีเขียว (#57ab5a), ธีมสีสุขุม (#08090b), ไม่ใช้อีโมจิ (ใช้ SVG icon เท่านั้น)"
+  },
+  {
+    "id": "cli_js",
+    "file": "cli.js",
+    "path": "bin/cli.js",
+    "group": "runtime",
+    "groupName": "Runtime & UI",
+    "role": "ตัวติดตั้งข้ามสภาพแวดล้อม Agent Harness และตัวแปลง Path Prefix",
+    "question": "cli.js ติดตั้งข้าม Agent Harness หลายค่ายโดยไม่มี External Dependency ได้อย่างไร?",
+    "shortAnswer": "ใช้ไลบรารีมาตรฐานของ Node.js (fs, path, child_process) แมปปลายทางของ harness (.agents, .claude, .cursor, .windsurf, .zed) และแปลง prefix ของคำสั่ง",
+    "algorithmName": "Multi-Harness Target Mapping & Path Prefix Rewriting",
+    "formula": "Dest(H) = \".agents/skills/code-archaeologist\"   ถ้า H == 'agents'\n          \".claude/skills/code-archaeologist\"   ถ้า H == 'claude'\n          \".cursor/skills/code-archaeologist\"   ถ้า H == 'cursor'\n          \".windsurf/skills/code-archaeologist\" ถ้า H == 'windsurf'\n          \".zed/skills/code-archaeologist\"      ถ้า H == 'zed'",
+    "algorithmDesc": "จุดเริ่มต้น npx ตรวจสอบ Python 3.10+ ในเครื่อง จัดเตรียมโฟลเดอร์ คัดลอกเทมเพลตและสคริปต์ แปลง prefix ของคำสั่งให้เข้ากับ harness ปลายทาง และสร้างโฟลเดอร์ data",
+    "complexity": "เวลา: O(จำนวนไฟล์ที่คัดลอก), พื้นที่: O(1) external npm packages (ไร้ dependencies)",
+    "boundary": "หยุดทำงานทันทีพร้อมข้อความแนะนำวิธีติดตั้งหากไม่พบ Python 3.10+ ใน PATH",
+    "invariant": "ไร้ external npm dependency ใด ๆ ทำงานด้วยไลบรารีมาตรฐานของ Node.js 100%"
+  }
+];
+
+// =====================================================================
+// Checklist Interactive State & Controller
+// =====================================================================
+const STORAGE_KEY = 'ca_arch_guide_read_v1';
+let clReadSet = new Set();
+let clActiveCategory = 'all';
+let clStatusFilter = 'all'; // 'all', 'unread', 'read'
+
+function loadChecklistState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      clReadSet = new Set(arr);
+    }
+  } catch (e) {
+    clReadSet = new Set();
+  }
+}
+
+function saveChecklistState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...clReadSet]));
+  } catch (e) {}
+}
+
+function updateChecklistProgress() {
+  const total = CHECKLIST_FILES_DATA.length;
+  const readCount = clReadSet.size;
+  const pct = Math.round((readCount / total) * 100);
+
+  const summaryEl = document.getElementById("clProgressSummary");
+  const barEl = document.getElementById("clProgressBar");
+  if (summaryEl) summaryEl.textContent = `${readCount} / ${total} ไฟล์ (${pct}%)`;
+  if (barEl) barEl.style.width = `${pct}%`;
+
+  const heroCountEl = document.getElementById("heroClCount");
+  if (heroCountEl) heroCountEl.textContent = `${readCount}/${total}`;
+  const totalCountEl = document.getElementById("clTotalCount");
+  if (totalCountEl) totalCountEl.textContent = `${total}`;
+}
+
+function renderChecklist() {
+  const container = document.getElementById("checklistContainer");
+  if (!container) return;
+
+  loadChecklistState();
+
+  const q = (document.getElementById("clSearchInput")?.value || "").toLowerCase().trim();
+
+  const filtered = CHECKLIST_FILES_DATA.filter(item => {
+    // Category filter
+    if (clActiveCategory !== 'all' && item.group !== clActiveCategory) return false;
+
+    // Read/Unread filter
+    const isRead = clReadSet.has(item.id);
+    if (clStatusFilter === 'read' && !isRead) return false;
+    if (clStatusFilter === 'unread' && isRead) return false;
+
+    // Search query filter
+    if (q) {
+      const haystack = (item.file + " " + item.path + " " + item.role + " " +
+                        item.question + " " + item.algorithmName + " " +
+                        item.formula + " " + item.shortAnswer + " " + item.algorithmDesc).toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div style="padding: 36px 0; text-align: center; color: var(--ink-3); font-style: italic;">
+        ไม่พบไฟล์ที่ตรงกับเงื่อนไขการค้นหา ลองล้างคำค้นหาหรือเปลี่ยนหมวดหมู่
+      </div>
+    `;
+    updateChecklistProgress();
+    return;
+  }
+
+  container.innerHTML = filtered.map(item => {
+    const isCompleted = clReadSet.has(item.id);
+    return `
+      <div class="cl-file-card ${isCompleted ? 'completed' : ''}" id="card-${item.id}">
+        <div class="cl-file-header" onclick="toggleCardOpen('${item.id}')">
+          <div class="cl-file-check-box" onclick="event.stopPropagation(); toggleFileRead('${item.id}')" title="บันทึกว่าศึกษาและเข้าใจไฟล์นี้แล้ว">
+            <div class="cl-custom-checkbox">${isCompleted ? '&#10003;' : ''}</div>
+          </div>
+          <div class="cl-file-meta">
+            <div class="cl-file-title-row">
+              <span class="cl-file-name">${item.file}</span>
+              <span class="fc-node-badge cat-${item.group}">${item.groupName}</span>
+              <span class="cl-file-path">${item.path}</span>
+              <span style="margin-left: auto; font-family: var(--mono); font-size: 11px; color: ${isCompleted ? 'var(--ok)' : 'var(--ink-3)'};">
+                ${isCompleted ? '&#10003; ศึกษาเข้าใจแล้ว' : 'คลิกช่องติ๊กเพื่อบันทึกว่าอ่านแล้ว'}
+              </span>
+            </div>
+            <div class="cl-file-role">${item.role}</div>
+          </div>
+          <div class="cl-file-toggle-icon">&#9660;</div>
+        </div>
+
+        <div class="cl-file-body">
+          <div class="cl-qa-block">
+            <div class="cl-q-title">
+              <span class="cl-q-badge">คำถามหลัก</span>
+              <span>${item.question}</span>
+            </div>
+            <div class="cl-a-short">
+              <strong>คำตอบโดยสรุป:</strong> ${item.shortAnswer}
+            </div>
+
+            <div class="cl-algo-box">
+              <div class="cl-algo-title">&#9881; อัลกอริทึมและสูตรคำนวณทางคณิตศาสตร์: ${item.algorithmName}</div>
+              <pre class="cl-formula-display"><code>${escapeHtml(item.formula)}</code></pre>
+              <div class="cl-algo-desc">${item.algorithmDesc}</div>
+              <div class="cl-meta-grid">
+                <div class="cl-meta-item"><strong>ความซับซ้อน:</strong> ${item.complexity}</div>
+                <div class="cl-meta-item"><strong>กรณีขอบเขต (Edge/Boundary):</strong> ${item.boundary}</div>
+              </div>
+            </div>
+
+            <div class="cl-inv-box">
+              <strong>กฎ Invariant ทางสถาปัตยกรรม:</strong> ${item.invariant}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  updateChecklistProgress();
+}
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function toggleFileRead(id) {
+  if (clReadSet.has(id)) {
+    clReadSet.delete(id);
+  } else {
+    clReadSet.add(id);
+  }
+  saveChecklistState();
+  renderChecklist();
+}
+
+function toggleCardOpen(id) {
+  const card = document.getElementById(`card-${id}`);
+  if (card) {
+    card.classList.toggle("open");
+  }
+}
+
+function clToggleAll(expand) {
+  document.querySelectorAll(".cl-file-card").forEach(card => {
+    if (expand) card.classList.add("open");
+    else card.classList.remove("open");
+  });
+}
+
+function clMarkAll(readAll) {
+  if (readAll) {
+    CHECKLIST_FILES_DATA.forEach(item => clReadSet.add(item.id));
+  } else {
+    clReadSet.clear();
+  }
+  saveChecklistState();
+  renderChecklist();
+}
+
+function clSetCategory(cat, btn) {
+  clActiveCategory = cat;
+  document.querySelectorAll(".cl-filter-chips .cl-chip").forEach(b => b.classList.remove("active"));
+  if (btn) btn.classList.add("active");
+  renderChecklist();
+}
+
+function clToggleStatusFilter() {
+  const btn = document.getElementById("clStatusToggle");
+  if (clStatusFilter === 'all') {
+    clStatusFilter = 'unread';
+    if (btn) btn.textContent = "แสดง: ยังไม่อ่านเท่านั้น";
+  } else if (clStatusFilter === 'unread') {
+    clStatusFilter = 'read';
+    if (btn) btn.textContent = "แสดง: อ่านแล้วเท่านั้น";
+  } else {
+    clStatusFilter = 'all';
+    if (btn) btn.textContent = "แสดง: ทุกไฟล์ (32)";
+  }
+  renderChecklist();
+}
+
+function clApplyFilter() {
+  renderChecklist();
+}
+
 </script>
 </body>
 </html>
