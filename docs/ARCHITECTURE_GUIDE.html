@@ -469,6 +469,164 @@
   .step-body { flex: 1; }
   .step-title { font-family: var(--mono); font-size: 13.5px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
   .step-desc { font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+
+  /* Reading Checklist & File-by-File Q&A Section */
+  .checklist-section { padding: 48px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+  .cl-progress-card {
+    background: var(--panel); border: 1px solid var(--rule-lit); border-radius: 8px;
+    padding: 20px 24px; margin: 20px 0 24px; display: flex; flex-direction: column; gap: 14px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+  .cl-progress-top {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+  }
+  .cl-progress-title {
+    font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--ink);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .cl-progress-pct {
+    font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--accent);
+  }
+  .cl-progress-track {
+    width: 100%; height: 8px; background: var(--ground); border: 1px solid var(--rule);
+    border-radius: 4px; overflow: hidden; position: relative;
+  }
+  .cl-progress-bar {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--ok));
+    border-radius: 4px; width: 0%; transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .cl-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .cl-btn {
+    background: var(--ground); border: 1px solid var(--rule-lit); border-radius: 5px;
+    padding: 6px 12px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-2);
+    cursor: pointer; transition: all .15s ease; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .cl-btn:hover { border-color: var(--accent); color: var(--ink); background: var(--raised); }
+  .cl-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+  /* Toolbar & Filter Bar */
+  .cl-toolbar {
+    display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;
+  }
+  .cl-search-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .cl-filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .cl-chip {
+    background: var(--panel); border: 1px solid var(--rule); border-radius: 14px;
+    padding: 5px 12px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-2);
+    cursor: pointer; transition: all .12s;
+  }
+  .cl-chip:hover { border-color: var(--rule-lit); color: var(--ink); }
+  .cl-chip.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .cl-chip small { color: var(--ink-3); margin-left: 4px; }
+  .cl-chip.active small { color: var(--accent); }
+
+  /* File item card */
+  .cl-file-card {
+    background: var(--panel); border: 1px solid var(--rule); border-radius: 8px;
+    margin-bottom: 12px; transition: border-color .15s, background .15s;
+    overflow: hidden;
+  }
+  .cl-file-card.completed {
+    border-color: rgba(63, 185, 80, 0.4);
+    background: rgba(63, 185, 80, 0.02);
+  }
+  .cl-file-card:hover { border-color: var(--rule-lit); }
+  .cl-file-card.completed:hover { border-color: var(--ok); }
+
+  .cl-file-header {
+    padding: 14px 18px; display: flex; align-items: flex-start; gap: 14px;
+    cursor: pointer; user-select: none; background: var(--panel);
+  }
+  .cl-file-check-box {
+    margin-top: 3px; display: flex; align-items: center; justify-content: center; flex: none;
+  }
+  .cl-custom-checkbox {
+    width: 20px; height: 20px; border: 1.5px solid var(--rule-lit); border-radius: 4px;
+    background: var(--ground); cursor: pointer; display: flex; align-items: center;
+    justify-content: center; transition: all .15s ease; font-size: 13px; font-weight: bold;
+    color: transparent;
+  }
+  .cl-custom-checkbox:hover { border-color: var(--accent); }
+  .cl-file-card.completed .cl-custom-checkbox {
+    background: var(--ok); border-color: var(--ok); color: #08090b;
+  }
+  .cl-file-meta { flex: 1; }
+  .cl-file-title-row {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 4px;
+  }
+  .cl-file-name {
+    font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--ink);
+  }
+  .cl-file-card.completed .cl-file-name { color: var(--ok); }
+  .cl-file-path {
+    font-family: var(--mono); font-size: 11px; color: var(--ink-3);
+  }
+  .cl-file-role { font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
+
+  .cl-file-toggle-icon {
+    font-family: var(--mono); font-size: 15px; color: var(--ink-3);
+    transition: transform 0.2s ease; margin-left: 8px; margin-top: 2px; flex: none;
+  }
+  .cl-file-card.open .cl-file-toggle-icon { transform: rotate(180deg); color: var(--accent); }
+
+  /* File Q&A & Algorithm Details */
+  .cl-file-body {
+    padding: 0 18px 18px 52px; display: none; flex-direction: column; gap: 14px;
+    border-top: 1px solid var(--rule); background: rgba(0,0,0,0.18);
+  }
+  .cl-file-card.open .cl-file-body { display: flex; }
+
+  .cl-qa-block {
+    background: var(--ground); border: 1px solid var(--rule); border-radius: 6px;
+    padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; margin-top: 14px;
+  }
+  .cl-q-title {
+    font-family: var(--sans); font-size: 13.5px; font-weight: 600; color: var(--ink);
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .cl-q-badge {
+    font-family: var(--mono); font-size: 10px; font-weight: 700; text-transform: uppercase;
+    color: var(--accent); background: var(--accent-dim); border-radius: 3px; padding: 2px 6px;
+  }
+  .cl-a-short {
+    border-left: 2.5px solid var(--accent); padding: 6px 12px; background: rgba(217, 159, 74, 0.06);
+    border-radius: 0 4px 4px 0; color: var(--ink); font-size: 13px; line-height: 1.6;
+  }
+  .cl-algo-box {
+    background: var(--raised); border: 1px solid var(--rule-lit); border-radius: 6px;
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;
+  }
+  .cl-algo-title {
+    font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--blue); display: flex; align-items: center; gap: 6px;
+  }
+  .cl-formula-display {
+    background: var(--ground); border: 1px solid var(--rule); border-radius: 4px;
+    padding: 10px 14px; font-family: var(--mono); font-size: 12px; color: var(--accent);
+    overflow-x: auto; white-space: pre-wrap; line-height: 1.6; margin: 4px 0;
+  }
+  .cl-algo-desc { font-size: 12.5px; color: var(--ink-2); line-height: 1.6; }
+  .cl-meta-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px;
+    font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin-top: 4px;
+  }
+  .cl-meta-item strong { color: var(--ink-2); }
+  .cl-inv-box {
+    background: rgba(227, 179, 65, 0.06); border-left: 2.5px solid var(--warn);
+    padding: 6px 12px; border-radius: 0 4px 4px 0; font-size: 12px; color: var(--ink-2);
+  }
+  .cl-inv-box strong { color: var(--warn); }
+
+  /* Responsive styling */
+  @media (max-width: 768px) {
+    .wrap { padding: 0 16px; }
+    h1 { font-size: 24px; }
+    h2 { font-size: 19px; }
+    .hero-p { font-size: 13.5px; }
+    .cl-file-header { padding: 12px 14px; }
+    .cl-file-body { padding: 0 14px 14px 40px; }
+    .cards-grid { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
@@ -522,11 +680,18 @@
 <header>
   <div class="wrap">
     <div class="hero-tag">Zero-RAG Codebase Documentation Engine</div>
-    <h1>Code Archaeologist Architecture & Workflow</h1>
+    <h1>Code Archaeologist Architecture &amp; Workflow</h1>
     <p class="hero-p">
       A complete, deterministic compiler-style pipeline that transforms source code into two queryable graph maps
-      (Structure & Flow), audits them with graph algorithms, and renders an offline single-file viewer.
+      (Structure &amp; Flow), audits them with graph algorithms, and renders an offline single-file viewer.
     </p>
+
+    <!-- Jump Navigation -->
+    <div class="hero-nav" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px;">
+      <a href="#callgraph" class="cl-btn" style="text-decoration: none;">&darr; Execution Flowchart &amp; Matrix</a>
+      <a href="#reading-checklist" class="cl-btn" style="text-decoration: none; border-color: var(--accent); color: var(--accent); background: var(--accent-dim);">&darr; File-by-File Reading Checklist &amp; Q&amp;A (<span id="heroClCount">32</span>)</a>
+      <a href="#scripts-catalog" class="cl-btn" style="text-decoration: none;">&darr; Script Catalog &amp; Invariants</a>
+    </div>
 
     <!-- Visual Pipeline -->
     <div class="pipe-container">
@@ -641,8 +806,10 @@
   </div>
 </header>
 
+<main class="wrap">
+
   <!-- Inter-Script Call Graph & Execution Hierarchy Section -->
-  <section class="callgraph-section">
+  <section class="callgraph-section" id="callgraph">
     <div class="section-eyebrow">Execution Architecture</div>
     <h2>Inter-Script Call Graph &amp; Execution Hierarchy</h2>
     <p style="color: var(--ink-2); max-width: 90ch; margin-bottom: 24px;">
@@ -1332,9 +1499,61 @@
     </div>
   </section>
 
+  <!-- ===================================================================
+       File-by-File Reading Checklist & Deep Technical Q&A
+       =================================================================== -->
+  <section class="checklist-section" id="reading-checklist">
+    <div class="section-eyebrow">Study &amp; Audit Curriculum</div>
+    <h2>File-by-File Architecture Checklist &amp; Q&amp;A (<span id="clTotalCount">32</span> Files)</h2>
+    <p style="color: var(--ink-2); max-width: 90ch; margin-bottom: 20px;">
+      A systematic reading checklist for architects, auditors, and agents exploring the Code Archaeologist codebase.
+      Each file is paired with core technical questions, critical invariants, and the exact <strong>mathematical calculation formulas and algorithms</strong> implemented in that file. Check off files as you read to persist your progress across sessions.
+    </p>
+
+    <!-- Progress Card -->
+    <div class="cl-progress-card">
+      <div class="cl-progress-top">
+        <div class="cl-progress-title">
+          <span>&#128214; Reading Progress:</span>
+          <span class="cl-progress-pct" id="clProgressSummary">0 / 32 files (0%)</span>
+        </div>
+        <div class="cl-actions">
+          <button class="cl-btn" onclick="clToggleAll(true)">&#9660; Expand All Q&amp;A</button>
+          <button class="cl-btn" onclick="clToggleAll(false)">&#9650; Collapse All Q&amp;A</button>
+          <button class="cl-btn" onclick="clMarkAll(true)">&#10003; Mark All Read</button>
+          <button class="cl-btn" onclick="clMarkAll(false)">&#8634; Reset Progress</button>
+        </div>
+      </div>
+      <div class="cl-progress-track">
+        <div class="cl-progress-bar" id="clProgressBar" style="width: 0%;"></div>
+      </div>
+    </div>
+
+    <!-- Toolbar: Search & Category Filters -->
+    <div class="cl-toolbar">
+      <div class="cl-search-row">
+        <input type="text" id="clSearchInput" class="search-input"
+               placeholder="Search file name, topic, or algorithm (e.g. Tarjan, Winnowing, Shannon, McCabe, Instability)..."
+               oninput="clApplyFilter()">
+        <button class="cl-btn" id="clStatusToggle" onclick="clToggleStatusFilter()">Show: All Files</button>
+      </div>
+      <div class="cl-filter-chips" id="clFilterChips">
+        <button class="cl-chip active" onclick="clSetCategory('all', this)">All Subsystems <small>(32)</small></button>
+        <button class="cl-chip" onclick="clSetCategory('entry', this)">Entrypoint &amp; Paths <small>(2)</small></button>
+        <button class="cl-chip" onclick="clSetCategory('core', this)">Core Subsystems <small>(7)</small></button>
+        <button class="cl-chip" onclick="clSetCategory('extract', this)">AST Extraction <small>(8)</small></button>
+        <button class="cl-chip" onclick="clSetCategory('review', this)">Review &amp; Audit <small>(9)</small></button>
+        <button class="cl-chip" onclick="clSetCategory('query', this)">Query &amp; Presentation <small>(4)</small></button>
+        <button class="cl-chip" onclick="clSetCategory('runtime', this)">Runtime &amp; CLI <small>(2)</small></button>
+      </div>
+    </div>
+
+    <!-- Dynamic Checklist Items Container -->
+    <div id="checklistContainer"></div>
+  </section>
 
   <!-- Script Cards Section -->
-  <section style="padding: 48px 0;">
+  <section style="padding: 48px 0;" id="scripts-catalog">
     <div class="section-eyebrow">Script Reference Directory</div>
     <h2>All 28 Scripts: Mechanics, Algorithms &amp; Invariants</h2>
 
@@ -2150,8 +2369,736 @@ function filterMatrix() {
   });
 }
 
-// Initial render
+// =====================================================================
+// Complete 32-File Architecture Reading Checklist Dataset & Q&A
+// =====================================================================
+const CHECKLIST_FILES_DATA = [
+  // 1. Entrypoint & Runtime Bootstrap
+  {
+    id: "archaeologist_py",
+    file: "archaeologist.py",
+    path: "scripts/archaeologist.py",
+    group: "entry",
+    groupName: "Entrypoint",
+    role: "The single user-facing and harness-facing CLI dispatcher for all Code Archaeologist commands.",
+    question: "How does archaeologist.py route subcommands deterministically without subprocess spawning?",
+    shortAnswer: "Uses an associative dispatch table mapping subcommands directly to in-process module functions via argparse, guaranteeing unified parameter propagation with zero process overhead.",
+    algorithmName: "Finite State Command Mapping & Short-Circuit Dispatch",
+    formula: "Dispatch: C x A -> Z, where C = {project, flow, both, check, report, brief}\nf_Cmd = DispatchTable[Cmd]\nExitCode = f_Cmd(Args)\nShort-circuit: run_project() or run_flow() halts on non-zero return code",
+    algorithmDesc: "Inspects sys.argv[1] against registered subcommands. For 'project' or 'flow', normalizes source roots, executes build_wiki/build_flow, renders data/explorer.html, and writes manifest.json. 'report' iterates through all generated graphs and delegates to report.build().",
+    complexity: "Time: O(1) command lookup. Space: O(1) process overhead.",
+    boundary: "Omitted or unrecognized command prints concise POSIX CLI usage; missing arguments return exit code != 0.",
+    invariant: "The only file at scripts/ root. No other script is permitted to act as an entrypoint."
+  },
+  {
+    id: "paths_py",
+    file: "paths.py",
+    path: "scripts/paths.py",
+    group: "entry",
+    groupName: "Entrypoint",
+    role: "Central filesystem anchor, sys.path bootstrap, and cross-platform path resolution utilities.",
+    question: "How does paths.py overcome Windows MAX_PATH (260 character) limits on deeply nested vault files?",
+    shortAnswer: "Automatically prefixes extended-length '\\\\?\\' NT Object Manager syntax to paths >= 260 characters on Windows, and normalizes cross-drive relative paths via skill_rel().",
+    algorithmName: "Windows Extended-Length Path Mapping & Cross-Drive Relativity",
+    formula: "phi(p) = \"\\\\\\\\?\\\\\" + abspath(p)  if os.name == 'nt' and len(abspath(p)) >= 260 and not abspath(p).startswith('\\\\\\\\')\n         p                        otherwise\n\nskill_rel(src, target) = relpath(src, target)  if Drive(src) == Drive(target)\n                         abspath(src)          otherwise",
+    algorithmDesc: "Evaluates __file__ to establish absolute SKILL_ROOT, DATA_DIR, and TEMPLATES_DIR references. Appends scripts/, core/, extract/, review/, query/, and vendor/ into sys.path so sibling imports remain bare and vendored tree-sitter takes precedence.",
+    complexity: "Time: O(1) per path resolution. Space: O(1).",
+    boundary: "Windows network shares (UNC paths starting with \\\\) are preserved without prepending \\\\?\\UNC.",
+    invariant: "Sits below categories; imports nothing from skill; bootstraps sys.path so sibling imports stay bare."
+  },
+
+  // 2. Core Subsystems & Foundations
+  {
+    id: "taxonomy_py",
+    file: "taxonomy.py",
+    path: "scripts/core/taxonomy.py",
+    group: "core",
+    groupName: "Core",
+    role: "Single source of truth for architectural classification, tier poset, and precision loss tracking.",
+    question: "How are architectural layers mathematically ordered, and how is precision loss tracked?",
+    shortAnswer: "Layers form an ordered tier poset (ui < controller < service < repository < model). Layer violations occur when L(u) > L(v). Ambiguities earn named precision loss vectors rather than guesswork.",
+    algorithmName: "Tiered Architectural Poset & Lower-Bound Precision Vector",
+    formula: "Poset: L = { ui < controller < service < repository < model }\nLayer Violation: Violation(u, v) <=> L(u) > L(v)\nReversed Relations: R_reversed = { \"implements\", \"extends\", \"overrides\" }\ndirection(u, v, kind) = (v, u) if kind in R_reversed else (u, v)\nPrecision Vector: Precision(u) subset of { \"interface-dispatch\", \"overloads\", \"name-matched\", \"unresolved\" }",
+    algorithmDesc: "Static lookup dictionaries and regexes. infer_layer() maps decorator annotations (@RestController -> controller) and directory tokens. is_test_path() identifies test suites via framework annotations and path conventions. Computes discrete precision losses.",
+    complexity: "Time: O(1) per lookup. Space: O(1).",
+    boundary: "Framework entrypoints and test files are excluded from dead code / orphan penalties.",
+    invariant: "Every script must query taxonomy.py; never hardcode layers, kinds, or skip directories inline."
+  },
+  {
+    id: "ids_py",
+    file: "ids.py",
+    path: "scripts/core/ids.py",
+    group: "core",
+    groupName: "Core",
+    role: "Generates disambiguated, deterministic node identifiers across Structure and Flow maps.",
+    question: "How does ids.py prevent case-insensitive collisions on Windows/macOS while keeping IDs bare by default?",
+    shortAnswer: "Pre-scans all definitions across 17 languages into equivalence classes partitioned by lowercase name. Bare names are retained if globally unique; duplicate names are qualified by file stem or normalized relative path.",
+    algorithmName: "Canonical Disambiguation Partitioning via Equivalence Classes",
+    formula: "[(n, f)]_~ = { (n', f') in Definitions | lower(n') == lower(n) }\nID(n, f) = n                       if |{ f' | (*, f') in [(n, f)]_~ }| == 1\n           stem(f) + \".\" + n       if all stems in [(n, f)]_~ are distinct\n           norm_path(f) + \".\" + n  otherwise",
+    algorithmDesc: "SharedNames scans all definitions before constructing any graph nodes. It indexes symbols by lower(name) in a hash map. Calling ids.id(name, file) outputs the bare name if unique across the entire codebase, stem-qualified if stems differ, or path-qualified.",
+    complexity: "Time: O(N) pre-scan + O(1) query. Space: O(N) definitions index.",
+    boundary: "Case collisions (e.g., 'Login' vs 'login' in different files) map to separate notes, preventing disk clobbering on NTFS/APFS.",
+    invariant: "Node IDs are bare unless defined in >= 2 files. Calls to shared names resolve only to caller's own file, else dropped."
+  },
+  {
+    id: "call_ctx_py",
+    file: "call_ctx.py",
+    path: "scripts/core/call_ctx.py",
+    group: "core",
+    groupName: "Core",
+    role: "Extracts call-site execution context from ASTs (line number, loop context, branch arms).",
+    question: "How does call_ctx.py distinguish repeated loop executions from single-pass branch conditions?",
+    shortAnswer: "Walks AST ancestors from call node to definition. Sets loop only for repeating child fields (body, update), cond for branch results (consequence, alternative), and tags mutually exclusive arms as 3a/3b.",
+    algorithmName: "CST Ancestor Invariant Walk & Branch Lattice Meet Operator",
+    formula: "Ancestor Walk: Call -> Parent -> ... -> Definition\nLattice Meet across call sites S = {s_1, ..., s_k}:\n  Line = min(s_i.line)\n  Loop = OR(s_i.loop)      (if call in repeating field: body, condition, update)\n  Cond = AND(s_i.cond)     (if all sites in branch result: consequence, alternative)\n  Arms = Intersection(s_i.arms)  (\"<line>:<col>/<arm>\" mutually exclusive branch tags)",
+    algorithmDesc: "Probed node-type tables across 17 grammars detect while/for/comprehension loops vs if/switch/match branches. Only repeating bodies count as loops (for headers run once). Multi-site merge takes the first line and intersecting branch arms.",
+    complexity: "Time: O(depth) where depth <= 30 in typical ASTs. Space: O(1).",
+    boundary: "Node types not present in probed grammar tables report nothing (lower-bound soundness).",
+    invariant: "Lower-bound soundness: unhandled syntax yields no flags rather than speculative flags."
+  },
+  {
+    id: "doc_text_py",
+    file: "doc_text.py",
+    path: "scripts/core/doc_text.py",
+    group: "core",
+    groupName: "Core",
+    role: "Universal doc comment cleaner and single-line description normalizer.",
+    question: "Why is XML tag stripping restricted to C# and JSDoc rather than applied globally?",
+    shortAnswer: "Global XML regex tag stripping cannot distinguish between HTML tags and generic type parameters (e.g. List<T>, Map<K, V>).",
+    algorithmName: "Marker Peeling & Single-Line Block Joining",
+    formula: "Marker Peeling: Strip block delimiters /*, */, then line prefixes //, ///, //!, *, #\nNormalized Join: desc = ' '.join(line.strip() for line in lines if line.strip())\nXML Stripping: re.sub(r'<[^>]+>', '', text) enabled only when xml=True (C#, JSDoc)",
+    algorithmDesc: "clean() strips block comment markers and leading bullet punctuation across languages. join() normalizes multiline Python docstrings into a single space-separated sentence. When xml=True, strips XML tags without stripping generics in other languages.",
+    complexity: "Time: O(L) where L is total comment length. Space: O(L).",
+    boundary: "Empty comment blocks or whitespace-only lines are trimmed cleanly without producing empty descriptions.",
+    invariant: "Every node description is guaranteed to be a single, trimmed line."
+  },
+  {
+    id: "grammars_py",
+    file: "grammars.py",
+    path: "scripts/core/grammars.py",
+    group: "core",
+    groupName: "Core",
+    role: "Tree-sitter Generalized LR (GLR) parser management, ABI pinning, and dynamic lazy loader.",
+    question: "How does Tree-sitter's Generalized LR (GLR) algorithm handle syntax errors and ambiguity?",
+    shortAnswer: "Forks the parser stack into a Graph-Structured Stack (GSS) upon grammar conflicts, merges valid branches, and isolates syntax errors into ERROR CST nodes for local error recovery.",
+    algorithmName: "GLR Graph-Structured Stack (GSS) & Dynamic Parser Cache",
+    formula: "GLR Stack Fork: S -> { S_1, S_2, ..., S_m } via Graph-Structured Stack (GSS)\nLocal Error Recovery: Offending byte interval wrapped in CST ERROR node\nGrammar Drift: Delta_unpinned = InstalledGrammars \\ PINS",
+    algorithmDesc: "Maintains pinned version dictionary PINS. Dynamically resolves tree-sitter grammars from vendor/ before system packages. parser_for(lang) instantiates and caches Parser objects on demand. Detects ABI version mismatch and unpinned wheels.",
+    complexity: "Time: O(N) parsing per file via incremental Tree-sitter engine. Space: O(1) per grammar parser.",
+    boundary: "Missing grammars trigger an informative named warning with the exact pip install command and skip those files safely.",
+    invariant: "Missing grammar warns by name and provides exact pip install command; never fails silently."
+  },
+  {
+    id: "manifest_py",
+    file: "manifest.py",
+    path: "scripts/core/manifest.py",
+    group: "core",
+    groupName: "Core",
+    role: "Merkle tree content-addressable SHA-1 freshness and staleness audit.",
+    question: "Why does a changed grammar set count as repo staleness in manifest.py?",
+    shortAnswer: "A graph built without a grammar wheel is missing an entire language's nodes, making it indistinguishable from a smaller codebase.",
+    algorithmName: "Content-Addressed Merkle Tree Source Hashing",
+    formula: "H_repo = SHA1( concat( (f, SHA1(read(f))) for f in Sources ) + InstalledGrammars )\nStaleness Check: stale = (H_repo != H_cached) or (Grammars != CachedGrammars)\nOutput: { stale: bool, added: list, changed: list, removed: list }",
+    algorithmDesc: "Walks all source files under recorded roots, computes individual SHA-1 content hashes, combines with installed grammar versions, and compares against data/cache/manifest.json. check command outputs staleness JSON and exits.",
+    complexity: "Time: O(Total Source Bytes) for hashing. Space: O(File Count).",
+    boundary: "Files added, removed, or modified trigger stale: true. Unchanged bytes return stale: false.",
+    invariant: "The only command that reads source and writes nothing. Grammar change triggers staleness."
+  },
+  {
+    id: "console_py",
+    file: "console.py",
+    path: "scripts/core/console.py",
+    group: "core",
+    groupName: "Core",
+    role: "Unicode stream transcoding wrapper for non-UTF-8 terminals (e.g. CP874).",
+    question: "Why is safe_stdout() necessary when echoing repository text?",
+    shortAnswer: "Accented characters, non-English author names, or unicode symbols trigger fatal UnicodeEncodeError crashes on default Windows CP874/ASCII terminals.",
+    algorithmName: "Surrogate-Safe Encoding Stream Transcoding",
+    formula: "sys.stdout.reconfigure(encoding=stream.encoding, errors='replace')\nFallback: io.TextIOWrapper(stream.buffer, encoding=stream.encoding, errors='surrogateescape')",
+    algorithmDesc: "Wraps sys.stdout and sys.stderr with fallback error handlers. Non-representable characters on the user's active console encoding (such as Windows CP874 or legacy OEM codepages) are safely replaced with fallback characters instead of throwing exceptions.",
+    complexity: "Time: O(1) wrapper setup. Space: O(1).",
+    boundary: "UTF-8 terminals pass through unaffected; non-UTF-8 terminals replace unencodable characters safely.",
+    invariant: "Must wrap stdout before echoing external text (repo paths, git authors, comments)."
+  },
+
+  // 3. AST Extraction Engine
+  {
+    id: "build_wiki_py",
+    file: "build_wiki.py",
+    path: "scripts/extract/build_wiki.py",
+    group: "extract",
+    groupName: "Extraction",
+    role: "Structure map entity extractor (classes, React components, module groups).",
+    question: "How does build_wiki.py identify React components across JS/TS/JSX/TSX?",
+    shortAnswer: "Inspects AST return statements for JSX elements or fragments, tagging functions returning JSX as kind: component, layer: ui.",
+    algorithmName: "Component Classification Predicate & Vault Note Generation",
+    formula: "IsComponent(f) = (ReturnsJSX(f) or HasJSXElement(f)) and (f.name[0].isupper() or IsArrow(f))\nVault Note: data/structure/vault/<id>.md\nFrontmatter: { kind, layer, source: [start, end], container }\nWikilink Reference: [[target_id]]",
+    algorithmDesc: "Scans source files across 17 languages via py_extract, js_ts_extract, and langs_extract. Emits Markdown notes for classes, components, and module functions. Classifies React UI components. Writes registry.json and wipes stale notes.",
+    complexity: "Time: O(Total AST Nodes). Space: O(Entities) in memory.",
+    boundary: "Stale vault notes are removed prior to extraction to guarantee deterministic output.",
+    invariant: "Wipes data/structure/vault/ before rebuilding to avoid stale pages."
+  },
+  {
+    id: "build_graph_py",
+    file: "build_graph.py",
+    path: "scripts/extract/build_graph.py",
+    group: "extract",
+    groupName: "Extraction",
+    role: "Structure dependency graph builder from vault markdown notes.",
+    question: "Why does build_graph.py read vault notes instead of re-parsing source files?",
+    shortAnswer: "Decouples AST extraction from graph construction. Wikilinks in markdown represent verified references; graph assembly is an O(|V| + |E|) scan over markdown text.",
+    algorithmName: "Wikilink Reference Parsing & Adjacency List Construction",
+    formula: "Wikilink Regex: r'\\[\\[([^\\]]+)\\]\\]'\nAdjacency Edge: e = (u, v) in E <=> '[[v]]' in VaultNote(u)\nEmits: data/structure/graph.json (nodes, edges) + registry.json",
+    algorithmDesc: "Parses vault markdown notes emitted by build_wiki. Resolves [[wikilinks]] into directed edges between classes, components, and modules. Constructs graph.json containing node metadata and directed edge lists.",
+    complexity: "Time: O(|V| + |E|) over markdown files. Space: O(|V| + |E|).",
+    boundary: "Wikilinks targeting nonexistent nodes are dropped or flagged as unresolvable external references.",
+    invariant: "Reads vault notes only; never touches source code directly."
+  },
+  {
+    id: "build_flow_py",
+    file: "build_flow.py",
+    path: "scripts/extract/build_flow.py",
+    group: "extract",
+    groupName: "Extraction",
+    role: "Flow map method/function call graph and overload resolution engine.",
+    question: "How does build_flow.py resolve overloaded methods without a full compiler classpath?",
+    shortAnswer: "Employs an overload ranking lattice based on parameter count parity and source-stated argument types. Ties or ambiguities are dropped and explicitly named in unresolved.",
+    algorithmName: "Hierarchical Scope Resolution & Overload Ranking Lattice",
+    formula: "Scope Hierarchy: Scope(s) = Block subset of Method subset of Class subset of Module\nOverload Ranking Lattice: Rank(m) = ( Delta_args, Score_types )\nwhere Delta_args = |len(m.params) - len(call.args)|\nScore_types = sum(1 for (p_t, a_t) in zip(params, args) if p_t == a_t)",
+    algorithmDesc: "Extracts methods, declarations, and call expressions across 17 languages. Settles receivers through local variable assignments, module imports, and parameter annotations. Resolves calls, attaches route tables, and links frontend API calls to backend handlers.",
+    complexity: "Time: O(Methods + Calls). Space: O(|V_flow| + |E_flow|).",
+    boundary: "Ambiguous or unresolvable calls are saved to unresolved list with symbol names retained for auditing.",
+    invariant: "Ambiguous calls are dropped into unresolved with names kept; never guessed."
+  },
+  {
+    id: "py_extract_py",
+    file: "py_extract.py",
+    path: "scripts/extract/py_extract.py",
+    group: "extract",
+    groupName: "Extraction",
+    role: "Python CST parser & newline normalizer.",
+    question: "Why does py_extract.py normalize CRLF newlines before computing node hashes?",
+    shortAnswer: "A CRLF checkout on Windows changes raw byte offsets, which would alter node hashes and silently invalidate the entire AI description cache.",
+    algorithmName: "Byte-Level CRLF Normalization & CST Slicing",
+    formula: "S_norm = re.sub(b'\\r\\n', b'\\n', S_raw)\nNode Interval: [OuterDecoratorLine, EndByte]\nDocstring: AST string literal from first expression statement (PEP 257)\nh(N) = SHA1(S_norm[N.start_byte : N.end_byte])",
+    algorithmDesc: "Reads Python source files, standardizes newlines to Unix LF, parses CST with tree-sitter-python, and extracts classes, functions, decorators, and call sites. Computes deterministic SHA-1 slice hashes for cache stability.",
+    complexity: "Time: O(File Size) parsing. Space: O(AST size).",
+    boundary: "Decorators are included in the node's byte range so annotations belong to the function.",
+    invariant: "Deterministic byte slicing: h = SHA1(S_norm[start_byte : end_byte])."
+  },
+  {
+    id: "js_ts_extract_py",
+    file: "js_ts_extract.py",
+    path: "scripts/extract/js_ts_extract.py",
+    group: "extract",
+    groupName: "Extraction",
+    role: "JavaScript, TypeScript, JSX, and TSX AST extractor.",
+    question: "Why are three different grammars required for JS/TS extraction?",
+    shortAnswer: ".tsx requires the dedicated tsx grammar (due to JSX <tag> vs TypeScript <type> ambiguities); .ts uses typescript; .js/.jsx uses javascript.",
+    algorithmName: "Multi-Grammar CST Parsing & Route Pattern Recognition",
+    formula: "Grammar Dispatch:\n  ext == '.tsx' -> 'tsx'\n  ext == '.ts'  -> 'typescript'\n  else          -> 'javascript'\nRoute Patterns: app.(get|post|put|delete)(path, handler) | @Get(path)\nClient Endpoints: fetch(url) | axios.(get|post)(url)",
+    algorithmDesc: "Parses modern JavaScript and TypeScript files using dedicated Tree-sitter parsers. Discovers classes, methods, ArrowFunction components, Express/Nest routes, and Axios/fetch client invocations.",
+    complexity: "Time: O(File Size) parsing. Space: O(AST size).",
+    boundary: "Distinguishes between TypeScript type assertions and JSX tags via dedicated TSX grammar.",
+    invariant: "JSX-returning functions tagged kind: component, layer: ui."
+  },
+  {
+    id: "langs_extract_py",
+    file: "langs_extract.py",
+    path: "scripts/extract/langs_extract.py",
+    group: "extract",
+    groupName: "Extraction",
+    role: "Unified CST extractor for 14 compiled & scripted languages.",
+    question: "How does a single consumer handle 14 heterogeneous programming languages?",
+    shortAnswer: "Standardizes on Tree-sitter field names (name, body, parameters, return_type) via SPEC and SHAPES tables, abstracting AST grammar variations.",
+    algorithmName: "Field-Name Abstraction & Multi-Language CST Driver",
+    formula: "SPEC[lang] -> { 'name': field_name, 'body': field_body }\nSHAPES[lang] -> node type classification (class, interface, method, struct)\nSupported: Java, Go, C#, Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir",
+    algorithmDesc: "Iterates through source files for 14 languages. Employs grammar SPEC dictionaries to query AST nodes by field rather than language-specific node spellings. Extracts definitions, parameters, return types, and receiver call sites.",
+    complexity: "Time: O(Source Volume). Space: O(AST size).",
+    boundary: "Languages without explicit type declarations (Ruby, Elixir) map receivers through lexical assignment.",
+    invariant: "Adding a language requires only a grammar wheel and SPEC/SHAPES entries; no new extractor script."
+  },
+  {
+    id: "route_tables_py",
+    file: "route_tables.py",
+    path: "scripts/extract/route_tables.py",
+    group: "extract",
+    groupName: "Extraction",
+    role: "Declarative route table reader (Django, Rails, Laravel, Phoenix).",
+    question: "Why is route_tables.py executed after nodes are created in build_flow?",
+    shortAnswer: "Route tables declare routes away from handler definitions. It only reads tables; build_flow attaches routes to matching (class, method) nodes once nodes exist.",
+    algorithmName: "Declarative Route Table Extraction & Action Binding",
+    formula: "Route Binding: (HTTP_Method, Route_Path) -> (Controller, Action)\nAttachment Rule: Link to node N iff |{ N in Nodes | Matches(N, Controller, Action) }| == 1",
+    algorithmDesc: "Scans Django urlpatterns, Rails routes.rb, Laravel routes/*.php, and Phoenix routers using targeted Tree-sitter queries. Extracts (HTTP verb, path, target action). build_flow attaches routes to exact handler nodes.",
+    complexity: "Time: O(Route Lines). Space: O(Routes).",
+    boundary: "Routes pointing to missing or duplicate handlers are recorded in stderr and dropped cleanly without guessing.",
+    invariant: "Reads routes only; never constructs graph nodes directly."
+  },
+  {
+    id: "apply_descriptions_py",
+    file: "apply_descriptions.py",
+    path: "scripts/extract/apply_descriptions.py",
+    group: "extract",
+    groupName: "Extraction",
+    role: "AI description cache and documentation merger.",
+    question: "How does apply_descriptions.py prevent stale documentation after code changes?",
+    shortAnswer: "Summaries are indexed by composite key (node_id, SHA1(node_source)). Any source modification changes the hash, automatically invalidating stale cache entries.",
+    algorithmName: "Three-Tier Description Precedence Cascade",
+    formula: "Desc(m) = Docstring(m)                 if Docstring(m) is present\n          Cache[m.id, SHA1(m.source)]  if cache hit\n          DeterministicFallback(m)      otherwise",
+    algorithmDesc: "Merges docstrings, cached AI descriptions, and deterministic fallbacks into flow nodes. Reads pending_descriptions.json, checks SHA-1 hashes against descriptions.json, and writes merged metadata.",
+    complexity: "Time: O(Nodes) hash lookup. Space: O(Descriptions Cache).",
+    boundary: "If no AI description exists and no docstring is present, outputs deterministic signature descriptor.",
+    invariant: "The build never blocks on AI summaries; runs 100% offline."
+  },
+
+  // 4. Code Review & Graph Intelligence
+  {
+    id: "report_py",
+    file: "report.py",
+    path: "scripts/review/report.py",
+    group: "review",
+    groupName: "Review",
+    role: "Review coordinator and multi-pass aggregator.",
+    question: "Why must review reports be generated separately per map rather than merged?",
+    shortAnswer: "Structure and Flow maps operate at different grains (classes vs methods) with completely distinct node IDs. Merging reports would cross-contaminate findings.",
+    algorithmName: "Multi-Pass Review Pipeline & Map Isolation",
+    formula: "Report(M) = Aggregate(Security, Insights, Analyze, Metrics, Debt, TestsMap, Duplicates)\nInvariant: NodeIDs(Structure) intersect NodeIDs(Flow) == empty_set",
+    algorithmDesc: "Iterates over built maps (structure, flow), executes the 7 review passes, generates architecture_report.md and architecture_report.json in data/report/<map>/, and triggers build_html to embed reports into explorer.html.",
+    complexity: "Time: Sum of 7 review passes. Space: O(Report JSON size).",
+    boundary: "Errors out if no built graph exists yet; passes require both graph JSON and source files.",
+    invariant: "One report per map. Cross-map report embedding is strictly prohibited."
+  },
+  {
+    id: "analyze_py",
+    file: "analyze.py",
+    path: "scripts/review/analyze.py",
+    group: "review",
+    groupName: "Review",
+    role: "Graph structural analysis, cycle detection, and health scoring.",
+    question: "How are strongly connected components (cycles) and health scores computed?",
+    shortAnswer: "Uses an iterative implementation of Tarjan's SCC algorithm to avoid recursion limits. Computes Robert C. Martin's instability metric and health grade (0-100 / A-F).",
+    algorithmName: "Tarjan's Iterative SCC & Martin's Package Instability",
+    formula: "Tarjan's SCC lowlink: lowlink[u] = min(index[u], lowlink[v] (on Stack), index[v] (visited))\nPackage Instability: I = C_e / (C_a + C_e), I = 0.5 when C_a + C_e == 0\nComposite Health Score: H = 100 - sum(Penalties) in [0, 100]\nGrades: A (>=90), B (>=80), C (>=70), D (>=60), F (<60)",
+    algorithmDesc: "Traverses graph edges using iterative Tarjan DFS to find cycles. Calculates in-degree (afferent Ca) and out-degree (efferent Ce). Flags layer violations, god objects, and dead code. Deducts penalties to compute 0-100 health score.",
+    complexity: "Time: O(|V| + |E|) linear graph traversal. Space: O(|V| + |E|).",
+    boundary: "Degree checks run on app_edges(), filtering out test edges so unit tests do not artificially distort metrics.",
+    invariant: "Iterative stack prevents RecursionError on monorepos. Degree checks use app_edges()."
+  },
+  {
+    id: "scan_security_py",
+    file: "scan_security.py",
+    path: "scripts/review/scan_security.py",
+    group: "review",
+    groupName: "Review",
+    role: "Security scanner and secret detector with AST node attribution.",
+    question: "How does Shannon entropy filter commit hashes and UUIDs from hardcoded secrets?",
+    shortAnswer: "Hexadecimal characters have maximum entropy log2(16) = 4.0 bits/char. Setting the threshold to H >= 4.5 bits/char mathematically eliminates hex hashes and UUIDs.",
+    algorithmName: "Shannon Information Entropy & AST Coordinate Containment",
+    formula: "Shannon Entropy: H(X) = -sum( P(x_i) * log2(P(x_i)) ) >= 4.5 bits/char\nMax Hex Entropy: log2(16) = 4.0 bits/char  (immune to false positives)\nMax Base64 Entropy: log2(64) = 6.0 bits/char\nAST Range Ownership: Owner(L) = argmin_N { len(N) | N.start <= L <= N.end }",
+    algorithmDesc: "Scans source lines with security regex patterns (SQL injection, hardcoded secrets, XSS sinks, insecure crypto). For high-entropy tokens, calculates Shannon entropy. Maps findings to innermost containing AST node range.",
+    complexity: "Time: O(Source Lines). Space: O(Findings count).",
+    boundary: "Tokens under 16 characters or with entropy < 4.5 are excluded to eliminate low-entropy strings.",
+    invariant: "Findings are attributed to innermost containing node, not the nearest node above."
+  },
+  {
+    id: "metrics_py",
+    file: "metrics.py",
+    path: "scripts/review/metrics.py",
+    group: "review",
+    groupName: "Review",
+    role: "McCabe cyclomatic complexity, nesting depth, and LOC census.",
+    question: "How is McCabe's Cyclomatic Complexity theorem applied across 17 languages without full CFGs?",
+    shortAnswer: "McCabe proved that for single-entry/exit functions, M = pi + 1. The engine counts CST predicate branching nodes across Tree-sitter grammars directly.",
+    algorithmName: "McCabe Cyclomatic Complexity Theorem & CST Predicate Counting",
+    formula: "M = pi + 1\npi = sum( Count(k) for k in PredicateNodeTypes across 17 languages )\nNesting Depth = max CST branch depth from method declaration root\nLOC = EndLine - StartLine + 1",
+    algorithmDesc: "Measures LOC, cyclomatic complexity, maximum nesting depth, and parameter counts on each node's AST slice [source..end]. Counts decision predicates (if, for, while, catch, binary logical operators, switch cases).",
+    complexity: "Time: O(AST Nodes in functions). Space: O(Functions count).",
+    boundary: "Empty function bodies evaluate to M = 1 (linear execution path).",
+    invariant: "Metrics are keyed directly by graph node ID by construction."
+  },
+  {
+    id: "git_insights_py",
+    file: "git_insights.py",
+    path: "scripts/review/git_insights.py",
+    group: "review",
+    groupName: "Review",
+    role: "Git churn, author ownership, and hotspot risk scoring.",
+    question: "How is the Hotspot Risk Score computed for each node?",
+    shortAnswer: "Combines normalized churn (added + deleted lines), cyclomatic complexity, and incoming fan-in (dependents).",
+    algorithmName: "Streaming Git Log Numstat Parsing & Composite Risk Score",
+    formula: "Churn(f) = AddedLines(f) + DeletedLines(f)\nHotspot Risk Score:\nR(n) = Norm(Churn(n)) * Norm(Complexity(n)) * Norm(FanIn(n))\nAuthor Ownership: Owner(f) = argmax_A { Commits(A, f) }",
+    algorithmDesc: "Executes git log --numstat in streaming mode without loading entire history into memory. Aggregates file churn and author commit distributions. Maps file metrics to graph nodes and computes composite hotspot risk.",
+    complexity: "Time: O(Git Commits). Space: O(Files Count) streaming.",
+    boundary: "Non-git repositories fail gracefully, returning empty insight metrics without crashing report pipeline.",
+    invariant: "Streaming log consumption bounds memory footprint on repositories with 50,000+ commits."
+  },
+  {
+    id: "debt_py",
+    file: "debt.py",
+    path: "scripts/review/debt.py",
+    group: "review",
+    groupName: "Review",
+    role: "Technical debt inventory and orphan file tracker.",
+    question: "Why are debt markers (TODO, FIXME) excluded from the automated health grade?",
+    shortAnswer: "Debt markers are subjective human annotations; penalizing them discourages developers from writing honest TODO comments.",
+    algorithmName: "Debt Marker Density & Orphan File Cross-Referencing",
+    formula: "Debt Density = sum( Count({TODO, FIXME, HACK, XXX}) ) / Total_LOC\nOrphan Detection: Cross-referenced with analyze.find_orphans(nodes, edges)",
+    algorithmDesc: "Scans comments across codebase for technical debt markers (TODO, FIXME, HACK, XXX). Identifies orphan files and uncalled functions. Compiles debt inventory in debt.json for human review.",
+    complexity: "Time: O(Source Lines). Space: O(Marker findings).",
+    boundary: "Markers in test directories are recorded separately to prevent test fixtures from skewing debt counts.",
+    invariant: "Debt reports findings for human review and never lowers the automated grade."
+  },
+  {
+    id: "tests_map_py",
+    file: "tests_map.py",
+    path: "scripts/review/tests_map.py",
+    group: "review",
+    groupName: "Review",
+    role: "Test-to-production mapping and test coverage heuristics.",
+    question: "How does tests_map.py map tests to production entities?",
+    shortAnswer: "Scans test files for symbol references to production node IDs, building a bipartite test coverage graph.",
+    algorithmName: "Bipartite Symbol Reference Coverage Mapping",
+    formula: "Coverage Ratio = |{ u in ProductionNodes | exists t in Tests: t -> u }| / |ProductionNodes|\nBipartite Mapping: TestFile -> Set of Referenced Production Node IDs",
+    algorithmDesc: "Scans test files identified by taxonomy.is_test_path(). Extracts references to production class and method names. Emits tests.json mapping production nodes to their verifying test suites.",
+    complexity: "Time: O(Test File Volume). Space: O(Test-to-Node Edges).",
+    boundary: "Kept strictly out of the health grade calculation to avoid penalizing early-stage prototypes.",
+    invariant: "Heuristic matching kept strictly out of the health grade."
+  },
+  {
+    id: "duplicates_py",
+    file: "duplicates.py",
+    path: "scripts/review/duplicates.py",
+    group: "review",
+    groupName: "Review",
+    role: "Duplicate code block detector using Winnowing and Karp-Rabin hashing.",
+    question: "Why is Winnowing (K=10, W=21) preferred over AST subtree isomorphism?",
+    shortAnswer: "Guarantees detecting all shared substring clones of length >= 30 tokens in O(N) linear time while bounding fingerprint density to 2/(w+1).",
+    algorithmName: "Winnowing Local Minimum Fingerprinting & Karp-Rabin Hashing",
+    formula: "Window Size: w = t - k + 1 = 30 - 10 + 1 = 21\nKarp-Rabin Hash: H_{i+1} = ( (H_i - c_i * B^{k-1}) * B + c_{i+k} ) mod M\nWindow Minimum: W_j = argmin_{0 <= r < w} { H_{j+r} }\nExpected Density: E[density] <= 2 / (w + 1)",
+    algorithmDesc: "Normalizes token streams (identifiers -> ID, literals -> LIT). Computes rolling Karp-Rabin hashes over 10-grams. Selects the rightmost minimum hash in each sliding window of 21 hashes. Matches identical fingerprints across functions.",
+    complexity: "Time: O(N) tokens. Space: O(N / 11) fingerprints.",
+    boundary: "Matches under 30 tokens are filtered as noise; variable renamings do not evade detection.",
+    invariant: "Token normalization maps identifiers to ID, detecting copies despite renamed variables."
+  },
+  {
+    id: "brief_py",
+    file: "brief.py",
+    path: "scripts/review/brief.py",
+    group: "review",
+    groupName: "Review",
+    role: "Fixed-size token digest for LLM session initialization.",
+    question: "Why is brief.py strictly O(1) with respect to repository size?",
+    shortAnswer: "Reads only pre-computed JSON summary artifacts; performs zero computation and zero source file parsing, keeping output at ~4.3 KB regardless of repo size.",
+    algorithmName: "Fixed-Budget Digest Serialization & Staleness Check",
+    formula: "Size(Brief) ~ 4.3 KB  (O(1) w.r.t. codebase volume)\nToken Compression: 3,212x reduction compared to 13.6 MB source code\nFreshness Check: manifest.compare() confirms artifact validity",
+    algorithmDesc: "Opens agent sessions with a bounded text summary. Formats architecture grades, node/edge counts, HTTP endpoints, hotspots, unpinned grammars, and caveated edge counts by reading pre-computed JSON artifacts.",
+    complexity: "Time: O(1) file reads. Space: O(1) ~4.3 KB stdout buffer.",
+    boundary: "If manifest indicates stale: true, outputs staleness warning prompt.",
+    invariant: "Must compute nothing; expensive work belongs upstream."
+  },
+
+  // 5. Query & Presentation
+  {
+    id: "search_py",
+    file: "search.py",
+    path: "scripts/query/search.py",
+    group: "query",
+    groupName: "Query",
+    role: "Multi-filter graph locator and search engine.",
+    question: "Why does search.py never scan source files?",
+    shortAnswer: "Queries the pre-built graph.json or flow_graph.json directly, filtering nodes by name, doc, layer, kind, calls, called-by, or orphans.",
+    algorithmName: "In-Memory Boolean Predicate Filtering",
+    formula: "Q = { v in V | MatchName(v) & MatchDoc(v) & MatchLayer(v) & MatchKind(v) & MatchDegree(v) }",
+    algorithmDesc: "Provides CLI search interface over graph artifacts. Supports regex name matching, doc substring search, layer/kind filters, and relational queries (--calls, --called-by, --orphans) without opening repository files.",
+    complexity: "Time: O(|V|) scan over in-memory nodes. Space: O(|V|).",
+    boundary: "Returns empty list gracefully if no nodes match criteria; supports JSON output for piping.",
+    invariant: "Zero source scanning; eliminates the need for agents to grep source trees."
+  },
+  {
+    id: "trace_path_py",
+    file: "trace_path.py",
+    path: "scripts/query/trace_path.py",
+    group: "query",
+    groupName: "Query",
+    role: "Graph traversal, BFS shortest paths, and blast radius calculation.",
+    question: "What is the algorithm and time complexity of upstream blast radius (--impact-of)?",
+    shortAnswer: "Traverses the transposed graph G^T via Reverse BFS in linear time O(|V| + |E|), using a visited set to prune cycles.",
+    algorithmName: "Transposed Graph Reverse BFS & Shortest Path Traversal",
+    formula: "Transposed Graph: E^T = { (w, v) | (v, w) in E }\nBlast Radius: BlastRadius(u) = { v in V | v reaches u in G } via Reverse BFS in O(|V| + |E|)\nShortest Path: Forward BFS in O(|V| + |E|)",
+    algorithmDesc: "Finds shortest call paths between two nodes using Breadth-First Search. Computes blast radius of potential modifications by walking reverse reachability on transposed graph G^T. Maps git diff hunks to affected nodes.",
+    complexity: "Time: O(|V| + |E|) linear traversal. Space: O(|V|) queue and visited set.",
+    boundary: "Cyclic dependencies are terminated via visited set without infinite recursion.",
+    invariant: "Visited hash set prevents infinite loops on cyclic call graphs."
+  },
+  {
+    id: "context_py",
+    file: "context.py",
+    path: "scripts/query/context.py",
+    group: "query",
+    groupName: "Query",
+    role: "Bounded node context packer for LLM prompts.",
+    question: "How does context.py ensure prompt token limits are never exceeded?",
+    shortAnswer: "Packs node facts, metrics, risk scores, and neighbors under a strict --max-chars budget using priority knapsack ordering.",
+    algorithmName: "Priority Knapsack Context Budgeting",
+    formula: "max sum( Priority(c_i) )  subject to  sum( len(c_i) ) <= max_chars\nPriority: target node > direct callers > direct callees > metrics/security findings",
+    algorithmDesc: "Gathers comprehensive architectural context for specified nodes. Inlines metrics, security findings, git churn, and neighbor signatures, strictly stopping before exceeding the --max-chars character limit.",
+    complexity: "Time: O(Degree of target nodes). Space: Bounded by max_chars.",
+    boundary: "Truncates at clean section boundaries rather than cutting JSON/Markdown mid-line.",
+    invariant: "Hard character budget is strictly enforced; output is never truncated mid-object."
+  },
+  {
+    id: "build_html_py",
+    file: "build_html.py",
+    path: "scripts/query/build_html.py",
+    group: "query",
+    groupName: "Query",
+    role: "Standalone offline explorer compiler.",
+    question: "How does build_html.py produce an offline dashboard that works from file://?",
+    shortAnswer: "Inlines templates/viewer.html, force-graph.min.js, and JSON map data into a single data/explorer.html with zero external network requests.",
+    algorithmName: "Template Substitution & Zero-Network Bundling",
+    formula: "HTML = ViewerTemplate.replace('__TITLE__', title)\n                     .replace('__MAPS_DATA__', json_data)\n                     .replace('__VENDOR_JS__', vendor_js)\nOutput: data/explorer.html (single offline file)",
+    algorithmDesc: "Loads HTML template from templates/viewer.html. Replaces placeholders with graph JSON data, architecture reports, and vendored force-graph scripts. Generates offline standalone explorer.html.",
+    complexity: "Time: O(Template Size + Data Size). Space: O(Data Size).",
+    boundary: "Verifies presence of vendored JS; raises named error with non-zero exit code if asset is missing.",
+    invariant: "Zero remote script tags; completely functional in air-gapped environments."
+  },
+
+  // 6. Visualization & Client Runtime
+  {
+    id: "viewer_html",
+    file: "viewer.html",
+    path: "templates/viewer.html",
+    group: "runtime",
+    groupName: "Runtime & UI",
+    role: "Force-directed canvas visualizer and offline architecture explorer.",
+    question: "How does viewer.html render thousands of nodes at 60 FPS on an HTML5 canvas?",
+    shortAnswer: "Uses Barnes-Hut Quadtrees (O(N log N)) for electrostatic repulsion and Hooke's Law for spring tension, integrated via Velocity Verlet stepping.",
+    algorithmName: "Barnes-Hut Quadtree (O(N log N)) & Velocity Verlet Integration",
+    formula: "Barnes-Hut: If s / d < theta (theta = 0.9), F_rep = (G * m_u * M) / d^2 * r_hat\nHooke's Law: F_spring = -k * ( ||r_u - r_v|| - L_0 ) * r_hat_uv\nVerlet Integration: x_{t+dt} = x_t + v_t * dt + 0.5 * a_t * dt^2",
+    algorithmDesc: "Renders 7 visualization views (Flowchart, Graph, Treemap, Matrix, Tree, Cluster, Bundle). Runs D3/force-graph physics on HTML5 Canvas. Supports drag-to-pin, node filtering, blast radius highlighting, and search.",
+    complexity: "Time: O(N log N) per animation frame. Space: O(N) canvas quadtree.",
+    boundary: "Degrades physics iterations gracefully when node counts exceed 5,000 nodes to preserve UI responsiveness.",
+    invariant: "Test nodes colored green (#57ab5a); quiet chrome (#08090b); zero emoji (SVG icons only)."
+  },
+  {
+    id: "cli_js",
+    file: "cli.js",
+    path: "bin/cli.js",
+    group: "runtime",
+    groupName: "Runtime & UI",
+    role: "Cross-platform harness installer and path rewriter.",
+    question: "How does cli.js install across multiple harnesses without external dependencies?",
+    shortAnswer: "Uses Node.js standard libraries (fs, path, child_process) to map harness destinations (.agents, .claude, .cursor, .windsurf, .zed) and rewrite command prefixes.",
+    algorithmName: "Multi-Harness Target Mapping & Path Prefix Rewriting",
+    formula: "Dest(H) = \".agents/skills/code-archaeologist\"   if H == 'agents'\n          \".claude/skills/code-archaeologist\"   if H == 'claude'\n          \".cursor/skills/code-archaeologist\"   if H == 'cursor'\n          \".windsurf/skills/code-archaeologist\" if H == 'windsurf'\n          \".zed/skills/code-archaeologist\"      if H == 'zed'",
+    algorithmDesc: "Npx entrypoint. Validates Python 3.10+ runtime, provisions skill directories, copies templates and scripts, rewrites relative command prefixes for target harness, and initializes empty data directories.",
+    complexity: "Time: O(Files copied). Space: O(1) external npm packages (zero dependencies).",
+    boundary: "Fails early with clear installation hints if Python 3.10+ is not found in PATH.",
+    invariant: "Zero external npm dependencies; uses only Node.js standard libraries."
+  }
+];
+
+// =====================================================================
+// Checklist Interactive State & Controller
+// =====================================================================
+const STORAGE_KEY = 'ca_arch_guide_read_v1';
+let clReadSet = new Set();
+let clActiveCategory = 'all';
+let clStatusFilter = 'all'; // 'all', 'unread', 'read'
+
+function loadChecklistState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      clReadSet = new Set(arr);
+    }
+  } catch (e) {
+    clReadSet = new Set();
+  }
+}
+
+function saveChecklistState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...clReadSet]));
+  } catch (e) {}
+}
+
+function updateChecklistProgress() {
+  const total = CHECKLIST_FILES_DATA.length;
+  const readCount = clReadSet.size;
+  const pct = Math.round((readCount / total) * 100);
+
+  const summaryEl = document.getElementById("clProgressSummary");
+  const barEl = document.getElementById("clProgressBar");
+  if (summaryEl) summaryEl.textContent = `${readCount} / ${total} files (${pct}%)`;
+  if (barEl) barEl.style.width = `${pct}%`;
+
+  const heroCountEl = document.getElementById("heroClCount");
+  if (heroCountEl) heroCountEl.textContent = `${readCount}/${total}`;
+  const totalCountEl = document.getElementById("clTotalCount");
+  if (totalCountEl) totalCountEl.textContent = `${total}`;
+}
+
+function renderChecklist() {
+  const container = document.getElementById("checklistContainer");
+  if (!container) return;
+
+  loadChecklistState();
+
+  const q = (document.getElementById("clSearchInput")?.value || "").toLowerCase().trim();
+
+  const filtered = CHECKLIST_FILES_DATA.filter(item => {
+    // Category filter
+    if (clActiveCategory !== 'all' && item.group !== clActiveCategory) return false;
+
+    // Read/Unread filter
+    const isRead = clReadSet.has(item.id);
+    if (clStatusFilter === 'read' && !isRead) return false;
+    if (clStatusFilter === 'unread' && isRead) return false;
+
+    // Search query filter
+    if (q) {
+      const haystack = (item.file + " " + item.path + " " + item.role + " " +
+                        item.question + " " + item.algorithmName + " " +
+                        item.formula + " " + item.shortAnswer + " " + item.algorithmDesc).toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div style="padding: 36px 0; text-align: center; color: var(--ink-3); font-style: italic;">
+        No files matched your filter criteria. Try clearing the search or switching categories.
+      </div>
+    `;
+    updateChecklistProgress();
+    return;
+  }
+
+  container.innerHTML = filtered.map(item => {
+    const isCompleted = clReadSet.has(item.id);
+    return `
+      <div class="cl-file-card ${isCompleted ? 'completed' : ''}" id="card-${item.id}">
+        <div class="cl-file-header" onclick="toggleCardOpen('${item.id}')">
+          <div class="cl-file-check-box" onclick="event.stopPropagation(); toggleFileRead('${item.id}')" title="Mark as Read / Understood">
+            <div class="cl-custom-checkbox">${isCompleted ? '&#10003;' : ''}</div>
+          </div>
+          <div class="cl-file-meta">
+            <div class="cl-file-title-row">
+              <span class="cl-file-name">${item.file}</span>
+              <span class="fc-node-badge cat-${item.group}">${item.groupName}</span>
+              <span class="cl-file-path">${item.path}</span>
+              <span style="margin-left: auto; font-family: var(--mono); font-size: 11px; color: ${isCompleted ? 'var(--ok)' : 'var(--ink-3)'};">
+                ${isCompleted ? '&#10003; Read &amp; Understood' : 'Click checkbox to mark read'}
+              </span>
+            </div>
+            <div class="cl-file-role">${item.role}</div>
+          </div>
+          <div class="cl-file-toggle-icon">&#9660;</div>
+        </div>
+
+        <div class="cl-file-body">
+          <div class="cl-qa-block">
+            <div class="cl-q-title">
+              <span class="cl-q-badge">Question</span>
+              <span>${item.question}</span>
+            </div>
+            <div class="cl-a-short">
+              <strong>Short Answer:</strong> ${item.shortAnswer}
+            </div>
+
+            <div class="cl-algo-box">
+              <div class="cl-algo-title">&#9881; Algorithm &amp; Calculation Formulation: ${item.algorithmName}</div>
+              <pre class="cl-formula-display"><code>${escapeHtml(item.formula)}</code></pre>
+              <div class="cl-algo-desc">${item.algorithmDesc}</div>
+              <div class="cl-meta-grid">
+                <div class="cl-meta-item"><strong>Complexity:</strong> ${item.complexity}</div>
+                <div class="cl-meta-item"><strong>Boundary Case:</strong> ${item.boundary}</div>
+              </div>
+            </div>
+
+            <div class="cl-inv-box">
+              <strong>Critical Architectural Invariant:</strong> ${item.invariant}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  updateChecklistProgress();
+}
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function toggleFileRead(id) {
+  if (clReadSet.has(id)) {
+    clReadSet.delete(id);
+  } else {
+    clReadSet.add(id);
+  }
+  saveChecklistState();
+  renderChecklist();
+}
+
+function toggleCardOpen(id) {
+  const card = document.getElementById(`card-${id}`);
+  if (card) {
+    card.classList.toggle("open");
+  }
+}
+
+function clToggleAll(expand) {
+  document.querySelectorAll(".cl-file-card").forEach(card => {
+    if (expand) card.classList.add("open");
+    else card.classList.remove("open");
+  });
+}
+
+function clMarkAll(readAll) {
+  if (readAll) {
+    CHECKLIST_FILES_DATA.forEach(item => clReadSet.add(item.id));
+  } else {
+    clReadSet.clear();
+  }
+  saveChecklistState();
+  renderChecklist();
+}
+
+function clSetCategory(cat, btn) {
+  clActiveCategory = cat;
+  document.querySelectorAll(".cl-filter-chips .cl-chip").forEach(b => b.classList.remove("active"));
+  if (btn) btn.classList.add("active");
+  renderChecklist();
+}
+
+function clToggleStatusFilter() {
+  const btn = document.getElementById("clStatusToggle");
+  if (clStatusFilter === 'all') {
+    clStatusFilter = 'unread';
+    if (btn) btn.textContent = "Show: Unread Only";
+  } else if (clStatusFilter === 'unread') {
+    clStatusFilter = 'read';
+    if (btn) btn.textContent = "Show: Read Only";
+  } else {
+    clStatusFilter = 'all';
+    if (btn) btn.textContent = "Show: All Files";
+  }
+  renderChecklist();
+}
+
+function clApplyFilter() {
+  renderChecklist();
+}
+
+// Initial render of Cards and Reading Checklist
 renderCards(SCRIPTS_DATA);
+renderChecklist();
 </script>
 </body>
 </html>

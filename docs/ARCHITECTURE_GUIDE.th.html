@@ -529,6 +529,13 @@
       pipeline แบบ compiler ที่ deterministic และครบวงจร แปลง source code เป็น graph map สอง map ที่ query ได้ (Structure และ Flow), ตรวจสอบด้วย graph algorithm แล้ว render ออกมาเป็น viewer ไฟล์เดียวที่ใช้ offline ได้
     </p>
 
+    <!-- Jump Navigation -->
+    <div class="hero-nav" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px;">
+      <a href="#callgraph" class="cl-btn" style="text-decoration: none;">&darr; Flowchart &amp; Matrix การทำงาน</a>
+      <a href="#scripts-catalog" class="cl-btn" style="text-decoration: none;">&darr; สารบัญ Script &amp; Invariants</a>
+      <a href="#judge-qa" class="cl-btn" style="text-decoration: none; border-color: var(--accent); color: var(--accent); background: var(--accent-dim);">&darr; Checklist รายไฟล์ &amp; คลัง Q&amp;A เทคนิค</a>
+    </div>
+
     <!-- Visual Pipeline -->
     <div class="pipe-container">
       <div class="pipe-title">Dataflow ของ Pipeline แบบ Interactive (คลิกที่ script ใดก็ได้เพื่อดูรายละเอียด)</div>
@@ -542,7 +549,7 @@
           </div>
           <div class="pipe-node-pill" onclick="focusCard('paths.py')">
             paths.py
-            <small>Bootstrap ราก Skill</small>
+            <small>Skill Root Bootstrap</small>
           </div>
         </div>
 
@@ -557,11 +564,11 @@
           </div>
           <div class="pipe-node-pill" onclick="focusCard('grammars.py')">
             core/grammars.py
-            <small>Tree-sitter Wheel ที่ตรึงเวอร์ชัน</small>
+            <small>Tree-sitter Pinned Wheels</small>
           </div>
           <div class="pipe-node-pill" onclick="focusCard('py_extract.py')">
             extract/py_extract.py
-            <small>Python CST + ตัว Normalize Newline</small>
+            <small>Python CST + Newline Normalizer</small>
           </div>
           <div class="pipe-node-pill" onclick="focusCard('js_ts_extract.py')">
             extract/js_ts_extract.py
@@ -569,7 +576,7 @@
           </div>
           <div class="pipe-node-pill" onclick="focusCard('langs_extract.py')">
             extract/langs_extract.py
-            <small>14 Languages (Java, Go, C#...)</small>
+            <small>14 ภาษา (Java, Go, C#...)</small>
           </div>
         </div>
 
@@ -577,14 +584,14 @@
 
         <!-- Stage 2 -->
         <div class="pipe-stage">
-          <div class="pipe-stage-head"><span>2. การสร้าง Graph</span></div>
+          <div class="pipe-stage-head"><span>2. Graph Construction</span></div>
           <div class="pipe-node-pill" onclick="focusCard('build_wiki.py')">
             build_wiki.py & build_graph.py
-            <small>Structure: Classes & Components</small>
+            <small>Structure: คลาส & Components</small>
           </div>
           <div class="pipe-node-pill" onclick="focusCard('build_flow.py')">
             build_flow.py
-            <small>Flow: Methods, Resolution & Overloads</small>
+            <small>Flow: เมธอด, Resolution & Overloads</small>
           </div>
           <div class="pipe-node-pill" onclick="focusCard('route_tables.py')">
             route_tables.py
@@ -599,7 +606,7 @@
           <div class="pipe-stage-head"><span>3. Review & Audit</span></div>
           <div class="pipe-node-pill" onclick="focusCard('analyze.py')">
             review/analyze.py
-            <small>Tarjan's SCC และ Health Score</small>
+            <small>Tarjan's SCC & Health Score</small>
           </div>
           <div class="pipe-node-pill" onclick="focusCard('duplicates.py')">
             review/duplicates.py
@@ -607,15 +614,15 @@
           </div>
           <div class="pipe-node-pill" onclick="focusCard('scan_security.py')">
             review/scan_security.py
-            <small>Regex + การหาเจ้าของตาม AST Range</small>
+            <small>Regex + AST Range Ownership</small>
           </div>
           <div class="pipe-node-pill" onclick="focusCard('git_insights.py')">
             review/git_insights.py
-            <small>Churn จาก git log แบบ Streaming</small>
+            <small>Streaming git log Churn</small>
           </div>
           <div class="pipe-node-pill" onclick="focusCard('metrics.py')">
             review/metrics.py
-            <small>Cyclomatic Complexity บน CST</small>
+            <small>CST Cyclomatic Complexity</small>
           </div>
         </div>
 
@@ -626,11 +633,11 @@
           <div class="pipe-stage-head"><span>4. Query & UI</span></div>
           <div class="pipe-node-pill" onclick="focusCard('trace_path.py')">
             query/trace_path.py
-            <small>BFS Shortest Path และ Blast Radius</small>
+            <small>BFS Shortest Path & Blast Radius</small>
           </div>
           <div class="pipe-node-pill" onclick="focusCard('search.py')">
             query/search.py
-            <small>ค้น Graph แบบหลาย Filter</small>
+            <small>Multi-Filter Graph Search</small>
           </div>
           <div class="pipe-node-pill" onclick="focusCard('build_html.py')">
             build_html.py & viewer.html
@@ -642,8 +649,10 @@
   </div>
 </header>
 
+<main class="wrap">
+
   <!-- Inter-Script Call Graph & Execution Hierarchy Section -->
-  <section class="callgraph-section">
+  <section class="callgraph-section" id="callgraph">
     <div class="section-eyebrow">สถาปัตยกรรมการทำงาน</div>
     <h2>Call Graph ระหว่าง Script &amp; ลำดับชั้นการทำงาน</h2>
     <p style="color: var(--ink-2); max-width: 90ch; margin-bottom: 24px;">
@@ -1328,7 +1337,7 @@
 
 
   <!-- Script Cards Section -->
-  <section style="padding: 48px 0;">
+  <section style="padding: 48px 0;" id="scripts-catalog">
     <div class="section-eyebrow">สารบัญอ้างอิง Script</div>
     <h2>All 28 Scripts: Mechanics, Algorithms &amp; Invariants</h2>
 
@@ -1355,7 +1364,7 @@
        =================================================================== -->
   <style>
     .qa-section {
-      max-width: 1280px; margin: 0 auto; padding: 56px 32px 96px;
+      padding: 56px 0 96px;
       border-top: 1px solid var(--rule); box-sizing: border-box;
     }
     .qa-intro { color: var(--ink-2); max-width: 92ch; margin: 0 0 18px; }
