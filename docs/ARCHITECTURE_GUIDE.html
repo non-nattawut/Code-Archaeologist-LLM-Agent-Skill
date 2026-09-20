@@ -203,6 +203,29 @@
     padding: 32px 16px; display: flex; flex-direction: column; align-items: center;
     position: relative; overflow-x: auto;
   }
+  .dualflow-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+    width: 100%; max-width: 1300px; align-items: start;
+  }
+  @media (max-width: 1024px) {
+    .dualflow-grid { grid-template-columns: 1fr; }
+  }
+  .dualflow-col {
+    background: #090b0e; border: 1px solid var(--rule); border-radius: 8px;
+    padding: 24px 16px; display: flex; flex-direction: column; align-items: center;
+  }
+  .dualflow-col-head {
+    width: 100%; border-bottom: 2px solid var(--rule-lit); padding-bottom: 10px;
+    margin-bottom: 18px; display: flex; justify-content: space-between; align-items: baseline;
+    flex-wrap: wrap; gap: 8px;
+  }
+  .dualflow-col-title { font-family: var(--mono); font-size: 14px; font-weight: 700; }
+  .dualflow-col-subtitle { font-size: 11px; color: var(--ink-3); }
+  .dualflow-worker-box {
+    background: var(--ground); border: 1px dashed var(--rule-lit); border-radius: 6px;
+    padding: 12px; width: 100%; max-width: 380px; display: flex; flex-direction: column;
+    align-items: center; gap: 8px; margin: 4px 0;
+  }
 
   /* Flow Terminal (Start/End) */
   .fc-terminal {
@@ -817,7 +840,8 @@
     </p>
 
     <div class="cg-tabs">
-      <button class="cg-tab active" onclick="showCgTab('cg-flowchart', this)">Interactive Visual Flowchart</button>
+      <button class="cg-tab active" onclick="showCgTab('cg-flowchart', this)">Full Flowchart (Data Flow)</button>
+      <button class="cg-tab" onclick="showCgTab('cg-dualflow', this)">⚡ Dual View: Data Flow vs Calling Flow</button>
       <button class="cg-tab" onclick="showCgTab('cg-matrix', this)">Caller &rarr; Callee Matrix</button>
     </div>
 
@@ -1279,6 +1303,245 @@
           <span>&#10003;</span> ANSWER &mdash; from the graph and the notes on the returned path, never from scanning source
         </div>
 
+      </div>
+    </div>
+
+    <!-- Panel 2: Dual Flow Comparison (Data Flow vs Calling Flow Side-by-Side) -->
+    <div id="cg-dualflow" class="cg-panel">
+      <div class="flow-banner">
+        <div>
+          <div class="flow-banner-title">Dual Perspectives: Data Flow Pipeline vs Execution Calling Flow</div>
+          <div class="flow-banner-desc">
+            <strong>Why two perspectives?</strong> In <em>Data Flow</em>, raw definitions must pass through the <code>ids.py</code> disambiguation barrier before any graph node can be created in Stage B (why incremental builds are forbidden) &mdash; but in <em>Code Calling Flow</em>, <code>build_wiki.py</code> and <code>build_flow.py</code> are the master coordinators importing and calling <code>ids.py</code> and the extractors from above.
+          </div>
+        </div>
+        <div class="flow-banner-cmd">💡 Hover any script box to highlight its counterpart on both sides</div>
+      </div>
+
+      <div class="dualflow-grid">
+
+        <!-- Left Column: Data Flow Pipeline -->
+        <div class="dualflow-col">
+          <div class="dualflow-col-head">
+            <span class="dualflow-col-title" style="color: var(--blue);">📊 1. Data Flow Pipeline</span>
+            <span class="dualflow-col-subtitle">Lifecycle of Data (Raw Code &rarr; CST &rarr; Nodes)</span>
+          </div>
+
+          <div class="fc-terminal start">
+            <span>&#9654;</span> SOURCE FILES (.py, .ts, .java, .go, ...)
+          </div>
+
+          <div class="fc-arrow">
+            <div class="fc-arrow-line"></div>
+            <div class="fc-arrow-badge">parsed via Tree-sitter CST (one per file)</div>
+            <div class="fc-arrow-head">&darr;</div>
+          </div>
+
+          <div style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase;">STAGE A: TREE-SITTER EXTRACTION</div>
+            <div class="fc-box" data-script="py_extract.py" onclick="openSidebar('py_extract.py')">
+              <div class="fc-box-top"><span class="fc-box-name">extract/py_extract.py</span><span class="fc-node-badge cat-extract">EXTRACT</span></div>
+              <div class="fc-box-desc">Extracts Python AST (classes, functions, calls, decorators)</div>
+              <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+            </div>
+            <div class="fc-box" data-script="js_ts_extract.py" onclick="openSidebar('js_ts_extract.py')">
+              <div class="fc-box-top"><span class="fc-box-name">extract/js_ts_extract.py</span><span class="fc-node-badge cat-extract">EXTRACT</span></div>
+              <div class="fc-box-desc">Extracts JS/TS + JSX/TSX (classes, functions, JSX components)</div>
+              <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+            </div>
+            <div class="fc-box" data-script="langs_extract.py" onclick="openSidebar('langs_extract.py')">
+              <div class="fc-box-top"><span class="fc-box-name">extract/langs_extract.py</span><span class="fc-node-badge cat-extract">EXTRACT</span></div>
+              <div class="fc-box-desc">Extracts 14 languages (Java, Go, C#, Rust, Ruby, PHP, etc.) via SPEC &amp; SHAPES</div>
+              <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+            </div>
+          </div>
+
+          <div class="fc-arrow">
+            <div class="fc-arrow-line"></div>
+            <div class="fc-arrow-badge">Provisional un-resolved names: (name, rel_path)</div>
+            <div class="fc-arrow-head">&darr;</div>
+          </div>
+
+          <div class="fc-box" data-script="ids.py" onclick="openSidebar('ids.py')" style="border-color: var(--accent); background: rgba(245, 158, 11, 0.08);">
+            <div class="fc-box-top"><span class="fc-box-name">core/ids.py &mdash; SharedNames</span><span class="fc-node-badge cat-core">BARRIER</span></div>
+            <div class="fc-box-desc"><strong>Disambiguation Barrier:</strong> Pre-scans the whole corpus before creating any node to qualify colliding names (shortest unique qualifier) giving every node a deterministic ID.</div>
+            <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+          </div>
+
+          <div class="fc-arrow">
+            <div class="fc-arrow-line"></div>
+            <div class="fc-arrow-badge">Unique deterministic IDs established for all entities</div>
+            <div class="fc-arrow-head">&darr;</div>
+          </div>
+
+          <div style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase;">STAGE B: GRAPH &amp; VAULT ASSEMBLY</div>
+            <div class="fc-box" data-script="build_wiki.py" onclick="openSidebar('build_wiki.py')">
+              <div class="fc-box-top"><span class="fc-box-name">extract/build_wiki.py</span><span class="fc-node-badge cat-extract">EXTRACT</span></div>
+              <div class="fc-box-desc">Writes Markdown notes to <code>vault/&lt;id&gt;.md</code> with frontmatter layer</div>
+              <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+            </div>
+            <div class="fc-box" data-script="build_graph.py" onclick="openSidebar('build_graph.py')">
+              <div class="fc-box-top"><span class="fc-box-name">extract/build_graph.py</span><span class="fc-node-badge cat-extract">EXTRACT</span></div>
+              <div class="fc-box-desc">Reads vault/*.md notes and compiles <code>structure/graph.json</code></div>
+              <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+            </div>
+            <div class="fc-box" data-script="build_flow.py" onclick="openSidebar('build_flow.py')">
+              <div class="fc-box-top"><span class="fc-box-name">extract/build_flow.py</span><span class="fc-node-badge cat-extract">EXTRACT</span></div>
+              <div class="fc-box-desc">Builds flow nodes and resolves call edges connecting methods</div>
+              <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+            </div>
+            <div class="fc-box" data-script="route_tables.py" onclick="openSidebar('route_tables.py')">
+              <div class="fc-box-top"><span class="fc-box-name">extract/route_tables.py</span><span class="fc-node-badge cat-extract">EXTRACT</span></div>
+              <div class="fc-box-desc">Attaches detached web routes (Django, Rails, Laravel) to flow handlers</div>
+              <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+            </div>
+          </div>
+
+          <div class="fc-arrow">
+            <div class="fc-arrow-line"></div>
+            <div class="fc-arrow-badge">Both graph.json maps constructed</div>
+            <div class="fc-arrow-head">&darr;</div>
+          </div>
+
+          <div class="fc-box" data-script="build_html.py" onclick="openSidebar('build_html.py')">
+            <div class="fc-box-top"><span class="fc-box-name">query/build_html.py &rarr; explorer.html</span><span class="fc-node-badge cat-query">OUTPUT</span></div>
+            <div class="fc-box-desc">Inlines graphs, review report, and notes into one self-contained offline SPA</div>
+            <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+          </div>
+
+          <div class="fc-arrow">
+            <div class="fc-arrow-line"></div>
+            <div class="fc-arrow-head">&darr;</div>
+          </div>
+
+          <div class="fc-terminal end">
+            <span>&#10003;</span> Single-page data/explorer.html
+          </div>
+        </div>
+
+        <!-- Right Column: Code / Calling Flow -->
+        <div class="dualflow-col">
+          <div class="dualflow-col-head">
+            <span class="dualflow-col-title" style="color: var(--green);">⚙️ 2. Code / Calling Flow</span>
+            <span class="dualflow-col-subtitle">Control Flow (Execution Invocation Hierarchy)</span>
+          </div>
+
+          <div class="fc-box" data-script="archaeologist.py" onclick="openSidebar('archaeologist.py')" style="border-color: var(--green); background: rgba(16, 185, 129, 0.08);">
+            <div class="fc-box-top"><span class="fc-box-name">archaeologist.py</span><span class="fc-node-badge cat-core">ENTRYPOINT</span></div>
+            <div class="fc-box-desc"><strong>Main CLI Coordinator:</strong> Receives commands <code>project</code>, <code>flow</code>, <code>report</code> &mdash; dispatches module calls directly in-process (No subprocesses).</div>
+            <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+          </div>
+
+          <div class="fc-arrow">
+            <div class="fc-arrow-line"></div>
+            <div class="fc-arrow-badge">dispatches build command (run_project / run_flow)</div>
+            <div class="fc-arrow-head">&darr;</div>
+          </div>
+
+          <div style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase;">MASTER COORDINATORS (CALLERS)</div>
+            <div class="fc-box" data-script="build_wiki.py" onclick="openSidebar('build_wiki.py')">
+              <div class="fc-box-top"><span class="fc-box-name">extract/build_wiki.py</span><span class="fc-node-badge cat-extract">CALLER</span></div>
+              <div class="fc-box-desc">Structure Coordinator: discovers files &rarr; calls ids.py &rarr; writes vault notes</div>
+              <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+            </div>
+            <div class="fc-box" data-script="build_flow.py" onclick="openSidebar('build_flow.py')">
+              <div class="fc-box-top"><span class="fc-box-name">extract/build_flow.py</span><span class="fc-node-badge cat-extract">CALLER</span></div>
+              <div class="fc-box-desc">Flow Coordinator: discovers files &rarr; calls ids.py &rarr; resolves call edges</div>
+              <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+            </div>
+          </div>
+
+          <div class="fc-arrow">
+            <div class="fc-arrow-line"></div>
+            <div class="fc-arrow-badge">imports &amp; calls helper modules from below</div>
+            <div class="fc-arrow-head">&darr;</div>
+          </div>
+
+          <div class="dualflow-worker-box">
+            <div style="font-family: var(--mono); font-size: 10px; color: var(--accent); text-transform: uppercase; font-weight: 600;">CALLED WORKERS &amp; CORE UTILITIES</div>
+            <div style="display: flex; gap: 6px; width: 100%; justify-content: center; flex-wrap: wrap;">
+              <div class="fc-box sm" data-script="py_extract.py" onclick="openSidebar('py_extract.py')" style="width: 105px; padding: 6px 8px; text-align: center;">
+                <div class="fc-box-name" style="font-size: 11px;">py_extract</div>
+              </div>
+              <div class="fc-box sm" data-script="js_ts_extract.py" onclick="openSidebar('js_ts_extract.py')" style="width: 105px; padding: 6px 8px; text-align: center;">
+                <div class="fc-box-name" style="font-size: 11px;">js_ts_extract</div>
+              </div>
+              <div class="fc-box sm" data-script="langs_extract.py" onclick="openSidebar('langs_extract.py')" style="width: 105px; padding: 6px 8px; text-align: center;">
+                <div class="fc-box-name" style="font-size: 11px;">langs_extract</div>
+              </div>
+            </div>
+            <div class="fc-box" data-script="ids.py" onclick="openSidebar('ids.py')" style="width: 100%; border-color: var(--accent); background: rgba(245, 158, 11, 0.08);">
+              <div class="fc-box-top"><span class="fc-box-name">core/ids.py</span><span class="fc-node-badge cat-core">CALLED</span></div>
+              <div class="fc-box-desc"><strong>In-Memory Helper:</strong> Imported by build_wiki &amp; build_flow to query <code>SharedNames.id()</code></div>
+              <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+            </div>
+            <div class="fc-box" data-script="taxonomy.py" onclick="openSidebar('taxonomy.py')" style="width: 100%;">
+              <div class="fc-box-top"><span class="fc-box-name">core/taxonomy.py</span><span class="fc-node-badge cat-core">CALLED</span></div>
+              <div class="fc-box-desc">Called to query <code>infer_layer()</code> &amp; <code>source_dirs()</code></div>
+              <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+            </div>
+          </div>
+
+          <div class="fc-arrow">
+            <div class="fc-arrow-line"></div>
+            <div class="fc-arrow-badge">archaeologist invokes subsequent passes</div>
+            <div class="fc-arrow-head">&darr;</div>
+          </div>
+
+          <div style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <div class="fc-box" data-script="build_graph.py" onclick="openSidebar('build_graph.py')">
+              <div class="fc-box-top"><span class="fc-box-name">extract/build_graph.py</span><span class="fc-node-badge cat-extract">STEP 2</span></div>
+              <div class="fc-box-desc">Called after build_wiki: reads vault/*.md &rarr; structure/graph.json</div>
+              <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+            </div>
+            <div class="fc-box" data-script="report.py" onclick="openSidebar('report.py')">
+              <div class="fc-box-top"><span class="fc-box-name">review/report.py</span><span class="fc-node-badge cat-review">STEP 3</span></div>
+              <div class="fc-box-desc">Review pass: coordinates analyze.py to check cycles &amp; layer violations</div>
+              <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+            </div>
+          </div>
+
+          <div class="fc-arrow">
+            <div class="fc-arrow-line"></div>
+            <div class="fc-arrow-badge">archaeologist calls terminal renderer</div>
+            <div class="fc-arrow-head">&darr;</div>
+          </div>
+
+          <div class="fc-box" data-script="build_html.py" onclick="openSidebar('build_html.py')">
+            <div class="fc-box-top"><span class="fc-box-name">query/build_html.py</span><span class="fc-node-badge cat-query">FINAL</span></div>
+            <div class="fc-box-desc"><code>render_explorer()</code> executes as final step to produce offline viewer</div>
+            <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+          </div>
+
+          <div class="fc-arrow">
+            <div class="fc-arrow-line"></div>
+            <div class="fc-arrow-head">&darr;</div>
+          </div>
+
+          <div class="fc-terminal end">
+            <span>&#10003;</span> data/explorer.html ready to browse
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bottom Summary Box -->
+      <div style="margin-top: 24px; background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 18px 20px;">
+        <div style="font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 10px;">
+          🎯 Core Architectural Takeaway
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 12px; color: var(--ink-2); line-height: 1.5;">
+          <div style="background: var(--ground); padding: 12px 14px; border-radius: 6px; border: 1px solid var(--rule-lit);">
+            <strong style="color: var(--blue);">Why Data Flow places `ids.py` before `build_*`?</strong><br>
+            From the <strong>Data Lifecycle</strong> view, raw symbols must pass through global disambiguation before any graph node can be created. The full-corpus awareness is an unavoidable architectural barrier.
+          </div>
+          <div style="background: var(--ground); padding: 12px 14px; border-radius: 6px; border: 1px solid var(--rule-lit);">
+            <strong style="color: var(--green);">Why Code Calling Flow places `build_*` above `ids.py`?</strong><br>
+            From the <strong>Control Flow (Caller vs Callee)</strong> view, <code>build_wiki.py</code> and <code>build_flow.py</code> are master coordinators that instantiate and call <code>ids.SharedNames</code> in RAM.
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2339,6 +2602,22 @@ function showCgTab(id, btn) {
   btn.classList.add("active");
   document.getElementById(id).classList.add("active");
 }
+
+// Synchronized hover for Dual Flow panel
+document.addEventListener("DOMContentLoaded", () => {
+  const dual = document.getElementById("cg-dualflow");
+  if (!dual) return;
+  dual.querySelectorAll(".fc-box").forEach(box => {
+    const s = box.getAttribute("data-script");
+    if (!s) return;
+    box.addEventListener("mouseenter", () => {
+      dual.querySelectorAll(`.fc-box[data-script="${s}"]`).forEach(b => b.classList.add("active-node"));
+    });
+    box.addEventListener("mouseleave", () => {
+      dual.querySelectorAll(`.fc-box[data-script="${s}"]`).forEach(b => b.classList.remove("active-node"));
+    });
+  });
+});
 
 
 function filterMatrix() {

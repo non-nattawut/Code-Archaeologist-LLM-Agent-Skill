@@ -205,6 +205,29 @@
     padding: 32px 16px; display: flex; flex-direction: column; align-items: center;
     position: relative; overflow-x: auto;
   }
+  .dualflow-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+    width: 100%; max-width: 1300px; align-items: start;
+  }
+  @media (max-width: 1024px) {
+    .dualflow-grid { grid-template-columns: 1fr; }
+  }
+  .dualflow-col {
+    background: #090b0e; border: 1px solid var(--rule); border-radius: 8px;
+    padding: 24px 16px; display: flex; flex-direction: column; align-items: center;
+  }
+  .dualflow-col-head {
+    width: 100%; border-bottom: 2px solid var(--rule-lit); padding-bottom: 10px;
+    margin-bottom: 18px; display: flex; justify-content: space-between; align-items: baseline;
+    flex-wrap: wrap; gap: 8px;
+  }
+  .dualflow-col-title { font-family: var(--mono); font-size: 14px; font-weight: 700; }
+  .dualflow-col-subtitle { font-size: 11px; color: var(--ink-3); }
+  .dualflow-worker-box {
+    background: var(--ground); border: 1px dashed var(--rule-lit); border-radius: 6px;
+    padding: 12px; width: 100%; max-width: 380px; display: flex; flex-direction: column;
+    align-items: center; gap: 8px; margin: 4px 0;
+  }
 
   /* Flow Terminal (Start/End) */
   .fc-terminal {
@@ -808,7 +831,8 @@
     </p>
 
     <div class="cg-tabs">
-      <button class="cg-tab active" onclick="showCgTab('cg-flowchart', this)">Flowchart แบบ Interactive</button>
+      <button class="cg-tab active" onclick="showCgTab('cg-flowchart', this)">Flowchart แบบเต็ม (Data Flow)</button>
+      <button class="cg-tab" onclick="showCgTab('cg-dualflow', this)">⚡ เปรียบเทียบสองมุมมอง (Data Flow vs Calling Flow)</button>
       <button class="cg-tab" onclick="showCgTab('cg-matrix', this)">ตาราง Caller &rarr; Callee</button>
     </div>
 
@@ -1264,6 +1288,245 @@
           <span>&#10003;</span> คำตอบ &mdash; มาจาก graph และ note บน path ที่ได้คืนมา ไม่ใช่จากการ scan source
         </div>
 
+      </div>
+    </div>
+
+    <!-- Panel 2: Dual Flow Comparison (Data Flow vs Calling Flow Side-by-Side) -->
+    <div id="cg-dualflow" class="cg-panel">
+      <div class="flow-banner">
+        <div>
+          <div class="flow-banner-title">เทียบสองมุมมอง: การเดินทางของข้อมูล (Data Flow) vs ใครเป็นคนสั่งงาน (Calling Flow)</div>
+          <div class="flow-banner-desc">
+            <strong>ทำไมถึงมีสองมุมมอง?</strong> ในแง่ของ <em>Data Flow</em> ข้อมูลดิบต้องถูกกวาดผ่าน <code>ids.py</code> เพื่อสร้าง Unique ID ทั้งโปรเจกต์ก่อนที่ Node แรกจะถูกสร้างใน Stage B &mdash; แต่ในแง่ของ <em>Code Calling Flow</em> สคริปต์ <code>build_wiki.py</code> และ <code>build_flow.py</code> เป็น Master Coordinator ที่เป็นฝ่าย <code>import ids</code> แล้วเรียกใช้ <code>SharedNames</code> ใน RAM จากด้านบน
+          </div>
+        </div>
+        <div class="flow-banner-cmd">💡 Hover กล่อง script ใดก็ได้เพื่อไฮไลท์คู่แฝดทั้งสองฝั่งพร้อมกัน</div>
+      </div>
+
+      <div class="dualflow-grid">
+
+        <!-- Left Column: Data Flow Pipeline -->
+        <div class="dualflow-col">
+          <div class="dualflow-col-head">
+            <span class="dualflow-col-title" style="color: var(--blue);">📊 1. Data Flow Pipeline</span>
+            <span class="dualflow-col-subtitle">Lifecycle ของข้อมูล (โค้ดดิบ &rarr; CST &rarr; Node)</span>
+          </div>
+
+          <div class="fc-terminal start">
+            <span>&#9654;</span> SOURCE FILES (.py, .ts, .java, .go, ...)
+          </div>
+
+          <div class="fc-arrow">
+            <div class="fc-arrow-line"></div>
+            <div class="fc-arrow-badge">parse ด้วย Tree-sitter CST (หนึ่งชุดต่อไฟล์)</div>
+            <div class="fc-arrow-head">&darr;</div>
+          </div>
+
+          <div style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase;">STAGE A: TREE-SITTER EXTRACTION</div>
+            <div class="fc-box" data-script="py_extract.py" onclick="openSidebar('py_extract.py')">
+              <div class="fc-box-top"><span class="fc-box-name">extract/py_extract.py</span><span class="fc-node-badge cat-extract">EXTRACT</span></div>
+              <div class="fc-box-desc">สกัด AST Python (classes, functions, calls, decorators)</div>
+              <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
+            </div>
+            <div class="fc-box" data-script="js_ts_extract.py" onclick="openSidebar('js_ts_extract.py')">
+              <div class="fc-box-top"><span class="fc-box-name">extract/js_ts_extract.py</span><span class="fc-node-badge cat-extract">EXTRACT</span></div>
+              <div class="fc-box-desc">สกัด JS/TS + JSX/TSX (classes, functions, JSX components)</div>
+              <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
+            </div>
+            <div class="fc-box" data-script="langs_extract.py" onclick="openSidebar('langs_extract.py')">
+              <div class="fc-box-top"><span class="fc-box-name">extract/langs_extract.py</span><span class="fc-node-badge cat-extract">EXTRACT</span></div>
+              <div class="fc-box-desc">สกัด 14 ภาษา (Java, Go, C#, Rust, Ruby, PHP ฯลฯ) ผ่าน SPEC &amp; SHAPES</div>
+              <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
+            </div>
+          </div>
+
+          <div class="fc-arrow">
+            <div class="fc-arrow-line"></div>
+            <div class="fc-arrow-badge">ชื่อดิบที่ยังไม่ได้ Resolve: (name, rel_path)</div>
+            <div class="fc-arrow-head">&darr;</div>
+          </div>
+
+          <div class="fc-box" data-script="ids.py" onclick="openSidebar('ids.py')" style="border-color: var(--accent); background: rgba(245, 158, 11, 0.08);">
+            <div class="fc-box-top"><span class="fc-box-name">core/ids.py &mdash; SharedNames</span><span class="fc-node-badge cat-core">BARRIER</span></div>
+            <div class="fc-box-desc"><strong>Disambiguation Barrier:</strong> มองเห็นทั้ง Corpus ก่อนสร้าง Node เพื่อแก้ชื่อชนกันข้ามไฟล์ (shortest unique qualifier) เพื่อให้ทุก node ได้ ID ถาวร</div>
+            <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
+          </div>
+
+          <div class="fc-arrow">
+            <div class="fc-arrow-line"></div>
+            <div class="fc-arrow-badge">ได้ Unique ID สำหรับทุก Entity และ Method แล้ว</div>
+            <div class="fc-arrow-head">&darr;</div>
+          </div>
+
+          <div style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase;">STAGE B: GRAPH &amp; VAULT ASSEMBLY</div>
+            <div class="fc-box" data-script="build_wiki.py" onclick="openSidebar('build_wiki.py')">
+              <div class="fc-box-top"><span class="fc-box-name">extract/build_wiki.py</span><span class="fc-node-badge cat-extract">EXTRACT</span></div>
+              <div class="fc-box-desc">เขียน Markdown โน้ตลง <code>vault/&lt;id&gt;.md</code> พร้อม Frontmatter layer</div>
+              <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
+            </div>
+            <div class="fc-box" data-script="build_graph.py" onclick="openSidebar('build_graph.py')">
+              <div class="fc-box-top"><span class="fc-box-name">extract/build_graph.py</span><span class="fc-node-badge cat-extract">EXTRACT</span></div>
+              <div class="fc-box-desc">อ่าน vault/*.md มาประกอบเป็น <code>structure/graph.json</code></div>
+              <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
+            </div>
+            <div class="fc-box" data-script="build_flow.py" onclick="openSidebar('build_flow.py')">
+              <div class="fc-box-top"><span class="fc-box-name">extract/build_flow.py</span><span class="fc-node-badge cat-extract">EXTRACT</span></div>
+              <div class="fc-box-desc">สร้าง Flow Node และ Resolve Call Edges เชื่อมโยง Method</div>
+              <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
+            </div>
+            <div class="fc-box" data-script="route_tables.py" onclick="openSidebar('route_tables.py')">
+              <div class="fc-box-top"><span class="fc-box-name">extract/route_tables.py</span><span class="fc-node-badge cat-extract">EXTRACT</span></div>
+              <div class="fc-box-desc">แนบ HTTP Routes จาก Django/Rails/Laravel เข้ากับ Handler</div>
+              <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
+            </div>
+          </div>
+
+          <div class="fc-arrow">
+            <div class="fc-arrow-line"></div>
+            <div class="fc-arrow-badge">ได้ graph.json ทั้ง 2 แผนที่</div>
+            <div class="fc-arrow-head">&darr;</div>
+          </div>
+
+          <div class="fc-box" data-script="build_html.py" onclick="openSidebar('build_html.py')">
+            <div class="fc-box-top"><span class="fc-box-name">query/build_html.py &rarr; explorer.html</span><span class="fc-node-badge cat-query">OUTPUT</span></div>
+            <div class="fc-box-desc">รวม Graph, Report และ Vault เป็นหน้า HTML Offline แบบ Zero-RAG หน้าเดียว</div>
+            <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
+          </div>
+
+          <div class="fc-arrow">
+            <div class="fc-arrow-line"></div>
+            <div class="fc-arrow-head">&darr;</div>
+          </div>
+
+          <div class="fc-terminal end">
+            <span>&#10003;</span> Single-page data/explorer.html
+          </div>
+        </div>
+
+        <!-- Right Column: Code / Calling Flow -->
+        <div class="dualflow-col">
+          <div class="dualflow-col-head">
+            <span class="dualflow-col-title" style="color: var(--green);">⚙️ 2. Code / Calling Flow</span>
+            <span class="dualflow-col-subtitle">Control Flow (ใครเป็นคนสั่งใครในโค้ด)</span>
+          </div>
+
+          <div class="fc-box" data-script="archaeologist.py" onclick="openSidebar('archaeologist.py')" style="border-color: var(--green); background: rgba(16, 185, 129, 0.08);">
+            <div class="fc-box-top"><span class="fc-box-name">archaeologist.py</span><span class="fc-node-badge cat-core">ENTRYPOINT</span></div>
+            <div class="fc-box-desc"><strong>Main CLI Coordinator:</strong> รับคำสั่ง <code>project</code>, <code>flow</code>, <code>report</code> แล้วเรียกโมดูลภายในโดยตรงใน RAM (In-process call, No subprocesses)</div>
+            <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
+          </div>
+
+          <div class="fc-arrow">
+            <div class="fc-arrow-line"></div>
+            <div class="fc-arrow-badge">dispatch สั่งรันตามคำสั่ง (run_project / run_flow)</div>
+            <div class="fc-arrow-head">&darr;</div>
+          </div>
+
+          <div style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase;">MASTER COORDINATORS (CALLERS)</div>
+            <div class="fc-box" data-script="build_wiki.py" onclick="openSidebar('build_wiki.py')">
+              <div class="fc-box-top"><span class="fc-box-name">extract/build_wiki.py</span><span class="fc-node-badge cat-extract">CALLER</span></div>
+              <div class="fc-box-desc">Coordinator ฝั่ง Structure: สั่งหาไฟล์ &rarr; เรียก ids.py &rarr; เขียน vault</div>
+              <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
+            </div>
+            <div class="fc-box" data-script="build_flow.py" onclick="openSidebar('build_flow.py')">
+              <div class="fc-box-top"><span class="fc-box-name">extract/build_flow.py</span><span class="fc-node-badge cat-extract">CALLER</span></div>
+              <div class="fc-box-desc">Coordinator ฝั่ง Flow: สั่งหาไฟล์ &rarr; เรียก ids.py &rarr; analyze call edges</div>
+              <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
+            </div>
+          </div>
+
+          <div class="fc-arrow">
+            <div class="fc-arrow-line"></div>
+            <div class="fc-arrow-badge">import &amp; call helper modules จากข้างล่าง</div>
+            <div class="fc-arrow-head">&darr;</div>
+          </div>
+
+          <div class="dualflow-worker-box">
+            <div style="font-family: var(--mono); font-size: 10px; color: var(--accent); text-transform: uppercase; font-weight: 600;">CALLED WORKERS &amp; CORE UTILITIES</div>
+            <div style="display: flex; gap: 6px; width: 100%; justify-content: center; flex-wrap: wrap;">
+              <div class="fc-box sm" data-script="py_extract.py" onclick="openSidebar('py_extract.py')" style="width: 105px; padding: 6px 8px; text-align: center;">
+                <div class="fc-box-name" style="font-size: 11px;">py_extract</div>
+              </div>
+              <div class="fc-box sm" data-script="js_ts_extract.py" onclick="openSidebar('js_ts_extract.py')" style="width: 105px; padding: 6px 8px; text-align: center;">
+                <div class="fc-box-name" style="font-size: 11px;">js_ts_extract</div>
+              </div>
+              <div class="fc-box sm" data-script="langs_extract.py" onclick="openSidebar('langs_extract.py')" style="width: 105px; padding: 6px 8px; text-align: center;">
+                <div class="fc-box-name" style="font-size: 11px;">langs_extract</div>
+              </div>
+            </div>
+            <div class="fc-box" data-script="ids.py" onclick="openSidebar('ids.py')" style="width: 100%; border-color: var(--accent); background: rgba(245, 158, 11, 0.08);">
+              <div class="fc-box-top"><span class="fc-box-name">core/ids.py</span><span class="fc-node-badge cat-core">CALLED</span></div>
+              <div class="fc-box-desc"><strong>Helper ใน RAM:</strong> ถูกทั้ง build_wiki และ build_flow เรียกใช้เพื่อขอ <code>SharedNames.id()</code></div>
+              <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
+            </div>
+            <div class="fc-box" data-script="taxonomy.py" onclick="openSidebar('taxonomy.py')" style="width: 100%;">
+              <div class="fc-box-top"><span class="fc-box-name">core/taxonomy.py</span><span class="fc-node-badge cat-core">CALLED</span></div>
+              <div class="fc-box-desc">ถูกเรียกเพื่อขอ <code>infer_layer()</code> &amp; <code>source_dirs()</code></div>
+              <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
+            </div>
+          </div>
+
+          <div class="fc-arrow">
+            <div class="fc-arrow-line"></div>
+            <div class="fc-arrow-badge">archaeologist สั่งรัน pass ต่อไปตามลำดับ</div>
+            <div class="fc-arrow-head">&darr;</div>
+          </div>
+
+          <div style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <div class="fc-box" data-script="build_graph.py" onclick="openSidebar('build_graph.py')">
+              <div class="fc-box-top"><span class="fc-box-name">extract/build_graph.py</span><span class="fc-node-badge cat-extract">STEP 2</span></div>
+              <div class="fc-box-desc">archaeologist สั่งรันต่อจาก build_wiki: อ่าน vault/*.md &rarr; graph.json</div>
+              <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
+            </div>
+            <div class="fc-box" data-script="report.py" onclick="openSidebar('report.py')">
+              <div class="fc-box-top"><span class="fc-box-name">review/report.py</span><span class="fc-node-badge cat-review">STEP 3</span></div>
+              <div class="fc-box-desc">archaeologist สั่ง review: เรียก analyze.py เช็ค cycles &amp; layer violations</div>
+              <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
+            </div>
+          </div>
+
+          <div class="fc-arrow">
+            <div class="fc-arrow-line"></div>
+            <div class="fc-arrow-badge">archaeologist เรียกปิดท้าย</div>
+            <div class="fc-arrow-head">&darr;</div>
+          </div>
+
+          <div class="fc-box" data-script="build_html.py" onclick="openSidebar('build_html.py')">
+            <div class="fc-box-top"><span class="fc-box-name">query/build_html.py</span><span class="fc-node-badge cat-query">FINAL</span></div>
+            <div class="fc-box-desc"><code>render_explorer()</code> สั่งรันเป็นขั้นตอนสุดท้ายเพื่อ Render Single-page HTML</div>
+            <div class="fc-box-hint">&rarr; คลิกเพื่อดูใน sidebar</div>
+          </div>
+
+          <div class="fc-arrow">
+            <div class="fc-arrow-line"></div>
+            <div class="fc-arrow-head">&darr;</div>
+          </div>
+
+          <div class="fc-terminal end">
+            <span>&#10003;</span> data/explorer.html พร้อมเปิดใน Browser
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bottom Summary Box -->
+      <div style="margin-top: 24px; background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 18px 20px;">
+        <div style="font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 10px;">
+          🎯 สรุปบทเรียนเชิงสถาปัตยกรรม (Architectural Takeaways)
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 12px; color: var(--ink-2); line-height: 1.5;">
+          <div style="background: var(--ground); padding: 12px 14px; border-radius: 6px; border: 1px solid var(--rule-lit);">
+            <strong style="color: var(--blue);">ทำไมใน Data Flow จึงวาง `ids.py` ไว้ก่อน `build_*`?</strong><br>
+            เพราะในมุมของ <strong>Lifecycle ของข้อมูล</strong> ข้อมูลดิบต้องผ่านการคลี่คลายชื่อชนกันข้ามไฟล์ (Disambiguation) ก่อนที่ Node ใด ๆ ในกราฟจะถูกสร้างขึ้นมาได้ การมองเห็นทั้ง Corpus พร้อมกันจึงเป็นจุดตัด (Barrier) บังคับ
+          </div>
+          <div style="background: var(--ground); padding: 12px 14px; border-radius: 6px; border: 1px solid var(--rule-lit);">
+            <strong style="color: var(--green);">ทำไมใน Code Calling Flow จึงเห็น `build_*` อยู่เหนือ `ids.py`?</strong><br>
+            เพราะในมุมของ <strong>Control Flow (ใครเป็นคนสั่งใคร)</strong> สคริปต์ <code>build_wiki.py</code> และ <code>build_flow.py</code> เป็น Master Coordinator ที่เป็นฝ่าย <code>import ids</code> และสร้าง instance <code>SharedNames</code> ใน RAM เอง
+          </div>
+        </div>
       </div>
     </div>
 
@@ -3311,6 +3574,22 @@ function showCgTab(id, btn) {
   btn.classList.add("active");
   document.getElementById(id).classList.add("active");
 }
+
+// Synchronized hover for Dual Flow panel
+document.addEventListener("DOMContentLoaded", () => {
+  const dual = document.getElementById("cg-dualflow");
+  if (!dual) return;
+  dual.querySelectorAll(".fc-box").forEach(box => {
+    const s = box.getAttribute("data-script");
+    if (!s) return;
+    box.addEventListener("mouseenter", () => {
+      dual.querySelectorAll(`.fc-box[data-script="${s}"]`).forEach(b => b.classList.add("active-node"));
+    });
+    box.addEventListener("mouseleave", () => {
+      dual.querySelectorAll(`.fc-box[data-script="${s}"]`).forEach(b => b.classList.remove("active-node"));
+    });
+  });
+});
 
 
 function filterMatrix() {
