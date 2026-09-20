@@ -143,38 +143,38 @@ flowchart TD
 
 | ตรวจ | ไฟล์ &amp; กลุ่มงาน | คำถามสำคัญที่ไฟล์นี้ตอบ | อัลกอริทึม &amp; สูตรคำนวณหลัก |
 | :---: | :--- | :--- | :--- |
-| [ ] | [`scripts/archaeologist.py`](#1-scriptsarchaeologistpy) | กระจายคำสั่ง CLI in-process โดยไม่เกิด overhead ของ subprocess อย่างไร? | Finite State Command Mapping $\mathcal{T}[\text{Cmd}]$, Short-circuit dispatch |
-| [ ] | [`scripts/paths.py`](#2-scriptspathspy) | เลี่ยงข้อจำกัด `MAX_PATH` (260 ตัวอักษร) บน Windows อย่างไร? | เติม Prefix พิเศษ $\phi(p) = \texttt{"\\\\?\\"} + p$, Drive relativity $\text{skill\_rel}$ |
-| [ ] | [`scripts/core/taxonomy.py`](#3-scriptscoretaxonomypy) | จัดลำดับชั้นทางสถาปัตยกรรมและบันทึกความสูญเสียความแม่นยำอย่างไร? | Tier Poset $(\mathcal{L}, \le)$, ตรวจจับ Violation $L(u) > L(v)$, Inverted edges, Precision vector |
+| [ ] | [`scripts/archaeologist.py`](#1-scriptsarchaeologistpy) | — | Finite State Command Mapping $\mathcal{T}[\text{Cmd}]$, Short-circuit dispatch |
+| [ ] | [`scripts/paths.py`](#2-scriptspathspy) | — | เติม Prefix พิเศษ $\phi(p) = \texttt{"\\\\?\\"} + p$, Drive relativity $\text{skill\_rel}$ |
+| [ ] | [`scripts/core/taxonomy.py`](#3-scriptscoretaxonomypy) | — | Tier Poset $(\mathcal{L}, \le)$, ตรวจจับ Violation $L(u) > L(v)$, Inverted edges, Precision vector |
 | [ ] | [`scripts/core/ids.py`](#4-scriptscoreidspy) | แก้ปัญหาชื่อไฟล์ซ้ำโดยคง Bare ID ไว้ให้สั้นที่สุดได้อย่างไร? | Equivalence class partitioning $[(n, f)]_\sim$, stem/path qualification |
-| [ ] | [`scripts/core/call_ctx.py`](#5-scriptscorecall_ctxpy) | แยกแยะ Loop ซ้ำซากออกจาก Branch ทางเลือกเดี่ยวจาก CST อย่างไร? | CST ancestor walk, repeating field lattice, meet operator $\sqcap$, arm tags |
+| [ ] | [`scripts/core/call_ctx.py`](#5-scriptscorecall_ctxpy) | — | CST ancestor walk, repeating field lattice, meet operator $\sqcap$, arm tags |
 | [ ] | [`scripts/core/doc_text.py`](#6-scriptscoredoc_textpy) | ทำไมการตัดแท็ก XML จึงจำกัดเฉพาะ C# และ JSDoc? | Marker peeling, single-line join, generic safety preservation |
-| [ ] | [`scripts/core/grammars.py`](#7-scriptscoregrammarspy) | GLR parser จัดการข้อผิดพลาดและไวยากรณ์คลุมเครืออย่างไร? | Graph-Structured Stack (GSS) fork-merge, CST `ERROR` recovery, wheel ABI pins |
+| [ ] | [`scripts/core/grammars.py`](#7-scriptscoregrammarspy) | — | Graph-Structured Stack (GSS) fork-merge, CST `ERROR` recovery, wheel ABI pins |
 | [ ] | [`scripts/core/manifest.py`](#8-scriptscoremanifestpy) | ทำไมการเปลี่ยนชุด grammar จึงนับว่า codebase เก่า/stale? | Merkle tree content hash $H_{\text{repo}} = \text{SHA1}(\sum \text{SHA1}(f) + \text{Grammars})$ |
-| [ ] | [`scripts/core/console.py`](#9-scriptscoreconsolepy) | ป้องกันไม่ให้ข้อความภาษาอื่น crash คอนโซล CP874 ของ Windows อย่างไร? | Stream transcoding, surrogateescape fallback, safe Unicode echo |
-| [ ] | [`scripts/extract/build_wiki.py`](#10-scriptsextractbuild_wikipy) | ระบุ Component ของ React ข้าม JSX และ TypeScript ได้อย่างไร? | Predicate $\text{IsComponent}(f)$, wikilink synthesis `[[target]]`, vault markdown |
+| [ ] | [`scripts/core/console.py`](#9-scriptscoreconsolepy) | — | Stream transcoding, surrogateescape fallback, safe Unicode echo |
+| [ ] | [`scripts/extract/build_wiki.py`](#10-scriptsextractbuild_wikipy) | — | Predicate $\text{IsComponent}(f)$, wikilink synthesis `[[target]]`, vault markdown |
 | [ ] | [`scripts/extract/build_graph.py`](#11-scriptsextractbuild_graphpy) | ทำไมสร้างกราฟจากโน้ต Markdown แทนที่จะ parse โค้ดต้นฉบับซ้ำ? | $\mathcal{O}(\|V\|+\|E\|)$ single-pass wikilink parser, adjacency matrix assembly |
-| [ ] | [`scripts/extract/build_flow.py`](#12-scriptsextractbuild_flowpy) | Resolve เมธอด Overload โดยไม่มี classpath ของ compiler ได้อย่างไร? | Overload ranking lattice $\text{Rank}(m) = (\Delta_{\text{args}}, \text{Score}_{\text{types}})$, receiver settling |
+| [ ] | [`scripts/extract/build_flow.py`](#12-scriptsextractbuild_flowpy) | — | Overload ranking lattice $\text{Rank}(m) = (\Delta_{\text{args}}, \text{Score}_{\text{types}})$, receiver settling |
 | [ ] | [`scripts/extract/py_extract.py`](#13-scriptsextractpy_extractpy) | ทำไมต้อง normalize CRLF newline ก่อนคำนวณ hash ของ node? | LF conversion $S_{\text{norm}}$, deterministic slice hashing $h(N) = \text{SHA1}(S_{\text{slice}})$ |
 | [ ] | [`scripts/extract/js_ts_extract.py`](#14-scriptsextractjs_ts_extractpy) | ทำไมต้องใช้ grammar แยกกัน 3 ตัวสำหรับไฟล์ JS และ TS? | TSX vs TypeScript vs JavaScript grammar dispatch, Express/Nest/Axios extraction |
-| [ ] | [`scripts/extract/langs_extract.py`](#15-scriptsextractlangs_extractpy) | โค้ดชุดเดียวรองรับภาษาที่แตกต่างกันถึง 14 ภาษาได้อย่างไร? | Tree-sitter field abstraction via `SPEC` and `SHAPES` dictionaries |
+| [ ] | [`scripts/extract/langs_extract.py`](#15-scriptsextractlangs_extractpy) | — | Tree-sitter field abstraction via `SPEC` and `SHAPES` dictionaries |
 | [ ] | [`scripts/extract/route_tables.py`](#16-scriptsextractroute_tablespy) | ผูก Route ที่ประกาศแยกจากฟังก์ชัน Handler ได้อย่างไร? | Route binding $(\text{Method}, \text{Path}) \mapsto (\text{Controller}, \text{Action})$, unambiguous attach |
 | [ ] | [`scripts/extract/apply_descriptions.py`](#17-scriptsextractapply_descriptionspy) | ป้องกันไม่ให้สรุป AI ค้างเก่าหลังโค้ดถูกแก้ไขได้อย่างไร? | 3-tier cascade: Docstring $\to$ Cache $[m.\text{id}, \text{SHA1}(m.\text{source})] \to$ Fallback |
 | [ ] | [`scripts/review/report.py`](#18-scriptsreviewreportpy) | ทำไมต้องแยกรีวิวเป็น 1 ฉบับต่อ 1 แผนที่ ห้ามปนกัน? | Grain isolation: NodeIDs(Structure) $\cap$ NodeIDs(Flow) $= \emptyset$ |
-| [ ] | [`scripts/review/analyze.py`](#19-scriptsreviewanalyzepy) | ตรวจจับ Cycle และคำนวณเกรดสุขภาพโดยไม่เกิด Recursion Error ได้อย่างไร? | Iterative Tarjan's SCC ($\mathcal{O}(\|V\|+\|E\|)$), Martin's Instability $I$, Health Score $H$ |
+| [ ] | [`scripts/review/analyze.py`](#19-scriptsreviewanalyzepy) | — | Iterative Tarjan's SCC ($\mathcal{O}(\|V\|+\|E\|)$), Martin's Instability $I$, Health Score $H$ |
 | [ ] | [`scripts/review/scan_security.py`](#20-scriptsreviewscan_securitypy) | Shannon Entropy กรอง git commit hash และ UUID ออกจาก Secret ได้อย่างไร? | Shannon Entropy $H(X) \ge 4.5$, max hex ceiling $\log_2(16) = 4.0$, AST range attribution |
-| [ ] | [`scripts/review/metrics.py`](#21-scriptsreviewmetricspy) | คำนวณ McCabe Cyclomatic Complexity ข้าม 17 ภาษาได้อย่างไร? | McCabe Theorem $M = \pi + 1$, CST predicate query count, max nesting depth |
-| [ ] | [`scripts/review/git_insights.py`](#22-scriptsreviewgit_insightspy) | คำนวณความเสี่ยง Hotspot จากประวัติ git ขนาดใหญ่ได้อย่างไร? | Streaming `git log --numstat`, Churn, Risk $R(n) = \text{Norm}(C) \times \text{Norm}(M) \times \text{Norm}(F)$ |
+| [ ] | [`scripts/review/metrics.py`](#21-scriptsreviewmetricspy) | — | McCabe Theorem $M = \pi + 1$, CST predicate query count, max nesting depth |
+| [ ] | [`scripts/review/git_insights.py`](#22-scriptsreviewgit_insightspy) | — | Streaming `git log --numstat`, Churn, Risk $R(n) = \text{Norm}(C) \times \text{Norm}(M) \times \text{Norm}(F)$ |
 | [ ] | [`scripts/review/debt.py`](#23-scriptsreviewdebtpy) | ทำไมจึงแยก TODO/FIXME ออกจากเกรดสุขภาพอัตโนมัติ? | Debt density per LOC, orphan cross-reference, human triage isolation |
-| [ ] | [`scripts/review/tests_map.py`](#24-scriptsreviewtests_mappy) | แมปไฟล์เทสเข้ากับโค้ดจริงและคำนวณอัตราความครอบคลุมอย่างไร? | Bipartite symbol mapping, production coverage heuristic |
+| [ ] | [`scripts/review/tests_map.py`](#24-scriptsreviewtests_mappy) | — | Bipartite symbol mapping, production coverage heuristic |
 | [ ] | [`scripts/review/duplicates.py`](#25-scriptsreviewduplicatespy) | ทำไมจึงเลือกใช้ Winnowing แทน AST Subtree Isomorphism สำหรับหาโค้ดซ้ำ? | Winnowing ($K=10, W=21$), Karp-Rabin hash, guaranteed match $\ge 30$, density $\le \frac{2}{w+1}$ |
-| [ ] | [`scripts/review/brief.py`](#26-scriptsreviewbriefpy) | ทำไมการสรุปจึงทำงานที่ความซับซ้อน $\mathcal{O}(1)$ เทียบกับขนาด codebase? | Pre-computed JSON digest serialization ($\sim 4.3$ KB on 13.6 MB repo), 3,212x compression |
-| [ ] | [`scripts/query/search.py`](#27-scriptsquerysearchpy) | ค้นหาจุดเริ่มต้นโดยไม่ต้องกวาดอ่านไฟล์ใน repository ได้อย่างไร? | Boolean predicate filter $\sigma(V)$ over pre-built graph attributes |
-| [ ] | [`scripts/query/trace_path.py`](#28-scriptsquerytrace_pathpy) | คำนวณรัศมีผลกระทบ (Blast Radius) ข้ามกราฟที่มีวงวนได้อย่างไร? | Transposed graph $G^T$ reverse BFS in linear time $\mathcal{O}(\|V\|+\|E\|)$ |
-| [ ] | [`scripts/query/context.py`](#29-scriptsquerycontextpy) | บรรจุบริบทโหนดให้พอดีกับงบ token ของ LLM ได้อย่างไร? | Priority knapsack packing under strict `--max-chars` budget |
-| [ ] | [`scripts/query/build_html.py`](#30-scriptsquerybuild_htmlpy) | คอมไพล์ Dashboard ที่ทำงานแบบ Offline 100% จาก `file://` ได้อย่างไร? | Inlines template, JSON data, and force-graph JS into single `explorer.html` |
-| [ ] | [`templates/viewer.html`](#31-templatesviewerhtml) | Canvas แสดงผลหลายพันโหนดที่ 60 FPS แบบ Offline ได้อย่างไร? | Barnes-Hut Quadtree ($\theta=0.9, \mathcal{O}(N \log N)$), Hooke's Law, Velocity Verlet |
-| [ ] | [`bin/cli.js`](#32-binclijs) | ติดตั้งข้าม Agent Harness หลายค่ายโดยไม่มี External Dependency ได้อย่างไร? | Harness destination mapping $\text{Dest}(H)$, command prefix rewriting |
+| [ ] | [`scripts/review/brief.py`](#26-scriptsreviewbriefpy) | — | Pre-computed JSON digest serialization ($\sim 4.3$ KB on 13.6 MB repo), 3,212x compression |
+| [ ] | [`scripts/query/search.py`](#27-scriptsquerysearchpy) | — | Boolean predicate filter $\sigma(V)$ over pre-built graph attributes |
+| [ ] | [`scripts/query/trace_path.py`](#28-scriptsquerytrace_pathpy) | — | Transposed graph $G^T$ reverse BFS in linear time $\mathcal{O}(\|V\|+\|E\|)$ |
+| [ ] | [`scripts/query/context.py`](#29-scriptsquerycontextpy) | — | Priority knapsack packing under strict `--max-chars` budget |
+| [ ] | [`scripts/query/build_html.py`](#30-scriptsquerybuild_htmlpy) | — | Inlines template, JSON data, and force-graph JS into single `explorer.html` |
+| [ ] | [`templates/viewer.html`](#31-templatesviewerhtml) | — | Barnes-Hut Quadtree ($\theta=0.9, \mathcal{O}(N \log N)$), Hooke's Law, Velocity Verlet |
+| [ ] | [`bin/cli.js`](#32-binclijs) | — | Harness destination mapping $\text{Dest}(H)$, command prefix rewriting |
 
 ---
 

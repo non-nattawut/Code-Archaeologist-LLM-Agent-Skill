@@ -153,38 +153,38 @@ Use this checklist to track your progressive study through all 32 files across t
 
 | Check | File &amp; Subsystem | Core Question Answered | Algorithm &amp; Calculation Formula |
 | :---: | :--- | :--- | :--- |
-| [ ] | [`scripts/archaeologist.py`](#1-scriptsarchaeologistpy) | How to route CLI subcommands in-process without subprocess spawn overhead? | Finite State Command Mapping $\mathcal{T}[\text{Cmd}]$, Short-circuit dispatch |
-| [ ] | [`scripts/paths.py`](#2-scriptspathspy) | How to bypass Windows `MAX_PATH` (260 char) limits on deep vault paths? | Extended-length prefix $\phi(p) = \texttt{"\\\\?\\"} + p$, Drive relativity $\text{skill\_rel}$ |
-| [ ] | [`scripts/core/taxonomy.py`](#3-scriptscoretaxonomypy) | How are architectural tiers ordered, and how is precision loss recorded? | Poset ordering $(\mathcal{L}, \le)$, Violation $L(u) > L(v)$, Inverted edges, Precision vector |
+| [ ] | [`scripts/archaeologist.py`](#1-scriptsarchaeologistpy) | — | Finite State Command Mapping $\mathcal{T}[\text{Cmd}]$, Short-circuit dispatch |
+| [ ] | [`scripts/paths.py`](#2-scriptspathspy) | — | Extended-length prefix $\phi(p) = \texttt{"\\\\?\\"} + p$, Drive relativity $\text{skill\_rel}$ |
+| [ ] | [`scripts/core/taxonomy.py`](#3-scriptscoretaxonomypy) | — | Poset ordering $(\mathcal{L}, \le)$, Violation $L(u) > L(v)$, Inverted edges, Precision vector |
 | [ ] | [`scripts/core/ids.py`](#4-scriptscoreidspy) | How to disambiguate identical names across files while preserving bare IDs? | Equivalence class partitioning $[(n, f)]_\sim$, stem/path qualification |
-| [ ] | [`scripts/core/call_ctx.py`](#5-scriptscorecall_ctxpy) | How to detect loop bodies vs conditional branches from concrete parse trees? | CST ancestor walk, repeating field lattice, meet operator $\sqcap$, arm tags |
+| [ ] | [`scripts/core/call_ctx.py`](#5-scriptscorecall_ctxpy) | — | CST ancestor walk, repeating field lattice, meet operator $\sqcap$, arm tags |
 | [ ] | [`scripts/core/doc_text.py`](#6-scriptscoredoc_textpy) | Why is XML stripping restricted to C# and JSDoc rather than all languages? | Marker peeling, single-line join, generic safety preservation |
-| [ ] | [`scripts/core/grammars.py`](#7-scriptscoregrammarspy) | How does GLR parsing handle syntax errors and grammar ambiguities? | Graph-Structured Stack (GSS) fork-merge, CST `ERROR` recovery, wheel ABI pins |
+| [ ] | [`scripts/core/grammars.py`](#7-scriptscoregrammarspy) | — | Graph-Structured Stack (GSS) fork-merge, CST `ERROR` recovery, wheel ABI pins |
 | [ ] | [`scripts/core/manifest.py`](#8-scriptscoremanifestpy) | Why does a changed grammar set trigger codebase staleness? | Merkle tree content hash $H_{\text{repo}} = \text{SHA1}(\sum \text{SHA1}(f) + \text{Grammars})$ |
-| [ ] | [`scripts/core/console.py`](#9-scriptscoreconsolepy) | How to guarantee terminal output does not crash on non-UTF-8 CP874 consoles? | Stream transcoding, surrogateescape fallback, safe Unicode echo |
-| [ ] | [`scripts/extract/build_wiki.py`](#10-scriptsextractbuild_wikipy) | How are React components classified across JSX and TypeScript? | Predicate $\text{IsComponent}(f)$, wikilink synthesis `[[target]]`, vault markdown |
+| [ ] | [`scripts/core/console.py`](#9-scriptscoreconsolepy) | — | Stream transcoding, surrogateescape fallback, safe Unicode echo |
+| [ ] | [`scripts/extract/build_wiki.py`](#10-scriptsextractbuild_wikipy) | — | Predicate $\text{IsComponent}(f)$, wikilink synthesis `[[target]]`, vault markdown |
 | [ ] | [`scripts/extract/build_graph.py`](#11-scriptsextractbuild_graphpy) | Why build graphs from markdown notes rather than re-parsing source code? | $\mathcal{O}(\|V\|+\|E\|)$ single-pass wikilink parser, adjacency matrix assembly |
-| [ ] | [`scripts/extract/build_flow.py`](#12-scriptsextractbuild_flowpy) | How to resolve method overloads without full compiler classpaths? | Overload ranking lattice $\text{Rank}(m) = (\Delta_{\text{args}}, \text{Score}_{\text{types}})$, receiver settling |
+| [ ] | [`scripts/extract/build_flow.py`](#12-scriptsextractbuild_flowpy) | — | Overload ranking lattice $\text{Rank}(m) = (\Delta_{\text{args}}, \text{Score}_{\text{types}})$, receiver settling |
 | [ ] | [`scripts/extract/py_extract.py`](#13-scriptsextractpy_extractpy) | Why normalize CRLF newlines before computing node hashes? | LF conversion $S_{\text{norm}}$, deterministic slice hashing $h(N) = \text{SHA1}(S_{\text{slice}})$ |
 | [ ] | [`scripts/extract/js_ts_extract.py`](#14-scriptsextractjs_ts_extractpy) | Why are three distinct grammars required for JS and TS files? | TSX vs TypeScript vs JavaScript grammar dispatch, Express/Nest/Axios extraction |
-| [ ] | [`scripts/extract/langs_extract.py`](#15-scriptsextractlangs_extractpy) | How does a single consumer handle 14 compiled and scripted languages? | Tree-sitter field abstraction via `SPEC` and `SHAPES` dictionaries |
+| [ ] | [`scripts/extract/langs_extract.py`](#15-scriptsextractlangs_extractpy) | — | Tree-sitter field abstraction via `SPEC` and `SHAPES` dictionaries |
 | [ ] | [`scripts/extract/route_tables.py`](#16-scriptsextractroute_tablespy) | How to bind routes declared separately from handler definitions? | Route binding $(\text{Method}, \text{Path}) \mapsto (\text{Controller}, \text{Action})$, unambiguous attach |
 | [ ] | [`scripts/extract/apply_descriptions.py`](#17-scriptsextractapply_descriptionspy) | How to prevent stale AI summaries after code modifications? | 3-tier cascade: Docstring $\to$ Cache $[m.\text{id}, \text{SHA1}(m.\text{source})] \to$ Fallback |
 | [ ] | [`scripts/review/report.py`](#18-scriptsreviewreportpy) | Why generate isolated reports per map rather than merging findings? | Grain isolation: NodeIDs(Structure) $\cap$ NodeIDs(Flow) $= \emptyset$ |
-| [ ] | [`scripts/review/analyze.py`](#19-scriptsreviewanalyzepy) | How to detect cycles and compute health scores without recursion errors? | Iterative Tarjan's SCC ($\mathcal{O}(\|V\|+\|E\|)$), Martin's Instability $I$, Health Score $H$ |
+| [ ] | [`scripts/review/analyze.py`](#19-scriptsreviewanalyzepy) | — | Iterative Tarjan's SCC ($\mathcal{O}(\|V\|+\|E\|)$), Martin's Instability $I$, Health Score $H$ |
 | [ ] | [`scripts/review/scan_security.py`](#20-scriptsreviewscan_securitypy) | How does Shannon entropy filter git hashes and UUIDs from secrets? | Shannon Entropy $H(X) \ge 4.5$, max hex ceiling $\log_2(16) = 4.0$, AST range attribution |
-| [ ] | [`scripts/review/metrics.py`](#21-scriptsreviewmetricspy) | How to compute McCabe cyclomatic complexity across 17 languages? | McCabe Theorem $M = \pi + 1$, CST predicate query count, max nesting depth |
-| [ ] | [`scripts/review/git_insights.py`](#22-scriptsreviewgit_insightspy) | How to calculate hotspot risk from git history on large repos? | Streaming `git log --numstat`, Churn, Risk $R(n) = \text{Norm}(C) \times \text{Norm}(M) \times \text{Norm}(F)$ |
+| [ ] | [`scripts/review/metrics.py`](#21-scriptsreviewmetricspy) | — | McCabe Theorem $M = \pi + 1$, CST predicate query count, max nesting depth |
+| [ ] | [`scripts/review/git_insights.py`](#22-scriptsreviewgit_insightspy) | — | Streaming `git log --numstat`, Churn, Risk $R(n) = \text{Norm}(C) \times \text{Norm}(M) \times \text{Norm}(F)$ |
 | [ ] | [`scripts/review/debt.py`](#23-scriptsreviewdebtpy) | Why exclude TODO/FIXME markers from the automated health grade? | Debt density per LOC, orphan cross-reference, human triage isolation |
-| [ ] | [`scripts/review/tests_map.py`](#24-scriptsreviewtests_mappy) | How to map tests to production entities and compute coverage ratio? | Bipartite symbol mapping, production coverage heuristic |
+| [ ] | [`scripts/review/tests_map.py`](#24-scriptsreviewtests_mappy) | — | Bipartite symbol mapping, production coverage heuristic |
 | [ ] | [`scripts/review/duplicates.py`](#25-scriptsreviewduplicatespy) | Why prefer Winnowing over AST subtree isomorphism for clones? | Winnowing ($K=10, W=21$), Karp-Rabin hash, guaranteed match $\ge 30$, density $\le \frac{2}{w+1}$ |
-| [ ] | [`scripts/review/brief.py`](#26-scriptsreviewbriefpy) | Why is the briefing digest strictly $\mathcal{O}(1)$ with respect to codebase size? | Pre-computed JSON digest serialization ($\sim 4.3$ KB on 13.6 MB repo), 3,212x compression |
-| [ ] | [`scripts/query/search.py`](#27-scriptsquerysearchpy) | How to locate starting nodes without scanning repository source files? | Boolean predicate filter $\sigma(V)$ over pre-built graph attributes |
-| [ ] | [`scripts/query/trace_path.py`](#28-scriptsquerytrace_pathpy) | How to calculate upstream blast radius across directed cyclic graphs? | Transposed graph $G^T$ reverse BFS in linear time $\mathcal{O}(\|V\|+\|E\|)$ |
-| [ ] | [`scripts/query/context.py`](#29-scriptsquerycontextpy) | How to budget node context packs without exceeding LLM context limits? | Priority knapsack packing under strict `--max-chars` budget |
-| [ ] | [`scripts/query/build_html.py`](#30-scriptsquerybuild_htmlpy) | How to produce an offline interactive dashboard from `file://`? | Inlines template, JSON data, and force-graph JS into single `explorer.html` |
-| [ ] | [`templates/viewer.html`](#31-templatesviewerhtml) | How does the canvas render thousands of nodes at 60 FPS offline? | Barnes-Hut Quadtree ($\theta=0.9, \mathcal{O}(N \log N)$), Hooke's Law, Velocity Verlet |
-| [ ] | [`bin/cli.js`](#32-binclijs) | How to deploy across multiple agent harnesses with zero dependencies? | Harness destination mapping $\text{Dest}(H)$, command prefix rewriting |
+| [ ] | [`scripts/review/brief.py`](#26-scriptsreviewbriefpy) | — | Pre-computed JSON digest serialization ($\sim 4.3$ KB on 13.6 MB repo), 3,212x compression |
+| [ ] | [`scripts/query/search.py`](#27-scriptsquerysearchpy) | — | Boolean predicate filter $\sigma(V)$ over pre-built graph attributes |
+| [ ] | [`scripts/query/trace_path.py`](#28-scriptsquerytrace_pathpy) | — | Transposed graph $G^T$ reverse BFS in linear time $\mathcal{O}(\|V\|+\|E\|)$ |
+| [ ] | [`scripts/query/context.py`](#29-scriptsquerycontextpy) | — | Priority knapsack packing under strict `--max-chars` budget |
+| [ ] | [`scripts/query/build_html.py`](#30-scriptsquerybuild_htmlpy) | — | Inlines template, JSON data, and force-graph JS into single `explorer.html` |
+| [ ] | [`templates/viewer.html`](#31-templatesviewerhtml) | — | Barnes-Hut Quadtree ($\theta=0.9, \mathcal{O}(N \log N)$), Hooke's Law, Velocity Verlet |
+| [ ] | [`bin/cli.js`](#32-binclijs) | — | Harness destination mapping $\text{Dest}(H)$, command prefix rewriting |
 
 ---
 

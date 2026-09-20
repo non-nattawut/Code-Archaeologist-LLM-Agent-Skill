@@ -2397,8 +2397,8 @@ const CHECKLIST_FILES_DATA = [
     group: "entry",
     groupName: "Entrypoint",
     role: "Central filesystem anchor, sys.path bootstrap, and cross-platform path resolution utilities.",
-    question: "How does paths.py overcome Windows MAX_PATH (260 character) limits on deeply nested vault files?",
-    shortAnswer: "Automatically prefixes extended-length '\\\\?\\' NT Object Manager syntax to paths >= 260 characters on Windows, and normalizes cross-drive relative paths via skill_rel().",
+    question: "",
+    shortAnswer: "",
     algorithmName: "Windows Extended-Length Path Mapping & Cross-Drive Relativity",
     formula: "phi(p) = \"\\\\\\\\?\\\\\" + abspath(p)  if os.name == 'nt' and len(abspath(p)) >= 260 and not abspath(p).startswith('\\\\\\\\')\n         p                        otherwise\n\nskill_rel(src, target) = relpath(src, target)  if Drive(src) == Drive(target)\n                         abspath(src)          otherwise",
     algorithmDesc: "Evaluates __file__ to establish absolute SKILL_ROOT, DATA_DIR, and TEMPLATES_DIR references. Appends scripts/, core/, extract/, review/, query/, and vendor/ into sys.path so sibling imports remain bare and vendored tree-sitter takes precedence.",
@@ -2511,8 +2511,8 @@ const CHECKLIST_FILES_DATA = [
     group: "core",
     groupName: "Core",
     role: "Unicode stream transcoding wrapper for non-UTF-8 terminals (e.g. CP874).",
-    question: "Why is safe_stdout() necessary when echoing repository text?",
-    shortAnswer: "Accented characters, non-English author names, or unicode symbols trigger fatal UnicodeEncodeError crashes on default Windows CP874/ASCII terminals.",
+    question: "",
+    shortAnswer: "",
     algorithmName: "Surrogate-Safe Encoding Stream Transcoding",
     formula: "sys.stdout.reconfigure(encoding=stream.encoding, errors='replace')\nFallback: io.TextIOWrapper(stream.buffer, encoding=stream.encoding, errors='surrogateescape')",
     algorithmDesc: "Wraps sys.stdout and sys.stderr with fallback error handlers. Non-representable characters on the user's active console encoding (such as Windows CP874 or legacy OEM codepages) are safely replaced with fallback characters instead of throwing exceptions.",
@@ -2561,8 +2561,8 @@ const CHECKLIST_FILES_DATA = [
     group: "extract",
     groupName: "Extraction",
     role: "Flow map method/function call graph and overload resolution engine.",
-    question: "How does build_flow.py resolve overloaded methods without a full compiler classpath?",
-    shortAnswer: "Employs an overload ranking lattice based on parameter count parity and source-stated argument types. Ties or ambiguities are dropped and explicitly named in unresolved.",
+    question: "",
+    shortAnswer: "",
     algorithmName: "Hierarchical Scope Resolution & Overload Ranking Lattice",
     formula: "Scope Hierarchy: Scope(s) = Block subset of Method subset of Class subset of Module\nOverload Ranking Lattice: Rank(m) = ( Delta_args, Score_types )\nwhere Delta_args = |len(m.params) - len(call.args)|\nScore_types = sum(1 for (p_t, a_t) in zip(params, args) if p_t == a_t)",
     algorithmDesc: "Extracts methods, declarations, and call expressions across 17 languages. Settles receivers through local variable assignments, module imports, and parameter annotations. Resolves calls, attaches route tables, and links frontend API calls to backend handlers.",
@@ -2675,8 +2675,8 @@ const CHECKLIST_FILES_DATA = [
     group: "review",
     groupName: "Review",
     role: "Graph structural analysis, cycle detection, and health scoring.",
-    question: "How are strongly connected components (cycles) and health scores computed?",
-    shortAnswer: "Uses an iterative implementation of Tarjan's SCC algorithm to avoid recursion limits. Computes Robert C. Martin's instability metric and health grade (0-100 / A-F).",
+    question: "",
+    shortAnswer: "",
     algorithmName: "Tarjan's Iterative SCC & Martin's Package Instability",
     formula: "Tarjan's SCC lowlink: lowlink[u] = min(index[u], lowlink[v] (on Stack), index[v] (visited))\nPackage Instability: I = C_e / (C_a + C_e), I = 0.5 when C_a + C_e == 0\nComposite Health Score: H = 100 - sum(Penalties) in [0, 100]\nGrades: A (>=90), B (>=80), C (>=70), D (>=60), F (<60)",
     algorithmDesc: "Traverses graph edges using iterative Tarjan DFS to find cycles. Calculates in-degree (afferent Ca) and out-degree (efferent Ce). Flags layer violations, god objects, and dead code. Deducts penalties to compute 0-100 health score.",
@@ -2707,8 +2707,8 @@ const CHECKLIST_FILES_DATA = [
     group: "review",
     groupName: "Review",
     role: "McCabe cyclomatic complexity, nesting depth, and LOC census.",
-    question: "How is McCabe's Cyclomatic Complexity theorem applied across 17 languages without full CFGs?",
-    shortAnswer: "McCabe proved that for single-entry/exit functions, M = pi + 1. The engine counts CST predicate branching nodes across Tree-sitter grammars directly.",
+    question: "",
+    shortAnswer: "",
     algorithmName: "McCabe Cyclomatic Complexity Theorem & CST Predicate Counting",
     formula: "M = pi + 1\npi = sum( Count(k) for k in PredicateNodeTypes across 17 languages )\nNesting Depth = max CST branch depth from method declaration root\nLOC = EndLine - StartLine + 1",
     algorithmDesc: "Measures LOC, cyclomatic complexity, maximum nesting depth, and parameter counts on each node's AST slice [source..end]. Counts decision predicates (if, for, while, catch, binary logical operators, switch cases).",
@@ -2787,8 +2787,8 @@ const CHECKLIST_FILES_DATA = [
     group: "review",
     groupName: "Review",
     role: "Fixed-size token digest for LLM session initialization.",
-    question: "Why is brief.py strictly O(1) with respect to repository size?",
-    shortAnswer: "Reads only pre-computed JSON summary artifacts; performs zero computation and zero source file parsing, keeping output at ~4.3 KB regardless of repo size.",
+    question: "",
+    shortAnswer: "",
     algorithmName: "Fixed-Budget Digest Serialization & Staleness Check",
     formula: "Size(Brief) ~ 4.3 KB  (O(1) w.r.t. codebase volume)\nToken Compression: 3,212x reduction compared to 13.6 MB source code\nFreshness Check: manifest.compare() confirms artifact validity",
     algorithmDesc: "Opens agent sessions with a bounded text summary. Formats architecture grades, node/edge counts, HTTP endpoints, hotspots, unpinned grammars, and caveated edge counts by reading pre-computed JSON artifacts.",
@@ -2837,8 +2837,8 @@ const CHECKLIST_FILES_DATA = [
     group: "query",
     groupName: "Query",
     role: "Bounded node context packer for LLM prompts.",
-    question: "How does context.py ensure prompt token limits are never exceeded?",
-    shortAnswer: "Packs node facts, metrics, risk scores, and neighbors under a strict --max-chars budget using priority knapsack ordering.",
+    question: "",
+    shortAnswer: "",
     algorithmName: "Priority Knapsack Context Budgeting",
     formula: "max sum( Priority(c_i) )  subject to  sum( len(c_i) ) <= max_chars\nPriority: target node > direct callers > direct callees > metrics/security findings",
     algorithmDesc: "Gathers comprehensive architectural context for specified nodes. Inlines metrics, security findings, git churn, and neighbor signatures, strictly stopping before exceeding the --max-chars character limit.",
@@ -2853,8 +2853,8 @@ const CHECKLIST_FILES_DATA = [
     group: "query",
     groupName: "Query",
     role: "Standalone offline explorer compiler.",
-    question: "How does build_html.py produce an offline dashboard that works from file://?",
-    shortAnswer: "Inlines templates/viewer.html, force-graph.min.js, and JSON map data into a single data/explorer.html with zero external network requests.",
+    question: "",
+    shortAnswer: "",
     algorithmName: "Template Substitution & Zero-Network Bundling",
     formula: "HTML = ViewerTemplate.replace('__TITLE__', title)\n                     .replace('__MAPS_DATA__', json_data)\n                     .replace('__VENDOR_JS__', vendor_js)\nOutput: data/explorer.html (single offline file)",
     algorithmDesc: "Loads HTML template from templates/viewer.html. Replaces placeholders with graph JSON data, architecture reports, and vendored force-graph scripts. Generates offline standalone explorer.html.",
@@ -2887,8 +2887,8 @@ const CHECKLIST_FILES_DATA = [
     group: "runtime",
     groupName: "Runtime & UI",
     role: "Cross-platform harness installer and path rewriter.",
-    question: "How does cli.js install across multiple harnesses without external dependencies?",
-    shortAnswer: "Uses Node.js standard libraries (fs, path, child_process) to map harness destinations (.agents, .claude, .cursor, .windsurf, .zed) and rewrite command prefixes.",
+    question: "",
+    shortAnswer: "",
     algorithmName: "Multi-Harness Target Mapping & Path Prefix Rewriting",
     formula: "Dest(H) = \".agents/skills/code-archaeologist\"   if H == 'agents'\n          \".claude/skills/code-archaeologist\"   if H == 'claude'\n          \".cursor/skills/code-archaeologist\"   if H == 'cursor'\n          \".windsurf/skills/code-archaeologist\" if H == 'windsurf'\n          \".zed/skills/code-archaeologist\"      if H == 'zed'",
     algorithmDesc: "Npx entrypoint. Validates Python 3.10+ runtime, provisions skill directories, copies templates and scripts, rewrites relative command prefixes for target harness, and initializes empty data directories.",
@@ -3001,6 +3001,7 @@ function renderChecklist() {
 
         <div class="cl-file-body">
           <div class="cl-qa-block">
+            ${item.question ? `
             <div class="cl-q-title">
               <span class="cl-q-badge">Question</span>
               <span>${item.question}</span>
@@ -3008,8 +3009,7 @@ function renderChecklist() {
             <div class="cl-a-short">
               <strong>Short Answer:</strong> ${item.shortAnswer}
             </div>
-
-            <div class="cl-algo-box">
+            ` : ''}<div class="cl-algo-box">
               <div class="cl-algo-title">&#9881; Algorithm &amp; Calculation Formulation: ${item.algorithmName}</div>
               <pre class="cl-formula-display"><code>${escapeHtml(item.formula)}</code></pre>
               <div class="cl-algo-desc">${item.algorithmDesc}</div>
