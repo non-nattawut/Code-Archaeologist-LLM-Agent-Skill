@@ -681,7 +681,6 @@
     <div class="hero-nav" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px;">
       <a href="#callgraph" class="cl-btn" style="text-decoration: none;">&darr; Flowchart &amp; Matrix การทำงาน</a>
       <a href="#reading-checklist" class="cl-btn" style="text-decoration: none; border-color: var(--accent); color: var(--accent); background: var(--accent-dim);">&darr; Checklist รายไฟล์ &amp; สูตรคำนวณ (<span id="heroClCount">32</span>)</a>
-      <a href="#scripts-catalog" class="cl-btn" style="text-decoration: none;">&darr; สารบัญ Script &amp; Invariants (28)</a>
       <a href="#judge-qa" class="cl-btn" style="text-decoration: none;">&darr; คลังข้อสอบ Q&amp;A กรรมการ (50)</a>
     </div>
 
@@ -1538,26 +1537,6 @@
 
     <!-- Dynamic Checklist Items Container -->
     <div id="checklistContainer"></div>
-  </section>
-
-
-  <!-- Script Cards Section -->
-  <section style="padding: 48px 0;" id="scripts-catalog">
-    <div class="section-eyebrow">สารบัญอ้างอิง Script</div>
-    <h2>All 28 Scripts: Mechanics, Algorithms &amp; Invariants</h2>
-
-    <div class="filter-bar">
-      <input type="text" id="filterInput" class="search-input" placeholder="ค้นหา script, algorithm (เช่น Tarjan, Winnowing, BFS, CST, regex)..." oninput="applyFilter()">
-      <button class="filter-btn active" onclick="setCategory('all', this)">All (28)</button>
-      <button class="filter-btn" onclick="setCategory('core', this)">Core (5)</button>
-      <button class="filter-btn" onclick="setCategory('extract', this)">Extraction (8)</button>
-      <button class="filter-btn" onclick="setCategory('review', this)">Review &amp; Audit (9)</button>
-      <button class="filter-btn" onclick="setCategory('query', this)">Query &amp; Viewer (5)</button>
-    </div>
-
-    <div class="cards-grid" id="cardsGrid">
-      <!-- Generated Cards inserted here -->
-    </div>
   </section>
 
   <!-- ===================================================================
@@ -3021,6 +3000,7 @@ const SCRIPTS_DATA = [
 
 function renderCards(cards) {
   const container = document.getElementById("cardsGrid");
+  if (!container) return;
   container.innerHTML = cards.map(c => `
     <div class="card" id="card-${c.name}">
       <div class="card-header">
@@ -3363,7 +3343,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "ตรวจสอบ sys.argv[1] เทียบกับตารางคำสั่งที่ลงทะเบียนไว้ หากเป็น 'project' หรือ 'flow' จะ normalize path, เรียก build_wiki หรือ build_flow, สร้าง viewer HTML และบันทึก manifest ส่วน 'report' จะสั่งรัน review passes บนทุกกราฟ",
     "complexity": "เวลา: O(1) สำหรับการ lookup คำสั่ง, พื้นที่: O(1) process overhead",
     "boundary": "คำสั่งไม่ถูกต้องหรือไม่ระบุจะแสดงวิธีใช้แบบ POSIX CLI; หาก argument ขาดจะคืนค่า exit code != 0",
-    "invariant": "เป็นไฟล์เดียวที่อยู่ที่ root ของ scripts/ ห้ามมีสคริปต์อื่นทำหน้าที่เป็น entrypoint ซ้ำซ้อน"
+    "invariant": "เป็นไฟล์เดียวที่อยู่ที่ root ของ scripts/ ห้ามมีสคริปต์อื่นทำหน้าที่เป็น entrypoint ซ้ำซ้อน",
+    "inputs": "CLI arguments (--src roots, subcommands)",
+    "outputs": "เรียก extractor, review pass หรือ digest"
   },
   {
     "id": "paths_py",
@@ -3379,7 +3361,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "ประเมิน __file__ เพื่อกำหนดค่าคงที่ SKILL_ROOT, DATA_DIR, และ TEMPLATES_DIR ทำการ inject โฟลเดอร์ scripts/, core/, extract/, review/, query/, vendor/ เข้าสู่ sys.path ทำให้ import แบบ bare ได้ และดึง tree-sitter ใน vendor/ ก่อนเสมอ",
     "complexity": "เวลา: O(1) ต่อ path, พื้นที่: O(1)",
     "boundary": "Windows network share (UNC path ที่ขึ้นต้นด้วย \\\\) จะคงเดิมไว้ ไม่เติม prefix ซ้ำซ้อน",
-    "invariant": "อยู่ใต้สุดของทุกเลเยอร์ ห้าม import จากโมดูลอื่นใน skill เพื่อ bootstrap sys.path ให้พร้อมใช้งาน"
+    "invariant": "อยู่ใต้สุดของทุกเลเยอร์ ห้าม import จากโมดูลอื่นใน skill เพื่อ bootstrap sys.path ให้พร้อมใช้งาน",
+    "inputs": "path บน filesystem",
+    "outputs": "export SKILL_ROOT, DATA_DIR, TEMPLATES_DIR, VENDOR_DIR"
   },
   {
     "id": "taxonomy_py",
@@ -3395,7 +3379,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "ใช้ตาราง lookup และ regex ประเมิน infer_layer() จาก decorator (@RestController -> controller) และชื่อโฟลเดอร์ ใช้ is_test_path() คัดแยกชุดทดสอบ และคำนวณเวกเตอร์ความสูญเสียความแม่นยำแบบแจกแจงชัดเจน",
     "complexity": "เวลา: O(1) ต่อการ lookup, พื้นที่: O(1)",
     "boundary": "Entrypoint ของเฟรมเวิร์กและไฟล์ทดสอบได้รับการยกเว้นจากการคิดคะแนนโค้ดที่ไม่ได้ถูกเรียก (orphan/dead code)",
-    "invariant": "ทุกสคริปต์ต้องดึงข้อมูลผ่าน taxonomy.py ห้ามฮาร์ดโค้ด layer, kind หรือ skip directories ซ้ำซ้อนในโค้ด"
+    "invariant": "ทุกสคริปต์ต้องดึงข้อมูลผ่าน taxonomy.py ห้ามฮาร์ดโค้ด layer, kind หรือ skip directories ซ้ำซ้อนในโค้ด",
+    "inputs": "filename, AST annotation, edge target",
+    "outputs": "tag (controller, service, repository ฯลฯ) และ precision flag"
   },
   {
     "id": "ids_py",
@@ -3411,7 +3397,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "SharedNames กวาดอ่านชื่อสัญลักษณ์ทั้งหมดก่อนเริ่มสร้างโหนด เก็บ index ใน hash map เมื่อเรียก ids.id(name, file) จะคืนค่า Bare Name ถ้าไม่ซ้ำ หากซ้ำจะระบุด้วยชื่อไฟล์ เพื่อป้องกันไฟล์ทับกันบนระบบไฟล์ Case-Insensitive (NTFS/APFS)",
     "complexity": "เวลา: O(N) pre-scan + O(1) ต่อการ query, พื้นที่: O(N) ดัชนีสัญลักษณ์",
     "boundary": "ชื่อที่ต่างกันแค่ตัวพิมพ์เล็ก-ใหญ่ในคนละไฟล์จะถูกแมปไปยังคนละโน้ต ป้องกันการเขียนทับกันบนดิสก์",
-    "invariant": "Node ID จะสั้น (bare) เสมอเว้นแต่ถูกนิยามซ้ำใน >= 2 ไฟล์ และการเรียกชื่อซ้ำจะผูกเฉพาะกับไฟล์ของผู้เรียกเท่านั้น"
+    "invariant": "Node ID จะสั้น (bare) เสมอเว้นแต่ถูกนิยามซ้ำใน >= 2 ไฟล์ และการเรียกชื่อซ้ำจะผูกเฉพาะกับไฟล์ของผู้เรียกเท่านั้น",
+    "inputs": "iterable ของ (name, rel_file) ทุก definition",
+    "outputs": "qualified ID: ปล่อย bare ถ้าไม่ซ้ำ และ qualify เมื่อชื่อถูกใช้ร่วมกัน"
   },
   {
     "id": "call_ctx_py",
@@ -3427,7 +3415,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "ใช้ตารางประเภทโหนดข้าม 17 ภาษาแยกแยะ while/for/comprehension ออกจาก if/switch/match มีเพียง body ที่วนซ้ำเท่านั้นที่จะติดแท็ก loop เมื่อมีการเรียกหลายครั้งจะนำมารวมกัน (merge) โดยเลือกบรรทัดแรกและ intersection ของ arms",
     "complexity": "เวลา: O(depth) โดย depth <= 30 ใน AST ทั่วไป, พื้นที่: O(1)",
     "boundary": "ประเภทโหนดที่ไม่ได้อยู่ในตารางที่ตรวจสอบจะไม่ถูกติดแท็ก (ยึดหลัก Lower-bound soundness ไม่เดา)",
-    "invariant": "Lower-bound soundness: ไวยากรณ์ที่ไม่รู้จักจะไม่ติดแฟล็ก ดีกว่าการคาดเดาแฟล็กผิด ๆ"
+    "invariant": "Lower-bound soundness: ไวยากรณ์ที่ไม่รู้จักจะไม่ติดแฟล็ก ดีกว่าการคาดเดาแฟล็กผิด ๆ",
+    "inputs": "call node ของ tree-sitter และ definition node ที่มันสังกัด",
+    "outputs": "{line, loop?, cond?, arms?} -- flag ที่เป็น false และ arms ที่ว่างจะไม่ถูกเขียน"
   },
   {
     "id": "doc_text_py",
@@ -3443,7 +3433,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "ฟังก์ชัน clean() ลบเครื่องหมายคอมเมนต์และเครื่องหมายหัวข้อย่อยข้ามภาษา join() ยุบ docstring หลายบรรทัดให้เป็นประโยคเดี่ยวคั่นด้วยเว้นวรรค และตัดแท็ก XML เฉพาะเมื่อ xml=True เพื่อคง generic types ในภาษาอื่นไว้",
     "complexity": "เวลา: O(L) โดย L คือความยาวคอมเมนต์ทั้งหมด, พื้นที่: O(L)",
     "boundary": "คอมเมนต์ที่ว่างเปล่าหรือมีเฉพาะ whitespace จะถูกตัดทิ้งอย่างปลอดภัย ไม่ทำให้เกิด description ว่าง",
-    "invariant": "คำอธิบายโหนดทุกตัวรับประกันว่าจะเป็นข้อความบรรทัดเดียวที่ผ่านการตัดช่องว่างเรียบร้อย"
+    "invariant": "คำอธิบายโหนดทุกตัวรับประกันว่าจะเป็นข้อความบรรทัดเดียวที่ผ่านการตัดช่องว่างเรียบร้อย",
+    "inputs": "ข้อความ comment block (เรียงจากใกล้ declaration ออกไป) หรือ docstring ดิบ",
+    "outputs": "description ที่เป็นบรรทัดเดียวเสมอ"
   },
   {
     "id": "grammars_py",
@@ -3459,7 +3451,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "ดูแลตารางตรึงเวอร์ชัน PINS โหลดโมดูลไวยากรณ์จาก vendor/ ก่อนในระบบ parser_for(lang) สร้างและแคชอ็อบเจกต์ Parser เมื่อถูกเรียก ตรวจสอบความเข้ากันได้ของ ABI และแจ้งเตือนเมื่อพบ unpinned wheel",
     "complexity": "เวลา: O(N) ต่อการ parse ไฟล์ผ่าน incremental Tree-sitter engine, พื้นที่: O(1) ต่อ parser",
     "boundary": "หากไม่มีชุดไวยากรณ์ จะแสดงคำเตือนระบุชื่อภาษาพร้อมคำสั่ง pip install อย่างชัดเจน และข้ามไฟล์อย่างปลอดภัย",
-    "invariant": "เมื่อขาดชุดไวยากรณ์ต้องเตือนพร้อมระบุคำสั่ง pip install ตรงเป้าหมาย ห้ามล้มเหลวแบบเงียบ ๆ"
+    "invariant": "เมื่อขาดชุดไวยากรณ์ต้องเตือนพร้อมระบุคำสั่ง pip install ตรงเป้าหมาย ห้ามล้มเหลวแบบเงียบ ๆ",
+    "inputs": "ชื่อภาษา",
+    "outputs": "instance ของ tree_sitter.Parser ที่ cache ไว้ หรือ skip warning พร้อมระบุชื่อชัดเจน"
   },
   {
     "id": "manifest_py",
@@ -3475,7 +3469,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "ท่องไฟล์ซอร์สโค้ดทั้งหมดตาม root ที่บันทึกไว้ คำนวณ SHA-1 ของแต่ละไฟล์ นำมารวมกับเวอร์ชันของ grammar แล้วเปรียบเทียบกับ data/cache/manifest.json คำสั่ง check จะส่งผลลัพธ์เป็น JSON แล้วจบการทำงานทันที",
     "complexity": "เวลา: O(Total Source Bytes) ในการคำนวณ hash, พื้นที่: O(จำนวนไฟล์)",
     "boundary": "ไฟล์ที่เพิ่ม ลบ หรือแก้ไข จะเปลี่ยนค่า stale เป็น true หากเนื้อหาไม่เปลี่ยนจะคืนค่า stale: false",
-    "invariant": "เป็นคำสั่งเดียวที่อ่านซอร์สโค้ดแต่ไม่เขียนข้อมูลใด ๆ การเปลี่ยน grammar จะถือว่า stale เสมอ"
+    "invariant": "เป็นคำสั่งเดียวที่อ่านซอร์สโค้ดแต่ไม่เขียนข้อมูลใด ๆ การเปลี่ยน grammar จะถือว่า stale เสมอ",
+    "inputs": "source roots และ grammar version ปัจจุบัน",
+    "outputs": "manifest.json และค่า stale แบบ boolean"
   },
   {
     "id": "console_py",
@@ -3491,7 +3487,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "ตรวจสอบและหุ้มสตรีมเอาต์พุต ตัวอักษรที่ไม่สามารถแสดงผลใน encoding ปัจจุบันของคอนโซลผู้ใช้ (เช่น Windows CP874 ภาษาไทยหรือ OEM codepages เก่า) จะถูกแทนที่ด้วยอักขระ fallback แทนที่จะ throw ข้อยกเว้น",
     "complexity": "เวลา: O(1) การติดตั้ง wrapper, พื้นที่: O(1)",
     "boundary": "คอนโซลที่เป็น UTF-8 จะทำงานปกติโดยไม่มีการสูญเสียข้อมูล คอนโซลที่ไม่ใช่ UTF-8 จะแสดงผลอย่างปลอดภัย",
-    "invariant": "ต้องหุ้ม stdout ก่อนพิมพ์ข้อความภายนอก (path โค้ด, ผู้เขียน git, ข้อความคอมเมนต์) เสมอ"
+    "invariant": "ต้องหุ้ม stdout ก่อนพิมพ์ข้อความภายนอก (path โค้ด, ผู้เขียน git, ข้อความคอมเมนต์) เสมอ",
+    "inputs": "string ที่จะ print ออก console",
+    "outputs": "output แบบ ASCII/CP874 ที่ terminal ไม่ crash แน่นอน"
   },
   {
     "id": "build_wiki_py",
@@ -3507,7 +3505,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "กวาดอ่านไฟล์ซอร์สโค้ดผ่าน py_extract, js_ts_extract, langs_extract สร้างโน้ต Markdown สำหรับคลาสและคอมโพเนนต์ ระบุ UI components ของ React เขียน registry.json และล้างโน้ตเก่าที่ค้างอยู่",
     "complexity": "เวลา: O(Total AST Nodes), พื้นที่: O(Entities) ในหน่วยความจำ",
     "boundary": "ลบโฟลเดอร์ vault เดิมทิ้งทั้งหมดก่อนเริ่มสกัดเสมอ เพื่อป้องกันโน้ตที่ตกค้างจากการลบไฟล์ในอดีต",
-    "invariant": "ล้าง data/structure/vault/ ก่อนสร้างใหม่เสมอเพื่อป้องกันเพจขยะตกค้าง"
+    "invariant": "ล้าง data/structure/vault/ ก่อนสร้างใหม่เสมอเพื่อป้องกันเพจขยะตกค้าง",
+    "inputs": "source file จาก 17 ภาษา",
+    "outputs": "data/structure/vault/*.md และ registry.json"
   },
   {
     "id": "build_graph_py",
@@ -3523,7 +3523,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "อ่านโน้ต Markdown ใน vault ที่สร้างโดย build_wiki แปลง [[wikilinks]] เป็นเส้นเชื่อมกำกับทิศทางระหว่างคลาส คอมโพเนนต์ และโมดูล ประกอบเป็น graph.json ที่มี metadata ของโหนดและรายการเส้นเชื่อมครบถ้วน",
     "complexity": "เวลา: O(|V| + |E|) บนไฟล์ Markdown, พื้นที่: O(|V| + |E|)",
     "boundary": "ลิงก์ที่ชี้ไปยังโหนดที่ไม่มีอยู่จริงจะถูกตัดทิ้งหรือทำเครื่องหมายเป็นการอ้างอิงภายนอกที่ไม่สามารถ resolve ได้",
-    "invariant": "อ่านเฉพาะโน้ตใน vault เท่านั้น ห้ามแตะต้องซอร์สโค้ดต้นฉบับโดยตรงในขั้นตอนนี้"
+    "invariant": "อ่านเฉพาะโน้ตใน vault เท่านั้น ห้ามแตะต้องซอร์สโค้ดต้นฉบับโดยตรงในขั้นตอนนี้",
+    "inputs": "data/structure/vault/*.md",
+    "outputs": "data/structure/graph.json (node, edge, density)"
   },
   {
     "id": "build_flow_py",
@@ -3539,7 +3541,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "สกัดเมธอดและการเรียกข้าม 17 ภาษา ทำการระบุตัวผู้รับ (receiver) ผ่านการกำหนดค่าตัวแปร, การ import, และ type annotation ผูกตาราง routing และเชื่อม API call ฝั่งหน้าบ้านเข้ากับ handler หลังบ้าน",
     "complexity": "เวลา: O(Methods + Calls), พื้นที่: O(|V_flow| + |E_flow|)",
     "boundary": "การเรียกที่คลุมเครือหรือไม่สามารถ resolve ได้จะถูกเก็บลงในรายการ unresolved พร้อมชื่อสัญลักษณ์เพื่อการตรวจสอบ",
-    "invariant": "การเรียกที่กำกวมจะถูกเก็บใน unresolved พร้อมคงชื่อไว้ ห้ามเดาเป้าหมายส่งเดช"
+    "invariant": "การเรียกที่กำกวมจะถูกเก็บใน unresolved พร้อมคงชื่อไว้ ห้ามเดาเป้าหมายส่งเดช",
+    "inputs": "AST/CST ที่ parse แล้วจาก py_extract, js_ts_extract, langs_extract",
+    "outputs": "data/flow/flow_graph.json และ notes/*.md"
   },
   {
     "id": "py_extract_py",
@@ -3555,7 +3559,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "อ่านไฟล์ Python ปรับ newline ให้เป็น Unix LF วิเคราะห์ CST ด้วย tree-sitter-python สกัดคลาส ฟังก์ชัน decorator และตำแหน่งเรียก คำนวณ SHA-1 slice hash เพื่อความคงที่ของแคชข้ามระบบปฏิบัติการ",
     "complexity": "เวลา: O(File Size) ในการ parse, พื้นที่: O(AST size)",
     "boundary": "รวม decorator เข้าไปในช่วงไบต์ของโหนด เพื่อให้ annotation เป็นส่วนหนึ่งของฟังก์ชันนั้นอย่างถูกต้อง",
-    "invariant": "การตัดชิ้นไบต์ต้อง deterministic: h = SHA1(S_norm[start_byte : end_byte])"
+    "invariant": "การตัดชิ้นไบต์ต้อง deterministic: h = SHA1(S_norm[start_byte : end_byte])",
+    "inputs": "source root ของ Python",
+    "outputs": "class, function, route, import, reference dictionary"
   },
   {
     "id": "js_ts_extract_py",
@@ -3571,7 +3577,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "วิเคราะห์โครงสร้างไวยากรณ์ JS/TS สมัยใหม่ ค้นพบคลาส เมธอด คอมโพเนนต์แบบ ArrowFunction รูทของ Express/Nest ตลอดจนการเรียก Axios/fetch ฝั่ง client",
     "complexity": "เวลา: O(File Size) ในการ parse, พื้นที่: O(AST size)",
     "boundary": "แยกแยะระหว่าง Type Assertion ของ TS กับ JSX Tag ผ่าน TSX grammar เฉพาะตัว",
-    "invariant": "ฟังก์ชันที่คืนค่า JSX จะถูกติดป้ายเป็น kind: component, layer: ui เสมอ"
+    "invariant": "ฟังก์ชันที่คืนค่า JSX จะถูกติดป้ายเป็น kind: component, layer: ui เสมอ",
+    "inputs": "ไฟล์ .js, .jsx, .ts, .tsx",
+    "outputs": "JSON entity dictionary (class, method, endpoint, fetch)"
   },
   {
     "id": "langs_extract_py",
@@ -3587,7 +3595,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "ท่องไฟล์ซอร์สโค้ดของ 14 ภาษา ใช้ dictionary ของ grammar SPEC เพื่อดึงโหนดตามฟิลด์แทนที่จะยึดติดกับชื่อโหนดเฉพาะภาษา สกัดการนิยาม พารามิเตอร์ ชนิดคืนค่า และจุดเรียก",
     "complexity": "เวลา: O(Source Volume), พื้นที่: O(AST size)",
     "boundary": "ภาษาที่ไม่มี Type ชัดเจน (Ruby, Elixir) จะระบุตัวผู้รับผ่านการกำหนดค่าทาง lexical",
-    "invariant": "การเพิ่มภาษาใหม่ต้องการเพียง grammar wheel และการลงทะเบียนใน SPEC/SHAPES โดยไม่ต้องเขียนสคริปต์ extractor ใหม่"
+    "invariant": "การเพิ่มภาษาใหม่ต้องการเพียง grammar wheel และการลงทะเบียนใน SPEC/SHAPES โดยไม่ต้องเขียนสคริปต์ extractor ใหม่",
+    "inputs": "source file ทั้ง 14 ภาษา",
+    "outputs": "declaration, body, parameter types, calls, inheritance"
   },
   {
     "id": "route_tables_py",
@@ -3603,7 +3613,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "ค้นหา urlpatterns ของ Django, routes.rb ของ Rails, routes/*.php ของ Laravel และ router ของ Phoenix สกัด (HTTP verb, path, action) แล้วส่งให้ build_flow ผูกกับเมธอดเป้าหมาย",
     "complexity": "เวลา: O(Route Lines), พื้นที่: O(Routes)",
     "boundary": "Route ที่ชี้ไปยัง handler ที่หาไม่พบหรือชื่อซ้ำกันจะถูกบันทึกลง stderr และตัดทิ้งอย่างปลอดภัย",
-    "invariant": "ทำหน้าที่อ่าน route เท่านั้น ห้ามสร้างโหนดกราฟด้วยตนเอง"
+    "invariant": "ทำหน้าที่อ่าน route เท่านั้น ห้ามสร้างโหนดกราฟด้วยตนเอง",
+    "inputs": "ไฟล์ config ของ framework router (Django, Rails, Laravel, Phoenix)",
+    "outputs": "list ของ route mapping (method, path, target handler)"
   },
   {
     "id": "apply_descriptions_py",
@@ -3619,7 +3631,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "ผสาน docstring, แคช AI และคำอธิบายเริ่มต้นเข้าสู่โหนด อ่าน pending_descriptions.json ตรวจสอบ SHA-1 กับ descriptions.json และบันทึก metadata รวม",
     "complexity": "เวลา: O(Nodes) hash lookup, พื้นที่: O(Descriptions Cache)",
     "boundary": "หากไม่มีทั้งคำอธิบาย AI และ docstring จะสร้างข้อความบอก signature อัตโนมัติ",
-    "invariant": "กระบวนการ build ต้องไม่รอบริการ AI จากภายนอก และทำงานแบบ Offline 100% ได้เสมอ"
+    "invariant": "กระบวนการ build ต้องไม่รอบริการ AI จากภายนอก และทำงานแบบ Offline 100% ได้เสมอ",
+    "inputs": "node body และ cache description เก่า",
+    "outputs": "doc / description string ของ node ที่สมบูรณ์"
   },
   {
     "id": "report_py",
@@ -3635,7 +3649,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "ท่องแผนที่ที่สร้างขึ้น รันการตรวจ 7 ด้าน สร้าง architecture_report.md และ .json ใน data/report/<map>/ และสั่ง build_html ฝังรายงานลงใน explorer.html",
     "complexity": "เวลา: ผลรวมของทั้ง 7 passes, พื้นที่: O(ขนาด Report JSON)",
     "boundary": "จะ error ทันทีหากยังไม่มีการสร้างกราฟมาก่อน เนื่องจากต้องการทั้ง graph JSON และซอร์สโค้ด",
-    "invariant": "หนึ่งรายงานต่อหนึ่งแผนที่ ห้ามฝังรายงานข้ามแผนที่กันเด็ดขาด"
+    "invariant": "หนึ่งรายงานต่อหนึ่งแผนที่ ห้ามฝังรายงานข้ามแผนที่กันเด็ดขาด",
+    "inputs": "artifact จากทุก review pass",
+    "outputs": "data/report/<map>/architecture_report.{md,json}"
   },
   {
     "id": "analyze_py",
@@ -3651,7 +3667,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "ท่องกราฟหา cycle ด้วย Tarjan DFS แบบไม่พึ่งพา recursion คำนวณ In-degree (Ca) และ Out-degree (Ce) ตรวจจับ Layer Violation, God Objects, และ Dead Code นำมาหักคะแนนสุขภาพ",
     "complexity": "เวลา: O(|V| + |E|) การท่องกราฟเชิงเส้น, พื้นที่: O(|V| + |E|)",
     "boundary": "การตรวจ Degree จะรันบน app_edges() เพื่อกรองเส้นเชื่อมของชุดทดสอบออก ไม่ให้ distort ตัวชี้วัด",
-    "invariant": "ใช้ Iterative Stack ป้องกัน RecursionError บนโปรเจกต์ขนาดใหญ่ และใช้ app_edges() ตรวจ Degree"
+    "invariant": "ใช้ Iterative Stack ป้องกัน RecursionError บนโปรเจกต์ขนาดใหญ่ และใช้ app_edges() ตรวจ Degree",
+    "inputs": "graph.json หรือ flow_graph.json",
+    "outputs": "analysis dictionary: cycles, orphans, layer violations, health score"
   },
   {
     "id": "scan_security_py",
@@ -3667,7 +3685,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "ตรวจจับช่องโหว่ด้วย Regex (SQL Injection, Secret, XSS Sink) หากพบโทเค็นต้องสงสัยจะวัด Shannon Entropy และระบุเจ้าของไปยังโหนด AST ชั้นในสุดที่ครอบบรรทัดนั้นอยู่",
     "complexity": "เวลา: O(Source Lines), พื้นที่: O(จำนวนข้อค้นพบ)",
     "boundary": "สตริงที่สั้นกว่า 16 ตัวอักษรหรือ Entropy < 4.5 จะถูกตัดทิ้งเพื่อเลี่ยงการแจ้งเตือนพร่ำเพรื่อ",
-    "invariant": "ข้อค้นพบต้องผูกกับโหนด AST ชั้นในสุดที่ครอบบรรทัดนั้น ไม่ใช่โหนดที่อยู่ใกล้เคียง"
+    "invariant": "ข้อค้นพบต้องผูกกับโหนด AST ชั้นในสุดที่ครอบบรรทัดนั้น ไม่ใช่โหนดที่อยู่ใกล้เคียง",
+    "inputs": "บรรทัดของ source code และ index ของ AST",
+    "outputs": "security.json พร้อม finding ที่มีพิกัด node จริง"
   },
   {
     "id": "metrics_py",
@@ -3683,7 +3703,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "วัด LOC, Cyclomatic Complexity, ความลึกการซ้อน และจำนวนพารามิเตอร์บนท่อน AST [source..end] นับจุดตัดสินใจ (if, for, while, catch, binary logic, switch cases)",
     "complexity": "เวลา: O(AST Nodes ในฟังก์ชัน), พื้นที่: O(จำนวนฟังก์ชัน)",
     "boundary": "ฟังก์ชันว่างเปล่าที่ไม่มีเงื่อนไขจะได้ค่า M = 1 (เส้นทางตรงทางเดียว)",
-    "invariant": "ตัวชี้วัดจะถูกผูกเข้ากับ Graph Node ID โดยตรงตั้งแต่ต้น"
+    "invariant": "ตัวชี้วัดจะถูกผูกเข้ากับ Graph Node ID โดยตรงตั้งแต่ต้น",
+    "inputs": "source file และ graph node",
+    "outputs": "metrics.json (per-file census และต่อ-node cyclomatic complexity)"
   },
   {
     "id": "git_insights_py",
@@ -3699,7 +3721,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "รัน git log --numstat แบบสตรีมโดยไม่โหลดประวัติทั้งหมดเข้า RAM สรุปยอด churn และการ commit ของผู้เขียน นำค่าระดับไฟล์ไปแมปเข้ากับโหนดและคำนวณความเสี่ยง",
     "complexity": "เวลา: O(Git Commits), พื้นที่: O(จำนวนไฟล์) แบบสตรีม",
     "boundary": "โปรเจกต์ที่ไม่ได้ใช้ git จะคืนค่าตัวชี้วัดว่างเปล่าโดยไม่ทำให้ pipeline พัง",
-    "invariant": "การอ่าน log แบบสตรีมช่วยจำกัดหน่วยความจำบน repo ที่มีประวัติ commit มากกว่า 50,000 ครั้ง"
+    "invariant": "การอ่าน log แบบสตรีมช่วยจำกัดหน่วยความจำบน repo ที่มีประวัติ commit มากกว่า 50,000 ครั้ง",
+    "inputs": "commit history ของ Git ใน source repo",
+    "outputs": "insights.json (churn, top authors, risk score ต่อ node)"
   },
   {
     "id": "debt_py",
@@ -3715,7 +3739,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "ค้นหาแท็ก TODO, FIXME, HACK, XXX ในคอมเมนต์ ค้นหาไฟล์กำพร้าและฟังก์ชันที่ไม่ถูกเรียก และรวบรวมเป็น debt.json เพื่อให้มนุษย์นำไปพิจารณาปรับปรุง",
     "complexity": "เวลา: O(Source Lines), พื้นที่: O(จำนวนข้อค้นพบ)",
     "boundary": "แท็กหนี้ในโฟลเดอร์เทสจะถูกแยกรายงานต่างหากเพื่อไม่ให้ fixture บิดเบือนยอดรวม",
-    "invariant": "รายงานหนี้มีไว้ให้มนุษย์วิเคราะห์ และต้องไม่นำไปตัดเกรดสุขภาพอัตโนมัติ"
+    "invariant": "รายงานหนี้มีไว้ให้มนุษย์วิเคราะห์ และต้องไม่นำไปตัดเกรดสุขภาพอัตโนมัติ",
+    "inputs": "source file และ graph node",
+    "outputs": "debt.json (list ของ marker, debt density)"
   },
   {
     "id": "tests_map_py",
@@ -3731,7 +3757,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "ตรวจสอบไฟล์เทสที่ระบุโดย taxonomy.is_test_path() ดึงการอ้างอิงถึงคลาสและเมธอดจริง ส่งออก tests.json เพื่อแสดงว่าโหนดใดมีชุดทดสอบรองรับบ้าง",
     "complexity": "เวลา: O(Test File Volume), พื้นที่: O(Test-to-Node Edges)",
     "boundary": "ไม่นำอัตรานี้ไปตัดเกรดสุขภาพ เพื่อไม่ให้เสียคะแนนในโปรเจกต์ต้นแบบ (Prototype)",
-    "invariant": "การประเมินแบบฮิวริสติกนี้ต้องอยู่นอกการคำนวณเกรดสุขภาพเสมอ"
+    "invariant": "การประเมินแบบฮิวริสติกนี้ต้องอยู่นอกการคำนวณเกรดสุขภาพเสมอ",
+    "inputs": "ไฟล์ test และ node ของ Flow graph",
+    "outputs": "tests.json (node ID ที่ test cover, coverage ratio)"
   },
   {
     "id": "duplicates_py",
@@ -3747,7 +3775,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "แปลงโทเค็นให้อยู่ในรูปมาตรฐาน (ตัวแปร -> ID, ค่าคงที่ -> LIT) คำนวณ Rolling Hash ของ 10-gram เลือก hash ค่าน้อยที่สุดในหน้าต่างเลื่อนขนาด 21 แล้วจับคู่ fingerprint ที่ตรงกัน",
     "complexity": "เวลา: O(N) โทเค็น, พื้นที่: O(N / 11) fingerprints",
     "boundary": "ส่วนที่ตรงกันน้อยกว่า 30 โทเค็นจะถูกคัดทิ้งเป็นสัญญาณรบกวน การเปลี่ยนชื่อตัวแปรไม่สามารถหลบเลี่ยงการตรวจจับได้",
-    "invariant": "การแปลงตัวแปรเป็น ID รับประกันการตรวจพบการก๊อปปี้แม้จะถูกเปลี่ยนชื่อตัวแปร"
+    "invariant": "การแปลงตัวแปรเป็น ID รับประกันการตรวจพบการก๊อปปี้แม้จะถูกเปลี่ยนชื่อตัวแปร",
+    "inputs": "node ของ Flow graph และ source code",
+    "outputs": "duplicates.json (clone clusters, line ranges, duplication %)"
   },
   {
     "id": "brief_py",
@@ -3763,7 +3793,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "เปิดเซสชันให้ AI Agent ด้วยสรุปสั้น ๆ จัดรูปแบบเกรดสถาปัตยกรรม, จำนวนโหนด/เส้นเชื่อม, HTTP endpoints, hotspots และคำเตือนต่าง ๆ จากไฟล์ JSON ในเครื่อง",
     "complexity": "เวลา: O(1) การอ่านไฟล์, พื้นที่: O(1) บัฟเฟอร์ stdout ~4.3 KB",
     "boundary": "หาก manifest ระบุว่า stale: true จะแสดงคำเตือนเตือนให้รันคำสั่งอัปเดตก่อน",
-    "invariant": "ต้องไม่คำนวณงานหนักใด ๆ งานที่กินทรัพยากรต้องทำล่วงหน้าใน pipeline เสมอ"
+    "invariant": "ต้องไม่คำนวณงานหนักใด ๆ งานที่กินทรัพยากรต้องทำล่วงหน้าใน pipeline เสมอ",
+    "inputs": "artifact data/*.json ทั้งหมด",
+    "outputs": "brief ขนาดกะทัดรัดบน stdout สำหรับ agent"
   },
   {
     "id": "search_py",
@@ -3779,7 +3811,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "ให้อินเทอร์เฟซ CLI สำหรับค้นหากราฟ รองรับ regex, docstring, เลเยอร์ และความสัมพันธ์ (--calls, --called-by, --orphans) โดยไม่ต้องเปิดอ่านไฟล์ใน repo ซ้ำซ้อน",
     "complexity": "เวลา: O(|V|) สแกนโหนดในหน่วยความจำ, พื้นที่: O(|V|)",
     "boundary": "ส่งกลับรายการว่างเปล่าอย่างปลอดภัยหากไม่พบโหนดที่ตรงเงื่อนไข รองรับเอาต์พุต JSON",
-    "invariant": "ไม่ต้องสแกนไฟล์ซอร์สโค้ด ช่วยให้ Agent ค้นหาตำแหน่งที่สนใจได้โดยไม่ต้อง grep"
+    "invariant": "ไม่ต้องสแกนไฟล์ซอร์สโค้ด ช่วยให้ Agent ค้นหาตำแหน่งที่สนใจได้โดยไม่ต้อง grep",
+    "inputs": "query flag และ graph.json",
+    "outputs": "node ID ที่ match อย่างแม่นยำ"
   },
   {
     "id": "trace_path_py",
@@ -3795,7 +3829,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "ค้นหาเส้นทางการเรียกที่สั้นที่สุดระหว่างสองโหนดด้วย BFS คำนวณรัศมีผลกระทบของการแก้ไขโค้ดด้วยการท่องย้อนกลับบนกราฟทรานสโพส G^T และแมป git diff hunk เข้าสู่โหนดที่ได้รับผลกระทบ",
     "complexity": "เวลา: O(|V| + |E|) การท่องกราฟเชิงเส้น, พื้นที่: O(|V|) สำหรับคิวและ visited set",
     "boundary": "กราฟที่มีการเรียกเป็นวงรอบจะถูกตัดตอนด้วย visited set ไม่เกิด loop ไม่สิ้นสุด",
-    "invariant": "Visited Hash Set ป้องกันการติด Loop บนกราฟที่มี Cycle"
+    "invariant": "Visited Hash Set ป้องกันการติด Loop บนกราฟที่มี Cycle",
+    "inputs": "graph.json / flow_graph.json และ node start/target",
+    "outputs": "path ใน format ที่อ่านง่าย A > B > C"
   },
   {
     "id": "context_py",
@@ -3811,7 +3847,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "รวบรวมบริบททางสถาปัตยกรรมของโหนดที่กำหนด แทรก metrics, ผลตรวจความปลอดภัย, git churn และ signature ของเพื่อนบ้าน โดยจะหยุดทันทีก่อนที่ความยาวตัวอักษรจะเกินขีดจำกัด --max-chars",
     "complexity": "เวลา: O(Degree ของโหนดเป้าหมาย), พื้นที่: ถูกจำกัดโดย max_chars",
     "boundary": "ตัดตอนที่รอยต่อของหัวข้ออย่างเรียบร้อย ไม่ตัดกลางบรรทัดของ JSON หรือ Markdown",
-    "invariant": "งบตัวอักษรเป็นขีดจำกัดตายตัว (hard budget) เอาต์พุตจะไม่ถูกตัดครึ่ง ๆ กลาง ๆ"
+    "invariant": "งบตัวอักษรเป็นขีดจำกัดตายตัว (hard budget) เอาต์พุตจะไม่ถูกตัดครึ่ง ๆ กลาง ๆ",
+    "inputs": "node ID, graph.json และ JSON อื่น ๆ",
+    "outputs": "context pack แบบ Markdown ที่คุมความยาว strict"
   },
   {
     "id": "build_html_py",
@@ -3827,7 +3865,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "โหลด HTML template จาก templates/viewer.html แทนที่ตัวแปร placeholder ด้วยข้อมูลกราฟ JSON, รายงานการรีวิว และสคริปต์ force-graph ที่อยู่ใน vendor/ สร้างเป็นไฟล์ explorer.html ที่สมบูรณ์ในตัว",
     "complexity": "เวลา: O(ขนาด Template + ขนาด Data), พื้นที่: O(ขนาด Data)",
     "boundary": "ตรวจสอบว่ามีไฟล์ JS ใน vendor ครบถ้วน หากขาดจะแจ้งเตือนพร้อม exit code != 0",
-    "invariant": "ไม่มีการใช้แท็กสคริปต์เชื่อมโยงภายนอก ทำงานได้สมบูรณ์ในระบบปิด (Air-gapped)"
+    "invariant": "ไม่มีการใช้แท็กสคริปต์เชื่อมโยงภายนอก ทำงานได้สมบูรณ์ในระบบปิด (Air-gapped)",
+    "inputs": "templates/viewer.html, graph.json, รายงาน review",
+    "outputs": "data/explorer.html แบบ standalone offline"
   },
   {
     "id": "viewer_html",
@@ -3843,7 +3883,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "แสดงผล 7 มุมมอง (Flowchart, Graph, Treemap, Matrix, Tree, Cluster, Bundle) จำลองฟิสิกส์ด้วย D3/force-graph บน Canvas รองรับการลากตรึงโหนด, การกรอง, ไฮไลต์รัศมีผลกระทบ และการค้นหา",
     "complexity": "เวลา: O(N log N) ต่อแอนิเมชันเฟรม, พื้นที่: O(N) quadtree บน canvas",
     "boundary": "ลดจำนวนรอบการคำนวณฟิสิกส์ลงโดยอัตโนมัติเมื่อโหนดเกิน 5,000 จุด เพื่อคงความลื่นไหลของ UI",
-    "invariant": "โหนดทดสอบใช้สีเขียว (#57ab5a), ธีมสีสุขุม (#08090b), ไม่ใช้อีโมจิ (ใช้ SVG icon เท่านั้น)"
+    "invariant": "โหนดทดสอบใช้สีเขียว (#57ab5a), ธีมสีสุขุม (#08090b), ไม่ใช้อีโมจิ (ใช้ SVG icon เท่านั้น)",
+    "inputs": "ข้อมูล map แบบ JSON ที่ inline ในไฟล์",
+    "outputs": "DOM UI แบบ interactive บน HTML5 Canvas"
   },
   {
     "id": "cli_js",
@@ -3859,7 +3901,9 @@ const CHECKLIST_FILES_DATA = [
     "algorithmDesc": "จุดเริ่มต้น npx ตรวจสอบ Python 3.10+ ในเครื่อง จัดเตรียมโฟลเดอร์ คัดลอกเทมเพลตและสคริปต์ แปลง prefix ของคำสั่งให้เข้ากับ harness ปลายทาง และสร้างโฟลเดอร์ data",
     "complexity": "เวลา: O(จำนวนไฟล์ที่คัดลอก), พื้นที่: O(1) external npm packages (ไร้ dependencies)",
     "boundary": "หยุดทำงานทันทีพร้อมข้อความแนะนำวิธีติดตั้งหากไม่พบ Python 3.10+ ใน PATH",
-    "invariant": "ไร้ external npm dependency ใด ๆ ทำงานด้วยไลบรารีมาตรฐานของ Node.js 100%"
+    "invariant": "ไร้ external npm dependency ใด ๆ ทำงานด้วยไลบรารีมาตรฐานของ Node.js 100%",
+    "inputs": "CLI arguments จาก npx (@latest, --dir, harness flags)",
+    "outputs": "ติดตั้งไฟล์ skill ลงโฟลเดอร์ปลายทางของ harness และสร้างไดเรกทอรี data/"
   }
 ];
 
@@ -3925,8 +3969,9 @@ function renderChecklist() {
     // Search query filter
     if (q) {
       const haystack = (item.file + " " + item.path + " " + item.role + " " +
-                        item.question + " " + item.algorithmName + " " +
-                        item.formula + " " + item.shortAnswer + " " + item.algorithmDesc).toLowerCase();
+                        (item.inputs || "") + " " + (item.outputs || "") + " " +
+                        (item.question || "") + " " + item.algorithmName + " " +
+                        item.formula + " " + (item.shortAnswer || "") + " " + item.algorithmDesc).toLowerCase();
       if (!haystack.includes(q)) return false;
     }
     return true;
@@ -3979,6 +4024,8 @@ function renderChecklist() {
               <pre class="cl-formula-display"><code>${escapeHtml(item.formula)}</code></pre>
               <div class="cl-algo-desc">${item.algorithmDesc}</div>
               <div class="cl-meta-grid">
+                <div class="cl-meta-item"><strong>Input:</strong> ${escapeHtml(item.inputs || '-')}</div>
+                <div class="cl-meta-item"><strong>Output:</strong> ${escapeHtml(item.outputs || '-')}</div>
                 <div class="cl-meta-item"><strong>ความซับซ้อน:</strong> ${item.complexity}</div>
                 <div class="cl-meta-item"><strong>กรณีขอบเขต (Edge/Boundary):</strong> ${item.boundary}</div>
               </div>

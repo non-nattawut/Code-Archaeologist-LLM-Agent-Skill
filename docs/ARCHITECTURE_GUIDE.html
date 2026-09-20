@@ -690,7 +690,6 @@
     <div class="hero-nav" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px;">
       <a href="#callgraph" class="cl-btn" style="text-decoration: none;">&darr; Execution Flowchart &amp; Matrix</a>
       <a href="#reading-checklist" class="cl-btn" style="text-decoration: none; border-color: var(--accent); color: var(--accent); background: var(--accent-dim);">&darr; File-by-File Reading Checklist &amp; Q&amp;A (<span id="heroClCount">32</span>)</a>
-      <a href="#scripts-catalog" class="cl-btn" style="text-decoration: none;">&darr; Script Catalog &amp; Invariants</a>
     </div>
 
     <!-- Visual Pipeline -->
@@ -1551,25 +1550,6 @@
     <!-- Dynamic Checklist Items Container -->
     <div id="checklistContainer"></div>
   </section>
-
-  <!-- Script Cards Section -->
-  <section style="padding: 48px 0;" id="scripts-catalog">
-    <div class="section-eyebrow">Script Reference Directory</div>
-    <h2>All 28 Scripts: Mechanics, Algorithms &amp; Invariants</h2>
-
-    <div class="filter-bar">
-      <input type="text" id="filterInput" class="search-input" placeholder="Search scripts, algorithms (e.g. Tarjan, Winnowing, BFS, CST, regex)..." oninput="applyFilter()">
-      <button class="filter-btn active" onclick="setCategory('all', this)">All (28)</button>
-      <button class="filter-btn" onclick="setCategory('core', this)">Core (5)</button>
-      <button class="filter-btn" onclick="setCategory('extract', this)">Extraction (8)</button>
-      <button class="filter-btn" onclick="setCategory('review', this)">Review &amp; Audit (9)</button>
-      <button class="filter-btn" onclick="setCategory('query', this)">Query &amp; Viewer (5)</button>
-    </div>
-
-    <div class="cards-grid" id="cardsGrid">
-      <!-- Generated Cards inserted here -->
-    </div>
-  </section>
 </main>
 
 <script>
@@ -2048,6 +2028,7 @@ const SCRIPTS_DATA = [
 
 function renderCards(cards) {
   const container = document.getElementById("cardsGrid");
+  if (!container) return;
   container.innerHTML = cards.map(c => `
     <div class="card" id="card-${c.name}">
       <div class="card-header">
@@ -2383,6 +2364,8 @@ const CHECKLIST_FILES_DATA = [
     role: "The single user-facing and harness-facing CLI dispatcher for all Code Archaeologist commands.",
     question: "How does archaeologist.py route subcommands deterministically without subprocess spawning?",
     shortAnswer: "Uses an associative dispatch table mapping subcommands directly to in-process module functions via argparse, guaranteeing unified parameter propagation with zero process overhead.",
+    inputs: "CLI arguments (--src roots, subcommands)",
+    outputs: "Invokes extractors, review passes, or digest builders",
     algorithmName: "Finite State Command Mapping & Short-Circuit Dispatch",
     formula: "Dispatch: C x A -> Z, where C = {project, flow, both, check, report, brief}\nf_Cmd = DispatchTable[Cmd]\nExitCode = f_Cmd(Args)\nShort-circuit: run_project() or run_flow() halts on non-zero return code",
     algorithmDesc: "Inspects sys.argv[1] against registered subcommands. For 'project' or 'flow', normalizes source roots, executes build_wiki/build_flow, renders data/explorer.html, and writes manifest.json. 'report' iterates through all generated graphs and delegates to report.build().",
@@ -2399,6 +2382,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Central filesystem anchor, sys.path bootstrap, and cross-platform path resolution utilities.",
     question: "",
     shortAnswer: "",
+    inputs: "Filesystem paths",
+    outputs: "Exported SKILL_ROOT, DATA_DIR, TEMPLATES_DIR, VENDOR_DIR",
     algorithmName: "Windows Extended-Length Path Mapping & Cross-Drive Relativity",
     formula: "phi(p) = \"\\\\\\\\?\\\\\" + abspath(p)  if os.name == 'nt' and len(abspath(p)) >= 260 and not abspath(p).startswith('\\\\\\\\')\n         p                        otherwise\n\nskill_rel(src, target) = relpath(src, target)  if Drive(src) == Drive(target)\n                         abspath(src)          otherwise",
     algorithmDesc: "Evaluates __file__ to establish absolute SKILL_ROOT, DATA_DIR, and TEMPLATES_DIR references. Appends scripts/, core/, extract/, review/, query/, and vendor/ into sys.path so sibling imports remain bare and vendored tree-sitter takes precedence.",
@@ -2417,6 +2402,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Single source of truth for architectural classification, tier poset, and precision loss tracking.",
     question: "How are architectural layers mathematically ordered, and how is precision loss tracked?",
     shortAnswer: "Layers form an ordered tier poset (ui < controller < service < repository < model). Layer violations occur when L(u) > L(v). Ambiguities earn named precision loss vectors rather than guesswork.",
+    inputs: "File paths, AST annotations, edge target node IDs",
+    outputs: "Architecture tags (controller, service, repository, etc.) and precision flags",
     algorithmName: "Tiered Architectural Poset & Lower-Bound Precision Vector",
     formula: "Poset: L = { ui < controller < service < repository < model }\nLayer Violation: Violation(u, v) <=> L(u) > L(v)\nReversed Relations: R_reversed = { \"implements\", \"extends\", \"overrides\" }\ndirection(u, v, kind) = (v, u) if kind in R_reversed else (u, v)\nPrecision Vector: Precision(u) subset of { \"interface-dispatch\", \"overloads\", \"name-matched\", \"unresolved\" }",
     algorithmDesc: "Static lookup dictionaries and regexes. infer_layer() maps decorator annotations (@RestController -> controller) and directory tokens. is_test_path() identifies test suites via framework annotations and path conventions. Computes discrete precision losses.",
@@ -2433,6 +2420,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Generates disambiguated, deterministic node identifiers across Structure and Flow maps.",
     question: "How does ids.py prevent case-insensitive collisions on Windows/macOS while keeping IDs bare by default?",
     shortAnswer: "Pre-scans all definitions across 17 languages into equivalence classes partitioned by lowercase name. Bare names are retained if globally unique; duplicate names are qualified by file stem or normalized relative path.",
+    inputs: "Iterable of (name, rel_file) definitions",
+    outputs: "Qualified ID strings: bare if unique, qualified if shared",
     algorithmName: "Canonical Disambiguation Partitioning via Equivalence Classes",
     formula: "[(n, f)]_~ = { (n', f') in Definitions | lower(n') == lower(n) }\nID(n, f) = n                       if |{ f' | (*, f') in [(n, f)]_~ }| == 1\n           stem(f) + \".\" + n       if all stems in [(n, f)]_~ are distinct\n           norm_path(f) + \".\" + n  otherwise",
     algorithmDesc: "SharedNames scans all definitions before constructing any graph nodes. It indexes symbols by lower(name) in a hash map. Calling ids.id(name, file) outputs the bare name if unique across the entire codebase, stem-qualified if stems differ, or path-qualified.",
@@ -2449,6 +2438,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Extracts call-site execution context from ASTs (line number, loop context, branch arms).",
     question: "How does call_ctx.py distinguish repeated loop executions from single-pass branch conditions?",
     shortAnswer: "Walks AST ancestors from call node to definition. Sets loop only for repeating child fields (body, update), cond for branch results (consequence, alternative), and tags mutually exclusive arms as 3a/3b.",
+    inputs: "A tree-sitter call node and the definition node containing it",
+    outputs: "{line, loop?, cond?, arms?} -- omitted when false or empty",
     algorithmName: "CST Ancestor Invariant Walk & Branch Lattice Meet Operator",
     formula: "Ancestor Walk: Call -> Parent -> ... -> Definition\nLattice Meet across call sites S = {s_1, ..., s_k}:\n  Line = min(s_i.line)\n  Loop = OR(s_i.loop)      (if call in repeating field: body, condition, update)\n  Cond = AND(s_i.cond)     (if all sites in branch result: consequence, alternative)\n  Arms = Intersection(s_i.arms)  (\"<line>:<col>/<arm>\" mutually exclusive branch tags)",
     algorithmDesc: "Probed node-type tables across 17 grammars detect while/for/comprehension loops vs if/switch/match branches. Only repeating bodies count as loops (for headers run once). Multi-site merge takes the first line and intersecting branch arms.",
@@ -2465,6 +2456,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Universal doc comment cleaner and single-line description normalizer.",
     question: "Why is XML tag stripping restricted to C# and JSDoc rather than applied globally?",
     shortAnswer: "Global XML regex tag stripping cannot distinguish between HTML tags and generic type parameters (e.g. List<T>, Map<K, V>).",
+    inputs: "Comment block texts (innermost first) or raw docstring",
+    outputs: "Exactly one line of description text",
     algorithmName: "Marker Peeling & Single-Line Block Joining",
     formula: "Marker Peeling: Strip block delimiters /*, */, then line prefixes //, ///, //!, *, #\nNormalized Join: desc = ' '.join(line.strip() for line in lines if line.strip())\nXML Stripping: re.sub(r'<[^>]+>', '', text) enabled only when xml=True (C#, JSDoc)",
     algorithmDesc: "clean() strips block comment markers and leading bullet punctuation across languages. join() normalizes multiline Python docstrings into a single space-separated sentence. When xml=True, strips XML tags without stripping generics in other languages.",
@@ -2481,6 +2474,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Tree-sitter Generalized LR (GLR) parser management, ABI pinning, and dynamic lazy loader.",
     question: "How does Tree-sitter's Generalized LR (GLR) algorithm handle syntax errors and ambiguity?",
     shortAnswer: "Forks the parser stack into a Graph-Structured Stack (GSS) upon grammar conflicts, merges valid branches, and isolates syntax errors into ERROR CST nodes for local error recovery.",
+    inputs: "Language identifier string",
+    outputs: "Cached tree_sitter.Parser instance or explicit skipped-grammar record",
     algorithmName: "GLR Graph-Structured Stack (GSS) & Dynamic Parser Cache",
     formula: "GLR Stack Fork: S -> { S_1, S_2, ..., S_m } via Graph-Structured Stack (GSS)\nLocal Error Recovery: Offending byte interval wrapped in CST ERROR node\nGrammar Drift: Delta_unpinned = InstalledGrammars \\ PINS",
     algorithmDesc: "Maintains pinned version dictionary PINS. Dynamically resolves tree-sitter grammars from vendor/ before system packages. parser_for(lang) instantiates and caches Parser objects on demand. Detects ABI version mismatch and unpinned wheels.",
@@ -2497,6 +2492,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Merkle tree content-addressable SHA-1 freshness and staleness audit.",
     question: "Why does a changed grammar set count as repo staleness in manifest.py?",
     shortAnswer: "A graph built without a grammar wheel is missing an entire language's nodes, making it indistinguishable from a smaller codebase.",
+    inputs: "Source root paths and current grammar wheel versions",
+    outputs: "manifest.json and boolean staleness status",
     algorithmName: "Content-Addressed Merkle Tree Source Hashing",
     formula: "H_repo = SHA1( concat( (f, SHA1(read(f))) for f in Sources ) + InstalledGrammars )\nStaleness Check: stale = (H_repo != H_cached) or (Grammars != CachedGrammars)\nOutput: { stale: bool, added: list, changed: list, removed: list }",
     algorithmDesc: "Walks all source files under recorded roots, computes individual SHA-1 content hashes, combines with installed grammar versions, and compares against data/cache/manifest.json. check command outputs staleness JSON and exits.",
@@ -2513,6 +2510,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Unicode stream transcoding wrapper for non-UTF-8 terminals (e.g. CP874).",
     question: "",
     shortAnswer: "",
+    inputs: "Strings destined for console output",
+    outputs: "Safely encoded ASCII/CP874 terminal stream that never raises UnicodeEncodeError",
     algorithmName: "Surrogate-Safe Encoding Stream Transcoding",
     formula: "sys.stdout.reconfigure(encoding=stream.encoding, errors='replace')\nFallback: io.TextIOWrapper(stream.buffer, encoding=stream.encoding, errors='surrogateescape')",
     algorithmDesc: "Wraps sys.stdout and sys.stderr with fallback error handlers. Non-representable characters on the user's active console encoding (such as Windows CP874 or legacy OEM codepages) are safely replaced with fallback characters instead of throwing exceptions.",
@@ -2531,6 +2530,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Structure map entity extractor (classes, React components, module groups).",
     question: "How does build_wiki.py identify React components across JS/TS/JSX/TSX?",
     shortAnswer: "Inspects AST return statements for JSX elements or fragments, tagging functions returning JSX as kind: component, layer: ui.",
+    inputs: "Source files across 17 supported languages",
+    outputs: "data/structure/vault/*.md and registry.json",
     algorithmName: "Component Classification Predicate & Vault Note Generation",
     formula: "IsComponent(f) = (ReturnsJSX(f) or HasJSXElement(f)) and (f.name[0].isupper() or IsArrow(f))\nVault Note: data/structure/vault/<id>.md\nFrontmatter: { kind, layer, source: [start, end], container }\nWikilink Reference: [[target_id]]",
     algorithmDesc: "Scans source files across 17 languages via py_extract, js_ts_extract, and langs_extract. Emits Markdown notes for classes, components, and module functions. Classifies React UI components. Writes registry.json and wipes stale notes.",
@@ -2547,6 +2548,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Structure dependency graph builder from vault markdown notes.",
     question: "Why does build_graph.py read vault notes instead of re-parsing source files?",
     shortAnswer: "Decouples AST extraction from graph construction. Wikilinks in markdown represent verified references; graph assembly is an O(|V| + |E|) scan over markdown text.",
+    inputs: "data/structure/vault/*.md",
+    outputs: "data/structure/graph.json (nodes, edges, density metrics)",
     algorithmName: "Wikilink Reference Parsing & Adjacency List Construction",
     formula: "Wikilink Regex: r'\\[\\[([^\\]]+)\\]\\]'\nAdjacency Edge: e = (u, v) in E <=> '[[v]]' in VaultNote(u)\nEmits: data/structure/graph.json (nodes, edges) + registry.json",
     algorithmDesc: "Parses vault markdown notes emitted by build_wiki. Resolves [[wikilinks]] into directed edges between classes, components, and modules. Constructs graph.json containing node metadata and directed edge lists.",
@@ -2563,6 +2566,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Flow map method/function call graph and overload resolution engine.",
     question: "",
     shortAnswer: "",
+    inputs: "Parsed AST/CST definitions from py_extract, js_ts_extract, and langs_extract",
+    outputs: "data/flow/flow_graph.json and notes/*.md",
     algorithmName: "Hierarchical Scope Resolution & Overload Ranking Lattice",
     formula: "Scope Hierarchy: Scope(s) = Block subset of Method subset of Class subset of Module\nOverload Ranking Lattice: Rank(m) = ( Delta_args, Score_types )\nwhere Delta_args = |len(m.params) - len(call.args)|\nScore_types = sum(1 for (p_t, a_t) in zip(params, args) if p_t == a_t)",
     algorithmDesc: "Extracts methods, declarations, and call expressions across 17 languages. Settles receivers through local variable assignments, module imports, and parameter annotations. Resolves calls, attaches route tables, and links frontend API calls to backend handlers.",
@@ -2579,6 +2584,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Python CST parser & newline normalizer.",
     question: "Why does py_extract.py normalize CRLF newlines before computing node hashes?",
     shortAnswer: "A CRLF checkout on Windows changes raw byte offsets, which would alter node hashes and silently invalidate the entire AI description cache.",
+    inputs: "Python source root directory",
+    outputs: "Dictionary of classes, functions, route handlers, imports, and references",
     algorithmName: "Byte-Level CRLF Normalization & CST Slicing",
     formula: "S_norm = re.sub(b'\\r\\n', b'\\n', S_raw)\nNode Interval: [OuterDecoratorLine, EndByte]\nDocstring: AST string literal from first expression statement (PEP 257)\nh(N) = SHA1(S_norm[N.start_byte : N.end_byte])",
     algorithmDesc: "Reads Python source files, standardizes newlines to Unix LF, parses CST with tree-sitter-python, and extracts classes, functions, decorators, and call sites. Computes deterministic SHA-1 slice hashes for cache stability.",
@@ -2595,6 +2602,8 @@ const CHECKLIST_FILES_DATA = [
     role: "JavaScript, TypeScript, JSX, and TSX AST extractor.",
     question: "Why are three different grammars required for JS/TS extraction?",
     shortAnswer: ".tsx requires the dedicated tsx grammar (due to JSX <tag> vs TypeScript <type> ambiguities); .ts uses typescript; .js/.jsx uses javascript.",
+    inputs: ".js, .jsx, .ts, and .tsx source files",
+    outputs: "JSON entity dictionary (classes, methods, HTTP endpoints, API fetch calls)",
     algorithmName: "Multi-Grammar CST Parsing & Route Pattern Recognition",
     formula: "Grammar Dispatch:\n  ext == '.tsx' -> 'tsx'\n  ext == '.ts'  -> 'typescript'\n  else          -> 'javascript'\nRoute Patterns: app.(get|post|put|delete)(path, handler) | @Get(path)\nClient Endpoints: fetch(url) | axios.(get|post)(url)",
     algorithmDesc: "Parses modern JavaScript and TypeScript files using dedicated Tree-sitter parsers. Discovers classes, methods, ArrowFunction components, Express/Nest routes, and Axios/fetch client invocations.",
@@ -2611,6 +2620,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Unified CST extractor for 14 compiled & scripted languages.",
     question: "How does a single consumer handle 14 heterogeneous programming languages?",
     shortAnswer: "Standardizes on Tree-sitter field names (name, body, parameters, return_type) via SPEC and SHAPES tables, abstracting AST grammar variations.",
+    inputs: "Source files across 14 compiled and scripted languages",
+    outputs: "Declarations, function bodies, parameter types, call expressions, and inheritance",
     algorithmName: "Field-Name Abstraction & Multi-Language CST Driver",
     formula: "SPEC[lang] -> { 'name': field_name, 'body': field_body }\nSHAPES[lang] -> node type classification (class, interface, method, struct)\nSupported: Java, Go, C#, Kotlin, Rust, Swift, Scala, Groovy, Dart, C, C++, Ruby, PHP, Elixir",
     algorithmDesc: "Iterates through source files for 14 languages. Employs grammar SPEC dictionaries to query AST nodes by field rather than language-specific node spellings. Extracts definitions, parameters, return types, and receiver call sites.",
@@ -2627,6 +2638,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Declarative route table reader (Django, Rails, Laravel, Phoenix).",
     question: "Why is route_tables.py executed after nodes are created in build_flow?",
     shortAnswer: "Route tables declare routes away from handler definitions. It only reads tables; build_flow attaches routes to matching (class, method) nodes once nodes exist.",
+    inputs: "Framework route configuration files (Django, Rails, Laravel, Phoenix)",
+    outputs: "List of route mapping tuples (HTTP method, route path, target handler)",
     algorithmName: "Declarative Route Table Extraction & Action Binding",
     formula: "Route Binding: (HTTP_Method, Route_Path) -> (Controller, Action)\nAttachment Rule: Link to node N iff |{ N in Nodes | Matches(N, Controller, Action) }| == 1",
     algorithmDesc: "Scans Django urlpatterns, Rails routes.rb, Laravel routes/*.php, and Phoenix routers using targeted Tree-sitter queries. Extracts (HTTP verb, path, target action). build_flow attaches routes to exact handler nodes.",
@@ -2643,6 +2656,8 @@ const CHECKLIST_FILES_DATA = [
     role: "AI description cache and documentation merger.",
     question: "How does apply_descriptions.py prevent stale documentation after code changes?",
     shortAnswer: "Summaries are indexed by composite key (node_id, SHA1(node_source)). Any source modification changes the hash, automatically invalidating stale cache entries.",
+    inputs: "Node body source and pending descriptions JSON from AI models",
+    outputs: "Updated descriptions.json keyed by node ID and source SHA-1 hash",
     algorithmName: "Three-Tier Description Precedence Cascade",
     formula: "Desc(m) = Docstring(m)                 if Docstring(m) is present\n          Cache[m.id, SHA1(m.source)]  if cache hit\n          DeterministicFallback(m)      otherwise",
     algorithmDesc: "Merges docstrings, cached AI descriptions, and deterministic fallbacks into flow nodes. Reads pending_descriptions.json, checks SHA-1 hashes against descriptions.json, and writes merged metadata.",
@@ -2661,6 +2676,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Review coordinator and multi-pass aggregator.",
     question: "Why must review reports be generated separately per map rather than merged?",
     shortAnswer: "Structure and Flow maps operate at different grains (classes vs methods) with completely distinct node IDs. Merging reports would cross-contaminate findings.",
+    inputs: "Generated artifacts from all seven review passes",
+    outputs: "data/report/<map>/architecture_report.{md,json}",
     algorithmName: "Multi-Pass Review Pipeline & Map Isolation",
     formula: "Report(M) = Aggregate(Security, Insights, Analyze, Metrics, Debt, TestsMap, Duplicates)\nInvariant: NodeIDs(Structure) intersect NodeIDs(Flow) == empty_set",
     algorithmDesc: "Iterates over built maps (structure, flow), executes the 7 review passes, generates architecture_report.md and architecture_report.json in data/report/<map>/, and triggers build_html to embed reports into explorer.html.",
@@ -2677,6 +2694,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Graph structural analysis, cycle detection, and health scoring.",
     question: "",
     shortAnswer: "",
+    inputs: "graph.json or flow_graph.json",
+    outputs: "Analysis dictionary containing cycles, orphans, layer violations, and health score",
     algorithmName: "Tarjan's Iterative SCC & Martin's Package Instability",
     formula: "Tarjan's SCC lowlink: lowlink[u] = min(index[u], lowlink[v] (on Stack), index[v] (visited))\nPackage Instability: I = C_e / (C_a + C_e), I = 0.5 when C_a + C_e == 0\nComposite Health Score: H = 100 - sum(Penalties) in [0, 100]\nGrades: A (>=90), B (>=80), C (>=70), D (>=60), F (<60)",
     algorithmDesc: "Traverses graph edges using iterative Tarjan DFS to find cycles. Calculates in-degree (afferent Ca) and out-degree (efferent Ce). Flags layer violations, god objects, and dead code. Deducts penalties to compute 0-100 health score.",
@@ -2693,6 +2712,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Security scanner and secret detector with AST node attribution.",
     question: "How does Shannon entropy filter commit hashes and UUIDs from hardcoded secrets?",
     shortAnswer: "Hexadecimal characters have maximum entropy log2(16) = 4.0 bits/char. Setting the threshold to H >= 4.5 bits/char mathematically eliminates hex hashes and UUIDs.",
+    inputs: "Source code line ranges and AST node coordinate index",
+    outputs: "security.json containing findings mapped to exact graph node IDs",
     algorithmName: "Shannon Information Entropy & AST Coordinate Containment",
     formula: "Shannon Entropy: H(X) = -sum( P(x_i) * log2(P(x_i)) ) >= 4.5 bits/char\nMax Hex Entropy: log2(16) = 4.0 bits/char  (immune to false positives)\nMax Base64 Entropy: log2(64) = 6.0 bits/char\nAST Range Ownership: Owner(L) = argmin_N { len(N) | N.start <= L <= N.end }",
     algorithmDesc: "Scans source lines with security regex patterns (SQL injection, hardcoded secrets, XSS sinks, insecure crypto). For high-entropy tokens, calculates Shannon entropy. Maps findings to innermost containing AST node range.",
@@ -2709,6 +2730,8 @@ const CHECKLIST_FILES_DATA = [
     role: "McCabe cyclomatic complexity, nesting depth, and LOC census.",
     question: "",
     shortAnswer: "",
+    inputs: "Source files and graph node line spans",
+    outputs: "metrics.json (per-file census and per-node cyclomatic complexity)",
     algorithmName: "McCabe Cyclomatic Complexity Theorem & CST Predicate Counting",
     formula: "M = pi + 1\npi = sum( Count(k) for k in PredicateNodeTypes across 17 languages )\nNesting Depth = max CST branch depth from method declaration root\nLOC = EndLine - StartLine + 1",
     algorithmDesc: "Measures LOC, cyclomatic complexity, maximum nesting depth, and parameter counts on each node's AST slice [source..end]. Counts decision predicates (if, for, while, catch, binary logical operators, switch cases).",
@@ -2725,6 +2748,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Git churn, author ownership, and hotspot risk scoring.",
     question: "How is the Hotspot Risk Score computed for each node?",
     shortAnswer: "Combines normalized churn (added + deleted lines), cyclomatic complexity, and incoming fan-in (dependents).",
+    inputs: "Git commit history of the target repository",
+    outputs: "insights.json (file churn, top authors, per-node hotspot risk score)",
     algorithmName: "Streaming Git Log Numstat Parsing & Composite Risk Score",
     formula: "Churn(f) = AddedLines(f) + DeletedLines(f)\nHotspot Risk Score:\nR(n) = Norm(Churn(n)) * Norm(Complexity(n)) * Norm(FanIn(n))\nAuthor Ownership: Owner(f) = argmax_A { Commits(A, f) }",
     algorithmDesc: "Executes git log --numstat in streaming mode without loading entire history into memory. Aggregates file churn and author commit distributions. Maps file metrics to graph nodes and computes composite hotspot risk.",
@@ -2741,6 +2766,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Technical debt inventory and orphan file tracker.",
     question: "Why are debt markers (TODO, FIXME) excluded from the automated health grade?",
     shortAnswer: "Debt markers are subjective human annotations; penalizing them discourages developers from writing honest TODO comments.",
+    inputs: "Source files and graph node boundaries",
+    outputs: "debt.json (TODO/FIXME markers, orphan notes, debt density metrics)",
     algorithmName: "Debt Marker Density & Orphan File Cross-Referencing",
     formula: "Debt Density = sum( Count({TODO, FIXME, HACK, XXX}) ) / Total_LOC\nOrphan Detection: Cross-referenced with analyze.find_orphans(nodes, edges)",
     algorithmDesc: "Scans comments across codebase for technical debt markers (TODO, FIXME, HACK, XXX). Identifies orphan files and uncalled functions. Compiles debt inventory in debt.json for human review.",
@@ -2757,6 +2784,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Test-to-production mapping and test coverage heuristics.",
     question: "How does tests_map.py map tests to production entities?",
     shortAnswer: "Scans test files for symbol references to production node IDs, building a bipartite test coverage graph.",
+    inputs: "Test files and production Flow graph nodes",
+    outputs: "tests.json (production nodes covered by tests, overall test coverage ratio)",
     algorithmName: "Bipartite Symbol Reference Coverage Mapping",
     formula: "Coverage Ratio = |{ u in ProductionNodes | exists t in Tests: t -> u }| / |ProductionNodes|\nBipartite Mapping: TestFile -> Set of Referenced Production Node IDs",
     algorithmDesc: "Scans test files identified by taxonomy.is_test_path(). Extracts references to production class and method names. Emits tests.json mapping production nodes to their verifying test suites.",
@@ -2773,6 +2802,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Duplicate code block detector using Winnowing and Karp-Rabin hashing.",
     question: "Why is Winnowing (K=10, W=21) preferred over AST subtree isomorphism?",
     shortAnswer: "Guarantees detecting all shared substring clones of length >= 30 tokens in O(N) linear time while bounding fingerprint density to 2/(w+1).",
+    inputs: "Flow graph nodes and raw source code files",
+    outputs: "duplicates.json (clone clusters, line ranges, duplication percentage)",
     algorithmName: "Winnowing Local Minimum Fingerprinting & Karp-Rabin Hashing",
     formula: "Window Size: w = t - k + 1 = 30 - 10 + 1 = 21\nKarp-Rabin Hash: H_{i+1} = ( (H_i - c_i * B^{k-1}) * B + c_{i+k} ) mod M\nWindow Minimum: W_j = argmin_{0 <= r < w} { H_{j+r} }\nExpected Density: E[density] <= 2 / (w + 1)",
     algorithmDesc: "Normalizes token streams (identifiers -> ID, literals -> LIT). Computes rolling Karp-Rabin hashes over 10-grams. Selects the rightmost minimum hash in each sliding window of 21 hashes. Matches identical fingerprints across functions.",
@@ -2789,6 +2820,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Fixed-size token digest for LLM session initialization.",
     question: "",
     shortAnswer: "",
+    inputs: "All pre-computed data/*.json artifacts",
+    outputs: "Compact fixed-budget summary on stdout for agent session starts",
     algorithmName: "Fixed-Budget Digest Serialization & Staleness Check",
     formula: "Size(Brief) ~ 4.3 KB  (O(1) w.r.t. codebase volume)\nToken Compression: 3,212x reduction compared to 13.6 MB source code\nFreshness Check: manifest.compare() confirms artifact validity",
     algorithmDesc: "Opens agent sessions with a bounded text summary. Formats architecture grades, node/edge counts, HTTP endpoints, hotspots, unpinned grammars, and caveated edge counts by reading pre-computed JSON artifacts.",
@@ -2807,6 +2840,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Multi-filter graph locator and search engine.",
     question: "Why does search.py never scan source files?",
     shortAnswer: "Queries the pre-built graph.json or flow_graph.json directly, filtering nodes by name, doc, layer, kind, calls, called-by, or orphans.",
+    inputs: "CLI filter flags and graph.json",
+    outputs: "Precise list of matching node IDs",
     algorithmName: "In-Memory Boolean Predicate Filtering",
     formula: "Q = { v in V | MatchName(v) & MatchDoc(v) & MatchLayer(v) & MatchKind(v) & MatchDegree(v) }",
     algorithmDesc: "Provides CLI search interface over graph artifacts. Supports regex name matching, doc substring search, layer/kind filters, and relational queries (--calls, --called-by, --orphans) without opening repository files.",
@@ -2823,6 +2858,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Graph traversal, BFS shortest paths, and blast radius calculation.",
     question: "What is the algorithm and time complexity of upstream blast radius (--impact-of)?",
     shortAnswer: "Traverses the transposed graph G^T via Reverse BFS in linear time O(|V| + |E|), using a visited set to prune cycles.",
+    inputs: "graph.json / flow_graph.json and start/target node IDs",
+    outputs: "Human-readable path strings (e.g. A > B > C) and blast radius node lists",
     algorithmName: "Transposed Graph Reverse BFS & Shortest Path Traversal",
     formula: "Transposed Graph: E^T = { (w, v) | (v, w) in E }\nBlast Radius: BlastRadius(u) = { v in V | v reaches u in G } via Reverse BFS in O(|V| + |E|)\nShortest Path: Forward BFS in O(|V| + |E|)",
     algorithmDesc: "Finds shortest call paths between two nodes using Breadth-First Search. Computes blast radius of potential modifications by walking reverse reachability on transposed graph G^T. Maps git diff hunks to affected nodes.",
@@ -2839,6 +2876,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Bounded node context packer for LLM prompts.",
     question: "",
     shortAnswer: "",
+    inputs: "Target node ID, graph.json, and supplementary review JSON files",
+    outputs: "Compact Markdown context pack strictly budgeted under --max-chars",
     algorithmName: "Priority Knapsack Context Budgeting",
     formula: "max sum( Priority(c_i) )  subject to  sum( len(c_i) ) <= max_chars\nPriority: target node > direct callers > direct callees > metrics/security findings",
     algorithmDesc: "Gathers comprehensive architectural context for specified nodes. Inlines metrics, security findings, git churn, and neighbor signatures, strictly stopping before exceeding the --max-chars character limit.",
@@ -2855,6 +2894,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Standalone offline explorer compiler.",
     question: "",
     shortAnswer: "",
+    inputs: "templates/viewer.html, graph.json, and review reports",
+    outputs: "Self-contained offline data/explorer.html",
     algorithmName: "Template Substitution & Zero-Network Bundling",
     formula: "HTML = ViewerTemplate.replace('__TITLE__', title)\n                     .replace('__MAPS_DATA__', json_data)\n                     .replace('__VENDOR_JS__', vendor_js)\nOutput: data/explorer.html (single offline file)",
     algorithmDesc: "Loads HTML template from templates/viewer.html. Replaces placeholders with graph JSON data, architecture reports, and vendored force-graph scripts. Generates offline standalone explorer.html.",
@@ -2873,6 +2914,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Force-directed canvas visualizer and offline architecture explorer.",
     question: "How does viewer.html render thousands of nodes at 60 FPS on an HTML5 canvas?",
     shortAnswer: "Uses Barnes-Hut Quadtrees (O(N log N)) for electrostatic repulsion and Hooke's Law for spring tension, integrated via Velocity Verlet stepping.",
+    inputs: "Inlined JSON graph data and report payloads",
+    outputs: "Interactive force-directed graph UI rendered on HTML5 Canvas",
     algorithmName: "Barnes-Hut Quadtree (O(N log N)) & Velocity Verlet Integration",
     formula: "Barnes-Hut: If s / d < theta (theta = 0.9), F_rep = (G * m_u * M) / d^2 * r_hat\nHooke's Law: F_spring = -k * ( ||r_u - r_v|| - L_0 ) * r_hat_uv\nVerlet Integration: x_{t+dt} = x_t + v_t * dt + 0.5 * a_t * dt^2",
     algorithmDesc: "Renders 7 visualization views (Flowchart, Graph, Treemap, Matrix, Tree, Cluster, Bundle). Runs D3/force-graph physics on HTML5 Canvas. Supports drag-to-pin, node filtering, blast radius highlighting, and search.",
@@ -2889,6 +2932,8 @@ const CHECKLIST_FILES_DATA = [
     role: "Cross-platform harness installer and path rewriter.",
     question: "",
     shortAnswer: "",
+    inputs: "CLI arguments from npx (@latest, --dir, harness flags)",
+    outputs: "Copies templates & scripts to harness target directory and provisions data/",
     algorithmName: "Multi-Harness Target Mapping & Path Prefix Rewriting",
     formula: "Dest(H) = \".agents/skills/code-archaeologist\"   if H == 'agents'\n          \".claude/skills/code-archaeologist\"   if H == 'claude'\n          \".cursor/skills/code-archaeologist\"   if H == 'cursor'\n          \".windsurf/skills/code-archaeologist\" if H == 'windsurf'\n          \".zed/skills/code-archaeologist\"      if H == 'zed'",
     algorithmDesc: "Npx entrypoint. Validates Python 3.10+ runtime, provisions skill directories, copies templates and scripts, rewrites relative command prefixes for target harness, and initializes empty data directories.",
@@ -2960,8 +3005,9 @@ function renderChecklist() {
     // Search query filter
     if (q) {
       const haystack = (item.file + " " + item.path + " " + item.role + " " +
-                        item.question + " " + item.algorithmName + " " +
-                        item.formula + " " + item.shortAnswer + " " + item.algorithmDesc).toLowerCase();
+                        (item.inputs || "") + " " + (item.outputs || "") + " " +
+                        (item.question || "") + " " + item.algorithmName + " " +
+                        item.formula + " " + (item.shortAnswer || "") + " " + item.algorithmDesc).toLowerCase();
       if (!haystack.includes(q)) return false;
     }
     return true;
@@ -3014,6 +3060,8 @@ function renderChecklist() {
               <pre class="cl-formula-display"><code>${escapeHtml(item.formula)}</code></pre>
               <div class="cl-algo-desc">${item.algorithmDesc}</div>
               <div class="cl-meta-grid">
+                <div class="cl-meta-item"><strong>Input:</strong> ${escapeHtml(item.inputs || '-')}</div>
+                <div class="cl-meta-item"><strong>Output:</strong> ${escapeHtml(item.outputs || '-')}</div>
                 <div class="cl-meta-item"><strong>Complexity:</strong> ${item.complexity}</div>
                 <div class="cl-meta-item"><strong>Boundary Case:</strong> ${item.boundary}</div>
               </div>
