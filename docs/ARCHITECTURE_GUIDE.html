@@ -1049,6 +1049,40 @@
 
           <div class="fc-arrow">
             <div class="fc-arrow-line"></div>
+            <div class="fc-arrow-badge">AST extraction helpers: call context &amp; clean docstrings</div>
+            <div class="fc-arrow-head">&darr;</div>
+          </div>
+
+          <div class="fc-fork-container">
+            <div class="fc-fork-label">AST Core Helpers &mdash; called on every node during extraction</div>
+            <div class="fc-fork-bar"></div>
+            <div class="fc-fork-grid">
+              <div class="fc-fork-col">
+                <div class="fc-box" data-script="call_ctx.py" onclick="openSidebar('call_ctx.py')">
+                  <div class="fc-box-top">
+                    <span class="fc-box-name">core/call_ctx.py</span>
+                    <span class="fc-node-badge cat-core">CORE</span>
+                  </div>
+                  <div class="fc-box-desc">CFG Call-Site Lattice: walks CST ancestors to extract <code>line</code>, <code>loop</code> (body only), <code>cond</code> (branches), and mutually exclusive <code>arms</code>.</div>
+                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+                </div>
+              </div>
+              <div class="fc-fork-col">
+                <div class="fc-box" data-script="doc_text.py" onclick="openSidebar('doc_text.py')">
+                  <div class="fc-box-top">
+                    <span class="fc-box-name">core/doc_text.py</span>
+                    <span class="fc-node-badge cat-core">CORE</span>
+                  </div>
+                  <div class="fc-box-desc">Universal Docstring Cleaner: gathers consecutive comment blocks above declarations, strips prefixes, and formats clean Markdown.</div>
+                  <div class="fc-box-hint">&rarr; Click to inspect in sidebar</div>
+                </div>
+              </div>
+            </div>
+            <div class="fc-merge-bar"></div>
+          </div>
+
+          <div class="fc-arrow">
+            <div class="fc-arrow-line"></div>
             <div class="fc-arrow-badge">declarations, bodies, param types, receivers &mdash; but never resolution</div>
             <div class="fc-arrow-head">&darr;</div>
           </div>
@@ -1338,7 +1372,7 @@
           </div>
 
           <div style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px;">
-            <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase;">STAGE A: TREE-SITTER EXTRACTION</div>
+            <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase;">STAGE A: TREE-SITTER EXTRACTION &amp; CONTEXT</div>
             <div class="fc-box" data-script="py_extract.py" onclick="openSidebar('py_extract.py')">
               <div class="fc-box-top"><span class="fc-box-name">extract/py_extract.py</span><span class="fc-node-badge cat-extract">EXTRACT</span></div>
               <div class="fc-box-desc">Extracts Python AST (classes, functions, calls, decorators)</div>
@@ -1352,6 +1386,16 @@
             <div class="fc-box" data-script="langs_extract.py" onclick="openSidebar('langs_extract.py')">
               <div class="fc-box-top"><span class="fc-box-name">extract/langs_extract.py</span><span class="fc-node-badge cat-extract">EXTRACT</span></div>
               <div class="fc-box-desc">Extracts 14 languages (Java, Go, C#, Rust, Ruby, PHP, etc.) via SPEC &amp; SHAPES</div>
+              <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+            </div>
+            <div class="fc-box" data-script="call_ctx.py" onclick="openSidebar('call_ctx.py')">
+              <div class="fc-box-top"><span class="fc-box-name">core/call_ctx.py</span><span class="fc-node-badge cat-core">CORE</span></div>
+              <div class="fc-box-desc">Extracts call-site context (<code>line</code>, <code>loop</code>, <code>cond</code>, <code>arms</code> lattice) from CST ancestors</div>
+              <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+            </div>
+            <div class="fc-box" data-script="doc_text.py" onclick="openSidebar('doc_text.py')">
+              <div class="fc-box-top"><span class="fc-box-name">core/doc_text.py</span><span class="fc-node-badge cat-core">CORE</span></div>
+              <div class="fc-box-desc">Extracts &amp; cleans doc comments above declarations into uniform Markdown</div>
               <div class="fc-box-hint">&rarr; click to view in sidebar</div>
             </div>
           </div>
@@ -1388,12 +1432,17 @@
             </div>
             <div class="fc-box" data-script="build_flow.py" onclick="openSidebar('build_flow.py')">
               <div class="fc-box-top"><span class="fc-box-name">extract/build_flow.py</span><span class="fc-node-badge cat-extract">EXTRACT</span></div>
-              <div class="fc-box-desc">Builds flow nodes and resolves call edges connecting methods</div>
+              <div class="fc-box-desc">Builds flow nodes and resolves call edges connecting methods (folds sites via call_ctx)</div>
               <div class="fc-box-hint">&rarr; click to view in sidebar</div>
             </div>
             <div class="fc-box" data-script="route_tables.py" onclick="openSidebar('route_tables.py')">
               <div class="fc-box-top"><span class="fc-box-name">extract/route_tables.py</span><span class="fc-node-badge cat-extract">EXTRACT</span></div>
               <div class="fc-box-desc">Attaches detached web routes (Django, Rails, Laravel) to flow handlers</div>
+              <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+            </div>
+            <div class="fc-box" data-script="apply_descriptions.py" onclick="openSidebar('apply_descriptions.py')">
+              <div class="fc-box-top"><span class="fc-box-name">extract/apply_descriptions.py</span><span class="fc-node-badge cat-extract">EXTRACT</span></div>
+              <div class="fc-box-desc">Applies cached AI summaries, docstrings, or deterministic fallbacks to nodes</div>
               <div class="fc-box-hint">&rarr; click to view in sidebar</div>
             </div>
           </div>
@@ -1462,24 +1511,42 @@
           <div class="dualflow-worker-box">
             <div style="font-family: var(--mono); font-size: 10px; color: var(--accent); text-transform: uppercase; font-weight: 600;">CALLED WORKERS &amp; CORE UTILITIES</div>
             <div style="display: flex; gap: 6px; width: 100%; justify-content: center; flex-wrap: wrap;">
-              <div class="fc-box sm" data-script="py_extract.py" onclick="openSidebar('py_extract.py')" style="width: 105px; padding: 6px 8px; text-align: center;">
+              <div class="fc-box sm" data-script="py_extract.py" onclick="openSidebar('py_extract.py')" style="width: 100px; padding: 6px 8px; text-align: center;">
                 <div class="fc-box-name" style="font-size: 11px;">py_extract</div>
               </div>
-              <div class="fc-box sm" data-script="js_ts_extract.py" onclick="openSidebar('js_ts_extract.py')" style="width: 105px; padding: 6px 8px; text-align: center;">
+              <div class="fc-box sm" data-script="js_ts_extract.py" onclick="openSidebar('js_ts_extract.py')" style="width: 100px; padding: 6px 8px; text-align: center;">
                 <div class="fc-box-name" style="font-size: 11px;">js_ts_extract</div>
               </div>
-              <div class="fc-box sm" data-script="langs_extract.py" onclick="openSidebar('langs_extract.py')" style="width: 105px; padding: 6px 8px; text-align: center;">
+              <div class="fc-box sm" data-script="langs_extract.py" onclick="openSidebar('langs_extract.py')" style="width: 100px; padding: 6px 8px; text-align: center;">
                 <div class="fc-box-name" style="font-size: 11px;">langs_extract</div>
               </div>
+              <div class="fc-box sm" data-script="route_tables.py" onclick="openSidebar('route_tables.py')" style="width: 100px; padding: 6px 8px; text-align: center;">
+                <div class="fc-box-name" style="font-size: 11px;">route_tables</div>
+              </div>
+            </div>
+            <div class="fc-box" data-script="call_ctx.py" onclick="openSidebar('call_ctx.py')" style="width: 100%;">
+              <div class="fc-box-top"><span class="fc-box-name">core/call_ctx.py</span><span class="fc-node-badge cat-core">CALLED</span></div>
+              <div class="fc-box-desc"><strong>Call-Site Context:</strong> Called by extractors (<code>site</code>) and <code>build_flow</code> (<code>merge</code>, <code>facts</code>) to compute line, loop, cond, arms</div>
+              <div class="fc-box-hint">&rarr; click to view in sidebar</div>
             </div>
             <div class="fc-box" data-script="ids.py" onclick="openSidebar('ids.py')" style="width: 100%; border-color: var(--accent); background: rgba(245, 158, 11, 0.08);">
               <div class="fc-box-top"><span class="fc-box-name">core/ids.py</span><span class="fc-node-badge cat-core">CALLED</span></div>
-              <div class="fc-box-desc"><strong>In-Memory Helper:</strong> Imported by build_wiki &amp; build_flow to query <code>SharedNames.id()</code></div>
+              <div class="fc-box-desc"><strong>In-Memory Disambiguator:</strong> Imported by build_wiki &amp; build_flow to query <code>SharedNames.id()</code></div>
+              <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+            </div>
+            <div class="fc-box" data-script="doc_text.py" onclick="openSidebar('doc_text.py')" style="width: 100%;">
+              <div class="fc-box-top"><span class="fc-box-name">core/doc_text.py</span><span class="fc-node-badge cat-core">CALLED</span></div>
+              <div class="fc-box-desc"><strong>Docstring Cleaner:</strong> Imported by extractors (<code>clean</code>) &amp; builders (<code>join</code>)</div>
               <div class="fc-box-hint">&rarr; click to view in sidebar</div>
             </div>
             <div class="fc-box" data-script="taxonomy.py" onclick="openSidebar('taxonomy.py')" style="width: 100%;">
               <div class="fc-box-top"><span class="fc-box-name">core/taxonomy.py</span><span class="fc-node-badge cat-core">CALLED</span></div>
-              <div class="fc-box-desc">Called to query <code>infer_layer()</code> &amp; <code>source_dirs()</code></div>
+              <div class="fc-box-desc">Called to query <code>infer_layer()</code>, <code>precision_of()</code> &amp; <code>source_dirs()</code></div>
+              <div class="fc-box-hint">&rarr; click to view in sidebar</div>
+            </div>
+            <div class="fc-box" data-script="grammars.py" onclick="openSidebar('grammars.py')" style="width: 100%;">
+              <div class="fc-box-top"><span class="fc-box-name">core/grammars.py</span><span class="fc-node-badge cat-core">CALLED</span></div>
+              <div class="fc-box-desc">Called by extractors to get cached Tree-sitter parsers (<code>parser_for</code>)</div>
               <div class="fc-box-hint">&rarr; click to view in sidebar</div>
             </div>
           </div>
@@ -1754,6 +1821,55 @@
               <td><span class="matrix-fn">_changed_files(), _nodes_for_files()</span></td>
               <td>Git diff flags, node sources dict</td>
               <td>Maps modified git files back to graph node IDs</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('py_extract.py')">scripts/extract/py_extract.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('call_ctx.py')">scripts/core/call_ctx.py</span></td>
+              <td><span class="matrix-fn">site(call_node, fn_node)</span></td>
+              <td>Call CST node, parent function definition node</td>
+              <td>Walks CST ancestors to extract <code>line</code>, <code>loop</code>, <code>cond</code>, and <code>arms</code></td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('langs_extract.py')">scripts/extract/langs_extract.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('call_ctx.py')">scripts/core/call_ctx.py</span></td>
+              <td><span class="matrix-fn">site(call, body), merge(into, other)</span></td>
+              <td>Call node, enclosing body, site dictionaries</td>
+              <td>Extracts call site context across 14 languages and folds duplicate sites</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('call_ctx.py')">scripts/core/call_ctx.py</span></td>
+              <td><span class="matrix-fn">merge(into, other), facts(call)</span></td>
+              <td>Edge site dictionaries, call site payload</td>
+              <td>Folds multi-call edges (min line, OR loop, AND cond, arm intersection)</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('langs_extract.py')">scripts/extract/langs_extract.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('doc_text.py')">scripts/core/doc_text.py</span></td>
+              <td><span class="matrix-fn">clean(raw_doc), join(blocks)</span></td>
+              <td>Raw comment node text / block list</td>
+              <td>Strips multi-language comment markers and produces clean markdown doc</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('py_extract.py')">scripts/extract/py_extract.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('grammars.py')">scripts/core/grammars.py</span></td>
+              <td><span class="matrix-fn">parser_for('python')</span></td>
+              <td>Language identifier</td>
+              <td>Returns lazy cached Tree-sitter Parser for Python</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('langs_extract.py')">scripts/extract/langs_extract.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('grammars.py')">scripts/core/grammars.py</span></td>
+              <td><span class="matrix-fn">parser_for(lang)</span></td>
+              <td>Language identifier</td>
+              <td>Returns lazy cached Tree-sitter Parser across 14 languages</td>
+            </tr>
+            <tr>
+              <td><span class="matrix-pill" onclick="focusCard('build_flow.py')">scripts/extract/build_flow.py</span></td>
+              <td><span class="matrix-pill" onclick="focusCard('apply_descriptions.py')">scripts/extract/apply_descriptions.py</span></td>
+              <td><span class="matrix-fn">build(notes_dir, graph_path)</span></td>
+              <td>Notes directory, flow graph JSON path</td>
+              <td>Attaches cached LLM summaries and docstrings to flow nodes</td>
             </tr>
           </tbody>
         </table>

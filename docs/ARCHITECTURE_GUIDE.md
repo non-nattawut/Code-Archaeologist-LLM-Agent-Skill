@@ -20,6 +20,8 @@ archaeologist.py  project | flow | both | check | report | brief   (Entrypoint)
        both extract through: py_extract.py     (Python,        tree-sitter)
                              js_ts_extract.py  (JS/TS/JSX/TSX, tree-sitter)
                              langs_extract.py  (14 languages,  tree-sitter)
+           extraction utils: call_ctx.py       (CFG call sites: line, loop, cond, arms)
+                             doc_text.py       (universal docstring cleaner & merger)
              flow also reads: route_tables.py   (Django/Rails/Laravel/Phoenix tables -> handlers)
   report   -> report.py (scan_security + git_insights + analyze + metrics + debt + tests_map
                          + duplicates)
