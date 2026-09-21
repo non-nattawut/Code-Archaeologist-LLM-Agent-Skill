@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 You are the **skill creator** of the **Code Archaeologist LLM Agent Skill** — the agent skill that
 lives in `.agents/skills/code-archaeologist/`. Your job in this repo is to build and maintain that
@@ -1115,7 +1115,7 @@ that nobody rewrites them.
 
 | File | Reader | Goes stale when |
 | --- | --- | --- |
-| `CLAUDE.md` | the next session working on the skill | the pipeline, script inventory, layout, constraints, colour/layout rules or the expected-numbers block change |
+| `AGENTS.md` | the next session working on the skill | the pipeline, script inventory, layout, constraints, colour/layout rules or the expected-numbers block change |
 | `SKILL.md` | the agent using the skill | a command or an operating rule changes |
 | `README.md` | a human evaluating/installing it | features, language table, requirements or the structure tree change |
 | `docs/USAGE.md` | a human running it by hand | any command's form or flags change |
@@ -1157,8 +1157,8 @@ editing them to match the present is the one way to make them worthless:
 | `docs/PROJECT_HISTORY.md` | extend with new phases; never rewrite a past entry to agree with the present |
 | `docs/prompt.md` | append the turn verbatim at the end of every turn (principle 8) |
 
-**This file is not exempt.** `CLAUDE.md` describes the repo to its next session, so when the repo
-changes, `CLAUDE.md` changes in the same commit. It has drifted before precisely because it was
+**This file is not exempt.** `AGENTS.md` describes the repo to its next session, so when the repo
+changes, `AGENTS.md` changes in the same commit. It has drifted before precisely because it was
 the one doc outside its own rule — its pipeline diagram lost `brief` and nobody noticed.
 
 A new script also needs: a docstring saying what it is and why, a line in the README structure
@@ -1171,7 +1171,7 @@ The mechanical half of this rule is checked, so it cannot quietly rot:
 python tools/check_docs.py
 ```
 
-It verifies that every script is listed in `README.md` and named in `CLAUDE.md`, that every
+It verifies that every script is listed in `README.md` and named in `AGENTS.md`, that every
 `scripts/...` path quoted in any doc actually exists, and that every `kind`/`layer` value in
 `taxonomy.py` is documented in `TAXONOMY.md`. It deliberately checks facts, never prose — keeping
 the *words* honest is still the writer's job.

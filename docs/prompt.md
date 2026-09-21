@@ -7117,3 +7117,28 @@ Verified: `tools/check_docs.py` passed (`check_docs: OK`), `bin/cli.js` installe
 
 **Response**
 Verified docs and git status, staged `.agents/skills/code-archaeologist-explorer/SKILL.md` and `docs/prompt.md`, committed and pushed to `origin/main`.
+
+## [174] 2026-09-21 — Rename CLAUDE.md to AGENTS.md
+
+**Prompt**
+> change CLAUDE.md to AGENTS.md since now CLAUDE is support AGENTS.md
+
+**Response**
+Renamed `CLAUDE.md` to `AGENTS.md` using `git mv` and updated all mirror-truth references across the repository:
+
+1. `AGENTS.md`: Updated title to `# AGENTS.md`, self-references in the mirror-truth table, and working principle 6.
+2. `tools/check_docs.py`: Updated `DOCS` list, docstrings, and `check_inventory` to check `AGENTS.md`.
+3. `docs/USAGE.md`: Updated tools reference list from `CLAUDE.md` to `AGENTS.md`.
+4. `tests/fixtures/langs/README.md`: Updated references from `CLAUDE.md` to `AGENTS.md`.
+5. `docs/ROADMAP_PLAN.md`: Updated cross-cutting rules section from `CLAUDE.md` to `AGENTS.md`.
+6. `docs/ARCHITECTURE_GUIDE.th.html`: Updated Thai Q&A answers referring to `CLAUDE.md` to `AGENTS.md`.
+
+Verified: `tools/check_docs.py` passed (`check_docs: OK`).
+
+## [175] 2026-09-21 — Commit and push AGENTS.md rename
+
+**Prompt**
+> after finish commit and push
+
+**Response**
+Verified all mirror-truth docs, ran `tools/check_docs.py` (clean), staged all modified files (`AGENTS.md`, `tools/check_docs.py`, `docs/USAGE.md`, `tests/fixtures/langs/README.md`, `docs/ROADMAP_PLAN.md`, `docs/ARCHITECTURE_GUIDE.th.html`, and `docs/prompt.md`), committed, and pushed to `origin/main`.

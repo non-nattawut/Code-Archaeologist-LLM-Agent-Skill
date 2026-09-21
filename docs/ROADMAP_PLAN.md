@@ -2680,7 +2680,7 @@ repo before claiming anything.
 spike proved the CST exposes `jsx_element`, but the *classification rule* is ours and has to be
 re-implemented, not just re-queried. It is exercised by `OrderCard` and `StatusBadge`.
 
-## Cross-cutting rules (from CLAUDE.md, applied every phase)
+## Cross-cutting rules (from AGENTS.md, applied every phase)
 
 - **Pinned Python dependencies, and no Node at runtime** (was: stdlib only with Node as the single
   exception). `tree-sitter` plus one `tree-sitter-<lang>` wheel per supported language — grammars
@@ -2689,7 +2689,7 @@ re-implemented, not just re-queried. It is exercised by `OrderCard` and `StatusB
   grammars over the network at first use.
 - **Deterministic.** Same source in, same bytes out. Verified by building twice and diffing `data/`.
 - **ASCII `print()` output** (cp874 console); `console.safe_stdout()` before echoing repo text.
-- **Docs in the same commit.** Mirror-truth files (`CLAUDE.md`, `SKILL.md`, `README.md`,
+- **Docs in the same commit.** Mirror-truth files (`AGENTS.md`, `SKILL.md`, `README.md`,
   `docs/USAGE.md`, `templates/TAXONOMY.md`, `docs/PRESENTATION.html`) rewritten to match new
   behavior; append-only files (`docs/PROJECT_HISTORY.md`, `docs/prompt.md`) extended, never revised.
 - **Regenerate committed sample data in the same commit** whenever `sample_src/` or the graphs change.
@@ -2721,7 +2721,7 @@ node bin/cli.js --harness claude --target <tmpdir> --self-test
 ```
 
 Note `tools/check_docs.py`, not `scripts/check_docs.py` — it reads repo files (`README.md`,
-`CLAUDE.md`) that no installed skill has.
+`AGENTS.md`) that no installed skill has.
 
 Plus, for any `templates/viewer.html` change: extract the inline `<script>` and parse it as a
 **classic script** (`new vm.Script(code)`) — `node --check` wraps input in a CommonJS function and

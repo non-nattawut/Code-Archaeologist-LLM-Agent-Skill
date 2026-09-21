@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """check_docs.py -- mechanical half of this repo's docs-sync rule.
 
-CLAUDE.md working principle 6 says the docs change in the same commit as the
-behaviour they describe. A rule with no check is a wish: CLAUDE.md's own pipeline
+AGENTS.md working principle 6 says the docs change in the same commit as the
+behaviour they describe. A rule with no check is a wish: AGENTS.md's own pipeline
 diagram silently lost `brief` for several commits, and nothing noticed.
 
 So this checks only facts a machine can settle, never prose:
 
   1. every script under scripts/ is listed in README.md's structure tree and
-     named somewhere in CLAUDE.md
+     named somewhere in AGENTS.md
   2. every `scripts/...` path quoted in any doc points at a file that exists
   3. every kind/layer value in taxonomy.py appears in templates/TAXONOMY.md
 
@@ -35,7 +35,7 @@ TAXONOMY_MD = os.path.join(SKILL, "templates", "TAXONOMY.md")
 DOCS = [
     "README.md",
     "docs/USAGE.md",
-    "CLAUDE.md",
+    "AGENTS.md",
     ".agents/skills/code-archaeologist/SKILL.md",
     ".agents/skills/code-archaeologist-explorer/SKILL.md",
     ".agents/skills/code-archaeologist/templates/TAXONOMY.md",
@@ -62,15 +62,15 @@ def _scripts() -> list[str]:
 
 
 def check_inventory(problems: list[str]) -> None:
-    """(1) Every script is in the README tree and named in CLAUDE.md."""
+    """(1) Every script is in the README tree and named in AGENTS.md."""
     readme = _read("README.md")
-    claude = _read("CLAUDE.md")
+    agents = _read("AGENTS.md")
     for rel in _scripts():
         name = os.path.basename(rel)
         if name not in readme:
             problems.append(f"README.md: structure tree does not list {rel}")
-        if name not in claude:
-            problems.append(f"CLAUDE.md: no mention of {rel}")
+        if name not in agents:
+            problems.append(f"AGENTS.md: no mention of {rel}")
 
 
 def check_paths(problems: list[str]) -> None:

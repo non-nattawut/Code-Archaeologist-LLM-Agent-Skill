@@ -119,7 +119,7 @@ loadable"*, you changed Python version — re-run the command above.
 
 ## Check the skill itself
 
-Repo tools, not part of the installed skill -- they need files (`README.md`, `CLAUDE.md`,
+Repo tools, not part of the installed skill -- they need files (`README.md`, `AGENTS.md`,
 `tests/fixtures/`) that no installed copy has:
 
 ```bash

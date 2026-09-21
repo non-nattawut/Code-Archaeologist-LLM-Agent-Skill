@@ -24,10 +24,10 @@ The two have different jobs and the plan (`docs/ROADMAP_PLAN.md`, 2g) keeps them
 | Job | the readable worked example | prove extraction works |
 | Ships to users | yes, via `package.json`'s `files` allowlist | no |
 | Size | stays as it is | one small set of files per language |
-| Expectations | `CLAUDE.md`'s expected-numbers block, in prose | a JSON table asserted by a script |
+| Expectations | `AGENTS.md`'s expected-numbers block, in prose | a JSON table asserted by a script |
 
 Every language added to `sample_src/` perturbs its node counts, edge counts, grades, orphan counts,
-LOC totals and language mix — all of which are pinned by hand in `CLAUDE.md`. Fixtures here cost
+LOC totals and language mix — all of which are pinned by hand in `AGENTS.md`. Fixtures here cost
 one row.
 
 ## The shape, which is the same for every language
