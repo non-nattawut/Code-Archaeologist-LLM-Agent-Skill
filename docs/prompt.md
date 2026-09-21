@@ -7080,3 +7080,40 @@ rather than a formula.
 claim that `brief` only reads what other scripts wrote.
 
 Committed and pushed.
+
+## [172] 2026-09-21 — Optimize code-archaeologist-explorer for low token usage
+
+**Prompt**
+> edit code-archaeologist-explorer to make agent less thinking about how correct generated data since this skill intend to let agent just call to create explorer.html step by step by most low token usage
+> 
+> or there are other technique to optimize code-archaeologist-explorer to make agent use less token please do it
+
+**Response**
+Streamlined `.agents/skills/code-archaeologist-explorer/SKILL.md` to eliminate agent overthinking and minimize token consumption across prompt input, reasoning/thinking, tool roundtrips, and final output:
+
+1. **Execution-Only Directive (Anti-Overthinking):**
+   - Explicitly instructed the agent never to inspect, read, or validate `data/explorer.html`, JSON graphs, notes, or reports.
+   - Instructed the agent never to question data correctness or completeness, never to read raw source files, and to ignore pending descriptions or skipped warnings. The deterministic Python pipeline is treated as a black box.
+
+2. **Command Chaining (Tool Turn & Latency Reduction):**
+   - Chained `archaeologist.py both` and `report` into a single command line (`... both --src <roots> && ... report --src <roots>`), cutting out an entire LLM inference roundtrip.
+
+3. **Fast Root Resolution (Search Elimination):**
+   - Replaced exploratory root finding with a strict 3-tier priority (prompt args -> `manifest.json` roots -> `./src` / ask), preventing directory crawling.
+
+4. **Output Token Optimization:**
+   - Enforced a strict 3-line output template (path, counts, grade, verbatim skipped warnings).
+   - Converted "What to tell the user about the page" into an on-demand reference block and explicitly forbade unrequested feature walkthroughs or architectural essays.
+
+5. **Prompt Token Reduction:**
+   - Compressed the skill file from 64 lines (3,968 bytes) to 53 lines (2,410 bytes), cutting prompt context overhead by ~40% whenever the skill is loaded.
+
+Verified: `tools/check_docs.py` passed (`check_docs: OK`), `bin/cli.js` installer verified cleanly with prefix rewriting.
+
+## [173] 2026-09-21 — Commit and push skill optimizations
+
+**Prompt**
+> commit and push
+
+**Response**
+Verified docs and git status, staged `.agents/skills/code-archaeologist-explorer/SKILL.md` and `docs/prompt.md`, committed and pushed to `origin/main`.
