@@ -105,15 +105,15 @@ _None._
 
 _None._
 
+### God objects
+
+_None._
+
 ### Shared helpers (used by many, depending on nothing) — not graded
 
 _None._
 
 ### Coordinators (calling many, called by almost nothing) — not graded
-
-_None._
-
-### God objects
 
 _None._
 

@@ -205,6 +205,9 @@ def to_markdown(data: dict) -> str:
                     [[f"`{v['source']}`", f"`{v['target']}`",
                       f"{v['source_instability']} → {v['target_instability']}"]
                      for v in smells.get("wrong_way_deps") or []])
+    lines += ["### God objects", ""]
+    lines += _table(["Entity", "Reason", "Count"],
+                    [[f"`{g['name']}`", g["reason"], g["count"]] for g in smells["god_objects"]])
     # Reported, not graded: both are normal shapes, and deducting for them made a
     # codebase score worse for having a well-used utility (see analyze.health).
     lines += ["### Shared helpers (used by many, depending on nothing) — not graded", ""]
@@ -215,9 +218,6 @@ def to_markdown(data: dict) -> str:
     lines += _table(["Node", "Fan-in", "Fan-out"],
                     [[f"`{x['node']}`", x["fan_in"], x["fan_out"]]
                      for x in (smells.get("coordinators") or [])[:TOP_ORPHANS]])
-    lines += ["### God objects", ""]
-    lines += _table(["Entity", "Reason", "Count"],
-                    [[f"`{g['name']}`", g["reason"], g["count"]] for g in smells["god_objects"]])
     lines += ["### Detected idioms", ""]
     lines += _table(["Idiom", "Nodes"],
                     [[k, ", ".join(f"`{n}`" for n in v)] for k, v in smells["patterns"].items()])

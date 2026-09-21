@@ -1698,9 +1698,9 @@ function renderTabs() {
   const counts = {
     patterns: (ANALYSIS.cycles || []).length + (ANALYSIS.layer_violations || []).length
       + (ANALYSIS.hubs || []).length + (ANALYSIS.wrong_way_deps || []).length
+      + (ANALYSIS.god_objects || []).length + (ANALYSIS.orphans || []).length
       + (ANALYSIS.shared_helpers || []).length + (ANALYSIS.coordinators || []).length
-      + (ANALYSIS.god_objects || []).length
-      + (ANALYSIS.orphans || []).length + (DUPES || []).length + (BLOCKS || []).length
+      + (ANALYSIS.overridden || []).length + (DUPES || []).length + (BLOCKS || []).length
       + Object.values(ANALYSIS.patterns || {}).reduce((s, v) => s + v.length, 0),
     security: FINDINGS.length,
   };
@@ -1906,6 +1906,7 @@ function renderPatterns() {
     if (!items || !items.length) return;
     sections.push(`<div class="grp">${title} — ${items.length}</div>` + items.map(render).join(""));
   };
+  // Graded checks (cost health score points)
   push("Circular dependencies", ANALYSIS.cycles || [], (c) =>
     `<div class="item" data-goto="${esc(c[0])}"><span class="mono link">${c.map((id) => esc(nameOf(id))).join(" → ")}</span></div>`);
   push("Backwards layer dependencies", ANALYSIS.layer_violations || [], (v) =>
@@ -1921,12 +1922,15 @@ function renderPatterns() {
   push("Wrong-direction dependencies", ANALYSIS.wrong_way_deps || [], (v) =>
     `<div class="item" data-goto="${esc(v.source)}"><span class="mono link">${esc(nameOf(v.source))} → ${esc(nameOf(v.target))}</span>
       <span class="grow"><span class="badge med">I ${v.source_instability}→${v.target_instability}</span></span></div>`);
-  push("Shared helpers (not graded)", ANALYSIS.shared_helpers || [], coupled);
-  push("Coordinators (not graded)", ANALYSIS.coordinators || [], coupled);
   push("God objects", ANALYSIS.god_objects || [], (g) =>
     `<div class="item"><span class="mono">${esc(g.name)}</span>
       <span class="grow"><span class="badge med">${g.count} ${esc(g.reason)}</span></span></div>`);
   push("Dead / unused nodes", ANALYSIS.orphans || [], (o) => nodeItem(o));
+
+  // Non-graded checks (reported for visibility, but cost no health score points)
+  push("Shared helpers (not graded)", ANALYSIS.shared_helpers || [], coupled);
+  push("Coordinators (not graded)", ANALYSIS.coordinators || [], coupled);
+  push("Overridden everywhere (not graded)", ANALYSIS.overridden || [], (o) => nodeItem(o));
   push("Duplicate code", DUPES || [], (c) =>
     `<div class="item"><span class="grow">${c.nodes.map((id) => nodeItem(id)).join("")}</span>
       <span class="badge med">${c.tokens} tokens x${c.nodes.length}</span></div>`);

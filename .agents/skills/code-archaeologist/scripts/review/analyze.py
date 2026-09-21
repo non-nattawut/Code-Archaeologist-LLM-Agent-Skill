@@ -416,14 +416,14 @@ def to_text(d: dict) -> str:
     out += [f"  wrong-way {v['source']} -> {v['target']} "
             f"(I {v['source_instability']} -> {v['target_instability']})"
             for v in d.get("wrong_way_deps", [])]
+    out += [f"  god       {g['name']} {g['reason']} {g['count']}" for g in d["god_objects"]]
+    out += [f"  orphan    {n}" for n in d["orphans"]]
     out += [f"  helper    {x['node']} in {x['fan_in']} / out {x['fan_out']} (not graded)"
             for x in d.get("shared_helpers", [])]
     out += [f"  coord     {x['node']} in {x['fan_in']} / out {x['fan_out']} (not graded)"
             for x in d.get("coordinators", [])]
-    out += [f"  god       {g['name']} {g['reason']} {g['count']}" for g in d["god_objects"]]
-    out += [f"  idiom     {k}: " + ", ".join(v) for k, v in d["patterns"].items()]
-    out += [f"  orphan    {n}" for n in d["orphans"]]
     out += [f"  overridden {n}" for n in d.get("overridden", [])]
+    out += [f"  idiom     {k}: " + ", ".join(v) for k, v in d["patterns"].items()]
     return "\n".join(out)
 
 

@@ -2322,6 +2322,48 @@ def r83_coupling_has_a_direction():
         return "an unstable node calling a stable one was reported -- that is the right direction"
 
 
+def r84_graded_before_not_graded():
+    """All graded analysis checks (cycles, layer violations, hubs, wrong-way deps,
+    god objects, orphans) must be rendered before any non-graded checks (shared helpers,
+    coordinators, overridden, duplicate code, copied blocks, idioms)."""
+    vpath = os.path.join(REPO, ".agents", "skills", "code-archaeologist", "templates", "viewer.html")
+    with open(vpath, "r", encoding="utf-8") as fh:
+        vcontent = fh.read()
+    render_pat = vcontent[vcontent.find("function renderPatterns()"):vcontent.find("// ---------------------------------------------------------------- controls")]
+    graded_titles = ["Circular dependencies", "Backwards layer dependencies", "High coupling (hubs)",
+                     "Wrong-direction dependencies", "God objects", "Dead / unused nodes"]
+    non_graded_titles = ["Shared helpers (not graded)", "Coordinators (not graded)",
+                         "Overridden everywhere (not graded)", "Duplicate code", "Copied blocks"]
+    last_graded_idx = max(render_pat.find(f'"{t}"') for t in graded_titles)
+    first_non_graded_idx = min(render_pat.find(f'"{t}"') for t in non_graded_titles)
+    if last_graded_idx > first_non_graded_idx:
+        return "viewer.html renders non-graded checks before graded checks in renderPatterns"
+
+    sample_analysis = {
+        "health": {"grade": "C", "score": 75, "deductions": {"cycles": 8, "god_objects": 3}},
+        "summary": {"nodes": 10, "edges": 10, "cycles": 1, "orphans": 1, "layer_violations": 1,
+                    "hubs": 1, "god_objects": 1},
+        "cycles": [["A", "B"]],
+        "layer_violations": [{"source": "A", "target": "B", "from": "model", "to": "service"}],
+        "hubs": [{"node": "H", "fan_in": 5, "fan_out": 5, "instability": 0.5}],
+        "wrong_way_deps": [{"source": "A", "target": "B", "source_instability": 0.2, "target_instability": 0.8}],
+        "god_objects": [{"name": "G", "reason": "methods", "count": 25}],
+        "orphans": ["O"],
+        "shared_helpers": [{"node": "SH", "fan_in": 10, "fan_out": 0}],
+        "coordinators": [{"node": "C", "fan_in": 0, "fan_out": 10}],
+        "overridden": ["M"],
+        "patterns": {"singleton": ["S"]},
+    }
+    txt = analyze.to_text(sample_analysis)
+    lines = [line.strip().split()[0] for line in txt.splitlines() if line.startswith("  ")]
+    graded_keys = ["deduction", "cycle", "violation", "hub", "wrong-way", "god", "orphan"]
+    non_graded_keys = ["helper", "coord", "overridden", "idiom"]
+    graded_indices = [lines.index(k) for k in graded_keys if k in lines]
+    non_graded_indices = [lines.index(k) for k in non_graded_keys if k in lines]
+    if max(graded_indices) > min(non_graded_indices):
+        return f"analyze.to_text outputs non-graded smells before graded smells: {lines}"
+
+
 CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_append,
          r05_duplicates_declarations, r06_orphan_guard, r07_flask_routes,
          r08_missing_parser_is_visible, r09_no_absolute_paths, r10_brief_agrees_with_check,
@@ -2352,7 +2394,7 @@ CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_app
          r74_extended_classes_are_used, r75_structure_entry_points, r76_type_position_imports,
          r77_same_file_references, r78_layer_words_end_where_the_word_ends,
          r79_layer_from_the_folder, r80_one_doc_rule, r81_call_sites, r82_either_or_arms,
-         r83_coupling_has_a_direction]
+         r83_coupling_has_a_direction, r84_graded_before_not_graded]
 
 
 def main() -> int:
