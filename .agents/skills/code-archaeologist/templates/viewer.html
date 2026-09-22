@@ -2007,7 +2007,7 @@ function renderPatterns() {
           </div>
         </div>
         ${activeDeducts.length > 0 ? `
-          <div class="hb-desc">Deductions degrading architecture health:</div>
+          <div class="hb-desc">Deductions degrading architecture health (<a href="#" class="link" id="hbLegendLink">view formula in legend</a>):</div>
           <div class="hb-pills">
             ${activeDeducts.map(([k, v]) => `
               <button class="hb-pill" data-jump="${esc(k)}">
@@ -2017,7 +2017,7 @@ function renderPatterns() {
             `).join("")}
           </div>
         ` : `
-          <div class="hb-clean">No smells or issues deducted points from health score.</div>
+          <div class="hb-clean">No smells or issues deducted points from health score (<a href="#" class="link" id="hbLegendLink">view formula in legend</a>).</div>
         `}
       </div>`;
   }
@@ -2026,6 +2026,8 @@ function renderPatterns() {
     <div class="sub">Deterministic graph checks${HEALTH ? ` · grade ${HEALTH.grade} (${HEALTH.score}/100)` : ""}</div>
     ${breakdownHtml}
     ${sections.join("") || '<p class="empty">Nothing flagged — or no report embedded in this page.</p>'}`;
+  const legLink = el("panel").querySelector("#hbLegendLink");
+  if (legLink) legLink.addEventListener("click", (e) => { e.preventDefault(); setKey(true); });
   el("panel").querySelectorAll(".hb-pill[data-jump]").forEach((b) => {
     b.addEventListener("click", () => {
       const k = b.dataset.jump;
@@ -2166,8 +2168,18 @@ const BADGE_KEY = [
   ["Churn", "Commits that touched the file. Empty unless the report ran inside a git repository."],
   ["Risk", "Churn x links: how often it changes, weighted by how connected it is."],
   ["LOC", "Lines of code."],
-  ["Grade A-F", "The 0-100 health score: coupling, cycles, dead code, backwards layer calls and risk findings."],
+  ["Grade A-F", "The 0-100 health score: starts at 100 with category-capped deductions: security (max −30), cycles (max −24), dead code (max −20), layer violations (max −16), hubs (max −12), god objects (max −12), and wrong-way deps (max −8)."],
   ["Unused", "Nothing in the graph references it. Judged the way an IDE's unused hint is, so a function a framework finds by a name held in data - a JSON key, a string-keyed bean, reflection - counts as unused here."],
+];
+const HEALTH_KEY = [
+  ["Security findings", "−10 pts per high severity, −4 pts per medium, −1 pt per low (capped at max −30 pts)."],
+  ["Circular dependencies", "−8 pts per cycle found by Tarjan's SCC algorithm (capped at max −24 pts)."],
+  ["Dead code / orphans", "−0.5 pts per 1% of nodes uncalled/unreferenced (capped at max −20 pts). Sparing applies to framework entry points and test files."],
+  ["Layer violations", "−4 pts per backwards call against architecture layers (e.g. model calling service) (capped at max −16 pts)."],
+  ["High coupling (hubs)", "−3 pts per hub node with both fan-in ≥ 5 and fan-out ≥ 5 (capped at max −12 pts). Shared helpers and coordinators cost 0."],
+  ["God objects", "−3 pts per god object: classes with ≥ 12 methods (flow map) or entities with ≥ 8 outgoing references (structure map) (capped at max −12 pts)."],
+  ["Wrong-direction deps", "−2 pts per call from stable to unstable component (instability I = Ce / (Ca + Ce)) (capped at max −8 pts)."],
+  ["Non-graded checks", "Shared helpers, coordinators, overridden methods, duplicate code, and copied blocks cost 0 pts (reported for visibility only)."],
 ];
 const VIEW_KEY = {
   Graph: "Force layout of the whole map.",
@@ -2263,6 +2275,10 @@ function renderKey() {
 
   out.push(`<h4>Badges and abbreviations</h4>`);
   out.push(BADGE_KEY.map(([t, m]) => keyDef(t, m)).join(""));
+
+  out.push(`<h4>Health score calculation (0–100 / Grade A–F)</h4>`);
+  out.push(`<p class="note">Starts at 100. Category deductions are capped so one bad area cannot sink the grade on its own. Grade bands: A (≥90), B (≥80), C (≥70), D (≥60), F (&lt;60).</p>`);
+  out.push(HEALTH_KEY.map(([t, m]) => keyDef(t, m)).join(""));
 
   out.push(`<h4>Precision markers on a node</h4>`);
   out.push(Object.entries(PRECISION_NOTES).map(([k, v]) => keyDef(k, v)).join(""));
