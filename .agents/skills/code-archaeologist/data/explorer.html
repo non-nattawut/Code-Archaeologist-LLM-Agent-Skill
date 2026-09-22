@@ -72,10 +72,14 @@
 
   .health { padding: 16px; border-bottom: 1px solid var(--border); }
   .health .score { font-size: 30px; font-weight: 700; line-height: 1; color: var(--bright);
-    display: flex; align-items: baseline; gap: 8px; }
+    display: flex; align-items: baseline; gap: 8px; cursor: pointer; user-select: none; }
+  .health .score:hover b { filter: brightness(1.25); }
   .health .label { color: var(--muted); font-size: 10px; text-transform: uppercase;
     letter-spacing: .14em; }
-  .health .why { color: var(--muted); font-size: 11px; margin-top: 8px; }
+  .health .why { color: var(--muted); font-size: 11px; margin-top: 8px; line-height: 1.5; }
+  .why-chip { cursor: pointer; color: var(--link); border-bottom: 1px dashed var(--link);
+    transition: color .15s, border-color .15s; }
+  .why-chip:hover { color: var(--bright); border-bottom-style: solid; }
   #ring { display: block; margin: 12px 0 2px; }
 
   .sect { padding: 16px; border-bottom: 1px solid var(--border); }
@@ -319,7 +323,35 @@
   .issue.low { border-color: var(--link); }
   .issue .m { color: var(--muted); font-size: 11px; }
   .grp { margin: 18px 0 8px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
-    color: var(--muted); }
+    color: var(--muted); display: flex; align-items: center; justify-content: space-between;
+    scroll-margin-top: 48px; }
+  .grp .grp-penalty { text-transform: none; letter-spacing: normal; margin-left: auto; }
+
+  @keyframes highlight-pulse-anim {
+    0% { background: rgba(217, 159, 74, 0.35); }
+    50% { background: rgba(217, 159, 74, 0.15); }
+    100% { background: transparent; }
+  }
+  .highlight-pulse { animation: highlight-pulse-anim 1.5s ease-out; border-radius: 4px; }
+
+  .health-breakdown { margin: 14px 0 18px; padding: 12px; background: var(--panel2);
+    border: 1px solid var(--border); border-radius: 6px; scroll-margin-top: 48px; }
+  .health-breakdown .hb-head { display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px; }
+  .health-breakdown .hb-title { font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--bright); }
+  .health-breakdown .hb-grade { display: flex; align-items: baseline; gap: 6px; font-size: 12px; }
+  .health-breakdown .score-val { font-size: 16px; font-weight: 700; color: var(--bright); }
+  .health-breakdown .score-max { font-size: 11px; color: var(--muted); }
+  .health-breakdown .loss-tag { font-size: 11px; color: var(--danger); font-weight: 600; margin-left: 4px; }
+  .health-breakdown .clean-tag { font-size: 11px; color: var(--ok); font-weight: 600; }
+  .health-breakdown .hb-desc { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+  .health-breakdown .hb-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .hb-pill { display: inline-flex; align-items: center; gap: 6px; background: #12161d;
+    border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px; font-size: 11px;
+    color: var(--text); cursor: pointer; transition: all .15s ease; }
+  .hb-pill:hover { background: #1a202c; border-color: var(--link); color: var(--bright); }
+  .hb-clean { font-size: 11px; color: var(--ok); }
 
   /* Narrower default rails, but only until the user drags one: a dragged width is an
      inline style on #app, which outranks this. */
@@ -739,10 +771,49 @@ function renderHealth() {
   el("healthScore").innerHTML =
     `${HEALTH.score}<span style="color:var(--muted);font-size:13px">/100</span>
      <b style="margin-left:auto;color:${gradeColor};font-size:19px">${HEALTH.grade}</b>`;
+  el("healthScore").title = "Click to view health score breakdown";
+  el("healthScore").onclick = () => showHealthDegrade("all");
+
   const worst = Object.entries(HEALTH.deductions).filter(([, v]) => v > 0)
-    .sort((a, b) => b[1] - a[1]).slice(0, 2)
-    .map(([k, v]) => `${k.replace(/_/g, " ")} −${v}`).join(", ");
-  el("healthWhy").textContent = worst || "no deductions";
+    .sort((a, b) => b[1] - a[1]);
+  if (!worst.length) {
+    el("healthWhy").innerHTML = '<span style="color:var(--muted)">no deductions</span>';
+    el("healthWhy").onclick = () => showHealthDegrade("all");
+  } else {
+    const shown = worst.slice(0, 2);
+    const chips = shown.map(([k, v]) =>
+      `<span class="why-chip link" data-deduct="${esc(k)}" title="Show ${esc(k.replace(/_/g, " "))} (−${v} pts)">${esc(k.replace(/_/g, " "))} −${v}</span>`
+    ).join(", ");
+    const more = worst.length > 2
+      ? ` <span class="why-chip link" data-deduct="all" title="View all deductions (+${worst.length - 2} more)">+${worst.length - 2} more</span>`
+      : "";
+    el("healthWhy").innerHTML = chips + more;
+    el("healthWhy").onclick = (e) => {
+      const chip = e.target.closest("[data-deduct]");
+      showHealthDegrade(chip ? chip.dataset.deduct : "all");
+    };
+  }
+}
+
+function showHealthDegrade(targetKey) {
+  if (targetKey === "security") {
+    showTab("security");
+    return;
+  }
+  showTab("patterns");
+  jumpToDeduction(targetKey || "all");
+}
+
+function jumpToDeduction(key) {
+  const targetId = key === "all" ? "healthBreakdown" : "pat-grp-" + key;
+  const target = el(targetId);
+  if (target) {
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    target.classList.remove("highlight-pulse");
+    void target.offsetWidth;
+    target.classList.add("highlight-pulse");
+    setTimeout(() => target.classList.remove("highlight-pulse"), 1600);
+  }
 }
 
 // ---------------------------------------------------------------- left: color modes, tiles, loc
@@ -1902,30 +1973,38 @@ function renderSecurity() {
 function renderPatterns() {
   const sections = [];
   const idioms = ANALYSIS.patterns || {};
-  const push = (title, items, render) => {
+  const push = (title, items, render, deductKey) => {
     if (!items || !items.length) return;
-    sections.push(`<div class="grp">${title} — ${items.length}</div>` + items.map(render).join(""));
+    const deduct = (deductKey && HEALTH && HEALTH.deductions) ? HEALTH.deductions[deductKey] : 0;
+    const grpId = deductKey ? ` id="pat-grp-${deductKey}"` : "";
+    const badge = deduct > 0 ? `<span class="badge high grp-penalty" title="Health penalty">−${deduct} pts</span>` : "";
+    sections.push(`<div class="grp"${grpId}><span>${title} — ${items.length}</span>${badge}</div>` + items.map(render).join(""));
   };
   // Graded checks (cost health score points)
   push("Circular dependencies", ANALYSIS.cycles || [], (c) =>
-    `<div class="item" data-goto="${esc(c[0])}"><span class="mono link">${c.map((id) => esc(nameOf(id))).join(" → ")}</span></div>`);
+    `<div class="item" data-goto="${esc(c[0])}"><span class="mono link">${c.map((id) => esc(nameOf(id))).join(" → ")}</span></div>`,
+    "cycles");
   push("Backwards layer dependencies", ANALYSIS.layer_violations || [], (v) =>
     `<div class="item" data-goto="${esc(v.source)}"><span class="mono link">${esc(nameOf(v.source))} → ${esc(nameOf(v.target))}</span>
-      <span class="grow"><span class="badge med">${esc(v.from)}→${esc(v.to)}</span></span></div>`);
+      <span class="grow"><span class="badge med">${esc(v.from)}→${esc(v.to)}</span></span></div>`,
+    "layer_violations");
   // Three shapes a total-degree count folds into one. Only hubs and wrong-way
   // dependencies cost grade points; the other two are reported to stay visible.
   const coupled = (x) =>
     `<div class="item" data-goto="${esc(x.node)}"><span class="mono link">${esc(nameOf(x.node))}</span>
       <span class="grow"><span class="badge">${x.fan_in} in</span><span class="badge">${x.fan_out} out</span>
       <span class="badge">I ${x.instability}</span></span></div>`;
-  push("High coupling (hubs)", ANALYSIS.hubs || [], coupled);
+  push("High coupling (hubs)", ANALYSIS.hubs || [], coupled, "high_coupling");
   push("Wrong-direction dependencies", ANALYSIS.wrong_way_deps || [], (v) =>
     `<div class="item" data-goto="${esc(v.source)}"><span class="mono link">${esc(nameOf(v.source))} → ${esc(nameOf(v.target))}</span>
-      <span class="grow"><span class="badge med">I ${v.source_instability}→${v.target_instability}</span></span></div>`);
-  push("God objects", ANALYSIS.god_objects || [], (g) =>
-    `<div class="item"><span class="mono">${esc(g.name)}</span>
-      <span class="grow"><span class="badge med">${g.count} ${esc(g.reason)}</span></span></div>`);
-  push("Dead / unused nodes", ANALYSIS.orphans || [], (o) => nodeItem(o));
+      <span class="grow"><span class="badge med">I ${v.source_instability}→${v.target_instability}</span></span></div>`,
+    "wrong_way_deps");
+  push("God objects", ANALYSIS.god_objects || [], (g) => {
+    const target = byId.has(g.name) ? g.name : (nodes.find((n) => n.cls === g.name || (n.id && n.id.startsWith(g.name + "."))) || {}).id;
+    return `<div class="item"${target ? ` data-goto="${esc(target)}"` : ""}><span class="mono${target ? " link" : ""}">${esc(g.name)}</span>
+      <span class="grow"><span class="badge med">${g.count} ${esc(g.reason)}</span></span></div>`;
+  }, "god_objects");
+  push("Dead / unused nodes", ANALYSIS.orphans || [], (o) => nodeItem(o), "dead_code");
 
   // Non-graded checks (reported for visibility, but cost no health score points)
   push("Shared helpers (not graded)", ANALYSIS.shared_helpers || [], coupled);
@@ -1941,9 +2020,53 @@ function renderPatterns() {
   Object.entries(idioms).forEach(([name, ids]) =>
     push(name.replace(/_/g, " "), ids, (id) => nodeItem(id)));
 
+  const deducts = HEALTH ? (HEALTH.deductions || {}) : {};
+  const activeDeducts = Object.entries(deducts).filter(([, v]) => v > 0);
+  const totalDeduct = activeDeducts.reduce((s, [, v]) => s + v, 0);
+
+  let breakdownHtml = "";
+  if (HEALTH) {
+    const gradeColor = { A: "#3fb950", B: "#7ee787", C: "#e3b341", D: "#e0a33e", F: "#e0574f" }[HEALTH.grade] || "var(--accent)";
+    breakdownHtml = `
+      <div class="health-breakdown" id="healthBreakdown">
+        <div class="hb-head">
+          <div class="hb-title">Health score breakdown</div>
+          <div class="hb-grade">
+            <span class="score-val">${HEALTH.score}</span><span class="score-max">/100</span>
+            <b class="grade-tag" style="color:${gradeColor}">${HEALTH.grade}</b>
+            ${totalDeduct > 0 ? `<span class="loss-tag">−${totalDeduct} pts</span>` : `<span class="clean-tag">100% clean</span>`}
+          </div>
+        </div>
+        ${activeDeducts.length > 0 ? `
+          <div class="hb-desc">Deductions degrading architecture health:</div>
+          <div class="hb-pills">
+            ${activeDeducts.map(([k, v]) => `
+              <button class="hb-pill" data-jump="${esc(k)}">
+                <span class="hb-name">${esc(k.replace(/_/g, " "))}</span>
+                <span class="badge high">−${v}</span>
+              </button>
+            `).join("")}
+          </div>
+        ` : `
+          <div class="hb-clean">No smells or issues deducted points from health score.</div>
+        `}
+      </div>`;
+  }
+
   el("panel").innerHTML = `<h2 class="node">Patterns &amp; smells</h2>
     <div class="sub">Deterministic graph checks${HEALTH ? ` · grade ${HEALTH.grade} (${HEALTH.score}/100)` : ""}</div>
+    ${breakdownHtml}
     ${sections.join("") || '<p class="empty">Nothing flagged — or no report embedded in this page.</p>'}`;
+  el("panel").querySelectorAll(".hb-pill[data-jump]").forEach((b) => {
+    b.addEventListener("click", () => {
+      const k = b.dataset.jump;
+      if (k === "security") {
+        showTab("security");
+      } else {
+        jumpToDeduction(k);
+      }
+    });
+  });
   el("panel").querySelectorAll("[data-goto]").forEach((x) => x.addEventListener("click", () => {
     backTo = "Patterns"; selectNode(x.dataset.goto, true);
   }));
