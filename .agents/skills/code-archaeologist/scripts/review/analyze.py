@@ -99,7 +99,9 @@ def find_cycles(nodes: dict, edges: list[tuple[str, str, str]]) -> list[list[str
     """Strongly-connected components with > 1 node (iterative Tarjan), plus self-loops."""
     adj: dict[str, list[str]] = {n: [] for n in nodes}
     for s, t, kind in edges:
-        if kind not in INHERITANCE_LINKS:    # a decorator delegating to its own interface is not a cycle
+        if (kind not in INHERITANCE_LINKS
+                and nodes.get(s, {}).get("layer") != "test"
+                and nodes.get(t, {}).get("layer") != "test"):
             adj[s].append(t)
 
     index: dict[str, int] = {}
@@ -318,6 +320,8 @@ def find_god_objects(nodes: dict, edges: list[tuple[str, str, str]]) -> list[dic
     found = []
     methods: dict[str, int] = {}
     for n in nodes.values():
+        if n.get("layer") == "test":
+            continue
         if n.get("cls"):
             methods[n["cls"]] = methods.get(n["cls"], 0) + 1
     for cls, count in methods.items():
@@ -326,6 +330,8 @@ def find_god_objects(nodes: dict, edges: list[tuple[str, str, str]]) -> list[dic
 
     deg = degrees(nodes, app_edges(nodes, edges))
     for nid, n in nodes.items():
+        if n.get("layer") == "test":
+            continue
         if n.get("kind") in CLASS_KINDS and deg[nid]["fan_out"] >= GOD_FANOUT:
             found.append({"name": nid, "reason": "references", "count": deg[nid]["fan_out"]})
     return sorted(found, key=lambda g: (-g["count"], g["name"]))
@@ -335,6 +341,8 @@ def detect_patterns(nodes: dict) -> dict[str, list[str]]:
     """Group node ids by the design idiom their name advertises."""
     found: dict[str, list[str]] = {}
     for nid, n in nodes.items():
+        if n.get("layer") == "test":
+            continue
         for name, pattern in PATTERN_RULES:
             if name == "react_hook" and n.get("lang") not in ("js", None):
                 continue
@@ -380,6 +388,8 @@ def report(graph_path: str, security: dict | None = None) -> dict:
     wrong_way = find_wrong_way_deps(nodes, edges)
     gods = find_god_objects(nodes, edges)
     patterns = detect_patterns(nodes)
+    app_nodes = [n for n in nodes.values() if n.get("layer") != "test"]
+    node_count = len(app_nodes) if app_nodes else len(nodes)
     return {
         "cycles": cycles,
         "orphans": orphans,
@@ -391,7 +401,7 @@ def report(graph_path: str, security: dict | None = None) -> dict:
         "wrong_way_deps": wrong_way,
         "god_objects": gods,
         "patterns": patterns,
-        "health": health(len(nodes), cycles, orphans, violations, hubs, gods, security, wrong_way),
+        "health": health(node_count, cycles, orphans, violations, hubs, gods, security, wrong_way),
         "summary": {"nodes": len(nodes), "edges": len(edges), "cycles": len(cycles),
                     "orphans": len(orphans), "overridden": len(overridden),
                     "layer_violations": len(violations),

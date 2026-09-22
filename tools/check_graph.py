@@ -738,6 +738,11 @@ def d04_god_objects(c):
         probe[f"ProbeGod.m{i}"] = {"id": f"ProbeGod.m{i}", "kind": "method", "layer": "service", "cls": "ProbeGod"}
     if not any(g["name"] == "ProbeGod" for g in analyze.find_god_objects(probe, edges)):
         return [f"a class with {analyze.GOD_METHODS} methods was not reported as a god object"]
+    test_probe = dict(nodes)
+    for i in range(analyze.GOD_METHODS):
+        test_probe[f"ProbeTest.test_{i}"] = {"id": f"ProbeTest.test_{i}", "kind": "method", "layer": "test", "cls": "ProbeTest"}
+    if any(g["name"] == "ProbeTest" for g in analyze.find_god_objects(test_probe, edges)):
+        return ["a test class was reported as a god object -- test methods must not count"]
     return []
 
 
@@ -753,6 +758,10 @@ def d05_layer_violations(c):
     if any(v["source"] == "probe_repo" for v in
            analyze.find_layer_violations(probe, edges + [("probe_repo", "probe_ctrl", "http")])):
         out.append("an http edge was reported as a layer violation -- crossing the API is intended")
+    probe["probe_util"] = {"id": "probe_util", "kind": "method", "layer": "util"}
+    if any(v["source"] == "probe_ctrl" for v in
+           analyze.find_layer_violations(probe, edges + [("probe_ctrl", "probe_util", "calls")])):
+        out.append("a call to util was reported as a layer violation -- util is unranked")
     return out
 
 

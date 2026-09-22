@@ -35,6 +35,7 @@ LAYER_RULES = [
     (re.compile(r"client|gateway|adapter|api(?![a-z])", re.I), "client"),
     (re.compile(r"config|settings|env", re.I), "config"),
     (re.compile(r"component|view|page|screen|widget", re.I), "ui"),
+    (re.compile(r"util(?:ity|ities|s)?(?![a-z])|helper(?:s)?(?![a-z])", re.I), "util"),
 ]
 # Annotations that *declare* a layer, checked before any name rule: a class name is
 # a guess, `@Service` is a statement. Exact names only.
@@ -52,7 +53,7 @@ NEUTRAL_ANNOTATIONS = frozenset({"Component"})
 
 LAYERS = [
     "controller", "service", "repository", "model", "client",
-    "config", "ui", "test", "function", "module", "unknown",
+    "config", "ui", "util", "test", "function", "module", "unknown",
 ]
 
 # Allowed `kind` values (what the node physically is).
@@ -303,7 +304,7 @@ ROUTE_DECORATOR_RE = re.compile(r"route|get|post|put|patch|delete|mapping|endpoi
 # as a fallback -- an annotation or the name always wins -- and only on an exact folder name,
 # nearest folder first, never as a substring: a whole application under `api/` is not six
 # hundred clients, which is the mistake `LAYER_RULES` itself made with `repo` (r78). Words that
-# name no layer in this taxonomy (`util`, `exception`, `constant`, `integration`) are absent on
+# name no layer in this taxonomy (`exception`, `constant`, `integration`) are absent on
 # purpose: `unknown` is the honest answer for them (r79).
 PATH_LAYERS = {
     "controller": "controller", "controllers": "controller", "resource": "controller",
@@ -320,6 +321,8 @@ PATH_LAYERS = {
     "properties": "config", "settings": "config",
     "component": "ui", "components": "ui", "view": "ui", "views": "ui",
     "page": "ui", "pages": "ui",
+    "util": "util", "utils": "util", "utility": "util", "utilities": "util",
+    "helper": "util", "helpers": "util",
 }
 
 

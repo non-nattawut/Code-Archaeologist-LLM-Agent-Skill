@@ -2041,7 +2041,8 @@ def r79_layer_from_the_folder():
         ("api/response/masterdata/MasterFileInfo.java", "MasterFileInfo", (), "model"),
         ("api/repository/projection/PlantRow.java", "PlantRow", (), "repository"),
         ("api/properties/BatchTuning.java", "BatchTuning", (), "config"),
-        ("api/util/Helpers.java", "Helpers", (), "unknown"),            # no layer word: stay honest
+        ("api/util/Helpers.java", "Helpers", (), "util"),
+        ("api/common/Tools.java", "Tools", (), "unknown"),            # no layer word: stay honest
         ("api/exception/NotFound.java", "NotFound", (), "unknown"),
         ("app/api/users/handler.ts", "handler", (), "unknown"),         # `api/` is not a client folder
         ("api/util/AuditLog.java", "AuditLog", ("Service",), "service"),           # annotation wins
@@ -2056,9 +2057,10 @@ def r79_layer_from_the_folder():
     nodes, _edges = _structure(_tree({
         "api/service/pnodata/PnoDataJob.java": "public class PnoDataJob {\n"
                                                "    public void run() {\n    }\n}\n",
+        "api/common/Tools.java": "public class Tools {\n    public int one() {\n        return 1;\n    }\n}\n",
         "api/util/Helpers.java": "public class Helpers {\n    public int one() {\n        return 1;\n    }\n}\n"}))
-    got = {nid: n.get("layer") for nid, n in nodes.items() if nid in ("PnoDataJob", "Helpers")}
-    if got != {"PnoDataJob": "service", "Helpers": "unknown"}:
+    got = {nid: n.get("layer") for nid, n in nodes.items() if nid in ("PnoDataJob", "Tools", "Helpers")}
+    if got != {"PnoDataJob": "service", "Tools": "unknown", "Helpers": "util"}:
         return f"the builder did not pass the path to infer_layer: {got}"
 
 

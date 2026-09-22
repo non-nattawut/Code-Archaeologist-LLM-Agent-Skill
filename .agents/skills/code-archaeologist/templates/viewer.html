@@ -642,8 +642,8 @@ const PRECISION_NOTES = {
 };
 const LAYER_COLORS = {
   controller: "#f778ba", endpoint: "#f778ba", service: "#6ea8fe", repository: "#3fb950",
-  model: "#e3b341", client: "#39c5cf", config: "#a371f7", ui: "#f0883e", test: TEST_COLOR,
-  function: "#adbac7", module: "#adbac7", unknown: "#8b98ad"
+  model: "#e3b341", client: "#39c5cf", config: "#a371f7", ui: "#f0883e", util: "#20b2aa",
+  test: TEST_COLOR, function: "#adbac7", module: "#adbac7", unknown: "#8b98ad"
 };
 // Inheritance links are stored subclass -> base, but a call to the base runs the subclass,
 // so every walk reads them backwards (taxonomy.REVERSED_LINKS).
@@ -1325,17 +1325,43 @@ function layoutFlowchart() {
   });
   const pos = new Map();
   const place = (list) => list.forEach((id, i) => pos.set(id, i - (list.length - 1) / 2));
-  columns.forEach(place);
-  for (let sweep = 0; sweep < 4; sweep++) {
-    (sweep % 2 ? columns.slice().reverse() : columns).forEach((list) => {
-      const bary = new Map(list.map((id) => {
-        const next = ins.get(id).concat(outs.get(id));
-        return [id, next.reduce((s, x) => s + pos.get(x), 0) / next.length];
-      }));
-      list.sort((a, b) => bary.get(a) - bary.get(b));    // stable: a tie keeps folder order
+
+  const callRank = (s, t) => {
+    const site = CALL_SITES.get(siteKey(s, t));
+    return site ? site.rank : 0;
+  };
+
+  columns.forEach((list, c) => {
+    if (!list || !list.length) return;
+    if (c === 0) {
+      list.sort((a, b) =>
+        dirOf(fileOf(byId.get(a))).localeCompare(dirOf(fileOf(byId.get(b))))
+        || labelOf(byId.get(a)).localeCompare(labelOf(byId.get(b))));
       place(list);
+      return;
+    }
+    const callerY = new Map();
+    const rank = new Map();
+    list.forEach((t) => {
+      const preds = (ins.get(t) || []).filter((s) => col.get(s) < c && pos.has(s));
+      if (preds.length) {
+        callerY.set(t, preds.reduce((acc, s) => acc + pos.get(s), 0) / preds.length);
+        rank.set(t, Math.min(...preds.map((s) => callRank(s, t))));
+      } else {
+        const others = (ins.get(t) || []).concat(outs.get(t) || []).filter((x) => pos.has(x));
+        callerY.set(t, others.length ? others.reduce((acc, x) => acc + pos.get(x), 0) / others.length : 0);
+        rank.set(t, 0);
+      }
     });
-  }
+    list.sort((a, b) => {
+      const ya = callerY.get(a), yb = callerY.get(b);
+      if (Math.abs(ya - yb) > 0.001) return ya - yb;
+      const ra = rank.get(a), rb = rank.get(b);
+      if (ra !== rb) return ra - rb;
+      return labelOf(byId.get(a)).localeCompare(labelOf(byId.get(b)));
+    });
+    place(list);
+  });
 
   let bottom = 0;
   columns.forEach((list, c) => list.forEach((id) => {
@@ -2153,6 +2179,7 @@ const LAYER_KEY = {
   client: "Calls something outside this codebase.",
   config: "Wiring and settings.",
   ui: "A React component or view.",
+  util: "Cross-cutting utilities and shared helpers.",
   test: "Test code. Hidden until you tick Tests, and never counted as coupling or as dead code.",
   function: "A plain function; nothing stated a role.",
   module: "One file's module-level functions, grouped into a single node.",

@@ -65,3 +65,50 @@ While `metrics.py` does not penalize or deduct points from the Architecture Heal
 - **`context.py` (Zero-RAG Node Context)**: When an LLM agent inspects a node via `python context.py <node_id>`, the node's exact `loc`, `complexity`, and `depth` are injected into the prompt. The agent knows immediately if a function is a 200-line complex monster without reading raw source code.
 - **`brief.py` (Grammar Verification)**: Compares detected source languages against installed tree-sitter wheels to alert about missing parsers.
 - **`report.py` & `explorer.html` (Universal Census)**: Powers the file census dashboard, language breakdown charts, and top complexity tables.
+
+---
+
+## 3. How Lines of Code (LOC) Are Counted
+
+Code Archaeologist measures LOC at two distinct granularities to serve different analytical needs:
+
+| Level | Granularity | Parser / Mechanism | What is Counted | Formula / Logic |
+| :--- | :--- | :--- | :--- | :--- |
+| **File-Level** | Whole source file | Plain Python file streaming (`line_metrics`) | Cleaned executable code, comments, and blank lines | $\text{code} = \text{total} - \text{blank} - \text{comment}$ |
+| **Node-Level** | Function, Method, Class | Tree-sitter AST coordinates (`node_metrics`) | Physical line span from first decorator to end of body | $\text{loc} = \text{end} - \text{start} + 1$ |
+
+### Physical File Level (`line_metrics`)
+Implemented in `scripts/review/metrics.py`:
+- Streams through the file line-by-line using standard Python file I/O (`open(..., errors="replace")`).
+- **`blank`**: Stripped lines that are empty (`not line.strip()`).
+- **`comment`**: Lines starting with language-specific comment tokens:
+  - `#` for Python, Ruby, and Elixir (`HASH_COMMENT`).
+  - `//`, `/*`, or `*` for all other languages (`DEFAULT_COMMENTS`).
+  - *Note*: Python docstrings are counted under executable code, not comments.
+- **`code` (SLOC)**: Effective executable code lines ($\text{total} - \text{blank} - \text{comment}$).
+
+### AST Node Level (`node_metrics`) & Tree-sitter Mechanics
+Tree-sitter does not count LOC or lines internally; it is an AST parser that provides syntax node boundaries:
+1. **Coordinate Extraction**: Every Tree-sitter syntax node exposes `node.start_point` and `node.end_point` as `(row, col)` tuples (0-indexed). Tree-sitter tracks row boundaries internally, handling UTF-8 multi-byte characters, Windows CRLF, and Unix LF newlines consistently.
+2. **1-Indexed Line Conversion**:
+   ```python
+   def line(node) -> int:
+       return node.start_point[0] + 1
+
+   def end_line(node) -> int:
+       return node.end_point[0] + 1
+   ```
+3. **Decorator & Annotation Coverage**: A node's range starts at its **first decorator, annotation, or attribute** (e.g. `@app.route`, `[HttpPost]`, `@Service`) so routing and guards are attributed to the method.
+4. **Span Calculation**:
+   ```python
+   "loc": end - int(start) + 1
+   ```
+   *Note*: Node-level LOC measures the full physical span of the definition body (including any comments or blank lines inside).
+5. **Unmeasured Nodes**: Graph nodes without a physical body (abstract interface declarations, module groups, stubs) have no range to measure and are tracked in `unmeasured_graph_ids`.
+
+### Duplicate LOC (`duplicates.py`)
+In `scripts/review/duplicates.py`:
+- Whole-function clones measure `loc = end - start + 1`.
+- Sub-function Winnowed blocks measure `loc = max_line - min_line + 1`.
+- Total duplicated volume is aggregated across clusters:
+  $$\text{duplicated\_loc} = \sum_{\text{clusters}} \text{cluster\_loc} \times (\text{instances} - 1)$$
