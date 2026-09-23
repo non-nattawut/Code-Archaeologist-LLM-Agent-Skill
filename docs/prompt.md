@@ -7169,6 +7169,6 @@ Implemented comprehensive flowchart redesign and component grouping fixes across
    - Contiguous class ordering during Sugiyama sweeps with 0.5-row vertical spacing between different class containers.
 5. **Release 0.4.0**:
    - Bumped `package.json` to `0.4.0`.
-   - Created `RELEASE_NOTES_0.4.md`.
+   - Drafted release notes in Markdown for release 0.4.
    - Verified: `check_docs: OK`, `check_graph: 34/34 OK`, `check_regressions: 84/84 PASS`.
 
