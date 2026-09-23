@@ -503,6 +503,21 @@ function labelOf(n) {
 }
 const nameOf = (id) => (byId.has(id) ? labelOf(byId.get(id)) : id);
 
+function classOf(n) {
+  if (!n) return "";
+  if (n.cls) return n.cls;
+  const raw = labelOf(n);
+  const dot = raw.lastIndexOf(".");
+  if (dot > 0) return raw.slice(0, dot);
+  const f = fileOf(n);
+  if (f && f !== "(unknown)") {
+    const base = baseOf(f);
+    const dot2 = base.indexOf(".");
+    return dot2 > 0 ? base.slice(0, dot2) : base;
+  }
+  return "";
+}
+
 let EDGES = [], HAS_TESTS = false, allFolders = [];
 
 function loadMap(name) {
@@ -702,6 +717,7 @@ function reach(id, adj) {
 
 // ---------------------------------------------------------------- state
 let selected = null;        // node id
+let selectedNodes = new Set(); // multi-selected node ids
 let hovered = null;         // node id under the pointer: its call order wins a shared arrowhead
 let BADGE_CALLERS = new Map();   // callee id -> the visible callers whose link to it carries a badge
 let focus = null;           // node id the view is built around: the selection, unless Freeze holds it
@@ -967,7 +983,7 @@ const Graph = ForceGraph()(el("graph"))
   .nodeVisibility(isVisible)
   .linkVisibility((l) => !visibleIds
     || (visibleIds.has(l.source.id || l.source) && visibleIds.has(l.target.id || l.target)))
-  .onRenderFramePre(drawHulls)
+  .onRenderFramePre((ctx, scale) => { drawHulls(ctx, scale); drawFlowContainers(ctx, scale); drawFlowLanes(ctx, scale); })
   .nodeCanvasObject(drawNode)
   .nodePointerAreaPaint((node, color, ctx) => {
     ctx.fillStyle = color;
@@ -979,7 +995,33 @@ const Graph = ForceGraph()(el("graph"))
     const id = n ? n.id : null;
     if (id !== hovered) { hovered = id; repaint(); }
   })
-  .onNodeClick((n) => selectNode(n.id, true));   // empty canvas keeps the focus: only reset clears it
+  .onNodeClick((n, e) => handleNodeClick(n, e))
+  .onNodeDrag((node, translate) => {
+    if (selectedNodes.has(node.id)) {
+      selectedNodes.forEach((id) => {
+        if (id !== node.id) {
+          const other = byId.get(id);
+          if (other) {
+            other.x += translate.x;
+            other.y += translate.y;
+            other.fx = other.x;
+            other.fy = other.y;
+          }
+        }
+      });
+    }
+  })
+  .onNodeDragEnd((node) => {
+    if (selectedNodes.has(node.id)) {
+      selectedNodes.forEach((id) => {
+        const other = byId.get(id);
+        if (other) {
+          other.fx = other.x;
+          other.fy = other.y;
+        }
+      });
+    }
+  });
 
 const repaint = () => Graph.nodeRelSize(Graph.nodeRelSize());
 const degree = (id) => outAdj.get(id).length + inAdj.get(id).length;
@@ -1004,8 +1046,8 @@ function drawNode(node, ctx, scale) {
     ctx.beginPath();
     ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
   }
-  const issue = worstIssue(node.id);
-  if (node.id === selected) {
+  const isSel = (node.id === selected || selectedNodes.has(node.id));
+  if (isSel) {
     ctx.lineWidth = 2 / scale; ctx.strokeStyle = "#ffffff"; ctx.stroke();
   } else if (issue) {
     ctx.lineWidth = 1.5 / scale;
@@ -1145,6 +1187,157 @@ function drawHulls(ctx, scale) {
       ctx.textAlign = "left";
     });
   });
+}
+
+function drawFlowContainers(ctx, scale) {
+  if (view !== "flow" || scale < 0.25) return;
+  const shown = nodes.filter(isVisible);
+  if (!shown.length) return;
+
+  const classGroups = new Map();
+  shown.forEach((n) => {
+    if (n.x == null || n.y == null) return;
+    const cls = classOf(n);
+    if (!cls) return;
+    const c = Math.round(n.x / FC.col);
+    const key = c + "\t" + cls;
+    if (!classGroups.has(key)) classGroups.set(key, { col: c, cls, nodes: [], x: n.x, minY: n.y, maxY: n.y });
+    const grp = classGroups.get(key);
+    grp.nodes.push(n);
+    grp.minY = Math.min(grp.minY, n.y);
+    grp.maxY = Math.max(grp.maxY, n.y);
+  });
+
+  if (!classGroups.size) return;
+
+  ctx.save();
+  classGroups.forEach((grp) => {
+    const padX = 8, padTop = 22, padBottom = 8;
+    const boxX = grp.x - FC.w / 2 - padX;
+    const boxY = grp.minY - FC.h / 2 - padTop;
+    const boxW = FC.w + padX * 2;
+    const boxH = (grp.maxY - grp.minY) + FC.h + padTop + padBottom;
+
+    const isInterface = grp.nodes.every((n) => n.kind === "interface");
+    const hasSel = grp.nodes.some((n) => n.id === selected || selectedNodes.has(n.id));
+
+    roundBox(ctx, boxX, boxY, boxW, boxH, 8);
+    ctx.fillStyle = isInterface ? "rgba(14, 18, 26, 0.65)" : "rgba(16, 22, 32, 0.55)";
+    ctx.fill();
+
+    ctx.lineWidth = 1 / scale;
+    if (isInterface) {
+      ctx.strokeStyle = "rgba(224, 163, 62, 0.5)";
+      ctx.setLineDash([4 / scale, 3 / scale]);
+    } else {
+      ctx.strokeStyle = hasSel ? "rgba(63, 224, 160, 0.45)" : "rgba(38, 48, 66, 0.75)";
+      ctx.setLineDash([]);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    if (scale >= 0.35) {
+      ctx.font = "bold 9px ui-monospace, monospace";
+      ctx.fillStyle = hasSel ? "#3fe0a0" : "rgba(148, 163, 184, 0.85)";
+      ctx.textAlign = "left";
+      const title = fitText(ctx, grp.cls, boxW - (isInterface ? 75 : 20));
+      ctx.fillText(title, boxX + 10, boxY + 14);
+
+      if (isInterface) {
+        ctx.font = "9px ui-monospace, monospace";
+        ctx.fillStyle = "rgba(224, 163, 62, 0.85)";
+        ctx.textAlign = "right";
+        ctx.fillText("⟨Interface⟩", boxX + boxW - 10, boxY + 14);
+      }
+    }
+  });
+  ctx.restore();
+}
+
+function drawFlowLanes(ctx, scale) {
+  if (view !== "flow" || scale < 0.25) return;
+  const shown = nodes.filter(isVisible);
+  if (!shown.length) return;
+
+  const cols = new Map();
+  shown.forEach((n) => {
+    if (n.x == null) return;
+    const c = Math.round(n.x / FC.col);
+    if (!cols.has(c)) cols.set(c, { x: n.x, minY: n.y, maxY: n.y, layers: new Map(), classes: new Map() });
+    const colData = cols.get(c);
+    colData.minY = Math.min(colData.minY, n.y);
+    colData.maxY = Math.max(colData.maxY, n.y);
+    colData.layers.set(n.layer, (colData.layers.get(n.layer) || 0) + 1);
+    const cls = classOf(n);
+    if (cls) colData.classes.set(cls, (colData.classes.get(cls) || 0) + 1);
+  });
+
+  const sortedCols = [...cols.keys()].sort((a, b) => a - b);
+  if (sortedCols.length <= 1) return;
+
+  const colDominant = new Map();
+  sortedCols.forEach((c) => {
+    const data = cols.get(c);
+    let topLayer = "", maxCnt = 0;
+    data.layers.forEach((cnt, l) => {
+      if (cnt > maxCnt) { maxCnt = cnt; topLayer = l; }
+    });
+    colDominant.set(c, topLayer);
+  });
+
+  let serviceColCount = 0;
+  colDominant.forEach((l) => { if (l === "service") serviceColCount++; });
+
+  ctx.save();
+  sortedCols.forEach((c, idx) => {
+    const data = cols.get(c);
+    if (idx < sortedCols.length - 1) {
+      const nextData = cols.get(sortedCols[idx + 1]);
+      const divX = (data.x + nextData.x) / 2;
+      ctx.strokeStyle = "rgba(30, 38, 52, 0.45)";
+      ctx.lineWidth = 1 / scale;
+      ctx.setLineDash([4 / scale, 6 / scale]);
+      ctx.beginPath();
+      ctx.moveTo(divX, data.minY - 70);
+      ctx.lineTo(divX, Math.max(data.maxY, nextData.maxY) + 70);
+      ctx.stroke();
+    }
+
+    if (scale >= 0.35) {
+      const topLayer = colDominant.get(c) || "";
+      let topClass = "";
+      let maxClsCnt = 0;
+      data.classes.forEach((cnt, cls) => {
+        if (cnt > maxClsCnt) { maxClsCnt = cnt; topClass = cls; }
+      });
+
+      const TIER_NAMES = {
+        controller: "CONTROLLERS / ENTRY",
+        service: "SERVICES / LOGIC",
+        repository: "REPOSITORIES / DATA",
+        client: "CLIENTS / EXTERNAL",
+        model: "MODELS / DTO",
+        ui: "FRONTEND / UI",
+        test: "TESTS"
+      };
+
+      let tierTitle = TIER_NAMES[topLayer] || (topLayer ? topLayer.toUpperCase() : `TIER ${c + 1}`);
+
+      if (topLayer === "service" && (serviceColCount > 1 || topClass)) {
+        const cleanName = topClass.replace(/ServiceImpl$/, "").replace(/Service$/, "") || topClass;
+        tierTitle = `SERVICES (${cleanName})`;
+      } else if (topLayer === "ui" || topLayer === "client") {
+        tierTitle = "FRONTEND / UI TIER";
+      }
+
+      ctx.font = `600 ${Math.max(9, 10 / scale)}px ui-monospace, monospace`;
+      ctx.fillStyle = "rgba(100, 116, 139, 0.6)";
+      ctx.textAlign = "center";
+      ctx.fillText(tierTitle, data.x, data.minY - FC.h / 2 - 28);
+      ctx.textAlign = "left";
+    }
+  });
+  ctx.restore();
 }
 // ---------------------------------------------------------------- views
 const VIEWS = [["flow", "Flowchart"], ["graph", "Graph"], ["tree", "Tree"], ["cluster", "Cluster"],
@@ -1287,7 +1480,7 @@ function refocus(fit) {
 // which is what untangles the links. Nodes with no links sit in a grid underneath, so hundreds
 // of them cannot stretch the first column. Pinned, like Cluster and Bundle. A box holds two
 // lines of name, so a long id wraps instead of losing its method name to an ellipsis.
-const FC = { w: 180, h: 34, row: 44, col: 250 };
+const FC = { w: 192, h: 36, row: 54, col: 275 };
 
 function layoutFlowchart() {
   nodes.forEach((n) => { n.fx = null; n.fy = null; });
@@ -1318,9 +1511,53 @@ function layoutFlowchart() {
       if (!state.has(t)) { state.set(t, 1); stack.push([t, 0]); }
     }
   });
-  const col = new Map(linked.map((n) => [n.id, 0]));
+
+  // Layer-aware baseline column: UI -> Controller/API -> Service/Domain -> Persistence/Data
+  const layerRank = (n) => {
+    const l = n?.layer;
+    if (l === "ui" || l === "client") return 0;
+    if (l === "controller" || l === "http" || l === "api") return 1;
+    if (l === "service" || l === "workflow") return 2;
+    if (l === "repository" || l === "model" || l === "store") return 3;
+    return 1;
+  };
+  const minLayer = linked.length ? Math.min(...linked.map((n) => layerRank(n))) : 0;
+  const baseCol = (n) => Math.max(0, layerRank(n) - minLayer);
+
+  // Pre-index edge types to identify inheritance and relationships
+  const edgeTypeMap = new Map();
+  EDGES.forEach((e) => {
+    const [s, t] = REVERSED_LINKS.has(e.type) ? [e.target, e.source] : [e.source, e.target];
+    edgeTypeMap.set(siteKey(s, t), e.type);
+  });
+
+  const isUi = (n) => n && (n.layer === "ui" || n.layer === "client");
+
+  const col = new Map(linked.map((n) => [n.id, baseCol(n)]));
   post.slice().reverse().forEach((id) =>
-    (fwd.get(id) || []).forEach((t) => col.set(t, Math.max(col.get(t), col.get(id) + 1))));
+    (fwd.get(id) || []).forEach((t) => {
+      const sNode = byId.get(id);
+      const tNode = byId.get(t);
+      const tBase = baseCol(tNode);
+      const eType = edgeTypeMap.get(siteKey(id, t));
+      const isInherit = REVERSED_LINKS.has(eType);
+
+      const sCls = classOf(sNode);
+      const tCls = classOf(tNode);
+      const sameClass = !!(sCls && tCls && sCls === tCls);
+      const bothUi = isUi(sNode) && isUi(tNode);
+
+      if (isInherit || sameClass || bothUi) {
+        col.set(t, Math.max(col.get(t), tBase, col.get(id)));
+      } else {
+        col.set(t, Math.max(col.get(t), tBase, col.get(id) + 1));
+      }
+    }));
+
+  // Compact columns so indices are contiguous: 0, 1, 2...
+  const usedCols = [...new Set(col.values())].sort((a, b) => a - b);
+  const colRemap = new Map(usedCols.map((c, idx) => [c, idx]));
+  linked.forEach((n) => col.set(n.id, colRemap.get(col.get(n.id))));
 
   const columns = [];
   linked.forEach((n) => {
@@ -1329,44 +1566,107 @@ function layoutFlowchart() {
     columns[c].push(n.id);
   });
   const pos = new Map();
-  const place = (list) => list.forEach((id, i) => pos.set(id, i - (list.length - 1) / 2));
-
-  const callRank = (s, t) => {
-    const site = CALL_SITES.get(siteKey(s, t));
-    return site ? site.rank : 0;
+  const place = (list) => {
+    let curY = 0;
+    let prevCls = null;
+    list.forEach((id, i) => {
+      const cls = classOf(byId.get(id)) || "";
+      if (i > 0 && cls !== prevCls) {
+        curY += 0.5; // extra clearance between different class containers
+      }
+      pos.set(id, curY);
+      curY += 1.0;
+      prevCls = cls;
+    });
+    const mid = (curY - 1.0) / 2;
+    list.forEach((id) => pos.set(id, pos.get(id) - mid));
   };
 
-  columns.forEach((list, c) => {
+  // Initial placement within each column: group by class, then by label
+  columns.forEach((list) => {
     if (!list || !list.length) return;
-    if (c === 0) {
-      list.sort((a, b) =>
-        dirOf(fileOf(byId.get(a))).localeCompare(dirOf(fileOf(byId.get(b))))
-        || labelOf(byId.get(a)).localeCompare(labelOf(byId.get(b))));
-      place(list);
-      return;
-    }
-    const callerY = new Map();
-    const rank = new Map();
-    list.forEach((t) => {
-      const preds = (ins.get(t) || []).filter((s) => col.get(s) < c && pos.has(s));
-      if (preds.length) {
-        callerY.set(t, preds.reduce((acc, s) => acc + pos.get(s), 0) / preds.length);
-        rank.set(t, Math.min(...preds.map((s) => callRank(s, t))));
-      } else {
-        const others = (ins.get(t) || []).concat(outs.get(t) || []).filter((x) => pos.has(x));
-        callerY.set(t, others.length ? others.reduce((acc, x) => acc + pos.get(x), 0) / others.length : 0);
-        rank.set(t, 0);
-      }
-    });
     list.sort((a, b) => {
-      const ya = callerY.get(a), yb = callerY.get(b);
-      if (Math.abs(ya - yb) > 0.001) return ya - yb;
-      const ra = rank.get(a), rb = rank.get(b);
-      if (ra !== rb) return ra - rb;
-      return labelOf(byId.get(a)).localeCompare(labelOf(byId.get(b)));
+      const na = byId.get(a), nb = byId.get(b);
+      const ca = classOf(na), cb = classOf(nb);
+      if (ca && cb && ca !== cb) return ca.localeCompare(cb);
+      return dirOf(fileOf(na)).localeCompare(dirOf(fileOf(nb)))
+        || labelOf(na).localeCompare(labelOf(nb));
     });
     place(list);
   });
+
+  // Sugiyama 2-way iterative barycenter sweeps (6 passes) to untangle lines and align callers/callees
+  const getBary = (id, neighbors) => {
+    if (!neighbors || !neighbors.length) return null;
+    const known = neighbors.filter((x) => pos.has(x));
+    return known.length ? known.reduce((acc, x) => acc + pos.get(x), 0) / known.length : null;
+  };
+
+  for (let pass = 0; pass < 6; pass++) {
+    const forward = (pass % 2 === 0);
+    const range = forward
+      ? [...Array(columns.length).keys()]
+      : [...Array(columns.length).keys()].reverse();
+
+    range.forEach((c) => {
+      const list = columns[c];
+      if (!list || list.length <= 1) return;
+
+      const bary = new Map();
+      list.forEach((id) => {
+        const preds = (ins.get(id) || []).filter((s) => col.get(s) < c);
+        const succs = (outs.get(id) || []).filter((t) => col.get(t) > c);
+        const peers = (ins.get(id) || []).concat(outs.get(id) || []).filter((x) => col.get(x) === c);
+
+        let val = null;
+        if (forward) {
+          val = getBary(id, preds);
+          if (val == null) val = getBary(id, succs);
+        } else {
+          val = getBary(id, succs);
+          if (val == null) val = getBary(id, preds);
+        }
+        if (val == null) val = getBary(id, peers);
+        if (val != null) bary.set(id, val);
+      });
+
+      // Group barycenters by class so methods of the same class stay contiguous
+      const clsBary = new Map();
+      const clsCounts = new Map();
+      list.forEach((id) => {
+        const cls = classOf(byId.get(id)) || id;
+        const b = bary.get(id);
+        if (b != null) {
+          clsBary.set(cls, (clsBary.get(cls) || 0) + b);
+          clsCounts.set(cls, (clsCounts.get(cls) || 0) + 1);
+        }
+      });
+      const clsAvg = new Map();
+      clsBary.forEach((sum, cls) => clsAvg.set(cls, sum / clsCounts.get(cls)));
+
+      list.sort((a, b) => {
+        const na = byId.get(a), nb = byId.get(b);
+        const ca = classOf(na) || a, cb = classOf(nb) || b;
+        if (ca !== cb) {
+          const hasA = clsAvg.has(ca), hasB = clsAvg.has(cb);
+          if (hasA && hasB) {
+            const diff = clsAvg.get(ca) - clsAvg.get(cb);
+            if (Math.abs(diff) > 0.001) return diff;
+          } else if (hasA) return -1;
+          else if (hasB) return 1;
+          return ca.localeCompare(cb);
+        }
+        // Within same class, sort by individual barycenter
+        const bA = bary.get(a), bB = bary.get(b);
+        if (bA != null && bB != null && Math.abs(bA - bB) > 0.001) return bA - bB;
+        if (bA != null) return -1;
+        if (bB != null) return 1;
+        return labelOf(na).localeCompare(labelOf(nb));
+      });
+
+      place(list);
+    });
+  }
 
   let bottom = 0;
   columns.forEach((list, c) => list.forEach((id) => {
@@ -1421,60 +1721,147 @@ function fitLines(ctx, text, max) {
 }
 
 // A box: the layer colour as a bar down its left edge (hollow for an interface, and a dashed
-// border for an abstract class -- a kind is a shape, never a colour), the name, and the same
-// selection / risk stroke the round nodes get.
+// border for an abstract class -- a kind is a shape, never a colour), two-line name hierarchy,
+// and the same selection / risk stroke the round nodes get.
 function drawFlowBox(node, ctx, scale) {
   const { w, h } = FC, x = node.x - w / 2, y = node.y - h / 2;
   const issue = worstIssue(node.id);
-  roundBox(ctx, x, y, w, h, 4);
-  ctx.fillStyle = "#131820"; ctx.fill();
-  ctx.setLineDash(node.kind === "abstract" ? [4, 3] : []);
-  ctx.lineWidth = (node.id === selected ? 2 : issue ? 1.5 : 1) / scale;
-  ctx.strokeStyle = node.id === selected ? "#ffffff"
-    : issue === "high" ? "#f85149" : issue ? "#e3b341" : "#2a313c";
+  const isSel = (node.id === selected || selectedNodes.has(node.id));
+
+  roundBox(ctx, x, y, w, h, 6);
+  ctx.fillStyle = node.kind === "interface" ? "#0f131a" : "#121721";
+  ctx.fill();
+
+  ctx.setLineDash(node.kind === "abstract" || node.kind === "interface" ? [4, 3] : []);
+  ctx.lineWidth = (isSel ? 2 : issue ? 1.5 : 1) / scale;
+  ctx.strokeStyle = isSel ? "#ffffff"
+    : issue === "high" ? "#f85149" : issue ? "#e3b341" : "#1e2634";
   ctx.stroke(); ctx.setLineDash([]);
+
+  // Left layer accent pill
   ctx.fillStyle = ctx.strokeStyle = colorFor(node);
-  if (node.kind === "interface") { ctx.lineWidth = 1 / scale; ctx.strokeRect(x + 3, y + 4, 3, h - 8); }
-  else ctx.fillRect(x + 3, y + 4, 3, h - 8);
+  if (node.kind === "interface") {
+    ctx.lineWidth = 1.2 / scale;
+    ctx.strokeRect(x + 4, y + 5, 3, h - 10);
+  } else {
+    ctx.fillRect(x + 4, y + 5, 3, h - 10);
+  }
+
   if (scale < 0.35) return;               // unreadable this far out, and not free on a big map
-  ctx.font = "11px ui-monospace, monospace";
-  if (node._fcText == null) node._fcText = fitLines(ctx, labelOf(node), w - 20);
-  ctx.fillStyle = "#d7dde8";
-  if (node._fcText.length === 1) ctx.fillText(node._fcText[0], x + 12, node.y + 4);
-  else { ctx.fillText(node._fcText[0], x + 12, node.y - 3); ctx.fillText(node._fcText[1], x + 12, node.y + 9); }
+
+  if (node._fcText == null) {
+    const raw = labelOf(node);
+    const dot = raw.lastIndexOf(".");
+    if (dot > 0 && dot < raw.length - 1) {
+      node._fcText = [fitText(ctx, raw.slice(0, dot + 1), w - 24), fitText(ctx, raw.slice(dot + 1), w - 24)];
+    } else {
+      node._fcText = fitLines(ctx, raw, w - 24);
+    }
+  }
+
+  ctx.font = "10px ui-monospace, monospace";
+  if (node._fcText.length === 1) {
+    ctx.fillStyle = isSel ? "#ffffff" : "#e6e9ee";
+    ctx.fillText(node._fcText[0], x + 14, node.y + 4);
+  } else {
+    ctx.fillStyle = "#8b98ad";
+    ctx.fillText(node._fcText[0], x + 14, node.y - 3);
+    ctx.font = "bold 11px ui-monospace, monospace";
+    ctx.fillStyle = isSel ? "#ffffff" : "#e6e9ee";
+    ctx.fillText(node._fcText[1], x + 14, node.y + 10);
+  }
 }
 
-// An elbow from the caller's right edge to the callee's left edge, bending in the gap before
-// the callee's column. A link back to the same or an earlier column loops under both boxes.
+// A smooth spline from the caller to the callee. Forward links curve gracefully between columns;
+// same-column links form a neat lateral bracket; backward links loop with dedicated lane clearance.
 // Colour and dash come from the same accessors as every other view.
 function drawFlowLink(l, ctx, scale) {
   if (view !== "flow") return;
   const s = l.source, t = l.target;
   if (s === t || s.x == null || t.x == null) return;
-  const gap = (FC.col - FC.w) / 2;
-  const x1 = s.x + FC.w / 2, y1 = s.y, x2 = t.x - FC.w / 2, y2 = t.y;
+
+  const isHighlighted = highlightLinks.has(l);
   ctx.strokeStyle = ctx.fillStyle = Graph.linkColor()(l);
-  ctx.lineWidth = (highlightLinks.has(l) ? 2 : 1) / scale;
+  ctx.lineWidth = (isHighlighted ? 2.2 : 1.2) / scale;
   ctx.setLineDash(Graph.linkLineDash()(l) || []);
+
+  const dx = t.x - s.x;
   ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  if (x2 > x1) {
-    ctx.lineTo(x2 - gap, y1); ctx.lineTo(x2 - gap, y2);
+
+  if (dx > 0) {
+    // Forward link: leaves caller right edge, enters callee left edge via smooth cubic Bezier
+    const x1 = s.x + FC.w / 2, y1 = s.y;
+    const x2 = t.x - FC.w / 2, y2 = t.y;
+    const span = Math.max(40, (x2 - x1) * 0.45);
+    ctx.moveTo(x1, y1);
+    ctx.bezierCurveTo(x1 + span, y1, x2 - span, y2, x2, y2);
+    ctx.stroke(); ctx.setLineDash([]);
+
+    // Sleek arrowhead pointing right into (x2, y2)
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - 6, y2 - 3.5);
+    ctx.lineTo(x2 - 6, y2 + 3.5);
+    ctx.closePath(); ctx.fill();
+
+    drawCallBadge(l, ctx, scale, x2 - 19, y2);
+  } else if (Math.abs(dx) < 1) {
+    // Same-column link: neat lateral C-curve bracket in the right gap
+    const x1 = s.x + FC.w / 2, y1 = s.y;
+    const y2 = t.y;
+    const mx = x1 + 22;
+    ctx.moveTo(x1, y1);
+    ctx.bezierCurveTo(mx, y1, mx, y2, x1, y2);
+    ctx.stroke(); ctx.setLineDash([]);
+
+    // Arrowhead pointing back into right edge of callee
+    ctx.beginPath();
+    ctx.moveTo(x1, y2);
+    ctx.lineTo(x1 + 6, y2 - 3.5);
+    ctx.lineTo(x1 + 6, y2 + 3.5);
+    ctx.closePath(); ctx.fill();
+
+    drawCallBadge(l, ctx, scale, x1 + 18, y2);
   } else {
-    const lane = Math.max(y1, y2) + FC.row / 2;
-    ctx.lineTo(x1 + gap / 2, y1); ctx.lineTo(x1 + gap / 2, lane);
-    ctx.lineTo(x2 - gap / 2, lane); ctx.lineTo(x2 - gap / 2, y2);
+    // Backward link (callee in an earlier column):
+    // If adjacent column: direct smooth connection from caller's left edge to callee's right edge
+    const x1 = s.x - FC.w / 2, y1 = s.y;
+    const x2 = t.x + FC.w / 2, y2 = t.y;
+    if (s.x - t.x <= FC.col * 1.5) {
+      const span = Math.max(30, (x1 - x2) * 0.45);
+      ctx.moveTo(x1, y1);
+      ctx.bezierCurveTo(x1 - span, y1, x2 + span, y2, x2, y2);
+      ctx.stroke(); ctx.setLineDash([]);
+
+      // Arrowhead pointing left into (x2, y2)
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 + 6, y2 - 3.5);
+      ctx.lineTo(x2 + 6, y2 + 3.5);
+      ctx.closePath(); ctx.fill();
+
+      drawCallBadge(l, ctx, scale, x2 + 19, y2);
+    } else {
+      // Long backward bypass across multiple columns
+      const lane = Math.max(y1, y2) + FC.row * 0.65;
+      const gap = (FC.col - FC.w) / 2;
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x1 - gap / 2, y1);
+      ctx.lineTo(x1 - gap / 2, lane);
+      ctx.lineTo(x2 + gap / 2, lane);
+      ctx.lineTo(x2 + gap / 2, y2);
+      ctx.lineTo(x2, y2);
+      ctx.stroke(); ctx.setLineDash([]);
+
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 + 6, y2 - 3.5);
+      ctx.lineTo(x2 + 6, y2 + 3.5);
+      ctx.closePath(); ctx.fill();
+
+      drawCallBadge(l, ctx, scale, x2 + 19, y2);
+    }
   }
-  ctx.lineTo(x2, y2);
-  ctx.stroke(); ctx.setLineDash([]);
-  ctx.beginPath();
-  ctx.moveTo(x2, y2); ctx.lineTo(x2 - 6, y2 - 3.5); ctx.lineTo(x2 - 6, y2 + 3.5);
-  ctx.closePath(); ctx.fill();
-  // Just behind the arrowhead, on the last run into the callee: that run is the one piece of
-  // a link no other outgoing link shares. A caller's links leave from one pixel and bend on one
-  // vertical trunk per column, so a badge anywhere before the last turn stacked on its siblings'.
-  // Rows are FC.row apart, far more than the ring's 22px, so badges of one fan-out cannot meet.
-  drawCallBadge(l, ctx, scale, x2 - 19, y2);
 }
 
 // One glyph, three facts about where a call is written, all shape and never a new colour:
@@ -1723,10 +2110,41 @@ function computeHighlight(id) {
   });
 }
 
+function handleNodeClick(node, event) {
+  const isMulti = event && (event.shiftKey || event.ctrlKey || event.metaKey);
+  if (isMulti) {
+    if (selectedNodes.has(node.id)) {
+      selectedNodes.delete(node.id);
+      selected = selectedNodes.size ? [...selectedNodes][selectedNodes.size - 1] : null;
+    } else {
+      selectedNodes.add(node.id);
+      selected = node.id;
+    }
+    if (selected) {
+      computeHighlight(selected);
+      showTab("file");
+      renderFile(byId.get(selected));
+    } else {
+      highlightNodes.clear();
+      highlightLinks.clear();
+    }
+    updateStatus();
+    repaint();
+  } else {
+    selectedNodes.clear();
+    selectedNodes.add(node.id);
+    selectNode(node.id, true);
+  }
+}
+
 function selectNode(id, recenter) {
   const node = byId.get(id);
   if (!node) return;
   selected = id;
+  if (!selectedNodes.has(id)) {
+    selectedNodes.clear();
+    selectedNodes.add(id);
+  }
   computeHighlight(id);
   showTab("file");
   renderFile(node);
@@ -1739,7 +2157,7 @@ function selectNode(id, recenter) {
 }
 
 function clearSelection() {
-  selected = null; focus = null; highlightNodes.clear(); highlightLinks.clear();
+  selected = null; selectedNodes.clear(); focus = null; highlightNodes.clear(); highlightLinks.clear();
   // #backBtn is rendered into the panel by backLink(), so it only exists while a
   // panel that offers "back" is showing. Reset from any other panel used to throw
   // on null here; renderPanel() below redraws the panel from `backTo` anyway.
@@ -1756,7 +2174,11 @@ function updateStatus() {
   const affected = selected ? reach(selected, inAdj).set.size : 0;
   el("stAffected").innerHTML = `<b>${affected}</b> affected`;
   el("stAffected").style.display = selected ? "" : "none";
-  el("stSel").innerHTML = selected ? `selected <b>${esc(nameOf(selected))}</b>` : "click a node for details";
+  if (selectedNodes.size > 1) {
+    el("stSel").innerHTML = `<b>${selectedNodes.size}</b> nodes selected (drag to move group)`;
+  } else {
+    el("stSel").innerHTML = selected ? `selected <b>${esc(nameOf(selected))}</b>` : "click a node for details";
+  }
 }
 
 // ---------------------------------------------------------------- right panel
@@ -2444,6 +2866,68 @@ const fit = () => {
 };
 new ResizeObserver(fit).observe(stage);
 
+// Marquee box multi-selection (Shift + drag on canvas)
+let marquee = null;
+const marqueeEl = document.createElement("div");
+marqueeEl.style.cssText = "position:absolute;display:none;border:1px dashed #3fe0a0;background:rgba(63,224,160,0.12);pointer-events:none;z-index:10;";
+stage.appendChild(marqueeEl);
+
+stage.addEventListener("pointerdown", (e) => {
+  if (e.shiftKey && !Graph.hoverObj && view !== "matrix" && view !== "treemap") {
+    const r = stage.getBoundingClientRect();
+    marquee = { x0: e.clientX - r.left, y0: e.clientY - r.top, x1: e.clientX - r.left, y1: e.clientY - r.top };
+    marqueeEl.style.left = marquee.x0 + "px";
+    marqueeEl.style.top = marquee.y0 + "px";
+    marqueeEl.style.width = "0px";
+    marqueeEl.style.height = "0px";
+    marqueeEl.style.display = "block";
+    Graph.enablePanInteraction(false);
+  }
+});
+
+window.addEventListener("pointermove", (e) => {
+  if (marquee) {
+    const r = stage.getBoundingClientRect();
+    marquee.x1 = Math.max(0, Math.min(r.width, e.clientX - r.left));
+    marquee.y1 = Math.max(0, Math.min(r.height, e.clientY - r.top));
+    marqueeEl.style.left = Math.min(marquee.x0, marquee.x1) + "px";
+    marqueeEl.style.top = Math.min(marquee.y0, marquee.y1) + "px";
+    marqueeEl.style.width = Math.abs(marquee.x1 - marquee.x0) + "px";
+    marqueeEl.style.height = Math.abs(marquee.y1 - marquee.y0) + "px";
+  }
+});
+
+window.addEventListener("pointerup", (e) => {
+  if (marquee) {
+    const minX = Math.min(marquee.x0, marquee.x1);
+    const maxX = Math.max(marquee.x0, marquee.x1);
+    const minY = Math.min(marquee.y0, marquee.y1);
+    const maxY = Math.max(marquee.y0, marquee.y1);
+    marqueeEl.style.display = "none";
+    Graph.enablePanInteraction(true);
+
+    if (maxX - minX > 5 || maxY - minY > 5) {
+      if (!e.ctrlKey && !e.metaKey) selectedNodes.clear();
+      nodes.filter(isVisible).forEach((n) => {
+        if (n.x == null || n.y == null) return;
+        const pt = Graph.graph2ScreenCoords(n.x, n.y);
+        if (pt.x >= minX && pt.x <= maxX && pt.y >= minY && pt.y <= maxY) {
+          selectedNodes.add(n.id);
+        }
+      });
+      if (selectedNodes.size) {
+        selected = [...selectedNodes][selectedNodes.size - 1];
+        computeHighlight(selected);
+        showTab("file");
+        renderFile(byId.get(selected));
+      }
+      updateStatus();
+      repaint();
+    }
+    marquee = null;
+  }
+});
+
 // ---------------------------------------------------------------- map switch
 function renderMapSwitch() {
   el("mapSwitch").style.display = MAP_NAMES.length > 1 ? "flex" : "none";
@@ -2461,7 +2945,7 @@ function renderMapSwitch() {
 // Switch the whole page over to another map: same UI, different graph.
 function applyMap(name) {
   loadMap(name);
-  selected = null; focus = null; fileFilter = null; backTo = null; tab = "file";
+  selected = null; selectedNodes.clear(); focus = null; fileFilter = null; backTo = null; tab = "file";
   highlightNodes = new Set(); highlightLinks = new Set(); visibleIds = null;
   el("filterChip").classList.remove("on");
   if (!HAS_CHURN && (colorMode === "churn" || colorMode === "risk")) colorMode = "layer";

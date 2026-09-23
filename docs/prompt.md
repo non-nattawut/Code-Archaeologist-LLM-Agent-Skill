@@ -7142,3 +7142,33 @@ Verified: `tools/check_docs.py` passed (`check_docs: OK`).
 
 **Response**
 Verified all mirror-truth docs, ran `tools/check_docs.py` (clean), staged all modified files (`AGENTS.md`, `tools/check_docs.py`, `docs/USAGE.md`, `tests/fixtures/langs/README.md`, `docs/ROADMAP_PLAN.md`, `docs/ARCHITECTURE_GUIDE.th.html`, and `docs/prompt.md`), committed, and pushed to `origin/main`.
+
+## [176] 2026-09-23 — Flowchart untangle, multi-node selection, service containers, and 0.4.0 release
+
+**Prompt**
+> can we make flow chart more pretty with less entanglement?
+> decide html for me what it will become in plan before implement
+> ok implement plan
+> how hard to add select multiple node to multiple move, if it easy do it
+> do you think our gropuing still bad? I have select some of it to you if you think bad please design as HTML for me what you will fix it
+> I like it implement the plan
+> finish? if you commit and push and create relese note ad .md for version 0.4
+
+**Response**
+Implemented comprehensive flowchart redesign and component grouping fixes across `templates/viewer.html` and rebuilt `data/explorer.html`:
+
+1. **Sugiyama Two-Way Iterative Barycentric Sweeps**: 6 alternating passes aligning callers and callees horizontally, eliminating diagonal crossings.
+2. **Smooth Cubic Bezier Edge Routing**: Replaced rigid 90° orthogonal elbows with natural cubic Bezier splines (`bezierCurveTo`), lateral C-curve brackets for same-column calls, and dedicated bypass lanes for backward loops.
+3. **Multi-Node Selection & Group Move**: Shift/Ctrl+Click toggle, canvas marquee drag-to-select, and synchronized group drag translating all selected nodes together.
+4. **Smart Column Assignment & Service Containers**:
+   - Inheritance links (`implements`, `extends`, `overrides`) no longer push implementations into artificial new columns; interfaces and their implementations share the same tier stage, eliminating backward loop jumps.
+   - Internal helper calls remain inside parent service container instead of creating redundant columns.
+   - Frontend / UI components and fetch helpers stay in `FRONTEND / UI TIER`.
+   - Distinct column headers dynamically display dominant domain names (e.g., `SERVICES (Auth)`, `SERVICES (Token)`, `SERVICES (Tenant)`, `SERVICES (ImageUpload)`) avoiding duplicate `SERVICES / LOGIC` headers.
+   - Class & Service Containers (`drawFlowContainers`) with rounded boundary cards, service headers, and `⟨Interface⟩` contract badges.
+   - Contiguous class ordering during Sugiyama sweeps with 0.5-row vertical spacing between different class containers.
+5. **Release 0.4.0**:
+   - Bumped `package.json` to `0.4.0`.
+   - Created `RELEASE_NOTES_0.4.md`.
+   - Verified: `check_docs: OK`, `check_graph: 34/34 OK`, `check_regressions: 84/84 PASS`.
+
