@@ -581,7 +581,7 @@ checkbox re-renders through `applyMap`; anything reading edges must use `EDGES`,
 
 `templates/viewer.html` is a normal HTML/CSS/JS file (three-pane explorer: health ring + tiles +
 LOC/language mix + file tree | seven views, the Flowchart first and open by default:
-Flowchart/Graph/Treemap/Matrix/Tree/Cluster/Bundle |
+Flowchart/Graph/Tree/Cluster/Bundle/Treemap/Matrix |
 FILE/PATTERNS/SECURITY tabs). Edit it directly; don't move markup back into Python. Its per-map
 state is rebuilt by `loadMap()` / `applyMap()` — anything derived from a graph belongs in there,
 not in a top-level `const`.
@@ -608,15 +608,15 @@ view, and the toolbar's own rule is that a new control goes in the `⋯` menu. `
 
 A node is drawn and listed by `labelOf(n)` -- its id without the file qualifier `ids.py` adds
 to a shared name -- and its path lives in the right panel, never on the canvas. A file/folder
-filter and a Flowchart selection **hide** what they leave out (`visibleIds`, through
-force-graph's `nodeVisibility` / `linkVisibility`) rather than dimming it: a file keeps its own
-nodes plus their direct links, a Flowchart selection its whole flow -- every caller back to the
-start and every callee to the end, whatever **Blast radius** says (it only picks the highlighted
-links). The flow kept is the **focus**'s (`focus`), which is the selection unless **Freeze** is
-ticked: then a click still selects (panel, highlight) but neither re-narrows the Flowchart nor
-flies the other views, and unticking catches the view up with the selection. Clicking empty canvas
-clears nothing -- only the toolbar **reset** (or Escape) drops the selection and focus. On a
-1,500-node repository a faded node was still in the way. The Flowchart replaced the old `Flow`
+filter and a canvas view selection (Flowchart, Graph, Tree, Cluster, Bundle) **hide** what they
+leave out (`visibleIds`, through force-graph's `nodeVisibility` / `linkVisibility`) rather than
+dimming it: a file keeps its own nodes plus their direct links, a canvas selection its whole
+flow -- every caller back to the start and every callee to the end, whatever **Blast radius** says
+(it only picks the highlighted links). The flow kept is the **focus**'s (`focus`), which is the
+selection unless **Freeze** is ticked: then a click still selects (panel, highlight) but neither
+re-narrows the view nor moves the canvas, and unticking catches the view up with the selection.
+Clicking empty canvas clears nothing -- only the toolbar **reset** (or Escape) drops the selection
+and focus. On a 1,500-node repository a faded node was still in the way. The Flowchart replaced the old `Flow`
 view (a `dagMode("lr")` force layout) and keeps its id `flow`: `layoutFlowchart()` gives each
 node the column of its longest call path, orders rows by folder and then by neighbours'
 rows, puts unlinked nodes in a grid underneath, and pins the result like Cluster and Bundle;

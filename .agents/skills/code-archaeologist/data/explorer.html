@@ -1018,8 +1018,6 @@ const degree = (id) => outAdj.get(id).length + inAdj.get(id).length;
 function drawNode(node, ctx, scale) {
   if (view === "flow") return drawFlowBox(node, ctx, scale);
   const r = 4 + Math.min(degree(node.id), 8) * 0.7;
-  const dim = selected && !highlightNodes.has(node.id);
-  ctx.globalAlpha = dim ? 0.15 : 1;
   ctx.beginPath();
   ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
   ctx.fillStyle = colorFor(node);
@@ -1047,9 +1045,8 @@ function drawNode(node, ctx, scale) {
   }
   const fs = Math.max(3, 11 / scale);
   ctx.font = `${fs}px ui-sans-serif, system-ui`;
-  ctx.fillStyle = dim ? "rgba(215,221,232,.3)" : "#d7dde8";
+  ctx.fillStyle = "#d7dde8";
   ctx.fillText(labelOf(node), node.x + r + 2, node.y + 3.5);
-  ctx.globalAlpha = 1;
 }
 
 // Convex hull (monotone chain) per folder, drawn behind the nodes.
@@ -1181,8 +1178,8 @@ function drawHulls(ctx, scale) {
   });
 }
 // ---------------------------------------------------------------- views
-const VIEWS = [["flow", "Flowchart"], ["graph", "Graph"], ["treemap", "Treemap"], ["matrix", "Matrix"],
-               ["tree", "Tree"], ["cluster", "Cluster"], ["bundle", "Bundle"]];
+const VIEWS = [["flow", "Flowchart"], ["graph", "Graph"], ["tree", "Tree"], ["cluster", "Cluster"],
+               ["bundle", "Bundle"], ["treemap", "Treemap"], ["matrix", "Matrix"]];
 el("views").innerHTML = VIEWS.map(([id, label]) =>
   `<button data-view="${id}" class="${id === view ? "on" : ""}">${label}</button>`).join("");
 el("views").querySelectorAll("button").forEach((b) =>
@@ -1236,13 +1233,14 @@ function setView(next) {
 // Bundle: nodes pinned on a circle, grouped by folder, links drawn as curves that
 // bow through the middle — the readable stand-in for hierarchical edge bundling.
 function layoutBundle() {
-  const ordered = nodes.slice().sort((a, b) => {
+  nodes.forEach((n) => { n.fx = null; n.fy = null; });
+  const ordered = nodes.filter(isVisible).sort((a, b) => {
     const fa = dirOf(fileOf(a)), fb = dirOf(fileOf(b));
     return fa.localeCompare(fb) || a.id.localeCompare(b.id);
   });
   const R = 40 + ordered.length * 9;
   ordered.forEach((n, i) => {
-    const a = (i / ordered.length) * 2 * Math.PI;
+    const a = (i / Math.max(1, ordered.length)) * 2 * Math.PI;
     n.fx = Math.cos(a) * R; n.fy = Math.sin(a) * R;
   });
 }
@@ -1250,12 +1248,15 @@ function layoutBundle() {
 // Cluster: folders get anchors on a ring, and each folder's nodes sit on a small
 // circle around their anchor. Pinned, so the grouping is stable and readable.
 function layoutCluster() {
-  const groups = new Map(folders.map((f) => [f, []]));
-  nodes.forEach((n) => groups.get(dirOf(fileOf(n)))?.push(n));
-  const R = 160 + folders.length * 60;
+  nodes.forEach((n) => { n.fx = null; n.fy = null; });
+  const shown = nodes.filter(isVisible);
+  const activeFolders = folders.filter((f) => shown.some((n) => dirOf(fileOf(n)) === f));
+  const groups = new Map(activeFolders.map((f) => [f, []]));
+  shown.forEach((n) => groups.get(dirOf(fileOf(n)))?.push(n));
+  const R = 160 + activeFolders.length * 60;
   [...groups.entries()].forEach(([folder, members], gi) => {
-    const a = (gi / Math.max(1, folders.length)) * 2 * Math.PI;
-    const [cx, cy] = folders.length === 1 ? [0, 0] : [Math.cos(a) * R, Math.sin(a) * R];
+    const a = (gi / Math.max(1, activeFolders.length)) * 2 * Math.PI;
+    const [cx, cy] = activeFolders.length <= 1 ? [0, 0] : [Math.cos(a) * R, Math.sin(a) * R];
     const r = 30 + members.length * 11;
     members.forEach((n, i) => {
       const t = (i / Math.max(1, members.length)) * 2 * Math.PI;
@@ -1265,9 +1266,9 @@ function layoutCluster() {
   });
 }
 
-// ---------------------------------------------------------------- focus + flowchart view
+// ---------------------------------------------------------------- focus + canvas views
 // What stays on the canvas. A file filter keeps its own nodes and everything they link to
-// directly. In the flowchart a selection keeps its whole flow -- every caller back to where it
+// directly. In canvas views a selection keeps its whole flow -- every caller back to where it
 // starts and every callee down to where it ends -- whatever Blast radius says (that toggle
 // only decides which links are highlighted); a flow cut at a filter's edge reads as finished.
 // The flow kept is the focus's, which under Freeze stays put while the selection moves.
@@ -1282,7 +1283,7 @@ function computeVisible() {
       inAdj.get(n.id).forEach((id) => keep.add(id));
     });
   }
-  if (view === "flow" && focus)
+  if (view !== "matrix" && view !== "treemap" && focus)
     keep = new Set([focus, ...reach(focus, inAdj).set, ...reach(focus, outAdj).set]);
   visibleIds = keep;
   // Every call link in view carries its badge, just behind its arrowhead. Links into one callee
@@ -1298,10 +1299,13 @@ function computeVisible() {
   });
 }
 
-// Recompute what is shown, re-lay the flowchart around it, and zoom to it if asked.
+// Recompute what is shown, re-lay the view around it, and zoom to it if asked.
 function refocus(fit) {
   computeVisible();
-  if (view === "flow") { layoutFlowchart(); Graph.d3ReheatSimulation(); }
+  if (view === "flow") layoutFlowchart();
+  else if (view === "bundle") layoutBundle();
+  else if (view === "cluster") layoutCluster();
+  Graph.d3ReheatSimulation();
   repaint();
   // Fitting an empty set collapses the zoom to its floor, so only fit what is there.
   if (fit && view !== "matrix" && view !== "treemap" && nodes.some(isVisible))
@@ -1317,6 +1321,7 @@ function refocus(fit) {
 const FC = { w: 180, h: 34, row: 44, col: 250 };
 
 function layoutFlowchart() {
+  nodes.forEach((n) => { n.fx = null; n.fy = null; });
   const shown = nodes.filter(isVisible).sort((a, b) =>
     dirOf(fileOf(a)).localeCompare(dirOf(fileOf(b))) || labelOf(a).localeCompare(labelOf(b)));
   const ids = new Set(shown.map((n) => n.id));
@@ -1756,14 +1761,10 @@ function selectNode(id, recenter) {
   computeHighlight(id);
   showTab("file");
   renderFile(node);
-  // The flowchart narrows to the selection's chain and fits it; the other views fly to the node.
-  // Under Freeze neither happens: the panel and highlight follow the click, the canvas does not.
+  // Canvas views narrow to the selection's chain and fit it; under Freeze the view stays put.
   if (!el("freeze").checked) focus = id;
   if (el("freeze").checked) { /* view held */ }
-  else if (view === "flow") refocus(true);
-  else if (recenter && node.x != null && view !== "matrix" && view !== "treemap") {
-    Graph.centerAt(node.x, node.y, 500); Graph.zoom(3, 500);
-  }
+  else if (view !== "matrix" && view !== "treemap") refocus(true);
   if (view === "matrix") renderMatrix();
   updateStatus(); repaint();
 }
@@ -1774,7 +1775,7 @@ function clearSelection() {
   // panel that offers "back" is showing. Reset from any other panel used to throw
   // on null here; renderPanel() below redraws the panel from `backTo` anyway.
   backTo = null; el("backBtn")?.classList.remove("on");
-  refocus(view === "flow"); renderPanel(); updateStatus();
+  refocus(view !== "matrix" && view !== "treemap"); renderPanel(); updateStatus();
   if (view === "matrix") renderMatrix();
 }
 
@@ -2154,12 +2155,15 @@ el("hulls").addEventListener("change", repaint);
 el("showOrder").addEventListener("change", repaint);
 el("showTests").addEventListener("change", () => applyMap(mapName));
 el("blast").addEventListener("change", () => {
-  if (selected) { computeHighlight(selected); refocus(view === "flow" && !el("freeze").checked); }
+  if (selected) {
+    computeHighlight(selected);
+    refocus(view !== "matrix" && view !== "treemap" && !el("freeze").checked);
+  }
 });
 // Unfreezing catches the view up with whatever was selected while it was held.
 el("freeze").addEventListener("change", () => {
   if (el("freeze").checked || !selected || focus === selected) return;
-  if (view === "flow") { focus = selected; refocus(true); }
+  if (view !== "matrix" && view !== "treemap") { focus = selected; refocus(true); }
   else selectNode(selected, true);
 });
 // The overflow menu. Its buttons keep their old ids, so the handlers around this
