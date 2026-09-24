@@ -7182,4 +7182,23 @@ Implemented comprehensive flowchart redesign and component grouping fixes across
 **Response**
 Replaced `docs/images/explorer-flowchart.png` with the user's uploaded screenshot showing the v0.4.0 visual enhancements (service containers, cubic Bezier curve routing, domain column headers, and call sequence badges). Updated `README.md` caption and selection description to match `OrderService.place_order` (the node selected in the screenshot) and dynamic service containers. Verified `check_docs.py` (OK), staged changes, committed, and pushed to `origin/main`.
 
+## [178] 2026-09-24 — Fix canvas physics, drag unpinning, and node interactions across Graph, Tree, and Bundle views
+
+**Prompt**
+> I tested on readbed project physics are broke check if it really broke 
+> and not just physics I cannot click/drag or do anything in graph/tree/bundle
+> commit & push
+
+(with an uploaded screenshot of the Graph view with collapsed vertical columns and unresponsive canvas)
+
+**Response**
+Diagnosed and fixed the canvas crash and interaction failures across Graph, Tree, Cluster, and Bundle views:
+1. **Fatal `ReferenceError: issue is not defined`**: Restored `const issue = worstIssue(node.id);` in `drawNode` (`templates/viewer.html`), which had been accidentally removed in commit `6209387`. This error crashed force-graph's `_animationCycle` on the first frame whenever switching away from Flowchart, halting D3 force physics, freezing node positions in initial flowchart columns, and killing all pointer interactions.
+2. **Dynamic Drag Handling**: In Graph and Tree views, dragged nodes are freed (`fx = undefined`, `fy = undefined`) and simulation reheated on drag end; in Flow, Bundle, and Cluster views, manual placements remain pinned.
+3. **Use `undefined` over `null` for `fx`/`fy`**: Converted `fx = null` to `fx = undefined` across `setView`, `layoutBundle`, `layoutCluster`, and `layoutFlowchart`, aligning with force-graph's internal `void 0 === r.fx` unpin check.
+4. **Enhanced Pointer Hit Area**: Expanded `nodePointerAreaPaint` to cover the node radius plus label text for reliable node selection.
+5. **Fixed Marquee Check**: Replaced `!Graph.hoverObj` with `!hovered` in canvas `pointerdown`.
+Rebuilt `data/explorer.html`, verified headless browser interaction tests pass with 0 exceptions, verified regression suites (`check_regressions: 84/84 PASS`, `check_graph: 34/34 OK`, `check_docs: OK`), committed, and pushed.
+
+
 

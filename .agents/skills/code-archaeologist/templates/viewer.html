@@ -988,7 +988,12 @@ const Graph = ForceGraph()(el("graph"))
   .nodePointerAreaPaint((node, color, ctx) => {
     ctx.fillStyle = color;
     if (view === "flow") return ctx.fillRect(node.x - FC.w / 2, node.y - FC.h / 2, FC.w, FC.h);
-    ctx.beginPath(); ctx.arc(node.x, node.y, 5, 0, 2 * Math.PI); ctx.fill();
+    const r = 4 + Math.min(degree(node.id), 8) * 0.7;
+    ctx.beginPath(); ctx.arc(node.x, node.y, r + 4, 0, 2 * Math.PI); ctx.fill();
+    const fs = 11;
+    ctx.font = `${fs}px ui-sans-serif, system-ui`;
+    const tw = ctx.measureText(labelOf(node)).width;
+    ctx.fillRect(node.x + r + 2, node.y - fs, tw + 4, fs + 6);
   })
   // Pointing at a box lets its call order win every arrowhead it shares with another caller.
   .onNodeHover((n) => {
@@ -1004,22 +1009,37 @@ const Graph = ForceGraph()(el("graph"))
           if (other) {
             other.x += translate.x;
             other.y += translate.y;
-            other.fx = other.x;
-            other.fy = other.y;
+            if (view === "flow" || view === "bundle" || view === "cluster") {
+              other.fx = other.x;
+              other.fy = other.y;
+            }
           }
         }
       });
     }
   })
   .onNodeDragEnd((node) => {
-    if (selectedNodes.has(node.id)) {
-      selectedNodes.forEach((id) => {
-        const other = byId.get(id);
-        if (other) {
-          other.fx = other.x;
-          other.fy = other.y;
-        }
-      });
+    if (view === "flow" || view === "bundle" || view === "cluster") {
+      if (selectedNodes.has(node.id)) {
+        selectedNodes.forEach((id) => {
+          const other = byId.get(id);
+          if (other) {
+            other.fx = other.x;
+            other.fy = other.y;
+          }
+        });
+      }
+    } else {
+      if (selectedNodes.has(node.id)) {
+        selectedNodes.forEach((id) => {
+          const other = byId.get(id);
+          if (other) {
+            other.fx = undefined;
+            other.fy = undefined;
+          }
+        });
+      }
+      Graph.d3ReheatSimulation();
     }
   });
 
@@ -1029,6 +1049,7 @@ const degree = (id) => outAdj.get(id).length + inAdj.get(id).length;
 function drawNode(node, ctx, scale) {
   if (view === "flow") return drawFlowBox(node, ctx, scale);
   const r = 4 + Math.min(degree(node.id), 8) * 0.7;
+  const issue = worstIssue(node.id);
   ctx.beginPath();
   ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
   ctx.fillStyle = colorFor(node);
@@ -1377,7 +1398,7 @@ function setView(next) {
   if (view === "matrix") return renderMatrix();
   if (view === "treemap") return renderTreemap();
 
-  nodes.forEach((n) => { n.fx = null; n.fy = null; });
+  nodes.forEach((n) => { n.fx = undefined; n.fy = undefined; });
   Graph.linkCurvature(view === "bundle" ? 0.45 : 0);
 
   if (view === "tree") {
@@ -1395,7 +1416,7 @@ function setView(next) {
 // Bundle: nodes pinned on a circle, grouped by folder, links drawn as curves that
 // bow through the middle — the readable stand-in for hierarchical edge bundling.
 function layoutBundle() {
-  nodes.forEach((n) => { n.fx = null; n.fy = null; });
+  nodes.forEach((n) => { n.fx = undefined; n.fy = undefined; });
   const ordered = nodes.filter(isVisible).sort((a, b) => {
     const fa = dirOf(fileOf(a)), fb = dirOf(fileOf(b));
     return fa.localeCompare(fb) || a.id.localeCompare(b.id);
@@ -1410,7 +1431,7 @@ function layoutBundle() {
 // Cluster: folders get anchors on a ring, and each folder's nodes sit on a small
 // circle around their anchor. Pinned, so the grouping is stable and readable.
 function layoutCluster() {
-  nodes.forEach((n) => { n.fx = null; n.fy = null; });
+  nodes.forEach((n) => { n.fx = undefined; n.fy = undefined; });
   const shown = nodes.filter(isVisible);
   const activeFolders = folders.filter((f) => shown.some((n) => dirOf(fileOf(n)) === f));
   const groups = new Map(activeFolders.map((f) => [f, []]));
@@ -1483,7 +1504,7 @@ function refocus(fit) {
 const FC = { w: 192, h: 36, row: 54, col: 275 };
 
 function layoutFlowchart() {
-  nodes.forEach((n) => { n.fx = null; n.fy = null; });
+  nodes.forEach((n) => { n.fx = undefined; n.fy = undefined; });
   const shown = nodes.filter(isVisible).sort((a, b) =>
     dirOf(fileOf(a)).localeCompare(dirOf(fileOf(b))) || labelOf(a).localeCompare(labelOf(b)));
   const ids = new Set(shown.map((n) => n.id));
@@ -2873,7 +2894,7 @@ marqueeEl.style.cssText = "position:absolute;display:none;border:1px dashed #3fe
 stage.appendChild(marqueeEl);
 
 stage.addEventListener("pointerdown", (e) => {
-  if (e.shiftKey && !Graph.hoverObj && view !== "matrix" && view !== "treemap") {
+  if (e.shiftKey && !hovered && view !== "matrix" && view !== "treemap") {
     const r = stage.getBoundingClientRect();
     marquee = { x0: e.clientX - r.left, y0: e.clientY - r.top, x1: e.clientX - r.left, y1: e.clientY - r.top };
     marqueeEl.style.left = marquee.x0 + "px";
