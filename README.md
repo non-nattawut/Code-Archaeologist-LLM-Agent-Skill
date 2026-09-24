@@ -43,12 +43,12 @@ Everything is **100% deterministic**: real tree-sitter AST parsers + graph trave
   📖 Read   ➜  5 notes (~1,500 tokens) instead of reading the whole repo
 ```
 
-The same question explored visually: select `OrderRepository.save` in the **Flowchart** view to see all execution paths reaching it, its call ordering, and its blast radius:
+The same question explored visually: select `OrderService.place_order` in the **Flowchart** view to see all execution paths passing through it, its call ordering, and its blast radius:
 
 <p align="center">
   <img src="docs/images/explorer-flowchart.png" alt="Explorer Flowchart view" width="100%">
   <br>
-  <em>Interactive Flowchart: Call-order sequence badges (1, 2) on paths leading to <code>OrderRepository.save</code>, with impact analysis in the inspector.</em>
+  <em>Interactive Flowchart: Dynamic service containers, call-order sequence badges (1, 2) leading to <code>OrderRepository.save</code>, with impact analysis in the inspector.</em>
 </p>
 
 ---

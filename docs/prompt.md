@@ -7172,3 +7172,14 @@ Implemented comprehensive flowchart redesign and component grouping fixes across
    - Drafted release notes in Markdown for release 0.4.
    - Verified: `check_docs: OK`, `check_graph: 34/34 OK`, `check_regressions: 84/84 PASS`.
 
+## [177] 2026-09-24 — Update README flowchart screenshot with v0.4.0 service containers layout
+
+**Prompt**
+> new picture to replace the old one in readme after finish commit and push
+
+(with an uploaded screenshot of the updated Flowchart view showing the v0.4.0 service containers layout, `OrderService.place_order` selected, sequence badges 1 and 2, and blast radius inspector)
+
+**Response**
+Replaced `docs/images/explorer-flowchart.png` with the user's uploaded screenshot showing the v0.4.0 visual enhancements (service containers, cubic Bezier curve routing, domain column headers, and call sequence badges). Updated `README.md` caption and selection description to match `OrderService.place_order` (the node selected in the screenshot) and dynamic service containers. Verified `check_docs.py` (OK), staged changes, committed, and pushed to `origin/main`.
+
+
