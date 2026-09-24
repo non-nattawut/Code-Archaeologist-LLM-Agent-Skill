@@ -7200,5 +7200,36 @@ Diagnosed and fixed the canvas crash and interaction failures across Graph, Tree
 5. **Fixed Marquee Check**: Replaced `!Graph.hoverObj` with `!hovered` in canvas `pointerdown`.
 Rebuilt `data/explorer.html`, verified headless browser interaction tests pass with 0 exceptions, verified regression suites (`check_regressions: 84/84 PASS`, `check_graph: 34/34 OK`, `check_docs: OK`), committed, and pushed.
 
+## [179] 2026-09-24 — Fix cross-stack frontend-to-backend API linking and standalone controller isolation
+
+**Prompt**
+> we cannot know the link to it if front/bnack have duplicate name?
+> yeah I see some is un connect to API frontend you can check D:\Project\RoadBedProject is this correct
+> continue I stop yopu because you seem freeze
+> FYI I found that our script link wrong it link directly to the service not a controller so that why controller is stand alone
+> yes do it
+> and think around of it about other api calling/backend API defining style to prevent this problem again
+
+**Response**
+Diagnosed and fixed the frontend-to-backend HTTP bridge in `RoadBedProject`, where backend Spring controllers (`AuthController`, `TenantController`, `HouseController`, `UserController`) were rendered standalone with missing frontend call edges:
+
+1. **Member Expression Callee Extraction (`js_ts_extract.py`)**:
+   - `_callee_parts`: When `obj.type == "member_expression"` (e.g. `this.axiosInstance.post(...)`, `api.client.get(...)`), extract the property name (`axiosInstance`, `client`) instead of returning an empty string.
+2. **Comprehensive HTTP Client Recognition (`js_ts_extract.py`)**:
+   - `_is_http_client`: Added detection for any client name containing `"axios"` (`axiosInstance`, `clientAxios`), in `HTTP_CLIENT_NAMES` (`"api"`, `"client"`, `"http"`, `"httpclient"`, `"request"`, `"fetcher"`, `"ky"`, `"superagent"`, `"instance"`), or ending with client/service/api suffixes.
+   - Handled direct client calls (`axios(url)`, `axios({ url, method })`, `axios.request(...)`) and Nuxt `$fetch` / `window.fetch`.
+3. **Class Field Constants & String Concatenations (`js_ts_extract.py`)**:
+   - `_field_consts` & `_object_consts`: Extracted class-level and constructor property string constants (`apiUrl = "http://localhost:8080/auth/"`, `apiUrl = "tenants/"`, `this.apiUrl = "..."`). Fixed tree-sitter JavaScript `field_definition` which uses `property:` rather than `name:`.
+   - `_url_of`: Added support for recursive `binary_expression` (`+`), variable/property substitutions (`this.apiUrl + "register"`), and dynamic parameter synthesis (`:userId`, `:email`, `:param`).
+4. **URL Scheme & Host Normalization (`build_flow.py`)**:
+   - `_norm_path`: Added regex stripping of URL origins (`^(?:[a-zA-Z][a-zA-Z0-9+.-]*:)?//[^/]*`), normalizing `http://localhost:8080/auth/register` to `/auth/register` to match backend Spring / FastAPI / Express route definitions.
+5. **Multi-Language Backend Route Extraction (`langs_extract.py`)**:
+   - `_class_prefix` and `_method_routes`: Extended from `lang == "java"` to `SPRING_ROUTE_LANGS = {"java", "groovy", "kotlin", "scala"}` so Kotlin and Groovy Spring controllers are recognized, and added JAX-RS / Jakarta REST HTTP verb annotations (`@GET`, `@POST`, `@PUT`, `@DELETE`, `@PATCH`, `@Path`).
+6. **Verification**:
+   - On `RoadBedProject`, cross-stack HTTP edges jumped from **6 to 24**, directly connecting all frontend services and Next.js page requests to their respective backend controllers.
+   - Added regression test `r85_cross_stack_http_calls` in `tools/check_regressions.py`.
+   - Verified: `check_regressions.py: 85/85 PASS`, `check_graph.py: OK`, `check_docs.py: OK`.
+
+
 
 

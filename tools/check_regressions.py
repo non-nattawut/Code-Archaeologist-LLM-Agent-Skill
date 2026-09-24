@@ -2366,6 +2366,62 @@ def r84_graded_before_not_graded():
         return f"analyze.to_text outputs non-graded smells before graded smells: {lines}"
 
 
+def r85_cross_stack_http_calls():
+    """real repo: frontend services using `this.axiosInstance` and `this.apiUrl + ...`
+    failed to link to backend Spring controllers, leaving controllers standalone."""
+    d = _tree({
+        "frontend/services/tenantService.js": (
+            'export default class TenantService {\n'
+            '  apiUrl = "tenants/"\n'
+            '  constructor() {\n'
+            '    this.axiosInstance = null;\n'
+            '  }\n'
+            '  updateProfilePicture(userId, formData) {\n'
+            '    return this.axiosInstance.post(this.apiUrl + "updateProfilePic/" + userId, formData);\n'
+            '  }\n'
+            '}\n'
+        ),
+        "frontend/services/authService.js": (
+            'import axios from "axios";\n'
+            'export default class AuthService {\n'
+            '  apiUrl = "http://localhost:8080/auth/"\n'
+            '  register(req) {\n'
+            '    return axios.post(this.apiUrl + "register", req);\n'
+            '  }\n'
+            '}\n'
+        ),
+        "backend/TenantController.java": (
+            'package demo;\n'
+            'import org.springframework.web.bind.annotation.*;\n'
+            '@RestController\n'
+            '@RequestMapping("tenants/")\n'
+            'public class TenantController {\n'
+            '  @PostMapping("updateProfilePic/{userId}")\n'
+            '  public void updateProfilePicture(@PathVariable String userId) {}\n'
+            '}\n'
+        ),
+        "backend/AuthController.java": (
+            'package demo;\n'
+            'import org.springframework.web.bind.annotation.*;\n'
+            '@RestController\n'
+            '@RequestMapping("auth/")\n'
+            'public class AuthController {\n'
+            '  @PostMapping("register")\n'
+            '  public void register(@RequestBody Object req) {}\n'
+            '}\n'
+        ),
+    })
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        _, edges = build_flow.analyze([d])
+    http = {(s, t) for s, t, kind in edges if kind == "http"}
+    want = {
+        ("TenantService.updateProfilePicture", "TenantController.updateProfilePicture"),
+        ("AuthService.register", "AuthController.register"),
+    }
+    if http != want:
+        return f"expected cross-stack HTTP edges {sorted(want)}, got {sorted(http)}"
+
+
 CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_append,
          r05_duplicates_declarations, r06_orphan_guard, r07_flask_routes,
          r08_missing_parser_is_visible, r09_no_absolute_paths, r10_brief_agrees_with_check,
@@ -2396,7 +2452,7 @@ CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_app
          r74_extended_classes_are_used, r75_structure_entry_points, r76_type_position_imports,
          r77_same_file_references, r78_layer_words_end_where_the_word_ends,
          r79_layer_from_the_folder, r80_one_doc_rule, r81_call_sites, r82_either_or_arms,
-         r83_coupling_has_a_direction, r84_graded_before_not_graded]
+         r83_coupling_has_a_direction, r84_graded_before_not_graded, r85_cross_stack_http_calls]
 
 
 def main() -> int:

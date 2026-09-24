@@ -615,6 +615,8 @@ CS_VERBS = {"HttpGet": "GET", "HttpPost": "POST", "HttpPut": "PUT",
             "HttpPatch": "PATCH", "HttpDelete": "DELETE"}
 REQUEST_METHOD_RE = re.compile(r"RequestMethod\.(\w+)")
 HTTP_VERBS = ("GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS")
+SPRING_ROUTE_LANGS = {"java", "groovy", "kotlin", "scala"}
+JAXRS_VERBS = {"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"}
 GO_ROUTE_FUNCS = {"HandleFunc", "Handle", "GET", "POST", "PUT", "PATCH", "DELETE",
                   "Get", "Post", "Put", "Patch", "Delete"}
 
@@ -652,7 +654,7 @@ def _first_string(node, src: bytes) -> str:
 
 def _class_prefix(annos: list[dict], lang: str, cls_name: str) -> str:
     for a in annos:
-        if lang == "java" and a["name"] in ("RequestMapping", "Path") and a["arg"]:
+        if lang in SPRING_ROUTE_LANGS and a["name"] in ("RequestMapping", "Path") and a["arg"]:
             return a["arg"]
         if lang == "csharp" and a["name"] == "Route" and a["arg"]:
             # ASP.NET's `[controller]` token means the class name without its suffix.
@@ -661,14 +663,19 @@ def _class_prefix(annos: list[dict], lang: str, cls_name: str) -> str:
 
 
 def _method_routes(annos: list[dict], prefix: str, lang: str) -> list[dict]:
-    verbs = JAVA_VERBS if lang == "java" else CS_VERBS
+    verbs = JAVA_VERBS if lang in SPRING_ROUTE_LANGS else CS_VERBS
     routes = []
+    path_arg = next((a["arg"] for a in annos if a["name"] == "Path" and a["arg"]), "")
     for a in annos:
         if a["name"] in verbs:
-            routes.append({"method": verbs[a["name"]], "path": _join_path(prefix, a["arg"])})
-        elif lang == "java" and a["name"] == "RequestMapping":
+            routes.append({"method": verbs[a["name"]], "path": _join_path(prefix, a["arg"] or path_arg)})
+        elif a["name"] in JAXRS_VERBS:
+            routes.append({"method": a["name"], "path": _join_path(prefix, a["arg"] or path_arg)})
+        elif lang in SPRING_ROUTE_LANGS and a["name"] == "RequestMapping":
             for verb in (REQUEST_METHOD_RE.findall(a["text"]) or ["ANY"]):
                 routes.append({"method": verb.upper(), "path": _join_path(prefix, a["arg"])})
+    if not routes and path_arg:
+        routes.append({"method": "ANY", "path": _join_path(prefix, path_arg)})
     return routes
 
 

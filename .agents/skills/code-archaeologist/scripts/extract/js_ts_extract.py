@@ -50,7 +50,26 @@ import grammars  # noqa: E402
 
 JS_EXTS = (".js", ".jsx", ".ts", ".tsx")
 from taxonomy import next_entry, source_dirs  # noqa: E402  (one definition of "not source")
-HTTP_VERBS = ("get", "post", "put", "patch", "delete")
+HTTP_VERBS = ("get", "post", "put", "patch", "delete", "head", "options")
+HTTP_CLIENT_NAMES = frozenset({
+    "axios", "api", "client", "http", "httpclient", "request", "fetcher",
+    "caller", "endpoint", "ky", "superagent", "instance"
+})
+
+
+def _is_http_client(name: str, axios_names: set) -> bool:
+    """Whether `name` acts as an HTTP client."""
+    if not name:
+        return False
+    if name in axios_names:
+        return True
+    low = name.lower()
+    if "axios" in low:
+        return True
+    if low in HTTP_CLIENT_NAMES:
+        return True
+    return any(low.endswith(s) for s in ("client", "http", "httpclient", "api", "apiclient", "fetcher"))
+
 
 # Which grammar reads which extension. `.tsx` needs its own language, not
 # TypeScript's: measured, not assumed -- OrderCard.tsx parses with `has_error`
@@ -199,18 +218,66 @@ def _string_consts(program) -> dict:
     return out
 
 
-def _url_of(node) -> str:
+def _from_config_object(node, class_consts: dict | None = None) -> tuple[str, str]:
+    """Extract (method, url) from an axios/fetch config object literal { url: '...', method: 'POST' }."""
+    if node is None or node.type != "object":
+        return "", ""
+    url, method = "", "GET"
+    for pair in _named(node, "pair"):
+        key = _field(pair, "key")
+        val = _field(pair, "value")
+        if key is None or val is None:
+            continue
+        k = _text(key).strip("\"'")
+        if k == "url":
+            url = _url_of(val, class_consts)
+        elif k == "method":
+            method = _url_of(val, class_consts).upper() or "GET"
+    return method, url
+
+
+def _url_of(node, class_consts: dict | None = None, in_expr: bool = False) -> str:
     """A route-ish path from a string or template literal, else "".
 
-    A same-file string constant stands for its value (`_FILE_CONSTS`), as the whole
-    argument or inside `${...}`; any other substitution becomes a `:name` segment.
+    A same-file string constant stands for its value (`_FILE_CONSTS`), or class
+    constant (`class_consts`), as the whole argument or inside `${...}` or `+`;
+    dynamic substitutions or identifiers become a `:name` segment.
     """
     if node is None:
         return ""
-    if node.type == "identifier":
-        return _FILE_CONSTS.get(_text(node), "")
+    class_consts = class_consts or {}
     if node.type == "string":
         return "".join(_text(c) for c in node.children if c.type == "string_fragment")
+    if node.type == "identifier":
+        name = _text(node)
+        if name in class_consts:
+            return class_consts[name]
+        if name in _FILE_CONSTS:
+            return _FILE_CONSTS[name]
+        return (":" + name) if in_expr else ""
+    if node.type == "member_expression":
+        obj = _field(node, "object")
+        prop = _field(node, "property")
+        prop_name = _text(prop) if prop else ""
+        if obj is not None and obj.type == "this":
+            if prop_name in class_consts:
+                return class_consts[prop_name]
+        if prop_name in _FILE_CONSTS:
+            return _FILE_CONSTS[prop_name]
+        return (":" + (prop_name or "param")) if in_expr else ""
+    if node.type == "binary_expression":
+        op = _field(node, "operator")
+        if op is None:
+            for c in node.children:
+                if c.type == "+":
+                    op = c
+                    break
+        if op is not None and _text(op) == "+":
+            left = _url_of(_field(node, "left"), class_consts, in_expr=True)
+            right = _url_of(_field(node, "right"), class_consts, in_expr=True)
+            if left and right:
+                return left + right
+            return left or right
     if node.type == "template_string":
         out = []
         for c in node.children:
@@ -218,24 +285,37 @@ def _url_of(node) -> str:
                 out.append(_text(c))
             elif c.type == "template_substitution":
                 inner = c.named_children[0] if c.named_children else None
-                if inner is not None and inner.type == "identifier" and _text(inner) in _FILE_CONSTS:
-                    out.append(_FILE_CONSTS[_text(inner)])
-                else:
-                    out.append(":" + (_text(inner) if inner is not None and inner.type == "identifier"
-                                      else "param"))
+                if inner is not None:
+                    resolved = _url_of(inner, class_consts, in_expr=False)
+                    if resolved:
+                        out.append(resolved)
+                    else:
+                        param_name = ""
+                        if inner.type == "identifier":
+                            param_name = _text(inner)
+                        elif inner.type == "member_expression":
+                            prop = _field(inner, "property")
+                            param_name = _text(prop) if prop else "param"
+                        else:
+                            param_name = "param"
+                        out.append(":" + param_name)
         return "".join(out)
-    return ""
+    return ":param" if in_expr else ""
 
 
-def _method_from_options(node) -> str:
+def _method_from_options(node, class_consts: dict | None = None) -> str:
     """The `method:` of a fetch options object, defaulting to GET like Babel."""
     if node is not None and node.type == "object":
         for pair in _named(node, "pair"):
             key = _field(pair, "key")
             if key is not None and _text(key).strip("\"'") == "method":
                 value = _field(pair, "value")
-                if value is not None and value.type == "string":
-                    return _url_of(value).upper()
+                if value is not None:
+                    m = _url_of(value, class_consts).upper()
+                    if not m and value.type == "identifier":
+                        m = _text(value).upper()
+                    if m:
+                        return m
     return "GET"
 
 
@@ -255,8 +335,16 @@ def _callee_parts(call):
     if fn.type == "member_expression":
         prop = _field(fn, "property")
         obj = _field(fn, "object")
-        return "", (_text(prop) if prop is not None else ""), (
-            _text(obj) if obj is not None and obj.type == "identifier" else "")
+        prop_str = _text(prop) if prop is not None else ""
+        obj_str = ""
+        if obj is not None:
+            if obj.type == "identifier":
+                obj_str = _text(obj)
+            elif obj.type == "member_expression":
+                inner_prop = _field(obj, "property")
+                if inner_prop is not None:
+                    obj_str = _text(inner_prop)
+        return "", prop_str, obj_str
     return "", "", ""
 
 
@@ -341,7 +429,7 @@ def _field_types(body) -> dict:
 
     def walk(n) -> None:
         if n.type in ("public_field_definition", "field_definition"):
-            name = _field(n, "name")
+            name = _field(n, "property") or _field(n, "name")
             if name is not None:
                 declared = _annotation(n) or _new_type(_field(n, "value"))
                 if declared:
@@ -364,6 +452,31 @@ def _field_types(body) -> dict:
 
     walk(body)
     return types
+
+
+def _field_consts(body) -> dict[str, str]:
+    """`this.<name>` -> string value, for string fields defined in a class body."""
+    consts: dict[str, str] = {}
+    if body is None:
+        return consts
+
+    def walk(n) -> None:
+        if n.type in ("public_field_definition", "field_definition"):
+            name = _field(n, "property") or _field(n, "name")
+            val = _field(n, "value")
+            if name is not None and val is not None and val.type == "string":
+                consts[_text(name)] = _url_of(val)
+        elif n.type == "assignment_expression":
+            left, right = _field(n, "left"), _field(n, "right")
+            if left is not None and left.type == "member_expression" and right is not None and right.type == "string":
+                obj, prop = _field(left, "object"), _field(left, "property")
+                if obj is not None and obj.type == "this" and prop is not None:
+                    consts[_text(prop)] = _url_of(right)
+        for child in n.named_children:
+            walk(child)
+
+    walk(body)
+    return consts
 
 
 def _receiver_type(call, types: dict, self_type: str) -> str:
@@ -617,7 +730,8 @@ def _scope_bindings(root) -> tuple[dict, dict, set, dict]:
 
 
 def _collect_calls(root, axios_names: set, types: dict | None = None,
-                   self_type: str = "", load_time: bool = False) -> dict:
+                   self_type: str = "", load_time: bool = False,
+                   class_consts: dict | None = None) -> dict:
     """Called names and HTTP calls in a subtree, in source order.
 
     Each call carries the class of its receiver (`type`): "" for a bare call, the
@@ -685,9 +799,17 @@ def _collect_calls(root, axios_names: set, types: dict | None = None,
             if ident:
                 for name in held(ident):        # `save(x)` where `const save = id ? update : create`
                     add(node, "", name)
-                if ident == "fetch":
-                    http.append({"method": _method_from_options(args[1] if len(args) > 1 else None),
-                                 "url": _url_of(args[0] if args else None)})
+                if ident in ("fetch", "$fetch"):
+                    http.append({"method": _method_from_options(args[1] if len(args) > 1 else None, class_consts),
+                                 "url": _url_of(args[0] if args else None, class_consts)})
+                elif _is_http_client(ident, axios_names):
+                    if args and args[0].type == "object":
+                        m, u = _from_config_object(args[0], class_consts)
+                        if u:
+                            http.append({"method": m, "url": u})
+                    elif args:
+                        http.append({"method": _method_from_options(args[1] if len(args) > 1 else None, class_consts),
+                                     "url": _url_of(args[0], class_consts)})
             elif prop:
                 if obj in aliases and obj not in types:
                     for leaf in held(obj):      # `const api = ng ? ngApi : setdatApi; api.fetch()`
@@ -702,9 +824,17 @@ def _collect_calls(root, axios_names: set, types: dict | None = None,
                 else:
                     add(node, _receiver_type(node, types, self_type), prop, obj,
                         _call_via(_member_object(node), types, self_type))
-                if obj in axios_names and prop in HTTP_VERBS:
-                    http.append({"method": prop.upper(),
-                                 "url": _url_of(args[0] if args else None)})
+                if prop == "fetch" and obj in ("window", "globalThis"):
+                    http.append({"method": _method_from_options(args[1] if len(args) > 1 else None, class_consts),
+                                 "url": _url_of(args[0] if args else None, class_consts)})
+                elif _is_http_client(obj, axios_names):
+                    if prop in HTTP_VERBS:
+                        http.append({"method": prop.upper(),
+                                     "url": _url_of(args[0] if args else None, class_consts)})
+                    elif prop == "request" and args and args[0].type == "object":
+                        m, u = _from_config_object(args[0], class_consts)
+                        if u:
+                            http.append({"method": m, "url": u})
             for a in args:
                 passed(a)
         elif node.type == "new_expression":
@@ -1002,6 +1132,7 @@ def _class_entry(node, raw, axios_names: set, module_types: dict | None = None) 
     body = _field(node, "body")
     cls_name = _text(name) if name is not None else ""
     fields = _field_types(body)          # `this.<x>` -> class, for every method below
+    consts = _field_consts(body)         # `this.<x>` -> string const
     methods = []
     for member in _named(body, "method_definition") if body is not None else []:
         key = _field(member, "name")
@@ -1013,7 +1144,8 @@ def _class_entry(node, raw, axios_names: set, module_types: dict | None = None) 
             "line": _start_line(member, member_decs), "endLine": member.end_point[0] + 1,
             "routes": _nest_routes(decorators, member_decs),
             **_collect_calls(_field(member, "body"), axios_names,
-                             {**(module_types or {}), **fields, **_scope_types(member)}, cls_name),
+                             {**(module_types or {}), **fields, **_scope_types(member)}, cls_name,
+                             class_consts=consts),
             **_returns(member),
         })
     return {
@@ -1194,6 +1326,19 @@ def _reexport_entry(node) -> dict:
     return entry
 
 
+def _object_consts(obj) -> dict[str, str]:
+    """`key -> string value` for string properties in an object literal."""
+    consts: dict[str, str] = {}
+    if obj is None:
+        return consts
+    for child in obj.named_children:
+        if child.type == "pair":
+            key, val = _field(child, "key"), _field(child, "value")
+            if key is not None and val is not None and val.type == "string":
+                consts[_text(key).strip("\"'")] = _url_of(val)
+    return consts
+
+
 def _object_entry(name: str, obj, axios_names: set, module_types: dict) -> dict:
     """`export const api = { approve: async () => ..., reject() {}, archive }`.
 
@@ -1202,6 +1347,7 @@ def _object_entry(name: str, obj, axios_names: set, module_types: dict) -> dict:
     member that just names a function (`archive`, `archive: archive`) is an alias for it.
     """
     members, aliases = [], {}
+    consts = _object_consts(obj)
     for child in obj.named_children:
         key, fn = None, None
         if child.type == "pair":
@@ -1222,7 +1368,8 @@ def _object_entry(name: str, obj, axios_names: set, module_types: dict) -> dict:
         members.append({
             "name": _text(key), "doc": _doc_above(child),
             "line": _line(child), "endLine": child.end_point[0] + 1, **_returns(fn),
-            **_collect_calls(body, axios_names, {**module_types, **_scope_types(fn)}),
+            **_collect_calls(body, axios_names, {**module_types, **_scope_types(fn)},
+                             class_consts=consts),
         })
     return {"name": name, "members": members, "aliases": aliases}
 

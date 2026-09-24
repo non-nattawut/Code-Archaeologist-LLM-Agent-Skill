@@ -83,8 +83,10 @@ def _norm_path(path: str) -> str:
     """Normalize a URL/route path so every framework's param syntax compares equal.
 
     Handles `:id` (Express/Nest), `{id}` (FastAPI), `<id>` and `<int:id>` (Flask),
-    and Nest's optional `:id?`. A query string is not part of the route.
+    and Nest's optional `:id?`. A query string is not part of the route, and any
+    URL scheme/host (`http://localhost:8080`) is stripped.
     """
+    path = re.sub(r"^(?:[a-zA-Z][a-zA-Z0-9+.-]*:)?//[^/]*", "", path)
     path = path.split("?", 1)[0]        # a query string is not part of the route
     segs = []
     for seg in path.strip("/").split("/"):
