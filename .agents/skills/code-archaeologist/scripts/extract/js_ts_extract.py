@@ -1218,6 +1218,13 @@ def _extract_tree(root, axios_names: set, module_types: dict | None = None) -> d
             out["imports"].append(_import_entry(node))
 
         elif node.type in ("class_declaration", "abstract_class_declaration"):
+            # `export default class X` / `export class X`: record default and named exports.
+            name = _field(node, "name")
+            if name is not None:
+                if exported:
+                    out["exports"]["names"].add(_text(name))
+                if default:
+                    out["exports"]["default"] = _text(name)
             out["classes"].append(_class_entry(node, raw, axios_names, mt))
 
         elif node.type == "export_statement" and _field(node, "source") is not None:
@@ -1648,6 +1655,9 @@ def _finish(out: dict, path: str) -> dict:
             out["default"] = obj["name"]
         elif exports["default"] and obj["name"] == exports["default"]:
             out["default"] = obj["name"]         # `const setdatApi = { ... }; export default setdatApi`
+    for cls in out["classes"]:
+        if exports["default"] and cls["name"] == exports["default"]:
+            out["default"] = cls["name"]         # `export default class X` / `class X {}; export default X;`
     for fn in out["functions"]:
         default = fn["name"] == "" or fn["name"] == exports["default"]
         if fn["name"] == "":

@@ -2422,6 +2422,50 @@ def r85_cross_stack_http_calls():
         return f"expected cross-stack HTTP edges {sorted(want)}, got {sorted(http)}"
 
 
+def r86_default_exported_class():
+    """real repo: a default-exported class was not recorded in `out['default']`, so when
+    another file (e.g. backend Java) defined the same method name, the import resolver had
+    no default binding and dropped the call as unresolved."""
+    import js_ts_extract
+    d = _tree({
+        "frontend/services/houseService.js": (
+            "export default class HouseService {\n"
+            "    save(data) {}\n"
+            "}\n"
+        ),
+        "frontend/services/otherService.js": (
+            "class OtherService {\n"
+            "    save(data) {}\n"
+            "}\n"
+            "export default OtherService;\n"
+        ),
+        "frontend/pages/create.js": (
+            'import HouseService from "../services/houseService";\n'
+            'export function Create() {\n'
+            '    const s = new HouseService();\n'
+            '    s.save();\n'
+            '}\n'
+        ),
+        "backend/HouseService.java": (
+            "package com.example;\n"
+            "public class HouseService {\n"
+            "    public void save() {}\n"
+            "}\n"
+        ),
+    })
+    res1 = js_ts_extract.extract_file(os.path.join(d, "frontend", "services", "houseService.js"))
+    if res1.get("default") != "HouseService":
+        return f"export default class HouseService default was {res1.get('default')!r}, expected 'HouseService'"
+    res2 = js_ts_extract.extract_file(os.path.join(d, "frontend", "services", "otherService.js"))
+    if res2.get("default") != "OtherService":
+        return f"export default OtherService default was {res2.get('default')!r}, expected 'OtherService'"
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        _, calls = _flow(d)
+    fe_save = [t for s, t in calls if s == "Create" and "HouseService.save" in t]
+    if not fe_save:
+        return f"Create -> HouseService.save edge missing from flow calls: {sorted(calls)}"
+
+
 CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_append,
          r05_duplicates_declarations, r06_orphan_guard, r07_flask_routes,
          r08_missing_parser_is_visible, r09_no_absolute_paths, r10_brief_agrees_with_check,
@@ -2452,7 +2496,8 @@ CASES = [r01_go_receiver, r02_csharp_field_type, r03_go_map_type, r04_missed_app
          r74_extended_classes_are_used, r75_structure_entry_points, r76_type_position_imports,
          r77_same_file_references, r78_layer_words_end_where_the_word_ends,
          r79_layer_from_the_folder, r80_one_doc_rule, r81_call_sites, r82_either_or_arms,
-         r83_coupling_has_a_direction, r84_graded_before_not_graded, r85_cross_stack_http_calls]
+         r83_coupling_has_a_direction, r84_graded_before_not_graded, r85_cross_stack_http_calls,
+         r86_default_exported_class]
 
 
 def main() -> int:

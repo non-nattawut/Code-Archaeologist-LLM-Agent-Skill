@@ -7230,6 +7230,51 @@ Diagnosed and fixed the frontend-to-backend HTTP bridge in `RoadBedProject`, whe
    - Added regression test `r85_cross_stack_http_calls` in `tools/check_regressions.py`.
    - Verified: `check_regressions.py: 85/85 PASS`, `check_graph.py: OK`, `check_docs.py: OK`.
 
+---
+
+## [180] 2026-09-25 — Fix default-exported class resolution for shared method names in JS/TS extraction
+
+**Prompt**
+> You are fixing a bug in a Python code-analysis tool that builds a method-level call graph
+> from source code using tree-sitter. The tool lives at:
+>   .claude/skills/code-archaeologist/scripts/
+>
+> ## Symptom
+> In a Next.js frontend, `src/main/road-bed-frontend/pages/create.js` does:
+>     import HouseService from "@/services/houseService";
+>     const houseService = new HouseService(session);
+>     houseService.save(formData)
+> and `src/main/road-bed-frontend/services/houseService.js` does:
+>     export default class HouseService { save(...) {...} ... }
+> The flow graph has NO edge from `Create` to the frontend `HouseService.save`. The call is
+> dropped as "unresolved". Other calls through the same object work, but only when the
+> method name is not also defined somewhere else.
+> ...
+
+**Response**
+Diagnosed and resolved the missing call edge:
+1. Confirmed the root cause: when two files define `HouseService.save` (backend Java and frontend JS), `core/ids.py` file-qualifies each id. `build_flow.py` falls back to `bound[rel]`, which reads `defaults[src_rel]`, but `js_ts_extract.py` never set `out["exports"]["default"]` or `out["exports"]["names"]` in `class_declaration` / `abstract_class_declaration`, nor in `_finish()` for classes.
+2. Updated `extract/js_ts_extract.py`:
+   - In `_extract_tree`: In `class_declaration` / `abstract_class_declaration`, when `exported` is True, added the class name to `out["exports"]["names"]`; when `default` is True, set `out["exports"]["default"] = _text(name)`.
+   - In `_finish`: Added `for cls in out["classes"]:` loop to set `out["default"] = cls["name"]` when `exports["default"] and cls["name"] == exports["default"]`, covering both `export default class X` and deferred `class X {}; export default X;`.
+3. Verified on `RoadBedProject`:
+   - `extract_js_files` returns `default: 'HouseService'` and `default: 'UserService'`.
+   - Rebuilt flow map: `search.py --called-by Create` now links to `src/main/road-bed-frontend/services/houseService.HouseService.save`.
+   - `context.py --node Create` removed `save` from unresolved calls.
+   - Flow edges increased from 247 to 252 (5 new edges resolved across `HouseService`, `UserService`, and `TenantService`), with 0 dropped edges.
+4. Added regression test `r86_default_exported_class` in `tools/check_regressions.py` (86/86 PASS).
+5. All test suites pass: `check_graph.py: OK`, `check_langs.py: 21/21 OK`, `check_docs.py: OK`, `check_py_oracle.py: OK`.
+
+---
+
+## [181] 2026-09-25 — Release version 0.4.3
+
+**Prompt**
+> commit & push with tag 0.4.3
+
+**Response**
+Bumped `package.json` to version `0.4.3`, created `RELEASE_NOTES_0.4.3.md`, appended turn transcript entries to `docs/prompt.md`, verified test suites, committed changes, tagged `0.4.3`, and pushed commits and tags to `origin/main`.
+
 
 
 
